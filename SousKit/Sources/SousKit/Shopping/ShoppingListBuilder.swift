@@ -14,6 +14,7 @@ public enum ShoppingListBuilder {
     ///   yeast on the list, not a jar of naan.
     public static func build(
         from planned: [(recipe: Recipe, servings: Int)],
+        catalog: IngredientCatalog = .bundled,
         resolve: (UUID) -> Recipe?
     ) -> [ShoppingItem] {
         var accumulator: [String: ShoppingItem] = [:]
@@ -26,6 +27,7 @@ public enum ShoppingListBuilder {
                 origin: entry.recipe.title,
                 depth: 0,
                 visited: [],
+                catalog: catalog,
                 resolve: resolve,
                 into: &accumulator,
                 order: &order
@@ -40,6 +42,7 @@ public enum ShoppingListBuilder {
         origin: String,
         depth: Int,
         visited: Set<UUID>,
+        catalog: IngredientCatalog,
         resolve: (UUID) -> Recipe?,
         into accumulator: inout [String: ShoppingItem],
         order: inout [String]
@@ -61,6 +64,7 @@ public enum ShoppingListBuilder {
                     origin: linked.title,
                     depth: depth + 1,
                     visited: seen,
+                    catalog: catalog,
                     resolve: resolve,
                     into: &accumulator,
                     order: &order
@@ -68,7 +72,7 @@ public enum ShoppingListBuilder {
                 continue
             }
 
-            add(ingredient, from: origin, into: &accumulator, order: &order)
+            add(ingredient, from: origin, catalog: catalog, into: &accumulator, order: &order)
         }
     }
 
@@ -80,17 +84,23 @@ public enum ShoppingListBuilder {
     private static func add(
         _ ingredient: RecipeIngredient,
         from origin: String,
+        catalog: IngredientCatalog,
         into accumulator: inout [String: ShoppingItem],
         order: inout [String]
     ) {
-        let key = ShoppingItem.key(for: ingredient.name)
+        let written = ShoppingItem.displayName(for: ingredient.name)
+        let key = ShoppingItem.key(for: ingredient.name, catalog: catalog)
         guard !key.isEmpty else { return }
 
         if accumulator[key] == nil {
             order.append(key)
+            let known = catalog.ingredient(for: written)
             accumulator[key] = ShoppingItem(
                 key: key,
-                name: ShoppingItem.displayName(for: ingredient.name)
+                // A known ingredient is shown under its catalog name, so the
+                // list reads consistently however the recipes spell it.
+                name: known?.name ?? written,
+                category: known?.category
             )
         }
 

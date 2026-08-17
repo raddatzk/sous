@@ -9,6 +9,7 @@ public final class StoredShoppingEntry {
     /// The normalized ingredient name, matching ``ShoppingItem/key``.
     public var key: String = ""
     public var name: String = ""
+    public var categoryRaw: String?
     /// Serialized amounts added straight to the list, belonging to no recipe.
     public var manualQuantityData: Data = Data()
     /// Serialized contributions: which recipe wants how much.
@@ -28,6 +29,7 @@ public final class StoredShoppingEntry {
 
     public func apply(_ item: ShoppingItem) {
         name = item.name
+        categoryRaw = item.category?.rawValue
         manualQuantityData = (try? SousCoding.encoder.encode(item.manualQuantities)) ?? Data()
         sourceData = (try? SousCoding.encoder.encode(item.sources)) ?? Data()
         isChecked = item.isChecked
@@ -46,6 +48,7 @@ public final class StoredShoppingEntry {
         ShoppingItem(
             key: key,
             name: name,
+            category: categoryRaw.flatMap(IngredientCategory.init(rawValue:)),
             sources: sources,
             manualQuantities: manualQuantities,
             isChecked: isChecked

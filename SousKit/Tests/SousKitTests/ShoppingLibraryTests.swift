@@ -22,7 +22,8 @@ struct ShoppingLibraryTests {
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\nSalz")
 
         await shopping.add(recipe)
-        #expect(shopping.items.map(\.name) == ["Tomaten", "Salz"])
+        // Written "300 g Tomaten", listed under the catalog's name.
+        #expect(shopping.items.map(\.name) == ["Tomate", "Salz"])
         #expect(shopping.items[0].quantities == [Quantity(300, .gram)])
         #expect(shopping.items[0].recipeTitles == ["Salat"])
         #expect(shopping.items[0].sources[0].quantities == [Quantity(300, .gram)])
@@ -59,7 +60,7 @@ struct ShoppingLibraryTests {
         try await recipes.save(recipe)
         await shopping.reload()
 
-        #expect(shopping.items.map(\.name) == ["Tomaten"])
+        #expect(shopping.items.map(\.name) == ["Tomate"])
     }
 
     @Test("A linked recipe contributes its ingredients, not its name")
@@ -84,7 +85,7 @@ struct ShoppingLibraryTests {
 
         await shopping.toggle(try #require(shopping.items.first))
         await shopping.reload()
-        #expect(shopping.checkedItems.map(\.name) == ["Tomaten"])
+        #expect(shopping.checkedItems.map(\.name) == ["Tomate"])
 
         await shopping.clearChecked()
         #expect(shopping.items.map(\.name) == ["Salz"])
@@ -97,7 +98,7 @@ struct ShoppingLibraryTests {
         await shopping.toggle(try #require(shopping.items.first))
 
         await shopping.add(Recipe(title: "B", servings: 2, ingredientsText: "200 g Tomaten"))
-        #expect(shopping.openItems.map(\.name) == ["Tomaten"])
+        #expect(shopping.openItems.map(\.name) == ["Tomate"])
         #expect(shopping.items[0].quantities == [Quantity(500, .gram)])
     }
 
@@ -106,7 +107,7 @@ struct ShoppingLibraryTests {
         let (shopping, _) = try makeLibrary()
 
         await shopping.addItem("2 kg Kartoffeln")
-        #expect(shopping.items.map(\.name) == ["Kartoffeln"])
+        #expect(shopping.items.map(\.name) == ["Kartoffel"])
         #expect(shopping.items[0].quantities == [Quantity(2, .kilogram)])
         #expect(shopping.items[0].isManual)
 
@@ -124,7 +125,7 @@ extension ShoppingLibraryTests {
         await shopping.addItem("Kaffee")
 
         // One line when shopping…
-        #expect(shopping.items.map(\.name) == ["Tomaten", "Zwiebel", "Kaffee"])
+        #expect(shopping.items.map(\.name) == ["Tomate", "Zwiebel", "Kaffee"])
         #expect(shopping.items[0].quantities == [Quantity(500, .gram)])
 
         // …and split by dish when checking.
@@ -132,7 +133,7 @@ extension ShoppingLibraryTests {
         #expect(groups.map(\.recipe) == ["Salat", "Sauce", ShoppingLibrary.ungroupedTitle])
         #expect(groups[0].items[0].quantities == [Quantity(300, .gram)])
         #expect(groups[1].items[0].quantities == [Quantity(200, .gram)])
-        #expect(groups[1].items.map(\.name) == ["Tomaten", "Zwiebel"])
+        #expect(groups[1].items.map(\.name) == ["Tomate", "Zwiebel"])
         #expect(groups[2].items.map(\.name) == ["Kaffee"])
     }
 }
@@ -154,5 +155,40 @@ extension ShoppingLibraryTests {
         #expect(groups.map(\.recipe) == ["Salat", ShoppingLibrary.ungroupedTitle])
         #expect(groups[0].items[0].quantities == [Quantity(300, .gram)])
         #expect(groups[1].items[0].quantities == [Quantity(700, .gram)])
+    }
+}
+
+extension ShoppingLibraryTests {
+    @Test("Different spellings become one line")
+    func spellingsMerge() async throws {
+        let (shopping, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
+        await shopping.add(Recipe(title: "B", servings: 2, ingredientsText: "2 Tomate"))
+        await shopping.addItem("500 g Cocktailtomaten")
+
+        #expect(shopping.items.count == 1)
+        #expect(shopping.items[0].name == "Tomate")
+        #expect(shopping.items[0].quantities == [Quantity(800, .gram), Quantity(2, .piece)])
+    }
+
+    @Test("The list can be walked by aisle")
+    func groupedByAisle() async throws {
+        let (shopping, _) = try makeLibrary()
+        await shopping.add(Recipe(
+            title: "Menü",
+            servings: 2,
+            ingredientsText: """
+            1 TL Kreuzkümmel
+            300 g Tomaten
+            200 g Feta
+            2 Zitronen
+            """
+        ))
+
+        let aisles = shopping.byCategory
+        // Vegetables first, spices late — the order a shop is walked in.
+        #expect(aisles.map(\.category) == [.vegetables, .fruit, .dairy, .spices])
+        #expect(aisles[0].items.map(\.name) == ["Tomate"])
+        #expect(aisles[1].items.map(\.name) == ["Zitrone"])
     }
 }
