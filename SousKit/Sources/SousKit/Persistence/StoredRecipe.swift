@@ -24,7 +24,6 @@ public final class StoredRecipe {
     public var categories: [String] = []
     public var isFavorite: Bool = false
     public var wantToCook: Bool = false
-    public var isComponent: Bool = false
     public var notes: String?
     public var sourceKind: String = RecipeSource.Kind.manual.rawValue
     public var sourceURL: URL?
@@ -58,7 +57,6 @@ public final class StoredRecipe {
         categories = recipe.categories
         isFavorite = recipe.isFavorite
         wantToCook = recipe.wantToCook
-        isComponent = recipe.isComponent
         notes = recipe.notes
         sourceKind = recipe.source.kind.rawValue
         sourceURL = recipe.source.url
@@ -84,7 +82,6 @@ public final class StoredRecipe {
             categories: categories,
             isFavorite: isFavorite,
             wantToCook: wantToCook,
-            isComponent: isComponent,
             notes: notes,
             source: RecipeSource(
                 kind: RecipeSource.Kind(rawValue: sourceKind) ?? .manual,

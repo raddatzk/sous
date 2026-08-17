@@ -17,10 +17,6 @@ public struct RecipeQuery: Sendable, Hashable {
     public var onlyWantToCook: Bool
     /// Tombstoned recipes are excluded unless asked for.
     public var includeDeleted: Bool
-    /// Sub-recipes are hidden from the library, since they are reached
-    /// through the recipe that uses them. Searching includes them, because
-    /// someone looking for "Tortellini" by name should find it.
-    public var includeComponents: Bool
     public var sort: Sort
 
     public init(
@@ -29,7 +25,6 @@ public struct RecipeQuery: Sendable, Hashable {
         onlyFavorites: Bool = false,
         onlyWantToCook: Bool = false,
         includeDeleted: Bool = false,
-        includeComponents: Bool = false,
         sort: Sort = .titleAscending
     ) {
         self.searchText = searchText
@@ -37,7 +32,6 @@ public struct RecipeQuery: Sendable, Hashable {
         self.onlyFavorites = onlyFavorites
         self.onlyWantToCook = onlyWantToCook
         self.includeDeleted = includeDeleted
-        self.includeComponents = includeComponents
         self.sort = sort
     }
 

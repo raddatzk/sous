@@ -140,15 +140,8 @@ struct RecipeEditorView: View {
             } label: {
                 Label("Kategorien", systemImage: "tag")
             }
-            Toggle(isOn: $draft.isComponent) {
-                Label("Unterrezept", systemImage: "square.stack")
-            }
         } header: {
             sectionHeader("Angaben")
-        } footer: {
-            if draft.isComponent {
-                Text("Erscheint nicht in der Rezeptliste, sondern nur in den Rezepten, die es verwenden — und in der Suche.")
-            }
         }
     }
 
