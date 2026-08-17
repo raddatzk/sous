@@ -22,7 +22,15 @@ struct RecipeListView: View {
                 }
             }
             .navigationTitle("Rezepte")
+            #if os(iOS)
+            .searchable(
+                text: $library.searchText,
+                placement: .navigationBarDrawer(displayMode: .always),
+                prompt: "Titel, Zutat, Kategorie"
+            )
+            #else
             .searchable(text: $library.searchText, prompt: "Titel, Zutat, Kategorie")
+            #endif
             .overlay { emptyState }
             .toolbar { listToolbar }
         } detail: {

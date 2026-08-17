@@ -27,3 +27,9 @@ extension View {
             .foregroundStyle(.secondary)
     }
 }
+
+extension Locale {
+    /// The language the app is written in. A stand-in until it is localized:
+    /// hard-coded German strings and system-locale dates do not mix.
+    static let sous = Locale(identifier: "de_DE")
+}

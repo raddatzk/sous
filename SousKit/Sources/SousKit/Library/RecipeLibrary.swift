@@ -79,7 +79,9 @@ public final class RecipeLibrary {
             searchText: searchText.isEmpty ? nil : searchText,
             category: selectedCategory,
             onlyFavorites: filter == .favorites,
-            onlyWantToCook: filter == .wantToCook
+            onlyWantToCook: filter == .wantToCook,
+            // Sub-recipes stay out of the library but are findable by name.
+            includeComponents: !searchText.isEmpty
         )
     }
 
@@ -109,8 +111,12 @@ public final class RecipeLibrary {
     /// the picker that inserts a link to another recipe.
     public func findRecipes(matching text: String) async -> [Recipe] {
         do {
+            // The picker links to sub-recipes too — that is what they are for.
             return try await store.recipes(
-                matching: RecipeQuery(searchText: text.isEmpty ? nil : text)
+                matching: RecipeQuery(
+                    searchText: text.isEmpty ? nil : text,
+                    includeComponents: true
+                )
             )
         } catch {
             report(error)
