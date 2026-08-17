@@ -4,6 +4,7 @@ import SwiftUI
 struct RecipeListView: View {
     @Environment(RecipeLibrary.self) private var library
     @State private var selectedRecipeID: Recipe.ID?
+    @State private var isShowingCatalog = false
 
     var body: some View {
         @Bindable var library = library
@@ -45,6 +46,9 @@ struct RecipeListView: View {
             }
         }
         .task { await library.reload() }
+        .sheet(isPresented: $isShowingCatalog) {
+            IngredientCatalogView()
+        }
         .sheet(item: $library.editing) { recipe in
             RecipeEditorView(recipe: recipe) { edited in
                 await library.save(edited)
@@ -120,6 +124,13 @@ struct RecipeListView: View {
     private var listToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button("Neues Rezept", systemImage: "plus") { library.startNewRecipe() }
+        }
+        ToolbarItem(placement: .automatic) {
+            Menu("Mehr", systemImage: "ellipsis.circle") {
+                Button("Zutaten verwalten", systemImage: "carrot") {
+                    isShowingCatalog = true
+                }
+            }
         }
     }
 
