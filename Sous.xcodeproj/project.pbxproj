@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */; };
+		419B4D0856A1C3D7F12E9C66 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
 		4247A7980AD155610352A4AD /* SousApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B651330E061A44821ADA43 /* SousApp.swift */; };
 		551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */; };
 		620D5D6CC2309E2FB2D6398C /* RecipeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCFC4BBE66589EC1C58ECE1 /* RecipeEditorView.swift */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0C70498384AEDCBCE42346CB /* IngredientLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineView.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
 		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SousKit; path = SousKit; sourceTree = SOURCE_ROOT; };
 		643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipePickerView.swift; sourceTree = "<group>"; };
@@ -43,6 +45,7 @@
 			isa = PBXGroup;
 			children = (
 				CBAB32A5E9329993EB86EEB1 /* CookModeView.swift */,
+				0C70498384AEDCBCE42346CB /* IngredientLineView.swift */,
 				8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */,
 				9FCFC4BBE66589EC1C58ECE1 /* RecipeEditorView.swift */,
 				C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */,
@@ -149,6 +152,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C9037E1C2FF887B28090B806 /* CookModeView.swift in Sources */,
+				419B4D0856A1C3D7F12E9C66 /* IngredientLineView.swift in Sources */,
 				551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */,
 				620D5D6CC2309E2FB2D6398C /* RecipeEditorView.swift in Sources */,
 				03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */,

@@ -135,7 +135,7 @@ struct RecipeDetailView: View {
                                 .padding(.top, 4)
                         }
                         ForEach(group.ingredients) { ingredient in
-                            Text(markdown(formatter.string(for: ingredient)))
+                            IngredientLineView(ingredient: ingredient, formatter: formatter)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
