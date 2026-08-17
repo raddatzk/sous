@@ -24,7 +24,6 @@ struct RecipeDetailView: View {
                     actionBar
                     servingsControl
                     ingredients
-                    components
                     steps
                     notes
                     sourceFooter
@@ -215,23 +214,6 @@ struct RecipeDetailView: View {
                             IngredientLineView(ingredient: ingredient, formatter: formatter)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                    }
-                }
-            }
-        }
-    }
-
-    /// The recipes this one is built from, gathered from its links so they
-    /// can be opened without hunting for them in the text.
-    @ViewBuilder
-    private var components: some View {
-        if !recipe.linkedRecipeIDs.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Enthaltene Rezepte")
-                    .font(SousStyle.sectionHeading)
-                ForEach(recipe.linkedRecipeIDs, id: \.self) { id in
-                    LinkedRecipeRow(recipeID: id) { linked in
-                        linkedRecipe = linked
                     }
                 }
             }

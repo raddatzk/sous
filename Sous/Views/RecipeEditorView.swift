@@ -11,6 +11,10 @@ struct RecipeEditorView: View {
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
     @State private var pickedPhotos: [PhotosPickerItem] = []
+    /// Where the cursor sits in each editor, so a link lands where the writer
+    /// is looking instead of at the very end.
+    @State private var ingredientsSelection: TextSelection?
+    @State private var instructionsSelection: TextSelection?
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
@@ -48,7 +52,7 @@ struct RecipeEditorView: View {
             .toolbar { editorToolbar }
             .sheet(item: $linkTarget) { target in
                 RecipePickerView(excluding: draft.id) { picked in
-                    append(link: picked, to: target)
+                    insert(link: picked, at: target)
                 }
             }
         }
@@ -148,7 +152,7 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var ingredientSection: some View {
         Section {
-            TextEditor(text: $draft.ingredientsText)
+            TextEditor(text: $draft.ingredientsText, selection: $ingredientsSelection)
                 .frame(minHeight: 180)
             Button("Rezept verlinken", systemImage: "link") {
                 linkTarget = .ingredients
@@ -163,7 +167,7 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var stepSection: some View {
         Section {
-            TextEditor(text: $draft.instructionsText)
+            TextEditor(text: $draft.instructionsText, selection: $instructionsSelection)
                 .frame(minHeight: 220)
             Button("Rezept verlinken", systemImage: "link") {
                 linkTarget = .instructions
@@ -236,21 +240,31 @@ struct RecipeEditorView: View {
         dismiss()
     }
 
-    /// Appends the link on its own line. Inserting at the cursor would be
-    /// nicer, but a `TextEditor` does not hand out its selection, and a link
-    /// on the last line is easy to move.
-    private func append(link recipe: Recipe, to target: LinkTarget) {
+    /// Inserts the link where the cursor is, replacing whatever is selected.
+    private func insert(link recipe: Recipe, at target: LinkTarget) {
         let markdown = RecipeLink.markdown(title: recipe.title, id: recipe.id)
         switch target {
         case .ingredients:
-            draft.ingredientsText = appending(markdown, to: draft.ingredientsText)
+            insert(markdown, into: &draft.ingredientsText, at: &ingredientsSelection)
         case .instructions:
-            draft.instructionsText = appending(markdown, to: draft.instructionsText)
+            insert(markdown, into: &draft.instructionsText, at: &instructionsSelection)
         }
     }
 
-    private func appending(_ line: String, to text: String) -> String {
-        text.isEmpty ? line : text + (text.hasSuffix("\n") ? "" : "\n") + line
+    private func insert(_ snippet: String, into text: inout String, at selection: inout TextSelection?) {
+        guard case .selection(let range)? = selection?.indices else {
+            // Nobody has put a cursor in the field yet, so the end is the only
+            // sensible place — on its own line, since one line is one entry.
+            text = text.isEmpty ? snippet : text + (text.hasSuffix("\n") ? "" : "\n") + snippet
+            selection = nil
+            return
+        }
+
+        let offset = text.distance(from: text.startIndex, to: range.lowerBound) + snippet.count
+        text.replaceSubrange(range, with: snippet)
+        // Indices did not survive the edit; rebuild the cursor from the offset.
+        let cursor = text.index(text.startIndex, offsetBy: min(offset, text.count))
+        selection = TextSelection(insertionPoint: cursor)
     }
 
     private func save() {

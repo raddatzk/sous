@@ -41,7 +41,7 @@ struct RecipeLinkTests {
         let id = UUID()
         let ingredient = IngredientParser.parseLine("1 Portion \(RecipeLink.markdown(title: "Pizzateig", id: id))")
 
-        #expect(ingredient.quantity == Quantity(1, .piece))
+        #expect(ingredient.quantity == Quantity(1, .portion))
         #expect(ingredient.name.contains("Pizzateig"))
     }
 
