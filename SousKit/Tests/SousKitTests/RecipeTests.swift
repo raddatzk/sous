@@ -9,17 +9,12 @@ struct RecipeTests {
         let recipe = Recipe(
             title: "Pizza",
             servings: 4,
-            ingredients: [
-                RecipeIngredient(
-                    name: "Pizzateig",
-                    quantity: Quantity(1, .custom("Portion")),
-                    group: "Boden",
-                    linkedRecipeID: UUID()
-                )
-            ],
-            steps: [RecipeStep(text: "Backen", durationSeconds: 900)],
+            ingredientsText: "Boden:\n1 Portion Pizzateig",
+            instructionsText: "Backen",
             categories: ["Italienisch"],
-            source: RecipeSource(kind: .web, url: URL(string: "https://example.org"), name: "Example")
+            source: RecipeSource(kind: .web, url: URL(string: "https://example.org"), name: "Example"),
+            createdAt: .nowInSyncPrecision,
+            updatedAt: .nowInSyncPrecision
         )
 
         let data = try SousCoding.encoder.encode(recipe)
@@ -27,34 +22,50 @@ struct RecipeTests {
         #expect(decoded == recipe)
     }
 
+    @Test("Ingredients and steps are parsed from the stored text")
+    func derivedStructure() {
+        let recipe = Recipe(
+            title: "Pfanne",
+            ingredientsText: "300 g Zucchini, gewürfelt",
+            instructionsText: "1. Schneiden\n2. Anbraten"
+        )
+
+        #expect(recipe.ingredients.count == 1)
+        #expect(recipe.ingredients[0].preparation == "gewürfelt")
+        #expect(recipe.steps.map(\.text) == ["Schneiden", "Anbraten"])
+    }
+
     @Test("Ingredient groups keep the order they first appear in")
     func ingredientGrouping() {
         let recipe = Recipe(
             title: "Lasagne",
-            ingredients: [
-                RecipeIngredient(name: "Mehl", group: "Teig"),
-                RecipeIngredient(name: "Hackfleisch", group: "Sauce"),
-                RecipeIngredient(name: "Ei", group: "Teig"),
-                RecipeIngredient(name: "Salz"),
-            ]
+            ingredientsText: """
+            Teig:
+            300 g Mehl
+            1 Ei
+
+            Sauce:
+            500 g Hackfleisch
+            """
         )
 
-        let groups = recipe.ingredientGroups
-        #expect(groups.map(\.group) == ["Teig", "Sauce", nil])
+        let groups = recipe.ingredientGroups()
+        #expect(groups.map(\.group) == ["Teig", "Sauce"])
         #expect(groups[0].ingredients.map(\.name) == ["Mehl", "Ei"])
     }
 
-    @Test("Linked recipes are collected from ingredients and steps")
-    func linkedRecipes() {
-        let dough = UUID()
-        let sauce = UUID()
-        let recipe = Recipe(
-            title: "Pizza",
-            ingredients: [RecipeIngredient(name: "Teig", linkedRecipeID: dough)],
-            steps: [RecipeStep(text: "Sauce verteilen", linkedRecipeID: sauce)]
-        )
+    @Test("Groups can be read at a different serving count")
+    func scaledGroups() {
+        let recipe = Recipe(title: "Teig", servings: 2, ingredientsText: "300 g Mehl")
 
-        #expect(recipe.linkedRecipeIDs == [dough, sauce])
+        let groups = recipe.ingredientGroups(scaledToServings: 6)
+        #expect(groups[0].ingredients[0].quantity == Quantity(900, .gram))
+    }
+
+    @Test("A recipe without ingredients or instructions reports itself empty")
+    func emptiness() {
+        #expect(Recipe(title: "Leer").isEmpty)
+        #expect(!Recipe(title: "Voll", ingredientsText: "Salz").isEmpty)
     }
 
     @Test("A tombstoned recipe reports itself as deleted")

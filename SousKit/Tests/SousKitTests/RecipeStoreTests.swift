@@ -13,15 +13,16 @@ struct RecipeStoreTests {
         Recipe(
             title: title,
             servings: 2,
-            ingredients: [
-                RecipeIngredient(name: "Zucchini", quantity: Quantity(300, .gram), group: "Pfanne"),
-                RecipeIngredient(name: "Feta", quantity: Quantity(100, .gram)),
-                RecipeIngredient(name: "Salz"),
-            ],
-            steps: [
-                RecipeStep(text: "Zucchini schneiden"),
-                RecipeStep(text: "Anbraten", durationSeconds: 480),
-            ],
+            ingredientsText: """
+            Pfanne:
+            300 g Zucchini
+            100 g Feta
+            Salz
+            """,
+            instructionsText: """
+            Zucchini schneiden
+            Anbraten
+            """,
             categories: ["Schnell", "Vegetarisch"]
         )
     }
@@ -34,12 +35,12 @@ struct RecipeStoreTests {
 
         let loaded = try #require(try await store.recipe(id: recipe.id))
         #expect(loaded.title == recipe.title)
+        #expect(loaded.ingredientsText == recipe.ingredientsText)
+        #expect(loaded.instructionsText == recipe.instructionsText)
         #expect(loaded.ingredients.map(\.name) == ["Zucchini", "Feta", "Salz"])
         #expect(loaded.ingredients[0].quantity == Quantity(300, .gram))
         #expect(loaded.ingredients[0].group == "Pfanne")
-        #expect(loaded.ingredients[2].quantity == nil)
         #expect(loaded.steps.map(\.text) == ["Zucchini schneiden", "Anbraten"])
-        #expect(loaded.steps[1].durationSeconds == 480)
         #expect(loaded.categories == ["Schnell", "Vegetarisch"])
     }
 
@@ -56,7 +57,7 @@ struct RecipeStoreTests {
         #expect(loaded.updatedAt == saved.updatedAt)
     }
 
-    @Test("Saving twice updates in place and leaves no orphaned rows")
+    @Test("Saving twice updates in place instead of inserting again")
     func saveIsIdempotentOnIdentity() async throws {
         let container = try ModelContainer.sousContainer(inMemory: true)
         let store = SwiftDataRecipeStore(modelContainer: container)
@@ -65,7 +66,7 @@ struct RecipeStoreTests {
         try await store.save(recipe)
 
         recipe.title = "Zucchinipfanne mit Feta"
-        recipe.ingredients = [RecipeIngredient(name: "Zucchini", quantity: Quantity(400, .gram))]
+        recipe.ingredientsText = "400 g Zucchini"
         try await store.save(recipe)
 
         let all = try await store.recipes(matching: .all)
@@ -74,12 +75,7 @@ struct RecipeStoreTests {
         #expect(all[0].ingredients.count == 1)
 
         let context = ModelContext(container)
-        // Three ingredients became one and the two steps were replaced in
-        // place — anything more would be rows the update left behind.
-        let storedIngredients = try context.fetchCount(FetchDescriptor<StoredIngredient>())
-        let storedSteps = try context.fetchCount(FetchDescriptor<StoredStep>())
-        #expect(storedIngredients == 1)
-        #expect(storedSteps == 2)
+        #expect(try context.fetchCount(FetchDescriptor<StoredRecipe>()) == 1)
     }
 
     @Test("Deleting tombstones instead of erasing, and restoring brings it back")
@@ -96,6 +92,7 @@ struct RecipeStoreTests {
         #expect(withDeleted.count == 1)
         #expect(tombstoned.isDeleted)
         #expect(tombstoned.ingredients.count == 3)
+        #expect(tombstoned.ingredientsText == recipe.ingredientsText)
 
         try await store.restore(id: recipe.id)
         #expect(try await store.recipes(matching: .all).count == 1)
@@ -108,7 +105,7 @@ struct RecipeStoreTests {
         try await store.save(
             Recipe(
                 title: "Linsensuppe",
-                ingredients: [RecipeIngredient(name: "Rote Linsen")],
+                ingredientsText: "200 g Rote Linsen",
                 categories: ["Suppe"]
             )
         )

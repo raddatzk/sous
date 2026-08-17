@@ -80,9 +80,12 @@ A plain greedy "cover the largest remaining deficit" pass systematically oversho
 
 Not fundamentally unresolved, but not yet settled in detail. Each should be decided before the phase it affects.
 
-**Blocking phase 1:**
+**Blocking phase 1:** none — the recipe data model is settled (see below).
 
-* **The recipe data model in detail** — serving scaling, recipe cross-linking, unit handling. The ingredient line is where nutrition later succeeds or fails, not the database binding: quantity, unit, optional normalized gram amount, ingredient name, and preparation note ("finely chopped") belong in separate fields from day one, along with a raw/cooked distinction. "1 onion", "a pinch", and "100 g pasta (raw vs. cooked)" are the hard cases. Retrofitting this is a data migration.
+**Recipe data model — text is the truth, structure is derived.** Ingredients and instructions are stored as written text, one entry per line, matching Mela's file format field for field. The structure needed for scaling, nutrition and shopping lists is parsed from that text on demand rather than stored in its place. The reason is that no parser understands every line: "3-4 Tomaten" scales from its lower bound, but the line itself must survive editing untouched. Storing the parse result would quietly rewrite what the user typed. Two consequences worth noting:
+
+* Importing a Mela library becomes a direct copy rather than a conversion.
+* Phase 2 cannot attach nutrition data to an ingredient by storing it on the line. It needs its own table keyed by recipe and line content, so that re-parsing does not orphan the match. Parsing is deterministic — identifiers are derived from content and position — which is what makes such a key possible.
 
 **Later:**
 

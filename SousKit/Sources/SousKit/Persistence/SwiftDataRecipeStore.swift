@@ -41,10 +41,6 @@ public actor SwiftDataRecipeStore: RecipeStore {
         updated.updatedAt = .nowInSyncPrecision
 
         if let existing = try stored(id: recipe.id) {
-            // Replacing the relationship does not delete what it held, so the
-            // previous rows are removed explicitly rather than orphaned.
-            existing.ingredients.forEach(modelContext.delete)
-            existing.steps.forEach(modelContext.delete)
             existing.apply(updated)
         } else {
             modelContext.insert(StoredRecipe(updated))
@@ -103,7 +99,7 @@ extension ModelContainer {
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: StoredRecipe.self, StoredIngredient.self, StoredStep.self,
+            for: StoredRecipe.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }

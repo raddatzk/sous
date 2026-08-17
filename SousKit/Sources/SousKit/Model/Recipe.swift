@@ -2,17 +2,22 @@ import Foundation
 
 /// A recipe, as one self-contained aggregate.
 ///
-/// Ingredients and steps are stored inline rather than referenced: the whole
-/// recipe serializes as a single unit, which is what the sync layer needs in
-/// order to encrypt it as one blob.
+/// Ingredients and instructions are stored as written text, one entry per
+/// line, the same way Mela's file format does it. Text is the truth and the
+/// structure is derived from it on demand, which means nothing the user typed
+/// can be lost by a parser that reads a line differently than intended —
+/// "3-4 Tomaten" stays "3-4 Tomaten" even though scaling only understands
+/// the lower bound. It also makes importing a Mela library a direct copy.
 public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var title: String
     public var summary: String?
     /// How many servings the amounts in `ingredients` refer to.
     public var servings: Int
-    public var ingredients: [RecipeIngredient]
-    public var steps: [RecipeStep]
+    /// Ingredients as written, one per line. See ``IngredientParser``.
+    public var ingredientsText: String
+    /// Instructions as written, one step per line. See ``StepParser``.
+    public var instructionsText: String
     public var categories: [String]
     public var isFavorite: Bool
     public var wantToCook: Bool
@@ -35,8 +40,8 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         title: String,
         summary: String? = nil,
         servings: Int = 2,
-        ingredients: [RecipeIngredient] = [],
-        steps: [RecipeStep] = [],
+        ingredientsText: String = "",
+        instructionsText: String = "",
         categories: [String] = [],
         isFavorite: Bool = false,
         wantToCook: Bool = false,
@@ -53,8 +58,8 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.title = title
         self.summary = summary
         self.servings = servings
-        self.ingredients = ingredients
-        self.steps = steps
+        self.ingredientsText = ingredientsText
+        self.instructionsText = instructionsText
         self.categories = categories
         self.isFavorite = isFavorite
         self.wantToCook = wantToCook
@@ -68,12 +73,22 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.deletedAt = deletedAt
     }
 
+    public var ingredients: [RecipeIngredient] {
+        IngredientParser.parse(ingredientsText)
+    }
+
+    public var steps: [RecipeStep] {
+        StepParser.parse(instructionsText)
+    }
+
     /// Ingredient groups in the order they first appear, with ungrouped
     /// ingredients under `nil`.
-    public var ingredientGroups: [(group: String?, ingredients: [RecipeIngredient])] {
+    public func ingredientGroups(
+        scaledToServings targetServings: Int? = nil
+    ) -> [(group: String?, ingredients: [RecipeIngredient])] {
         var order: [String?] = []
         var buckets: [String?: [RecipeIngredient]] = [:]
-        for ingredient in ingredients {
+        for ingredient in scaledIngredients(toServings: targetServings ?? servings) {
             if buckets[ingredient.group] == nil {
                 order.append(ingredient.group)
                 buckets[ingredient.group] = []
@@ -83,10 +98,9 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         return order.map { ($0, buckets[$0] ?? []) }
     }
 
-    /// Recipes this one references, through either ingredients or steps.
-    public var linkedRecipeIDs: Set<UUID> {
-        var ids = Set(ingredients.compactMap(\.linkedRecipeID))
-        ids.formUnion(steps.compactMap(\.linkedRecipeID))
-        return ids
+    /// Whether there is anything to show at all.
+    public var isEmpty: Bool {
+        ingredientsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && instructionsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }
