@@ -1,55 +1,58 @@
 import SousKit
 import SwiftUI
 
-/// Full-screen step-by-step cooking, with the ingredients a tap away and the
-/// display kept awake.
+/// Full-screen cooking: the steps scroll continuously with the current one in
+/// focus, and the full ingredient list is one swipe to the left.
 struct CookModeView: View {
     @Environment(\.dismiss) private var dismiss
 
     let recipe: Recipe
-    /// The serving count the reader had chosen, so the amounts match what
-    /// they were just looking at.
+    /// The serving count the reader had chosen, so every amount shown here —
+    /// in the list and inside the step text — matches what they were reading.
     let servings: Int
 
-    @State private var stepIndex = 0
-    @State private var showingIngredients = false
+    @State private var focusedStepID: RecipeStep.ID?
     @State private var checkedIngredients: Set<UUID> = []
     @State private var timer: StepTimer?
 
     private let formatter = QuantityFormatter()
 
     private var steps: [RecipeStep] { recipe.steps }
-    private var currentStep: RecipeStep? {
-        steps.indices.contains(stepIndex) ? steps[stepIndex] : nil
-    }
 
-    /// The number shown for the current step, restarting within its group.
-    private var currentNumber: Int {
-        guard let currentStep else { return 0 }
-        let group = currentStep.group
-        return steps[...stepIndex].filter { $0.group == group }.count
+    private var focusedIndex: Int {
+        steps.firstIndex { $0.id == focusedStepID } ?? 0
     }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             Divider()
-            stepContent
-            Divider()
-            controls
+            pages
         }
-        .background(.background)
-        .sheet(isPresented: $showingIngredients) { ingredientList }
-        .onAppear { keepDisplayAwake(true) }
+        .background(.black)
+        .preferredColorScheme(.dark)
+        .onAppear {
+            focusedStepID = steps.first?.id
+            keepDisplayAwake(true)
+        }
         .onDisappear { keepDisplayAwake(false) }
+    }
+
+    @ViewBuilder
+    private var pages: some View {
         #if os(iOS)
-        .gesture(
-            DragGesture(minimumDistance: 40)
-                .onEnded { value in
-                    if value.translation.width < 0 { advance(by: 1) }
-                    if value.translation.width > 0 { advance(by: -1) }
-                }
-        )
+        TabView {
+            stepsPage
+            ingredientsPage
+        }
+        .tabViewStyle(.page)
+        .indexViewStyle(.page(backgroundDisplayMode: .always))
+        #else
+        HStack(spacing: 0) {
+            stepsPage
+            Divider()
+            ingredientsPage.frame(width: 320)
+        }
         #endif
     }
 
@@ -62,58 +65,90 @@ struct CookModeView: View {
                 Text(recipe.title)
                     .font(.headline)
                     .lineLimit(1)
-                Text("Schritt \(stepIndex + 1) von \(steps.count)")
+                Text("Schritt \(focusedIndex + 1) von \(steps.count) · \(servings) Portionen")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Zutaten", systemImage: "list.bullet") { showingIngredients = true }
-                .labelStyle(.iconOnly)
+            // Balances the leading button so the title stays centred.
+            Button("Fertig") {}.opacity(0).disabled(true)
         }
         .padding()
     }
 
+    /// All steps in one scroll, the focused one at full strength and the rest
+    /// dimmed — the cook keeps their place without tapping anything.
     @ViewBuilder
-    private var stepContent: some View {
+    private var stepsPage: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                if let group = currentStep?.group {
-                    Text(group)
-                        .font(.headline)
-                        .foregroundStyle(.secondary)
+            LazyVStack(alignment: .leading, spacing: 32) {
+                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                    stepCard(step, number: number(for: step, at: index))
+                        .id(step.id)
+                        .opacity(step.id == focusedStepID ? 1 : 0.4)
+                        .animation(.easeInOut(duration: 0.2), value: focusedStepID)
+                        .onTapGesture { focusedStepID = step.id }
                 }
-                HStack(alignment: .firstTextBaseline, spacing: 16) {
-                    Text("\(currentNumber)")
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundStyle(.tint)
-                    Text(markdown(currentStep?.text ?? ""))
-                        .font(.title3)
-                }
-                if let seconds = currentStep?.durationSeconds, seconds > 0 {
-                    timerControl(seconds: seconds)
-                }
+                Color.clear.frame(height: 200)
             }
-            .frame(maxWidth: 640, alignment: .leading)
+            .scrollTargetLayout()
             .padding(24)
+            .frame(maxWidth: 640, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .scrollPosition(id: $focusedStepID, anchor: .top)
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
-    private func timerControl(seconds: Int) -> some View {
+    private func stepCard(_ step: RecipeStep, number: Int) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let group = step.group, isFirstOfGroup(step) {
+                Text(group)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Text("\(number)")
+                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .foregroundStyle(.tint)
+                    .frame(minWidth: 44, alignment: .trailing)
+                Text(markdown(recipe.scaledStepText(step, toServings: servings)))
+                    .font(.title3)
+            }
+
+            let used = recipe.ingredients(mentionedIn: step, scaledToServings: servings)
+            if !used.isEmpty {
+                // What this step needs, so the cook does not swipe away mid-task.
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(used) { ingredient in
+                        IngredientLineView(ingredient: ingredient, formatter: formatter)
+                            .font(.callout)
+                    }
+                }
+                .padding(.leading, 60)
+            }
+
+            if let seconds = step.durationSeconds, seconds > 0 {
+                timerControl(step: step, seconds: seconds)
+                    .padding(.leading, 60)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func timerControl(step: RecipeStep, seconds: Int) -> some View {
         HStack(spacing: 12) {
-            if let timer, timer.stepID == currentStep?.id {
+            if let timer, timer.stepID == step.id {
                 Text(timer.formattedRemaining)
                     .font(.system(.title2, design: .rounded).monospacedDigit())
                     .foregroundStyle(timer.isFinished ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
-                Button(timer.isFinished ? "Zurücksetzen" : "Stopp") {
-                    self.timer = nil
-                }
+                Button(timer.isFinished ? "Zurücksetzen" : "Stopp") { self.timer = nil }
             } else {
-                Button("Timer \(seconds / 60 > 0 ? "\(seconds / 60) Min." : "\(seconds) Sek.")", systemImage: "timer") {
-                    if let id = currentStep?.id {
-                        timer = StepTimer(stepID: id, seconds: seconds)
-                    }
+                Button(
+                    "Timer \(seconds >= 60 ? "\(seconds / 60) Min." : "\(seconds) Sek.")",
+                    systemImage: "timer"
+                ) {
+                    timer = StepTimer(stepID: step.id, seconds: seconds)
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -121,37 +156,30 @@ struct CookModeView: View {
     }
 
     @ViewBuilder
-    private var controls: some View {
-        HStack {
-            Button("Zurück", systemImage: "chevron.left") { advance(by: -1) }
-                .disabled(stepIndex == 0)
-            Spacer()
-            Button("Weiter", systemImage: "chevron.right") { advance(by: 1) }
-                .disabled(stepIndex >= steps.count - 1)
-        }
-        .buttonStyle(.bordered)
-        .padding()
-    }
-
-    @ViewBuilder
-    private var ingredientList: some View {
-        NavigationStack {
-            List {
+    private var ingredientsPage: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Zutaten")
+                    .font(.title2.bold())
                 ForEach(recipe.ingredientGroups(scaledToServings: servings), id: \.group) { group in
-                    Section(group.group ?? "Zutaten") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let name = group.group {
+                            Text(name)
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
                         ForEach(group.ingredients) { ingredient in
                             Button {
                                 toggle(ingredient.id)
                             } label: {
-                                HStack {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
                                     Image(systemName: checkedIngredients.contains(ingredient.id)
                                         ? "checkmark.circle.fill" : "circle")
                                         .foregroundStyle(.tint)
-                                    Text(markdown(formatter.string(for: ingredient)))
+                                    IngredientLineView(ingredient: ingredient, formatter: formatter)
                                         .strikethrough(checkedIngredients.contains(ingredient.id))
-                                        .foregroundStyle(checkedIngredients.contains(ingredient.id)
-                                            ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
-                                    Spacer()
+                                        .opacity(checkedIngredients.contains(ingredient.id) ? 0.45 : 1)
+                                    Spacer(minLength: 0)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -159,22 +187,19 @@ struct CookModeView: View {
                     }
                 }
             }
-            .navigationTitle("Zutaten")
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { showingIngredients = false }
-                }
-            }
+            .frame(maxWidth: 520, alignment: .leading)
+            .padding(24)
         }
-        #if os(macOS)
-        .frame(minWidth: 360, minHeight: 420)
-        #endif
+        .frame(maxWidth: .infinity)
     }
 
-    private func advance(by offset: Int) {
-        let target = stepIndex + offset
-        guard steps.indices.contains(target) else { return }
-        stepIndex = target
+    /// Numbering restarts within a group, as its heading implies.
+    private func number(for step: RecipeStep, at index: Int) -> Int {
+        steps[...index].filter { $0.group == step.group }.count
+    }
+
+    private func isFirstOfGroup(_ step: RecipeStep) -> Bool {
+        steps.first { $0.group == step.group }?.id == step.id
     }
 
     private func toggle(_ id: UUID) {
@@ -223,9 +248,7 @@ private final class StepTimer {
     var isFinished: Bool { remaining <= 0 }
 
     var formattedRemaining: String {
-        let minutes = remaining / 60
-        let seconds = remaining % 60
-        return String(format: "%d:%02d", minutes, seconds)
+        String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
 }
 
