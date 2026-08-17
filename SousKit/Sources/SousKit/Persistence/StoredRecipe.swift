@@ -3,11 +3,14 @@ import SwiftData
 
 /// The persisted form of a recipe.
 ///
-/// Deliberately a mirror of ``Recipe`` rather than the domain type itself:
-/// SwiftData models are reference types bound to a `ModelContext` and cannot
-/// cross an actor boundary, while the domain aggregate is a `Sendable` value.
-/// The mapping between them is the price for keeping the domain free of the
-/// persistence framework.
+/// A mirror of ``Recipe`` rather than the domain type itself: SwiftData
+/// models are reference types bound to a `ModelContext` and cannot cross an
+/// actor boundary, while the domain aggregate is a `Sendable` value.
+///
+/// Ingredients and instructions are single text columns, because the text is
+/// what the recipe *is*. Structure is parsed from it when something needs it,
+/// which is why there are no child entities here and no relationship order to
+/// keep straight.
 @Model
 public final class StoredRecipe {
     #Index<StoredRecipe>([\.title], [\.updatedAt])
@@ -16,6 +19,8 @@ public final class StoredRecipe {
     public var title: String = ""
     public var summary: String?
     public var servings: Int = 2
+    public var ingredientsText: String = ""
+    public var instructionsText: String = ""
     public var categories: [String] = []
     public var isFavorite: Bool = false
     public var wantToCook: Bool = false
@@ -32,15 +37,9 @@ public final class StoredRecipe {
 
     /// Title, categories and ingredient names, lowercased.
     ///
-    /// Denormalized because predicates across a relationship are fragile, and
-    /// searching by ingredient is a first-class need, not an afterthought.
+    /// Denormalized so that searching by ingredient stays a single indexed
+    /// comparison instead of parsing every recipe on every keystroke.
     public var searchText: String = ""
-
-    @Relationship(deleteRule: .cascade, inverse: \StoredIngredient.recipe)
-    public var ingredients: [StoredIngredient] = []
-
-    @Relationship(deleteRule: .cascade, inverse: \StoredStep.recipe)
-    public var steps: [StoredStep] = []
 
     public init(_ recipe: Recipe) {
         id = recipe.id
@@ -52,6 +51,8 @@ public final class StoredRecipe {
         title = recipe.title
         summary = recipe.summary
         servings = recipe.servings
+        ingredientsText = recipe.ingredientsText
+        instructionsText = recipe.instructionsText
         categories = recipe.categories
         isFavorite = recipe.isFavorite
         wantToCook = recipe.wantToCook
@@ -65,14 +66,6 @@ public final class StoredRecipe {
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
         deletedAt = recipe.deletedAt
-
-        ingredients = recipe.ingredients.enumerated().map { index, ingredient in
-            StoredIngredient(ingredient, sortOrder: index)
-        }
-        steps = recipe.steps.enumerated().map { index, step in
-            StoredStep(step, sortOrder: index)
-        }
-
         searchText = Self.searchText(for: recipe)
     }
 
@@ -82,8 +75,8 @@ public final class StoredRecipe {
             title: title,
             summary: summary,
             servings: servings,
-            ingredients: ingredients.sorted { $0.sortOrder < $1.sortOrder }.map(\.domainValue),
-            steps: steps.sorted { $0.sortOrder < $1.sortOrder }.map(\.domainValue),
+            ingredientsText: ingredientsText,
+            instructionsText: instructionsText,
             categories: categories,
             isFavorite: isFavorite,
             wantToCook: wantToCook,

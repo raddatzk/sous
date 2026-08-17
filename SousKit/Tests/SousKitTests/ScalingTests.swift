@@ -8,61 +8,47 @@ struct ScalingTests {
         Recipe(
             title: "Zucchinipfanne",
             servings: 2,
-            ingredients: [
-                RecipeIngredient(name: "Zucchini", quantity: Quantity(300, .gram)),
-                RecipeIngredient(name: "Feta", quantity: Quantity(100, .gram)),
-                RecipeIngredient(name: "Salz"),
-                RecipeIngredient(
-                    name: "Olivenöl",
-                    quantity: Quantity(2, .tablespoon),
-                    scalesWithServings: false
-                ),
-            ]
+            ingredientsText: """
+            300 g Zucchini
+            100 g Feta
+            Salz
+            """
         )
     }
 
-    @Test("Doubling servings doubles scalable amounts")
-    func doublingServings() throws {
-        let scaled = sampleRecipe().scaled(toServings: 4)
+    @Test("Doubling servings doubles the amounts")
+    func doublingServings() {
+        let scaled = sampleRecipe().scaledIngredients(toServings: 4)
 
-        #expect(scaled.servings == 4)
-        #expect(scaled.ingredients[0].quantity == Quantity(600, .gram))
-        #expect(scaled.ingredients[1].quantity == Quantity(200, .gram))
+        #expect(scaled[0].quantity == Quantity(600, .gram))
+        #expect(scaled[1].quantity == Quantity(200, .gram))
     }
 
-    @Test("Unquantified and non-scaling ingredients are left alone")
-    func exemptIngredients() {
-        let scaled = sampleRecipe().scaled(toServings: 6)
+    @Test("Unquantified ingredients are left alone")
+    func unquantified() {
+        let scaled = sampleRecipe().scaledIngredients(toServings: 6)
 
-        #expect(scaled.ingredients[2].quantity == nil)
-        #expect(scaled.ingredients[3].quantity == Quantity(2, .tablespoon))
+        #expect(scaled[2].name == "Salz")
+        #expect(scaled[2].quantity == nil)
     }
 
-    @Test("Scaling preserves identity so it cannot be mistaken for a new recipe")
-    func identityPreserved() {
-        let original = sampleRecipe()
-        let scaled = original.scaled(toServings: 4)
+    @Test("Scaling never rewrites the text the user typed")
+    func textIsUntouched() {
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "3-4 Tomaten")
 
-        #expect(scaled.id == original.id)
-        #expect(scaled.ingredients.map(\.id) == original.ingredients.map(\.id))
+        // The parser only understands the lower bound of a range, so scaling
+        // reads it as 3 — but the line itself must survive intact.
+        #expect(recipe.scaledIngredients(toServings: 4)[0].quantity == Quantity(6, .piece))
+        #expect(recipe.ingredientsText == "3-4 Tomaten")
     }
 
-    @Test("Scaling to the same or an invalid serving count is a no-op")
+    @Test("Scaling to the same or an invalid serving count changes nothing")
     func noOpScaling() {
-        let original = sampleRecipe()
+        let recipe = sampleRecipe()
 
-        #expect(original.scaled(toServings: 2) == original)
-        #expect(original.scaled(toServings: 0) == original)
-        #expect(original.scaled(by: 1) == original)
-        #expect(original.scaled(by: -1) == original)
-    }
-
-    @Test("Resolved grams scale along with the amount")
-    func resolvedGramsScale() throws {
-        var recipe = sampleRecipe()
-        recipe.ingredients[0].resolvedGrams = 300
-
-        let scaled = recipe.scaled(toServings: 6)
-        #expect(scaled.ingredients[0].resolvedGrams == 900)
+        #expect(recipe.scaledIngredients(toServings: 2) == recipe.ingredients)
+        #expect(recipe.scaledIngredients(toServings: 0) == recipe.ingredients)
+        #expect(recipe.scaledIngredients(by: 1) == recipe.ingredients)
+        #expect(recipe.scaledIngredients(by: -1) == recipe.ingredients)
     }
 }

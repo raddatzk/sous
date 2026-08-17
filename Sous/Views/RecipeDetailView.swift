@@ -10,10 +10,7 @@ struct RecipeDetailView: View {
 
     private let formatter = QuantityFormatter()
 
-    private var displayed: Recipe {
-        guard let servingsOverride, servingsOverride != recipe.servings else { return recipe }
-        return recipe.scaled(toServings: servingsOverride)
-    }
+    private var servings: Int { servingsOverride ?? recipe.servings }
 
     var body: some View {
         ScrollView {
@@ -52,6 +49,15 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// Renders inline markdown, falling back to the raw text if it does not
+    /// parse — a half-typed emphasis marker should not blank out a step.
+    private func markdown(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+
     private var metaItems: [String] {
         var items: [String] = []
         if let prep = recipe.prepTimeSeconds, prep > 0 {
@@ -66,7 +72,6 @@ struct RecipeDetailView: View {
 
     @ViewBuilder
     private var servingsControl: some View {
-        let servings = servingsOverride ?? recipe.servings
         HStack {
             Text("Portionen")
                 .font(.headline)
@@ -93,11 +98,11 @@ struct RecipeDetailView: View {
 
     @ViewBuilder
     private var ingredients: some View {
-        if !displayed.ingredients.isEmpty {
+        if !recipe.ingredients.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Zutaten")
                     .font(.title2.bold())
-                ForEach(displayed.ingredientGroups, id: \.group) { group in
+                ForEach(recipe.ingredientGroups(scaledToServings: servings), id: \.group) { group in
                     VStack(alignment: .leading, spacing: 6) {
                         if let name = group.group {
                             Text(name)
@@ -116,18 +121,18 @@ struct RecipeDetailView: View {
 
     @ViewBuilder
     private var steps: some View {
-        if !displayed.steps.isEmpty {
+        if !recipe.steps.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Zubereitung")
                     .font(.title2.bold())
-                ForEach(Array(displayed.steps.enumerated()), id: \.element.id) { index, step in
+                ForEach(Array(recipe.steps.enumerated()), id: \.element.id) { index, step in
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
                         Text("\(index + 1)")
                             .font(.headline.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .frame(minWidth: 20, alignment: .trailing)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(step.text)
+                            Text(markdown(step.text))
                             if let seconds = step.durationSeconds, seconds > 0 {
                                 Label("\(seconds / 60) Min.", systemImage: "timer")
                                     .font(.caption)

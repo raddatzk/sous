@@ -1,0 +1,123 @@
+import Foundation
+import Testing
+@testable import SousKit
+
+@Suite("Ingredient parsing")
+struct IngredientParserTests {
+    @Test("A written line becomes amount, unit, name and preparation")
+    func fullLine() {
+        let ingredient = IngredientParser.parseLine("300 g Zucchini, fein gehackt")
+
+        #expect(ingredient.quantity == Quantity(300, .gram))
+        #expect(ingredient.name == "Zucchini")
+        #expect(ingredient.preparation == "fein gehackt")
+    }
+
+    @Test("A count without a unit is a piece")
+    func bareCount() {
+        let ingredient = IngredientParser.parseLine("2 Zwiebeln")
+
+        #expect(ingredient.quantity == Quantity(2, .piece))
+        #expect(ingredient.name == "Zwiebeln")
+    }
+
+    @Test("An unknown word after the amount stays part of the name")
+    func unknownUnitIsName() {
+        let ingredient = IngredientParser.parseLine("2 Handvoll Spinat")
+
+        #expect(ingredient.quantity == Quantity(2, .piece))
+        #expect(ingredient.name == "Handvoll Spinat")
+    }
+
+    @Test("A line without an amount keeps its whole text")
+    func noAmount() {
+        let ingredient = IngredientParser.parseLine("Salz")
+
+        #expect(ingredient.quantity == nil)
+        #expect(ingredient.name == "Salz")
+    }
+
+    @Test("Decimals, fractions and mixed numbers are all understood")
+    func numberForms() {
+        #expect(IngredientParser.parseLine("1,5 kg Kartoffeln").quantity == Quantity(1.5, .kilogram))
+        #expect(IngredientParser.parseLine("1/2 TL Kreuzkümmel").quantity == Quantity(0.5, .teaspoon))
+        #expect(IngredientParser.parseLine("½ TL Zimt").quantity == Quantity(0.5, .teaspoon))
+        #expect(IngredientParser.parseLine("200ml Sahne").quantity == Quantity(200, .milliliter))
+
+        let mixed = IngredientParser.parseLine("1 ½ EL Zucker")
+        #expect(mixed.quantity == Quantity(1.5, .tablespoon))
+        #expect(mixed.name == "Zucker")
+    }
+
+    @Test("A range takes its lower bound")
+    func range() {
+        let ingredient = IngredientParser.parseLine("3-4 Tomaten")
+
+        #expect(ingredient.quantity == Quantity(3, .piece))
+        #expect(ingredient.name == "Tomaten")
+    }
+
+    @Test("Headings open a group for the lines that follow")
+    func groups() {
+        let ingredients = IngredientParser.parse("""
+        Für den Teig:
+        300 g Mehl
+        1 Ei
+
+        # Für die Sauce
+        200 ml Sahne
+
+        Salz
+        """)
+
+        #expect(ingredients.map(\.name) == ["Mehl", "Ei", "Sahne", "Salz"])
+        #expect(ingredients.map(\.group) == ["Für den Teig", "Für den Teig", "Für die Sauce", "Für die Sauce"])
+    }
+
+    @Test("A line with an amount is not mistaken for a heading")
+    func quantifiedLineIsNotAHeading() {
+        let ingredients = IngredientParser.parse("300 g Tomaten:")
+
+        #expect(ingredients.count == 1)
+        #expect(ingredients[0].quantity == Quantity(300, .gram))
+    }
+
+    @Test("Parsed lines render back to the text they came from")
+    func roundTrip() {
+        let source = """
+        Für den Teig:
+        300 g Mehl
+        1 ½ EL Zucker
+        2 Eier, verquirlt
+
+        Für die Sauce:
+        200 ml Sahne
+        Salz
+        """
+
+        let ingredients = IngredientParser.parse(source)
+        let rendered = IngredientParser.text(
+            for: ingredients,
+            formatter: QuantityFormatter(locale: Locale(identifier: "de_DE"))
+        )
+        #expect(rendered == source)
+    }
+}
+
+extension IngredientParserTests {
+    @Test("Parsing the same text twice yields equal values")
+    func parsingIsDeterministic() {
+        let text = "300 g Zucchini\n100 g Feta"
+
+        #expect(IngredientParser.parse(text) == IngredientParser.parse(text))
+        #expect(StepParser.parse("Schneiden\nAnbraten") == StepParser.parse("Schneiden\nAnbraten"))
+    }
+
+    @Test("Identity follows the line, not the recipe it sits in")
+    func identityFollowsContent() {
+        let first = IngredientParser.parse("300 g Zucchini")
+        let changed = IngredientParser.parse("400 g Zucchini")
+
+        #expect(first[0].id != changed[0].id)
+    }
+}
