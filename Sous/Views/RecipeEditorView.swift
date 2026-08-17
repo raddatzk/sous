@@ -7,6 +7,14 @@ struct RecipeEditorView: View {
     @State private var draft: Recipe
     @State private var categoriesText: String
     @State private var isSaving = false
+    @State private var linkTarget: LinkTarget?
+
+    /// Which field a picked recipe link should be appended to.
+    private enum LinkTarget: String, Identifiable {
+        case ingredients
+        case instructions
+        var id: String { rawValue }
+    }
 
     private let onSave: (Recipe) async -> Void
 
@@ -24,6 +32,9 @@ struct RecipeEditorView: View {
                 Section {
                     TextEditor(text: $draft.ingredientsText)
                         .frame(minHeight: 180)
+                    Button("Rezept verlinken", systemImage: "link") {
+                        linkTarget = .ingredients
+                    }
                 } header: {
                     Text("Zutaten")
                 } footer: {
@@ -33,6 +44,9 @@ struct RecipeEditorView: View {
                 Section {
                     TextEditor(text: $draft.instructionsText)
                         .frame(minHeight: 220)
+                    Button("Rezept verlinken", systemImage: "link") {
+                        linkTarget = .instructions
+                    }
                 } header: {
                     Text("Zubereitung")
                 } footer: {
@@ -47,6 +61,11 @@ struct RecipeEditorView: View {
             .formStyle(.grouped)
             .navigationTitle(draft.title.isEmpty ? "Neues Rezept" : draft.title)
             .toolbar { editorToolbar }
+            .sheet(item: $linkTarget) { target in
+                RecipePickerView(excluding: draft.id) { picked in
+                    append(link: picked, to: target)
+                }
+            }
         }
         // A minimum size is right for a macOS sheet and wrong on a phone,
         // where it pushes the content wider than the screen.
@@ -96,6 +115,23 @@ struct RecipeEditorView: View {
             await onSave(recipe)
             dismiss()
         }
+    }
+
+    /// Appends the link on its own line. Inserting at the cursor would be
+    /// nicer, but a `TextEditor` does not hand out its selection, and a link
+    /// on the last line is easy to move.
+    private func append(link recipe: Recipe, to target: LinkTarget) {
+        let markdown = RecipeLink.markdown(title: recipe.title, id: recipe.id)
+        switch target {
+        case .ingredients:
+            draft.ingredientsText = appending(markdown, to: draft.ingredientsText)
+        case .instructions:
+            draft.instructionsText = appending(markdown, to: draft.instructionsText)
+        }
+    }
+
+    private func appending(_ line: String, to text: String) -> String {
+        text.isEmpty ? line : text + (text.hasSuffix("\n") ? "" : "\n") + line
     }
 
     /// Bridges an optional string property to a `TextField`, treating empty
