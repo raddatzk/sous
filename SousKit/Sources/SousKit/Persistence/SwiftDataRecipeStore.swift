@@ -28,9 +28,6 @@ public actor SwiftDataRecipeStore: RecipeStore {
         if let category = query.category {
             results = results.filter { $0.categories.contains(category) }
         }
-        if !query.includeComponents {
-            results = results.filter { !$0.isComponent }
-        }
         return results.map(\.domainValue)
     }
 
