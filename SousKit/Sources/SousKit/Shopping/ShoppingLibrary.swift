@@ -122,6 +122,9 @@ public final class ShoppingLibrary {
     public var openItems: [ShoppingItem] { items.filter { !$0.isChecked } }
     public var checkedItems: [ShoppingItem] { items.filter(\.isChecked) }
 
+    /// The heading for items that belong to no recipe.
+    public static let ungroupedTitle = "Sonstiges"
+
     /// The open items grouped by the recipe that wants them, with the amount
     /// that recipe asks for. An ingredient two dishes need appears under both.
     public var byRecipe: [(recipe: String, items: [ShoppingItem])] {
@@ -140,12 +143,13 @@ public final class ShoppingLibrary {
                 grouped[source.recipeTitle]?.append(portion)
             }
             if item.isManual {
-                let own = "Von Hand"
-                if grouped[own] == nil {
-                    order.append(own)
-                    grouped[own] = []
+                // Belongs to no dish, so it is grouped by that fact rather
+                // than by where it came from.
+                if grouped[Self.ungroupedTitle] == nil {
+                    order.append(Self.ungroupedTitle)
+                    grouped[Self.ungroupedTitle] = []
                 }
-                grouped[own]?.append(item)
+                grouped[Self.ungroupedTitle]?.append(item)
             }
         }
         return order.map { ($0, grouped[$0] ?? []) }
