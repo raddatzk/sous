@@ -105,3 +105,32 @@ struct ShoppingListTests {
         #expect(list.map(\.name) == ["Naan"])
     }
 }
+
+extension ShoppingListTests {
+    @Test("Cooking measures are written beside what is bought, not converted")
+    func spoonsStaySpoons() {
+        let first = Recipe(title: "A", servings: 2, ingredientsText: "100 g Mehl")
+        let second = Recipe(title: "B", servings: 2, ingredientsText: "3 EL Mehl")
+        let third = Recipe(title: "C", servings: 2, ingredientsText: "1 TL Mehl")
+
+        let list = build([(first, 2), (second, 2), (third, 2)])
+        #expect(list.count == 1)
+        #expect(list[0].quantities == [Quantity(100, .gram), Quantity(3, .tablespoon), Quantity(1, .teaspoon)])
+    }
+
+    @Test("The same spoon adds up with itself")
+    func identicalSpoons() {
+        let first = Recipe(title: "A", servings: 2, ingredientsText: "2 EL Öl")
+        let second = Recipe(title: "B", servings: 2, ingredientsText: "1 EL Öl")
+
+        #expect(build([(first, 2), (second, 2)])[0].quantities == [Quantity(3, .tablespoon)])
+    }
+
+    @Test("Millilitres and litres are one measure, grams and kilos another")
+    func groupsThatAddUp() {
+        let first = Recipe(title: "A", servings: 2, ingredientsText: "500 ml Milch")
+        let second = Recipe(title: "B", servings: 2, ingredientsText: "1 l Milch")
+
+        #expect(build([(first, 2), (second, 2)])[0].quantities == [Quantity(1500, .milliliter)])
+    }
+}
