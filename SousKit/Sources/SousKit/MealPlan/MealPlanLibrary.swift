@@ -1,32 +1,41 @@
 import Foundation
 import Observation
 
-/// The view-facing state of the meal plan: one week at a time, with the
-/// recipes behind its entries resolved for display.
+/// The meal plan as one continuous run of days rather than a week at a time.
+///
+/// Planning does not happen in weekly blocks: two days ahead on Monday, then
+/// nothing until the weekend. The list starts today and grows as it is
+/// scrolled, so there is no boundary to bump into.
 @MainActor
 @Observable
 public final class MealPlanLibrary {
     private let store: any MealPlanStore
     private let recipeStore: any RecipeStore
 
-    /// The week being shown, seven days starting on its first weekday.
-    public private(set) var days: [Date]
+    /// How many days are added at a time.
+    private static let pageLength = 28
+
+    /// The days on screen, starting today, in order.
+    public private(set) var days: [Date] = []
     public private(set) var entries: [MealPlanEntry] = []
-    /// Recipes referenced by the current week, by id.
+    /// Recipes referenced by the visible days, by id.
     public private(set) var recipes: [UUID: Recipe] = [:]
     public var errorMessage: String?
+
+    private let firstDay: Date
 
     public init(store: any MealPlanStore, recipeStore: any RecipeStore, today: Date = Date()) {
         self.store = store
         self.recipeStore = recipeStore
-        days = today.weekDays
+        firstDay = today.startOfDay
+        days = Self.run(from: firstDay, length: Self.pageLength)
     }
 
     public func reload() async {
         do {
             entries = try await store.entries(for: days)
 
-            // Only the recipes this week actually shows, fetched once each.
+            // Only the recipes these days actually show, fetched once each.
             var resolved: [UUID: Recipe] = [:]
             for id in Set(entries.map(\.recipeID)) {
                 resolved[id] = try await recipeStore.recipe(id: id)
@@ -37,15 +46,26 @@ public final class MealPlanLibrary {
         }
     }
 
-    public func showWeek(offset: Int) async {
-        guard let anchor = days.first else { return }
-        days = anchor.addingWeeks(offset).weekDays
+    /// Extends the run further into the future, for scrolling past the end.
+    public func loadMore() async {
+        days = Self.run(from: firstDay, length: days.count + Self.pageLength)
         await reload()
     }
 
-    public func showCurrentWeek(today: Date = Date()) async {
-        days = today.weekDays
-        await reload()
+    /// Makes sure a day is part of the run, so something planned for it can
+    /// be seen.
+    private func extend(through day: Date) {
+        let target = day.startOfDay
+        guard target >= firstDay, !days.contains(target) else { return }
+        let distance = Calendar.current.dateComponents([.day], from: firstDay, to: target).day ?? 0
+        days = Self.run(from: firstDay, length: distance + 1)
+    }
+
+    private static func run(from start: Date, length: Int) -> [Date] {
+        let calendar = Calendar.current
+        return (0..<length).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: start)?.startOfDay
+        }
     }
 
     /// Entries planned for a day, with their recipe where it still exists.
@@ -56,14 +76,19 @@ public final class MealPlanLibrary {
             .map { ($0, recipes[$0.recipeID]) }
     }
 
-    public func add(_ recipe: Recipe, to day: Date) async {
+    /// Plans a recipe for a day, optionally for a different number of people
+    /// than the recipe is written for.
+    public func add(_ recipe: Recipe, to day: Date, servings: Int? = nil) async {
         let entry = MealPlanEntry(
             day: day,
             recipeID: recipe.id,
+            servings: servings == recipe.servings ? nil : servings,
             sortOrder: plan(for: day).count
         )
         do {
             try await store.save(entry)
+            // A day past the end of the run would otherwise be invisible.
+            extend(through: day)
             await reload()
         } catch {
             errorMessage = error.localizedDescription
@@ -86,5 +111,16 @@ public final class MealPlanLibrary {
             guard let recipe = recipes[entry.recipeID] else { return nil }
             return (recipe, entry.servings ?? recipe.servings)
         }
+    }
+
+    /// The recipes planned for a stretch of days, for putting a few days'
+    /// worth on the shopping list at once.
+    public func plannedRecipes(from start: Date, through end: Date) -> [(recipe: Recipe, servings: Int)] {
+        entries
+            .filter { $0.day >= start.startOfDay && $0.day <= end.startOfDay }
+            .compactMap { entry in
+                guard let recipe = recipes[entry.recipeID] else { return nil }
+                return (recipe, entry.servings ?? recipe.servings)
+            }
     }
 }
