@@ -33,40 +33,18 @@ struct RecipeEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                basics
-                imageSection
-
-                Section {
-                    TextEditor(text: $draft.ingredientsText)
-                        .frame(minHeight: 180)
-                    Button("Rezept verlinken", systemImage: "link") {
-                        linkTarget = .ingredients
-                    }
-                } header: {
-                    Text("Zutaten")
-                } footer: {
-                    Text("Eine Zutat pro Zeile, etwa „300 g Zucchini (fein gehackt)“. „# Für den Teig“ beginnt einen Abschnitt.")
-                }
-
-                Section {
-                    TextEditor(text: $draft.instructionsText)
-                        .frame(minHeight: 220)
-                    Button("Rezept verlinken", systemImage: "link") {
-                        linkTarget = .instructions
-                    }
-                } header: {
-                    Text("Zubereitung")
-                } footer: {
-                    Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
-                }
-
-                Section("Notizen") {
-                    TextField("Notizen", text: optional(\.notes), axis: .vertical)
-                        .lineLimit(3...)
-                }
+                imageStrip
+                titleSection
+                factsSection
+                ingredientSection
+                stepSection
+                notesSection
             }
             .formStyle(.grouped)
             .navigationTitle(draft.title.isEmpty ? "Neues Rezept" : draft.title)
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar { editorToolbar }
             .sheet(item: $linkTarget) { target in
                 RecipePickerView(excluding: draft.id) { picked in
@@ -81,56 +59,139 @@ struct RecipeEditorView: View {
         #endif
     }
 
+    /// Pictures come first, as a row of tiles with the picker as the last one
+    /// — the same shape as what it adds, rather than a button in a list.
     @ViewBuilder
-    private var basics: some View {
+    private var imageStrip: some View {
         Section {
-            TextField("Titel", text: $draft.title)
-            TextField("Kurzbeschreibung", text: optional(\.summary), axis: .vertical)
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(draft.imageIDs, id: \.self) { imageID in
+                        RecipeImageView(imageID: imageID, thumbnail: true)
+                            .frame(width: 88, height: 88)
+                            .clipShape(.rect(cornerRadius: 12))
+                            .overlay(alignment: .topTrailing) {
+                                Button("Entfernen", systemImage: "xmark.circle.fill") {
+                                    remove(imageID)
+                                }
+                                .labelStyle(.iconOnly)
+                                .symbolRenderingMode(.palette)
+                                .foregroundStyle(.white, .black.opacity(0.55))
+                                .padding(5)
+                            }
+                    }
+
+                    PhotosPicker(selection: $pickedPhotos, matching: .images) {
+                        RoundedRectangle(cornerRadius: 12)
+                            .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 88, height: 88)
+                            .overlay {
+                                Image(systemName: "photo.badge.plus")
+                                    .font(.title3)
+                                    .foregroundStyle(.tint)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 6)
+            }
+            .scrollIndicators(.hidden)
+        }
+        .listRowBackground(Color.clear)
+        .onChange(of: pickedPhotos) { _, items in
+            Task { await store(items) }
+        }
+    }
+
+    /// The title is typed the way it will be read — large and in the serif —
+    /// so the recipe looks like itself while it is being written.
+    @ViewBuilder
+    private var titleSection: some View {
+        Section {
+            TextField("Titel", text: $draft.title, axis: .vertical)
+                .font(SousStyle.recipeTitle)
                 .lineLimit(1...3)
-            Stepper("Portionen: \(draft.servings)", value: $draft.servings, in: 1...50)
-            LabeledContent("Vorbereitung") {
-                MinutesField(seconds: $draft.prepTimeSeconds)
-            }
-            LabeledContent("Kochzeit") {
-                MinutesField(seconds: $draft.cookTimeSeconds)
-            }
-            TextField("Kategorien, mit Komma getrennt", text: $categoriesText)
+            TextField("Kurzbeschreibung", text: optional(\.summary), axis: .vertical)
+                .foregroundStyle(.secondary)
+                .lineLimit(1...4)
         }
     }
 
     @ViewBuilder
-    private var imageSection: some View {
-        Section("Bilder") {
-            if !draft.imageIDs.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
-                        ForEach(draft.imageIDs, id: \.self) { imageID in
-                            RecipeImageView(imageID: imageID, thumbnail: true)
-                                .frame(width: 84, height: 84)
-                                .clipShape(.rect(cornerRadius: 10))
-                                .overlay(alignment: .topTrailing) {
-                                    Button("Entfernen", systemImage: "xmark.circle.fill") {
-                                        remove(imageID)
-                                    }
-                                    .labelStyle(.iconOnly)
-                                    .symbolRenderingMode(.palette)
-                                    .foregroundStyle(.white, .black.opacity(0.6))
-                                    .padding(4)
-                                }
-                        }
-                    }
-                    .padding(.vertical, 4)
-                }
-                .scrollIndicators(.hidden)
+    private var factsSection: some View {
+        Section {
+            Stepper(value: $draft.servings, in: 1...50) {
+                Label("\(draft.servings) Portionen", systemImage: "person.2")
             }
+            LabeledContent {
+                MinutesField(seconds: $draft.prepTimeSeconds)
+            } label: {
+                Label("Vorbereitung", systemImage: "clock")
+            }
+            LabeledContent {
+                MinutesField(seconds: $draft.cookTimeSeconds)
+            } label: {
+                Label("Zubereitung", systemImage: "flame")
+            }
+            LabeledContent {
+                TextField("Nachtisch, Schnell", text: $categoriesText)
+                    .multilineTextAlignment(.trailing)
+            } label: {
+                Label("Kategorien", systemImage: "tag")
+            }
+        } header: {
+            sectionHeader("Angaben")
+        }
+    }
 
-            PhotosPicker(selection: $pickedPhotos, matching: .images) {
-                Label("Bild hinzufügen", systemImage: "photo.badge.plus")
+    @ViewBuilder
+    private var ingredientSection: some View {
+        Section {
+            TextEditor(text: $draft.ingredientsText)
+                .frame(minHeight: 180)
+            Button("Rezept verlinken", systemImage: "link") {
+                linkTarget = .ingredients
             }
+        } header: {
+            sectionHeader("Zutaten")
+        } footer: {
+            Text("Eine Zutat pro Zeile, etwa „300 g Zucchini (fein gehackt)“. „# Für den Teig“ beginnt einen Abschnitt.")
         }
-        .onChange(of: pickedPhotos) { _, items in
-            Task { await store(items) }
+    }
+
+    @ViewBuilder
+    private var stepSection: some View {
+        Section {
+            TextEditor(text: $draft.instructionsText)
+                .frame(minHeight: 220)
+            Button("Rezept verlinken", systemImage: "link") {
+                linkTarget = .instructions
+            }
+        } header: {
+            sectionHeader("Zubereitung")
+        } footer: {
+            Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
         }
+    }
+
+    @ViewBuilder
+    private var notesSection: some View {
+        Section {
+            TextField("Notizen", text: optional(\.notes), axis: .vertical)
+                .lineLimit(3...)
+        } header: {
+            sectionHeader("Notizen")
+        }
+    }
+
+    /// Section headings share the serif with the rest of the app; `textCase`
+    /// is cleared because a form would otherwise shout them in capitals.
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(SousStyle.groupHeading)
+            .foregroundStyle(.primary)
+            .textCase(nil)
     }
 
     @ToolbarContentBuilder
@@ -175,21 +236,6 @@ struct RecipeEditorView: View {
         dismiss()
     }
 
-    private func save() {
-        isSaving = true
-        var recipe = draft
-        recipe.title = recipe.title.trimmingCharacters(in: .whitespaces)
-        recipe.categories = categoriesText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
-        Task {
-            await onSave(recipe)
-            dismiss()
-        }
-    }
-
     /// Appends the link on its own line. Inserting at the cursor would be
     /// nicer, but a `TextEditor` does not hand out its selection, and a link
     /// on the last line is easy to move.
@@ -205,6 +251,21 @@ struct RecipeEditorView: View {
 
     private func appending(_ line: String, to text: String) -> String {
         text.isEmpty ? line : text + (text.hasSuffix("\n") ? "" : "\n") + line
+    }
+
+    private func save() {
+        isSaving = true
+        var recipe = draft
+        recipe.title = recipe.title.trimmingCharacters(in: .whitespaces)
+        recipe.categories = categoriesText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        Task {
+            await onSave(recipe)
+            dismiss()
+        }
     }
 
     /// Bridges an optional string property to a `TextField`, treating empty
