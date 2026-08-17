@@ -23,15 +23,6 @@ struct RecipeListView: View {
                 }
             }
             .navigationTitle("Rezepte")
-            #if os(iOS)
-            .searchable(
-                text: $library.searchText,
-                placement: .navigationBarDrawer(displayMode: .always),
-                prompt: "Titel, Zutat, Kategorie"
-            )
-            #else
-            .searchable(text: $library.searchText, prompt: "Titel, Zutat, Kategorie")
-            #endif
             .overlay { emptyState }
             .toolbar { listToolbar }
         } detail: {
@@ -75,7 +66,7 @@ struct RecipeListView: View {
     @ViewBuilder
     private var emptyState: some View {
         if library.recipes.isEmpty, !library.isLoading {
-            if library.searchText.isEmpty, library.filter == .all, library.selectedCategory == nil {
+            if library.searchText.isEmpty, library.filter == .all, library.activeFilters.isEmpty {
                 ContentUnavailableView {
                     Label("Noch keine Rezepte", systemImage: "book.closed")
                 } description: {
@@ -92,7 +83,9 @@ struct RecipeListView: View {
     @ViewBuilder
     private var filterBar: some View {
         @Bindable var library = library
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
+            RecipeSearchField()
+
             Picker("Filter", selection: $library.filter) {
                 ForEach(RecipeLibrary.Filter.allCases, id: \.self) { filter in
                     Text(filter.title).tag(filter)
@@ -100,23 +93,6 @@ struct RecipeListView: View {
             }
             .pickerStyle(.segmented)
 
-            if !library.categories.isEmpty {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 8) {
-                        ForEach(library.categories, id: \.self) { category in
-                            CategoryChip(
-                                title: category,
-                                isSelected: library.selectedCategory == category
-                            ) {
-                                library.selectedCategory =
-                                    library.selectedCategory == category ? nil : category
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 2)
-                }
-                .scrollIndicators(.hidden)
-            }
         }
     }
 
@@ -201,23 +177,5 @@ private struct RecipeRow: View {
     private var totalMinutes: Int? {
         let seconds = (recipe.prepTimeSeconds ?? 0) + (recipe.cookTimeSeconds ?? 0)
         return seconds > 0 ? seconds / 60 : nil
-    }
-}
-
-private struct CategoryChip: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 5)
-        }
-        .buttonStyle(.plain)
-        .background(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), in: .capsule)
-        .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
     }
 }

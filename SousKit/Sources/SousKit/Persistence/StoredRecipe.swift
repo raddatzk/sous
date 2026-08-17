@@ -41,14 +41,17 @@ public final class StoredRecipe {
     /// Denormalized so that searching by ingredient stays a single indexed
     /// comparison instead of parsing every recipe on every keystroke.
     public var searchText: String = ""
+    /// Canonical ingredient keys, so filtering by "Tomate" finds a recipe
+    /// that writes "Cocktailtomaten".
+    public var ingredientKeys: [String] = []
 
-    public init(_ recipe: Recipe) {
+    public init(_ recipe: Recipe, catalog: IngredientCatalog = .bundled) {
         id = recipe.id
-        apply(recipe)
+        apply(recipe, catalog: catalog)
     }
 
     /// Overwrites every field from `recipe`, keeping the identity.
-    public func apply(_ recipe: Recipe) {
+    public func apply(_ recipe: Recipe, catalog: IngredientCatalog = .bundled) {
         title = recipe.title
         summary = recipe.summary
         servings = recipe.servings
@@ -69,6 +72,7 @@ public final class StoredRecipe {
         updatedAt = recipe.updatedAt
         deletedAt = recipe.deletedAt
         searchText = Self.searchText(for: recipe)
+        ingredientKeys = Self.ingredientKeys(for: recipe, catalog: catalog)
     }
 
     public var domainValue: Recipe {
@@ -96,6 +100,14 @@ public final class StoredRecipe {
             updatedAt: updatedAt,
             deletedAt: deletedAt
         )
+    }
+
+    static func ingredientKeys(for recipe: Recipe, catalog: IngredientCatalog) -> [String] {
+        var seen = Set<String>()
+        return recipe.ingredients.compactMap { ingredient in
+            let key = ShoppingItem.key(for: ingredient.name, catalog: catalog)
+            return key.isEmpty || !seen.insert(key).inserted ? nil : key
+        }
     }
 
     static func searchText(for recipe: Recipe) -> String {

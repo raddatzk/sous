@@ -36,7 +36,9 @@ public final class RecipeLibrary {
 
     public var searchText = "" { didSet { scheduleReload(if: oldValue != searchText) } }
     public var filter: Filter = .all { didSet { scheduleReload(if: oldValue != filter) } }
-    public var selectedCategory: String? { didSet { scheduleReload(if: oldValue != selectedCategory) } }
+    /// Ingredients and categories recognized in what was typed, applied as
+    /// filters rather than as words.
+    public private(set) var activeFilters: [RecipeFilter] = []
 
     private var reloadTask: Task<Void, Never>?
 
@@ -77,10 +79,40 @@ public final class RecipeLibrary {
     public var query: RecipeQuery {
         RecipeQuery(
             searchText: searchText.isEmpty ? nil : searchText,
-            category: selectedCategory,
+            filters: activeFilters,
             onlyFavorites: filter == .favorites,
             onlyWantToCook: filter == .wantToCook
         )
+    }
+
+    /// Filters the typed text could become, given what the app knows.
+    public func filterSuggestions(catalog: IngredientCatalog) -> [RecipeFilter] {
+        RecipeFilter.suggestions(
+            for: searchText,
+            catalog: catalog,
+            categories: categories,
+            applied: activeFilters
+        )
+    }
+
+    /// Turns the typed text into a filter and clears the field, the way a
+    /// chip replaces what was typed.
+    public func apply(_ filter: RecipeFilter) async {
+        guard !activeFilters.contains(filter) else { return }
+        activeFilters.append(filter)
+        searchText = ""
+        await reload()
+    }
+
+    public func remove(_ filter: RecipeFilter) async {
+        activeFilters.removeAll { $0 == filter }
+        await reload()
+    }
+
+    public func clearFilters() async {
+        activeFilters = []
+        searchText = ""
+        await reload()
     }
 
     public func reload() async {

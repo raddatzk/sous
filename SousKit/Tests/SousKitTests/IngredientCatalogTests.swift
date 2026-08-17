@@ -55,3 +55,15 @@ struct IngredientCatalogTests {
         #expect(catalog.suggestions(for: "t").isEmpty)
     }
 }
+
+extension IngredientCatalogTests {
+    @Test("The closest match is offered first")
+    func suggestionOrder() throws {
+        let matches = catalog.suggestions(for: "toma")
+
+        // Tomate before Tomatenmark, and both before things that only match
+        // through an alias like "Dosentomaten".
+        #expect(try #require(matches.first).name == "Tomate")
+        #expect(matches.prefix(2).map(\.name) == ["Tomate", "Tomatenmark"])
+    }
+}

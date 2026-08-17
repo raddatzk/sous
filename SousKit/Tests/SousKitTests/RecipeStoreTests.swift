@@ -131,7 +131,7 @@ struct RecipeStoreTests {
 
         #expect(try await store.recipes(matching: RecipeQuery(onlyFavorites: true)).map(\.title) == ["Favorit"])
         #expect(try await store.recipes(matching: RecipeQuery(onlyWantToCook: true)).map(\.title) == ["Geplant"])
-        #expect(try await store.recipes(matching: RecipeQuery(category: "Backen")).map(\.title) == ["Geplant"])
+        #expect(try await store.recipes(matching: RecipeQuery(filters: [.category("Backen")])).map(\.title) == ["Geplant"])
     }
 
     @Test("Sorting by title and by recency")
@@ -164,3 +164,70 @@ struct RecipeStoreTests {
     }
 }
 
+
+@Suite("Recognized search filters")
+struct RecipeFilterTests {
+    private func makeStore() throws -> SwiftDataRecipeStore {
+        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    }
+
+    @Test("Filtering by ingredient finds every spelling of it")
+    func ingredientFilterMatchesSpellings() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "Salat", ingredientsText: "300 g Cocktailtomaten"))
+        try await store.save(Recipe(title: "Sauce", ingredientsText: "2 Tomate"))
+        try await store.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
+
+        let tomato = try #require(IngredientCatalog.bundled.ingredient(for: "Tomate"))
+        let found = try await store.recipes(matching: RecipeQuery(filters: [.ingredient(tomato)]))
+
+        #expect(found.map(\.title) == ["Salat", "Sauce"])
+    }
+
+    @Test("Several filters narrow rather than widen")
+    func filtersCombine() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(
+            title: "Beides", ingredientsText: "2 Tomaten\n1 Zwiebel", categories: ["Schnell"]
+        ))
+        try await store.save(Recipe(title: "Nur Tomate", ingredientsText: "2 Tomaten"))
+
+        let tomato = try #require(IngredientCatalog.bundled.ingredient(for: "Tomate"))
+        let onion = try #require(IngredientCatalog.bundled.ingredient(for: "Zwiebel"))
+
+        let both = try await store.recipes(matching: RecipeQuery(
+            filters: [.ingredient(tomato), .ingredient(onion)]
+        ))
+        #expect(both.map(\.title) == ["Beides"])
+
+        let withCategory = try await store.recipes(matching: RecipeQuery(
+            filters: [.ingredient(tomato), .category("Schnell")]
+        ))
+        #expect(withCategory.map(\.title) == ["Beides"])
+    }
+
+    @Test("Typed text is offered as the filters it could be")
+    func suggestions() throws {
+        let suggestions = RecipeFilter.suggestions(
+            for: "toma",
+            catalog: .bundled,
+            categories: ["Tomatig", "Schnell"]
+        )
+
+        #expect(suggestions.contains { $0.kind == .ingredient && $0.title == "Tomate" })
+        #expect(suggestions.contains { $0.kind == .category && $0.title == "Tomatig" })
+    }
+
+    @Test("A filter already applied is not offered again")
+    func appliedFiltersAreSkipped() throws {
+        let tomato = try #require(IngredientCatalog.bundled.ingredient(for: "Tomate"))
+        let suggestions = RecipeFilter.suggestions(
+            for: "tomate",
+            catalog: .bundled,
+            categories: [],
+            applied: [.ingredient(tomato)]
+        )
+
+        #expect(!suggestions.contains { $0.title == "Tomate" })
+    }
+}

@@ -25,8 +25,16 @@ public actor SwiftDataRecipeStore: RecipeStore {
         if query.onlyWantToCook {
             results = results.filter(\.wantToCook)
         }
-        if let category = query.category {
-            results = results.filter { $0.categories.contains(category) }
+        // All filters must apply: two ingredients means recipes using both.
+        for filter in query.filters {
+            switch filter.kind {
+            case .ingredient:
+                results = results.filter { $0.ingredientKeys.contains(filter.key) }
+            case .category:
+                results = results.filter { recipe in
+                    recipe.categories.contains { $0.lowercased() == filter.key }
+                }
+            }
         }
         return results.map(\.domainValue)
     }
