@@ -12,7 +12,8 @@ public struct RecipeQuery: Sendable, Hashable {
 
     /// Matched against title, categories and ingredient names.
     public var searchText: String?
-    public var category: String?
+    /// Recognized filters, all of which must apply.
+    public var filters: [RecipeFilter]
     public var onlyFavorites: Bool
     public var onlyWantToCook: Bool
     /// Tombstoned recipes are excluded unless asked for.
@@ -21,14 +22,14 @@ public struct RecipeQuery: Sendable, Hashable {
 
     public init(
         searchText: String? = nil,
-        category: String? = nil,
+        filters: [RecipeFilter] = [],
         onlyFavorites: Bool = false,
         onlyWantToCook: Bool = false,
         includeDeleted: Bool = false,
         sort: Sort = .titleAscending
     ) {
         self.searchText = searchText
-        self.category = category
+        self.filters = filters
         self.onlyFavorites = onlyFavorites
         self.onlyWantToCook = onlyWantToCook
         self.includeDeleted = includeDeleted

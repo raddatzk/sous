@@ -62,16 +62,28 @@ public struct IngredientCatalog: Sendable {
         let query = Self.normalize(text)
         guard query.count >= 2 else { return [] }
 
-        var prefixed: [CatalogIngredient] = []
-        var contained: [CatalogIngredient] = []
-        for ingredient in ingredients {
-            if ingredient.keys.contains(where: { $0.hasPrefix(query) }) {
-                prefixed.append(ingredient)
-            } else if ingredient.keys.contains(where: { $0.contains(query) }) {
-                contained.append(ingredient)
-            }
+        /// Lower sorts first: the name itself beats an alias, a short name
+        /// beats a long one. "toma" should offer Tomate before Tomatenmark,
+        /// and both before Gehackte Tomaten, which only matches on an alias.
+        func rank(_ ingredient: CatalogIngredient) -> (Int, Int) {
+            let name = Self.normalize(ingredient.name)
+            if name.hasPrefix(query) { return (0, name.count) }
+            if ingredient.keys.contains(where: { $0.hasPrefix(query) }) { return (1, name.count) }
+            if name.contains(query) { return (2, name.count) }
+            return (3, name.count)
         }
-        return Array((prefixed + contained).prefix(limit))
+
+        return ingredients
+            .filter { ingredient in
+                ingredient.keys.contains { $0.contains(query) }
+            }
+            .sorted { first, second in
+                rank(first) == rank(second)
+                    ? first.name < second.name
+                    : rank(first) < rank(second)
+            }
+            .prefix(limit)
+            .map { $0 }
     }
 
     /// Lowercased and stripped of surrounding whitespace. Comparison is on

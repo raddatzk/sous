@@ -14,7 +14,7 @@ struct RecipeLibraryTests {
     }
 
     @Test("The query mirrors the selected filters")
-    func queryReflectsFilters() throws {
+    func queryReflectsFilters() async throws {
         let (library, _) = try makeLibrary()
 
         #expect(library.query.searchText == nil)
@@ -22,11 +22,12 @@ struct RecipeLibraryTests {
 
         library.searchText = "Linsen"
         library.filter = .favorites
-        library.selectedCategory = "Suppe"
+        await library.apply(.category("Suppe"))
 
-        #expect(library.query.searchText == "Linsen")
+        // Applying a filter clears the field it came from.
+        #expect(library.query.searchText == nil)
         #expect(library.query.onlyFavorites)
-        #expect(library.query.category == "Suppe")
+        #expect(library.query.filters.map(\.title) == ["Suppe"])
 
         library.filter = .wantToCook
         #expect(!library.query.onlyFavorites)
