@@ -1,13 +1,19 @@
+import PhotosUI
 import SousKit
 import SwiftUI
 
 struct RecipeEditorView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(RecipeLibrary.self) private var library
 
     @State private var draft: Recipe
     @State private var categoriesText: String
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
+    @State private var pickedPhotos: [PhotosPickerItem] = []
+    /// Pictures stored during this edit, so cancelling does not leave them
+    /// behind with nothing referencing them.
+    @State private var addedImageIDs: [UUID] = []
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -28,6 +34,7 @@ struct RecipeEditorView: View {
         NavigationStack {
             Form {
                 basics
+                imageSection
 
                 Section {
                     TextEditor(text: $draft.ingredientsText)
@@ -91,15 +98,81 @@ struct RecipeEditorView: View {
         }
     }
 
+    @ViewBuilder
+    private var imageSection: some View {
+        Section("Bilder") {
+            if !draft.imageIDs.isEmpty {
+                ScrollView(.horizontal) {
+                    HStack(spacing: 10) {
+                        ForEach(draft.imageIDs, id: \.self) { imageID in
+                            RecipeImageView(imageID: imageID, thumbnail: true)
+                                .frame(width: 84, height: 84)
+                                .clipShape(.rect(cornerRadius: 10))
+                                .overlay(alignment: .topTrailing) {
+                                    Button("Entfernen", systemImage: "xmark.circle.fill") {
+                                        remove(imageID)
+                                    }
+                                    .labelStyle(.iconOnly)
+                                    .symbolRenderingMode(.palette)
+                                    .foregroundStyle(.white, .black.opacity(0.6))
+                                    .padding(4)
+                                }
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .scrollIndicators(.hidden)
+            }
+
+            PhotosPicker(selection: $pickedPhotos, matching: .images) {
+                Label("Bild hinzufügen", systemImage: "photo.badge.plus")
+            }
+        }
+        .onChange(of: pickedPhotos) { _, items in
+            Task { await store(items) }
+        }
+    }
+
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") { dismiss() }
+            Button("Abbrechen") { cancel() }
         }
         ToolbarItem(placement: .confirmationAction) {
             Button("Sichern") { save() }
                 .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
         }
+    }
+
+    /// Reads picked photos into storage and references them on the draft.
+    private func store(_ items: [PhotosPickerItem]) async {
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let id = await library.addImage(data, to: draft.id)
+            else { continue }
+            draft.imageIDs.append(id)
+            addedImageIDs.append(id)
+        }
+        pickedPhotos = []
+    }
+
+    private func remove(_ imageID: UUID) {
+        draft.imageIDs.removeAll { $0 == imageID }
+        if let index = addedImageIDs.firstIndex(of: imageID) {
+            addedImageIDs.remove(at: index)
+            // Never referenced by a saved recipe, so it can go straight away.
+            Task { await library.deleteImage(id: imageID) }
+        }
+    }
+
+    private func cancel() {
+        let orphans = addedImageIDs
+        Task {
+            for id in orphans {
+                await library.deleteImage(id: id)
+            }
+        }
+        dismiss()
     }
 
     private func save() {

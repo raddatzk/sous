@@ -24,6 +24,7 @@ public final class RecipeLibrary {
     }
 
     private let store: any RecipeStore
+    private let imageStore: any RecipeImageStore
 
     public private(set) var recipes: [Recipe] = []
     public private(set) var categories: [String] = []
@@ -39,8 +40,38 @@ public final class RecipeLibrary {
 
     private var reloadTask: Task<Void, Never>?
 
-    public init(store: any RecipeStore) {
+    public init(store: any RecipeStore, imageStore: any RecipeImageStore) {
         self.store = store
+        self.imageStore = imageStore
+    }
+
+    // MARK: - Images
+
+    public func thumbnail(id: UUID) async -> Data? {
+        try? await imageStore.thumbnail(id: id)
+    }
+
+    public func image(id: UUID) async -> Data? {
+        try? await imageStore.image(id: id)
+    }
+
+    public func deleteImage(id: UUID) async {
+        do {
+            try await imageStore.delete(id: id)
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Stores a picked photo and returns its id, or `nil` if it could not be
+    /// read as an image.
+    public func addImage(_ data: Data, to recipeID: UUID) async -> UUID? {
+        do {
+            return try await imageStore.add(data, to: recipeID)
+        } catch {
+            report(error)
+            return nil
+        }
     }
 
     public var query: RecipeQuery {
@@ -90,6 +121,9 @@ public final class RecipeLibrary {
     public func save(_ recipe: Recipe) async {
         do {
             try await store.save(recipe)
+            // Pictures dropped in the editor lose their blob here, rather
+            // than lingering as orphans nothing references.
+            try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: recipe.imageIDs)
             await reload()
         } catch {
             report(error)

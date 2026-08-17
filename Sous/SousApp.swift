@@ -10,7 +10,8 @@ struct SousApp: App {
         do {
             let container = try ModelContainer.sousContainer()
             _library = State(initialValue: RecipeLibrary(
-                store: SwiftDataRecipeStore(modelContainer: container)
+                store: SwiftDataRecipeStore(modelContainer: container),
+                imageStore: SwiftDataRecipeImageStore(modelContainer: container)
             ))
         } catch {
             // A recipe app without its database has nothing to show, and

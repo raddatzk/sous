@@ -30,6 +30,7 @@ public final class StoredRecipe {
     public var sourceName: String?
     public var prepTimeSeconds: Int?
     public var cookTimeSeconds: Int?
+    public var imageIDs: [UUID] = []
     public var createdBy: UUID?
     public var createdAt: Date = Date.nowInSyncPrecision
     public var updatedAt: Date = Date.nowInSyncPrecision
@@ -62,6 +63,7 @@ public final class StoredRecipe {
         sourceName = recipe.source.name
         prepTimeSeconds = recipe.prepTimeSeconds
         cookTimeSeconds = recipe.cookTimeSeconds
+        imageIDs = recipe.imageIDs
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
@@ -88,6 +90,7 @@ public final class StoredRecipe {
             ),
             prepTimeSeconds: prepTimeSeconds,
             cookTimeSeconds: cookTimeSeconds,
+            imageIDs: imageIDs,
             createdBy: createdBy,
             createdAt: createdAt,
             updatedAt: updatedAt,

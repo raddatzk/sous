@@ -7,8 +7,10 @@ import Testing
 @Suite("Recipe library")
 struct RecipeLibraryTests {
     private func makeLibrary() throws -> (RecipeLibrary, SwiftDataRecipeStore) {
-        let store = SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
-        return (RecipeLibrary(store: store), store)
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let store = SwiftDataRecipeStore(modelContainer: container)
+        let images = SwiftDataRecipeImageStore(modelContainer: container)
+        return (RecipeLibrary(store: store, imageStore: images), store)
     }
 
     @Test("The query mirrors the selected filters")
