@@ -129,7 +129,7 @@ extension ShoppingLibraryTests {
 
         // …and split by dish when checking.
         let groups = shopping.byRecipe
-        #expect(groups.map(\.recipe) == ["Salat", "Sauce", "Von Hand"])
+        #expect(groups.map(\.recipe) == ["Salat", "Sauce", ShoppingLibrary.ungroupedTitle])
         #expect(groups[0].items[0].quantities == [Quantity(300, .gram)])
         #expect(groups[1].items[0].quantities == [Quantity(200, .gram)])
         #expect(groups[1].items.map(\.name) == ["Tomaten", "Zwiebel"])
