@@ -1,38 +1,46 @@
 import SousKit
 import SwiftUI
 
-/// What the planned week needs from the shop.
+/// The shopping list, readable two ways: as one line per ingredient for the
+/// shop, or split by dish to check whether everything for a meal is there.
 struct ShoppingListView: View {
     @Environment(ShoppingLibrary.self) private var shopping
 
+    @State private var grouping: Grouping = .ingredient
     @State private var newItem = ""
-    @FocusState private var isAddingItem: Bool
 
     private let formatter = QuantityFormatter(locale: .sous)
+
+    private enum Grouping: String, CaseIterable {
+        case ingredient
+        case recipe
+
+        var title: String {
+            switch self {
+            case .ingredient: "Nach Zutat"
+            case .recipe: "Nach Rezept"
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 addRow
 
-                if !shopping.openItems.isEmpty {
-                    Section {
-                        ForEach(shopping.openItems) { item in
-                            row(item)
+                if !shopping.items.isEmpty, hasRecipeSources {
+                    Picker("Ansicht", selection: $grouping) {
+                        ForEach(Grouping.allCases, id: \.self) { option in
+                            Text(option.title).tag(option)
                         }
                     }
+                    .pickerStyle(.segmented)
+                    .listRowBackground(Color.clear)
                 }
 
-                if !shopping.checkedItems.isEmpty {
-                    Section {
-                        ForEach(shopping.checkedItems) { item in
-                            row(item)
-                        }
-                    } header: {
-                        Text("Erledigt")
-                            .font(SousStyle.groupHeading)
-                            .textCase(nil)
-                    }
+                switch grouping {
+                case .ingredient: byIngredient
+                case .recipe: byRecipe
                 }
             }
             .navigationTitle("Einkaufsliste")
@@ -55,13 +63,49 @@ struct ShoppingListView: View {
         }
     }
 
+    private var hasRecipeSources: Bool {
+        shopping.items.contains { !$0.sources.isEmpty }
+    }
+
+    @ViewBuilder
+    private var byIngredient: some View {
+        if !shopping.openItems.isEmpty {
+            Section {
+                ForEach(shopping.openItems) { item in
+                    row(item, showingSource: true)
+                }
+            }
+        }
+        if !shopping.checkedItems.isEmpty {
+            Section {
+                ForEach(shopping.checkedItems) { item in
+                    row(item, showingSource: true)
+                }
+            } header: {
+                sectionHeader("Erledigt")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var byRecipe: some View {
+        ForEach(shopping.byRecipe, id: \.recipe) { group in
+            Section {
+                ForEach(group.items) { item in
+                    row(item, showingSource: false)
+                }
+            } header: {
+                sectionHeader(group.recipe)
+            }
+        }
+    }
+
     @ViewBuilder
     private var addRow: some View {
         HStack {
             Image(systemName: "plus.circle")
                 .foregroundStyle(.tint)
             TextField("Etwas hinzufügen, z. B. „2 kg Kartoffeln“", text: $newItem)
-                .focused($isAddingItem)
                 .onSubmit(add)
             if !newItem.isEmpty {
                 Button("Hinzufügen", systemImage: "return", action: add)
@@ -71,7 +115,7 @@ struct ShoppingListView: View {
     }
 
     @ViewBuilder
-    private func row(_ item: ShoppingItem) -> some View {
+    private func row(_ item: ShoppingItem, showingSource: Bool) -> some View {
         Group {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
@@ -79,8 +123,8 @@ struct ShoppingListView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     label(for: item)
                         .strikethrough(item.isChecked)
-                    if !item.recipeTitles.isEmpty {
-                        Text(item.recipeTitles.joined(separator: " · "))
+                    if showingSource, let origin = originText(for: item) {
+                        Text(origin)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -98,6 +142,15 @@ struct ShoppingListView: View {
         }
     }
 
+    /// Two names at most — a staple wanted by five dishes would otherwise
+    /// bury the line it belongs to.
+    private func originText(for item: ShoppingItem) -> String? {
+        let titles = item.recipeTitles
+        guard !titles.isEmpty else { return nil }
+        guard titles.count > 2 else { return titles.joined(separator: " · ") }
+        return "\(titles[0]) · \(titles[1]) +\(titles.count - 2)"
+    }
+
     /// The amounts lead, in the accent, because that is what is read while
     /// standing in the shop.
     private func label(for item: ShoppingItem) -> Text {
@@ -105,6 +158,12 @@ struct ShoppingListView: View {
         guard !amounts.isEmpty else { return Text(item.name) }
         return Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
             + Text(" \(item.name)")
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(SousStyle.groupHeading)
+            .textCase(nil)
     }
 
     @ViewBuilder

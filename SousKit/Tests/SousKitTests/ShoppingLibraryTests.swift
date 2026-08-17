@@ -25,6 +25,7 @@ struct ShoppingLibraryTests {
         #expect(shopping.items.map(\.name) == ["Tomaten", "Salz"])
         #expect(shopping.items[0].quantities == [Quantity(300, .gram)])
         #expect(shopping.items[0].recipeTitles == ["Salat"])
+        #expect(shopping.items[0].sources[0].quantities == [Quantity(300, .gram)])
     }
 
     @Test("Adding for more people scales what has to be bought")
@@ -111,5 +112,27 @@ struct ShoppingLibraryTests {
 
         await shopping.remove(try #require(shopping.items.first))
         #expect(shopping.items.isEmpty)
+    }
+}
+
+extension ShoppingLibraryTests {
+    @Test("Grouping by recipe shows each dish's own share")
+    func groupedByRecipe() async throws {
+        let (shopping, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
+        await shopping.add(Recipe(title: "Sauce", servings: 2, ingredientsText: "200 g Tomaten\n1 Zwiebel"))
+        await shopping.addItem("Kaffee")
+
+        // One line when shopping…
+        #expect(shopping.items.map(\.name) == ["Tomaten", "Zwiebel", "Kaffee"])
+        #expect(shopping.items[0].quantities == [Quantity(500, .gram)])
+
+        // …and split by dish when checking.
+        let groups = shopping.byRecipe
+        #expect(groups.map(\.recipe) == ["Salat", "Sauce", "Von Hand"])
+        #expect(groups[0].items[0].quantities == [Quantity(300, .gram)])
+        #expect(groups[1].items[0].quantities == [Quantity(200, .gram)])
+        #expect(groups[1].items.map(\.name) == ["Tomaten", "Zwiebel"])
+        #expect(groups[2].items.map(\.name) == ["Kaffee"])
     }
 }

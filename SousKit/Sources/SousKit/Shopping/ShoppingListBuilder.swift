@@ -98,8 +98,18 @@ public enum ShoppingListBuilder {
         if let quantity = ingredient.quantity {
             item.quantities = merged(item.quantities, adding: quantity)
         }
-        if !item.recipeTitles.contains(origin) {
-            item.recipeTitles.append(origin)
+
+        // The same amount is also kept under the recipe that wants it, so the
+        // list can be grouped by dish as well as by ingredient.
+        if let index = item.sources.firstIndex(where: { $0.recipeTitle == origin }) {
+            if let quantity = ingredient.quantity {
+                item.sources[index].quantities = merged(item.sources[index].quantities, adding: quantity)
+            }
+        } else {
+            item.sources.append(ShoppingSource(
+                recipeTitle: origin,
+                quantities: ingredient.quantity.map { [$0] } ?? []
+            ))
         }
         accumulator[key] = item
     }

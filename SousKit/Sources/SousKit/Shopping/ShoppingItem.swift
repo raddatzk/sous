@@ -1,5 +1,20 @@
 import Foundation
 
+/// What one recipe contributes to a line on the list.
+///
+/// Kept per recipe rather than folded into one number, so the list can be
+/// read either way: "500 g Tomaten" for shopping, or "Curry: 300 g" when
+/// checking whether everything for a dish is there.
+public struct ShoppingSource: Hashable, Sendable, Codable {
+    public var recipeTitle: String
+    public var quantities: [Quantity]
+
+    public init(recipeTitle: String, quantities: [Quantity] = []) {
+        self.recipeTitle = recipeTitle
+        self.quantities = quantities
+    }
+}
+
 /// One line on the shopping list.
 public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// Stable across rebuilds of the list, so ticking something off survives
@@ -11,25 +26,27 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// One amount per measurement dimension: grams and millilitres of the
     /// same thing do not add up, and neither do "2 Stück" and "1 Prise".
     public var quantities: [Quantity]
-    /// Which recipes asked for it, for when the list looks surprising.
-    public var recipeTitles: [String]
+    /// Which recipes asked for it, and how much each of them wants.
+    public var sources: [ShoppingSource]
     public var isChecked: Bool
-    public var isManual: Bool
+
+    /// Typed by hand rather than taken from a recipe.
+    public var isManual: Bool { sources.isEmpty }
+
+    public var recipeTitles: [String] { sources.map(\.recipeTitle) }
 
     public init(
         key: String,
         name: String,
         quantities: [Quantity] = [],
-        recipeTitles: [String] = [],
-        isChecked: Bool = false,
-        isManual: Bool = false
+        sources: [ShoppingSource] = [],
+        isChecked: Bool = false
     ) {
         self.key = key
         self.name = name
         self.quantities = quantities
-        self.recipeTitles = recipeTitles
+        self.sources = sources
         self.isChecked = isChecked
-        self.isManual = isManual
     }
 
     /// The key an ingredient name reduces to: lowercased, without markdown
