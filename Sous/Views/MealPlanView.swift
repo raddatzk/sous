@@ -1,10 +1,9 @@
 import SousKit
 import SwiftUI
 
-/// The week ahead: which recipes are cooked on which day.
+/// The days ahead, one after another: what is cooked when.
 struct MealPlanView: View {
     @Environment(MealPlanLibrary.self) private var plan
-    @Environment(RecipeLibrary.self) private var library
     @Environment(ShoppingLibrary.self) private var shopping
 
     @State private var pickingDay: Date?
@@ -12,20 +11,30 @@ struct MealPlanView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                ForEach(plan.days, id: \.self) { day in
-                    Section {
-                        dayContent(day)
-                    } header: {
-                        dayHeader(day)
+            ScrollViewReader { scroll in
+                List {
+                    ForEach(plan.days, id: \.self) { day in
+                        Section {
+                            dayContent(day)
+                        } header: {
+                            dayHeader(day)
+                        }
+                        .id(day)
                     }
+
+                    // Reaching the end simply adds more days rather than
+                    // stopping at a boundary.
+                    Color.clear
+                        .frame(height: 1)
+                        .listRowSeparator(.hidden)
+                        .onAppear { Task { await plan.loadMore() } }
                 }
+                .navigationTitle("Essensplan")
+                #if os(iOS)
+                .navigationBarTitleDisplayMode(.inline)
+                #endif
+                .toolbar { toolbar(scroll: scroll) }
             }
-            .navigationTitle(weekTitle)
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar { weekToolbar }
             .task { await plan.reload() }
             .sheet(item: $pickingDay) { day in
                 RecipePickerView(title: "Rezept einplanen", excluding: UUID()) { recipe in
@@ -43,13 +52,17 @@ struct MealPlanView: View {
         let entries = plan.plan(for: day)
 
         if entries.isEmpty {
+            // One quiet line, so an empty fortnight stays scrollable.
             Button {
                 pickingDay = day
             } label: {
-                Label("Rezept einplanen", systemImage: "plus")
+                Text("Nichts geplant")
                     .font(.callout)
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .buttonStyle(.plain)
+            .contentShape(.rect)
         } else {
             ForEach(entries, id: \.entry.id) { item in
                 Group {
@@ -77,28 +90,23 @@ struct MealPlanView: View {
                     }
                 }
             }
-
-            Button {
-                pickingDay = day
-            } label: {
-                Label("Weiteres Rezept", systemImage: "plus")
-                    .font(.footnote)
-                    .foregroundStyle(.tint)
-            }
         }
     }
 
     @ViewBuilder
     private func dayHeader(_ day: Date) -> some View {
         HStack {
-            // `Text(date, format:)` follows the environment's locale;
-            // `date.formatted()` always uses the system's.
             Text(day, format: .dateTime.weekday(.wide))
                 .font(SousStyle.groupHeading)
                 .foregroundStyle(isToday(day) ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
             Text(day, format: .dateTime.day().month())
                 .font(.caption)
                 .foregroundStyle(.secondary)
+            Spacer()
+            Button("Rezept einplanen", systemImage: "plus") { pickingDay = day }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
         }
         .textCase(nil)
     }
@@ -107,42 +115,33 @@ struct MealPlanView: View {
         Calendar.current.isDateInToday(day)
     }
 
-    private var weekTitle: String {
-        guard let first = plan.days.first, let last = plan.days.last else { return "Essensplan" }
-        let style = Date.FormatStyle.dateTime.day().month(.abbreviated).locale(.sous)
-        return "\(first.formatted(style)) – \(last.formatted(style))"
-    }
-
     @ToolbarContentBuilder
-    private var weekToolbar: some ToolbarContent {
+    private func toolbar(scroll: ScrollViewProxy) -> some ToolbarContent {
         ToolbarItem(placement: .navigation) {
-            Button("Vorige Woche", systemImage: "chevron.left") {
-                Task { await plan.showWeek(offset: -1) }
+            Button("Heute") {
+                withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
             }
-            .labelStyle(.iconOnly)
         }
         ToolbarItem(placement: .primaryAction) {
-            Button("Nächste Woche", systemImage: "chevron.right") {
-                Task { await plan.showWeek(offset: 1) }
-            }
-            .labelStyle(.iconOnly)
-        }
-        ToolbarItem(placement: .automatic) {
-            Button("Heute") {
-                Task { await plan.showCurrentWeek() }
-            }
-        }
-        ToolbarItem(placement: .automatic) {
-            Button("Woche auf die Einkaufsliste", systemImage: "cart.badge.plus") {
-                Task {
-                    await shopping.add(
-                        planned: plan.plannedRecipes,
-                        describing: "Woche"
-                    )
-                }
+            Menu("Einkaufsliste", systemImage: "cart.badge.plus") {
+                Button("Nächste 7 Tage") { addToShoppingList(days: 7) }
+                Button("Nächste 14 Tage") { addToShoppingList(days: 14) }
             }
             .labelStyle(.iconOnly)
             .disabled(plan.plannedRecipes.isEmpty)
+        }
+    }
+
+    private func addToShoppingList(days: Int) {
+        guard let start = plan.days.first,
+              let end = Calendar.current.date(byAdding: .day, value: days - 1, to: start)
+        else { return }
+
+        Task {
+            await shopping.add(
+                planned: plan.plannedRecipes(from: start, through: end),
+                describing: "Essensplan"
+            )
         }
     }
 }

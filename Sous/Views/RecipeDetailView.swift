@@ -12,6 +12,7 @@ struct RecipeDetailView: View {
     @State private var linkedRecipe: Recipe?
     @State private var isCooking = false
     @State private var didAddToShoppingList = false
+    @State private var isPlanning = false
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -45,6 +46,9 @@ struct RecipeDetailView: View {
         .onChange(of: recipe.id) {
             servingsOverride = nil
             didAddToShoppingList = false
+        }
+        .sheet(isPresented: $isPlanning) {
+            PlanRecipeSheet(recipe: recipe, servings: servings)
         }
         .fullScreenCoverIfAvailable(isPresented: $isCooking) {
             CookModeView(recipe: recipe, servings: servings)
@@ -162,6 +166,14 @@ struct RecipeDetailView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(recipe.steps.isEmpty)
+
+            Button {
+                isPlanning = true
+            } label: {
+                Label("Einplanen", systemImage: "calendar.badge.plus")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.bordered)
 
             Button {
                 addToShoppingList()
