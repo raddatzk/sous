@@ -86,7 +86,8 @@ public enum IngredientParser {
         var name = String(rest).trimmingCharacters(in: .whitespaces)
         var preparation: String?
 
-        if name.hasSuffix(")"), let openIndex = name.lastIndex(of: "(") {
+        if name.hasSuffix(")"), let openIndex = name.lastIndex(of: "("),
+           !isMarkdownLink(closingAt: openIndex, in: name) {
             preparation = String(name[name.index(after: openIndex)..<name.index(before: name.endIndex)])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<openIndex]).trimmingCharacters(in: .whitespaces)
@@ -101,6 +102,17 @@ public enum IngredientParser {
             quantity: quantity,
             preparation: preparation?.isEmpty == false ? preparation : nil
         )
+    }
+
+    /// Whether the parenthesis at `index` opens a markdown link's target
+    /// rather than a comment.
+    ///
+    /// "300 g Zucchini (fein gehackt)" is a comment; "1 Portion
+    /// [Naan](sous://recipe/…)" is a link, and splitting it would leave a
+    /// stray "[Naan]" behind that no longer renders as one.
+    private static func isMarkdownLink(closingAt index: String.Index, in text: String) -> Bool {
+        guard index > text.startIndex else { return false }
+        return text[text.index(before: index)] == "]"
     }
 
     /// Reads a leading amount: "300", "1,5", "1/2", "½", "1 ½", "3-4".

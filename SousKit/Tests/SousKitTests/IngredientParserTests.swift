@@ -140,3 +140,27 @@ extension IngredientParserTests {
         #expect(colon[0].group == "Teig")
     }
 }
+
+extension IngredientParserTests {
+    @Test("A markdown link is not mistaken for a comment in parentheses")
+    func linkIsNotAComment() {
+        let id = UUID()
+        let line = "1 Portion \(RecipeLink.markdown(title: "Naan", id: id))"
+        let ingredient = IngredientParser.parseLine(line)
+
+        #expect(ingredient.quantity == Quantity(1, .portion))
+        #expect(ingredient.preparation == nil)
+        // The whole link stays in the name so it still renders as a link.
+        #expect(ingredient.name == RecipeLink.markdown(title: "Naan", id: id))
+    }
+
+    @Test("A comment still works on a line that also carries a link")
+    func linkWithComment() {
+        let id = UUID()
+        let line = "\(RecipeLink.markdown(title: "Naan", id: id)), lauwarm"
+        let ingredient = IngredientParser.parseLine(line)
+
+        #expect(ingredient.preparation == "lauwarm")
+        #expect(ingredient.name == RecipeLink.markdown(title: "Naan", id: id))
+    }
+}
