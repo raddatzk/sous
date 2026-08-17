@@ -144,12 +144,12 @@ private struct RecipeRow: View {
         HStack(alignment: .center, spacing: 12) {
             if let imageID = recipe.imageIDs.first {
                 RecipeImageView(imageID: imageID, thumbnail: true)
-                    .frame(width: 52, height: 52)
-                    .clipShape(.rect(cornerRadius: 8))
+                    .frame(width: 64, height: 64)
+                    .clipShape(.rect(cornerRadius: 10))
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(recipe.title)
-                    .font(.headline)
+                    .font(SousStyle.recipeName)
                 if let subtitle {
                     Text(subtitle)
                         .font(.caption)
