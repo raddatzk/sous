@@ -7,6 +7,8 @@ struct RecipeDetailView: View {
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
     @State private var servingsOverride: Int?
+    /// A linked recipe the reader tapped through to.
+    @State private var linkedRecipe: Recipe?
 
     private let formatter = QuantityFormatter()
 
@@ -32,6 +34,25 @@ struct RecipeDetailView: View {
         #endif
         .toolbar { detailToolbar }
         .onChange(of: recipe.id) { servingsOverride = nil }
+        // Shown as a sheet rather than pushed: looking up how the dough is
+        // made is a detour, and a swipe returns to exactly where the cook was.
+        .sheet(item: $linkedRecipe) { linked in
+            NavigationStack {
+                RecipeDetailView(recipe: linked)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Fertig") { linkedRecipe = nil }
+                        }
+                    }
+            }
+        }
+        // A link to another recipe navigates inside the app; anything else
+        // is left to the system.
+        .environment(\.openURL, OpenURLAction { url in
+            guard let id = RecipeLink.recipeID(from: url) else { return .systemAction }
+            Task { linkedRecipe = await library.recipe(id: id) }
+            return .handled
+        })
     }
 
     @ViewBuilder
@@ -110,7 +131,7 @@ struct RecipeDetailView: View {
                                 .padding(.top, 4)
                         }
                         ForEach(group.ingredients) { ingredient in
-                            Text(formatter.string(for: ingredient))
+                            Text(markdown(formatter.string(for: ingredient)))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }

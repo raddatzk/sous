@@ -63,6 +63,30 @@ public final class RecipeLibrary {
         }
     }
 
+    /// Loads a single recipe regardless of the current filter — a link may
+    /// point at something the list is not showing.
+    public func recipe(id: UUID) async -> Recipe? {
+        do {
+            return try await store.recipe(id: id)
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    /// Searches the whole library, independent of the current filter. Used by
+    /// the picker that inserts a link to another recipe.
+    public func findRecipes(matching text: String) async -> [Recipe] {
+        do {
+            return try await store.recipes(
+                matching: RecipeQuery(searchText: text.isEmpty ? nil : text)
+            )
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
     public func save(_ recipe: Recipe) async {
         do {
             try await store.save(recipe)
