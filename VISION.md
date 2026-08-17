@@ -20,10 +20,10 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
 2. **AI recipe generation from the personal collection** — new recipes in the user's own style, via retrieval (tool calling against the local database) plus structured generation
 3. **Ad-hoc leftover cooking** — free-text input ("zucchini and feta need to go"), no persistent pantry record, reusing the same generation mechanism as feature 2
 4. **Web research for new recipe ideas** — scraping of comparable existing recipes as a tool, using the same structured extraction path as the conventional URL import
-5. **Video import (Instagram/TikTok/YouTube)** — including actual video analysis: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
+5. **Video import (Instagram/TikTok/YouTube)** — implemented as a **share extension**: the user shares a post into the app, and the app processes what it is handed rather than fetching from the platform itself (see Distribution below). Where a video file is available, actual video analysis applies: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
 6. **Per-recipe nutrition** — ingredients extracted and normalized structurally (AI), matched against an external nutrition database (conventional code)
 7. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
-8. **Sharing / multiple users** — individual profiles (diet, exercise load, etc.) feeding into personal nutrition targets; recipes and plans are shareable
+8. **Household sharing** — a household is the unit of sharing: one owner invites members, and the household's recipes and meal plans are shared with all of them. Individual profiles (diet, exercise load, etc.) stay personal and feed into personal nutrition targets.
 
 ## Technical architecture pillars
 
@@ -32,7 +32,10 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
   * **To verify before relying on this:** whether guided generation (`@Generable`) and tool calling behave with the same guarantees on arbitrary MLX models as they do on the system model. Constrained decoding is model-dependent. This warrants a one-day spike.
 * **Context budget is a hard design constraint.** The on-device system model has a fixed 4096-token context window per session, and instructions, tool definitions, the `@Generable` schema, and the running transcript all count against it. A full recipe costs roughly 500–1000 tokens, so only two or three retrieval hits fit. Retrieval must therefore return condensed recipe profiles (style markers, ingredient signature) rather than full text, with pre-selection done in conventional code. `contextSize` and `tokenCount(for:)` (iOS 26.4+) are used to budget this explicitly rather than guessing.
 * **Mac and iPhone run independently.** Where the iPhone is too weak for a task, that is accepted, or offloaded to a self-hosted Ollama server or a paid cloud API (Claude/ChatGPT — billed separately from the chat subscription, pay-per-token). Recipe generation grounded in the personal collection is expected to be one of those Mac-first features.
-* **CloudKit** for sync and sharing across devices and users
+* **CloudKit for sync and sharing, organized around the household.** A household maps onto CloudKit *zone* sharing — a single `CKShare` covering one custom zone, with read-write access for every member — rather than per-record sharing, which keeps the model markedly simpler. Personal profiles and nutrition targets stay in each user's private database. The persistence stack is therefore **Core Data with `NSPersistentCloudKitContainer` over two stores** (private and shared); SwiftData has no native `CKShare` support and cannot express this.
+  * **Consequence to design around:** the household's data lives in the owner's iCloud account. Members who leave lose access to it, and two people who each already have a collection cannot merge them by forming a household.
+  * The CloudKit model constraints apply to every synced entity from the start: no unique constraints, all attributes optional or defaulted, all relationships optional, no `.deny` delete rule. Without unique constraints, import de-duplication has to be implemented in code.
+* **Distribution: App Store.** This rules out fetching media from Instagram/TikTok directly — under App Store Review Guideline 5.2.3, apps that download third-party media without platform authorization are rejected, including when official APIs are used. Hence the share-extension design for video import. Importing a recipe from a URL the user supplies is unaffected and remains standard practice.
 * **Nutrition data:** Bundeslebensmittelschlüssel (BLS) 4.0 as the primary source — license-free since 2025-12-16 under CC BY 4.0 (attribution to Max Rubner-Institut required in-app), ~7,140 foods, 138 nutrients, German-language. It is a curated staple-ingredient catalog rather than a barcode catalog, which is exactly what recipes need, and it largely removes the German→English ingredient normalization problem. USDA FoodData Central (CC0) and Open Food Facts serve as supplements for branded and packaged products.
 * **Weekly plan optimizer:** greedy construction followed by local swap improvement, scored by a cost function with asymmetric penalties (see below), plus variety and cooking-effort constraints.
 
@@ -64,15 +67,13 @@ Not fundamentally unresolved, but not yet settled in detail. Each should be deci
 
 **Blocking phase 1:**
 
-* **App Store or private distribution?** This determines the design of the video import. Under App Store Review Guideline 5.2.3, apps that download media from Instagram/TikTok without platform authorization are rejected, including when official APIs are used. Privately signed, this is irrelevant; for the Store, the import path has to become a share extension that processes what the user themselves shares, rather than scraping.
-* **SwiftData or Core Data for persistence?** CloudKit cannot share records in the default zone; sharing requires custom zones, and SwiftData has no native `CKShare` support — sharing means Core Data with `NSPersistentCloudKitContainer` or a hand-written CloudKit layer. If phase 5 is on the roadmap, this is a phase-1 decision, not a phase-5 one; otherwise it is a rewrite of the persistence layer. Either way, the CloudKit model constraints apply to the recipe model from the start: no `@Attribute(.unique)`, all properties optional or defaulted, all relationships optional, no `.deny` delete rule. Without unique constraints, import de-duplication has to be implemented in code.
 * **The recipe data model in detail** — serving scaling, recipe cross-linking, unit handling. The ingredient line is where nutrition later succeeds or fails, not the database binding: quantity, unit, optional normalized gram amount, ingredient name, and preparation note ("finely chopped") belong in separate fields from day one, along with a raw/cooked distinction. "1 onion", "a pinch", and "100 g pasta (raw vs. cooked)" are the hard cases. Retrofitting this is a data migration.
 
 **Later:**
 
-* CloudKit schema for private user profiles alongside shared recipes
-* Whether the weekly plan optimizer draws only on the user's own recipes or also pulls in automatically researched ones, and which meals it covers
-* Edit permissions when sharing (everyone may edit vs. creator only)
+* Household lifecycle: what happens to shared recipes when a member leaves, and whether a member can take a copy of a recipe with them
+* Whether the weekly plan optimizer draws only on the household's own recipes or also pulls in automatically researched ones, and which meals it covers
+* Whether a single user can belong to more than one household (e.g. shared flat plus family)
 
 ## Rough phase roadmap
 
