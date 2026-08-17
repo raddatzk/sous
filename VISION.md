@@ -1,0 +1,89 @@
+# Sous — Vision
+
+## In one sentence
+
+A personal recipe management and meal planning app for iOS/macOS in the spirit of Mela — but with local AI integration for recipe generation, leftover cooking, web research, and automated, nutrient-optimized weekly meal planning.
+
+## Starting point
+
+Mela is currently in use and is broadly satisfactory, but appears to no longer be actively developed. Rather than a 1:1 rebuild, this is a distinct app — not a feature clone (RSS feeds, for example, are deliberately left out) — with meaningful AI value on top, which Mela lacks.
+
+## Guiding principle for the AI architecture
+
+**The right tool for the right job.** AI handles language, structuring, extraction from unstructured sources (web, video), and creative generation. Conventional code and external databases handle arithmetic, nutritional facts, and optimization.
+
+Rationale: language models are unreliable with numbers and facts (plausible-sounding but wrong nutrition values), yet very strong at narrowly scoped structuring tasks — especially with Apple's `@Generable` mechanism, which yields guaranteed-valid, parsed output instead of free-form text. This separation runs through the entire architecture.
+
+## Core features
+
+1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, cross-linking between one's own recipes
+2. **AI recipe generation from the personal collection** — new recipes in the user's own style, via retrieval (tool calling against the local database) plus structured generation
+3. **Ad-hoc leftover cooking** — free-text input ("zucchini and feta need to go"), no persistent pantry record, reusing the same generation mechanism as feature 2
+4. **Web research for new recipe ideas** — scraping of comparable existing recipes as a tool, using the same structured extraction path as the conventional URL import
+5. **Video import (Instagram/TikTok/YouTube)** — including actual video analysis: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
+6. **Per-recipe nutrition** — ingredients extracted and normalized structurally (AI), matched against an external nutrition database (conventional code)
+7. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
+8. **Sharing / multiple users** — individual profiles (diet, exercise load, etc.) feeding into personal nutrition targets; recipes and plans are shareable
+
+## Technical architecture pillars
+
+* **Foundation Models framework** (on-device, `@Generable`, tool calling) as the baseline on both iPhone and Mac — free, offline, private
+* **MLX as a swappable, stronger backend on the Mac** for tasks where the 3B system model is too bland (primarily creative recipe generation). Since WWDC 2026 the framework sits behind a `LanguageModel` protocol with interchangeable backends — the on-device system model, Private Cloud Compute, Core AI for custom weights, and `MLXLanguageModel` for Hugging Face MLX models — so the backend can be swapped per feature without touching the feature code.
+  * **To verify before relying on this:** whether guided generation (`@Generable`) and tool calling behave with the same guarantees on arbitrary MLX models as they do on the system model. Constrained decoding is model-dependent. This warrants a one-day spike.
+* **Context budget is a hard design constraint.** The on-device system model has a fixed 4096-token context window per session, and instructions, tool definitions, the `@Generable` schema, and the running transcript all count against it. A full recipe costs roughly 500–1000 tokens, so only two or three retrieval hits fit. Retrieval must therefore return condensed recipe profiles (style markers, ingredient signature) rather than full text, with pre-selection done in conventional code. `contextSize` and `tokenCount(for:)` (iOS 26.4+) are used to budget this explicitly rather than guessing.
+* **Mac and iPhone run independently.** Where the iPhone is too weak for a task, that is accepted, or offloaded to a self-hosted Ollama server or a paid cloud API (Claude/ChatGPT — billed separately from the chat subscription, pay-per-token). Recipe generation grounded in the personal collection is expected to be one of those Mac-first features.
+* **CloudKit** for sync and sharing across devices and users
+* **Nutrition data:** Bundeslebensmittelschlüssel (BLS) 4.0 as the primary source — license-free since 2025-12-16 under CC BY 4.0 (attribution to Max Rubner-Institut required in-app), ~7,140 foods, 138 nutrients, German-language. It is a curated staple-ingredient catalog rather than a barcode catalog, which is exactly what recipes need, and it largely removes the German→English ingredient normalization problem. USDA FoodData Central (CC0) and Open Food Facts serve as supplements for branded and packaged products.
+* **Weekly plan optimizer:** greedy construction followed by local swap improvement, scored by a cost function with asymmetric penalties (see below), plus variety and cooking-effort constraints.
+
+## Weekly plan optimizer — scoring
+
+The nutrient target vector has mixed constraint directions and must not be treated as a pure deficit-coverage problem:
+
+* **Lower bounds** (protein, fiber, micronutrients) — under-delivery is penalized
+* **Upper bounds** (calories, saturated fat, sugar, sodium) — over-delivery is penalized
+
+A plain greedy "cover the largest remaining deficit" pass systematically overshoots the upper bounds and cannot take anything back, and its final day is left closing whatever gap remains with whatever is available. With 7 days × n recipes the search space is small, so greedy construction plus a local swap pass (exchange a single meal whenever it lowers total cost) is cheap and produces markedly better plans.
+
+## Handling special cases (multiple users/profiles)
+
+* **Dietary and allergy constraints combine as a union of the prohibition lists** — an item is off-limits if it is off-limits for *any* participating profile. This single rule covers both nested diets (vegan ⊂ vegetarian falls out correctly on its own) and orthogonal constraints (diet + allergy), so no special-casing is needed.
+* **Shared nutrition targets for a shared meal:** minimize the largest remaining shortfall across all participating profiles, rather than attempting to hit every profile exactly at once.
+
+## Deliberately out of scope
+
+* RSS feeds (Mela's differentiator, but explicitly not wanted)
+* Persistent pantry/inventory management — leftover cooking runs purely on ad-hoc input, with no expiry-date tracking. Consequently, the weekly plan optimizer has no expiry data to weight against; ingredient-expiry weighting is out of scope with it.
+* Camera-based automatic fridge/pantry recognition
+* Factoring existing fixed eating habits (shake, cereal, kebab) into the weekly plan calculation — at least in the first version
+* LoRA adapter training for personalization. Evaluated and dropped: an adapter is bound to one specific base-model version and must be retrained on every OS model update, Apple advises against it for most apps on size grounds, and it applies only to the system model — which conflicts with the swappable-backend approach. Few-shot prompting with the user's own recipes, combined with a stronger MLX model on the Mac, targets the same goal at a fraction of the cost.
+
+## Open questions
+
+Not fundamentally unresolved, but not yet settled in detail. Each should be decided before the phase it affects.
+
+**Blocking phase 1:**
+
+* **App Store or private distribution?** This determines the design of the video import. Under App Store Review Guideline 5.2.3, apps that download media from Instagram/TikTok without platform authorization are rejected, including when official APIs are used. Privately signed, this is irrelevant; for the Store, the import path has to become a share extension that processes what the user themselves shares, rather than scraping.
+* **SwiftData or Core Data for persistence?** CloudKit cannot share records in the default zone; sharing requires custom zones, and SwiftData has no native `CKShare` support — sharing means Core Data with `NSPersistentCloudKitContainer` or a hand-written CloudKit layer. If phase 5 is on the roadmap, this is a phase-1 decision, not a phase-5 one; otherwise it is a rewrite of the persistence layer. Either way, the CloudKit model constraints apply to the recipe model from the start: no `@Attribute(.unique)`, all properties optional or defaulted, all relationships optional, no `.deny` delete rule. Without unique constraints, import de-duplication has to be implemented in code.
+* **The recipe data model in detail** — serving scaling, recipe cross-linking, unit handling. The ingredient line is where nutrition later succeeds or fails, not the database binding: quantity, unit, optional normalized gram amount, ingredient name, and preparation note ("finely chopped") belong in separate fields from day one, along with a raw/cooked distinction. "1 onion", "a pinch", and "100 g pasta (raw vs. cooked)" are the hard cases. Retrofitting this is a data migration.
+
+**Later:**
+
+* CloudKit schema for private user profiles alongside shared recipes
+* Whether the weekly plan optimizer draws only on the user's own recipes or also pulls in automatically researched ones, and which meals it covers
+* Edit permissions when sharing (everyone may edit vs. creator only)
+
+## Rough phase roadmap
+
+1. **Recipe management + AI generation from the user's own recipes** (including ad-hoc leftover cooking) — see the separate implementation prompt for Claude Code
+2. **Nutrition database binding** (BLS)
+3. **Automatic weekly plan optimizer**
+4. **Web research & video import**
+5. **Sharing / multi-user profiles & conflict resolution**
+
+Nutrition is pulled ahead of web research and video import: it shapes the ingredient data model and blocks the optimizer, whereas video import is the most expensive feature with the lowest return and the highest legal risk.
+
+## Target devices
+
+The Mac (M4 Pro, 48 GB unified memory) is over-qualified for every AI backend tier, including custom MLX models beyond Apple's system model. On iPhone, the available on-device model tier depends on the specific device (base model from iPhone 15 Pro onward; the stronger model only with 12 GB RAM — iPhone Air / 17 Pro / Pro Max).
