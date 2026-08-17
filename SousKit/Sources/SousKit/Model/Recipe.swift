@@ -26,6 +26,10 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public var prepTimeSeconds: Int?
     public var cookTimeSeconds: Int?
 
+    /// Pictures of the dish, referenced rather than embedded — see
+    /// ``RecipeImageStore`` for why they live outside the aggregate.
+    public var imageIDs: [UUID]
+
     /// The user who created it. Optional until user management exists.
     public var createdBy: UUID?
     public var createdAt: Date
@@ -49,6 +53,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         source: RecipeSource = .manual,
         prepTimeSeconds: Int? = nil,
         cookTimeSeconds: Int? = nil,
+        imageIDs: [UUID] = [],
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
         updatedAt: Date = .nowInSyncPrecision,
@@ -67,6 +72,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.source = source
         self.prepTimeSeconds = prepTimeSeconds
         self.cookTimeSeconds = cookTimeSeconds
+        self.imageIDs = imageIDs
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.updatedAt = updatedAt

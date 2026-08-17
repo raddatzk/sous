@@ -18,6 +18,7 @@ struct RecipeDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+                images
                 header
                 servingsControl
                 ingredients
@@ -57,6 +58,23 @@ struct RecipeDetailView: View {
             Task { linkedRecipe = await library.recipe(id: id) }
             return .handled
         })
+    }
+
+    @ViewBuilder
+    private var images: some View {
+        if !recipe.imageIDs.isEmpty {
+            ScrollView(.horizontal) {
+                HStack(spacing: 12) {
+                    ForEach(recipe.imageIDs, id: \.self) { imageID in
+                        RecipeImageView(imageID: imageID)
+                            .frame(height: 220)
+                            .frame(maxWidth: 320)
+                            .clipShape(.rect(cornerRadius: 14))
+                    }
+                }
+            }
+            .scrollIndicators(.hidden)
+        }
     }
 
     @ViewBuilder

@@ -141,7 +141,12 @@ private struct RecipeRow: View {
     let recipe: Recipe
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: .center, spacing: 12) {
+            if let imageID = recipe.imageIDs.first {
+                RecipeImageView(imageID: imageID, thumbnail: true)
+                    .frame(width: 52, height: 52)
+                    .clipShape(.rect(cornerRadius: 8))
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(recipe.title)
                     .font(.headline)
