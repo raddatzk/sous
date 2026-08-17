@@ -21,6 +21,7 @@ struct RecipeEditorView: View {
     @State private var addedImageIDs: [UUID] = []
     /// An unknown ingredient the cook is about to teach the app.
     @State private var teaching: CatalogIngredient?
+    @FocusState private var isEditingIngredients: Bool
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -53,6 +54,8 @@ struct RecipeEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { editorToolbar }
+            // Sits above the keyboard while an ingredient is being typed.
+            .safeAreaInset(edge: .bottom) { completionBar }
             .sheet(item: $linkTarget) { target in
                 RecipePickerView(excluding: draft.id) { picked in
                     insert(link: picked, at: target)
@@ -161,6 +164,7 @@ struct RecipeEditorView: View {
         Section {
             TextEditor(text: $draft.ingredientsText, selection: $ingredientsSelection)
                 .frame(minHeight: 180)
+                .focused($isEditingIngredients)
             Button("Rezept verlinken", systemImage: "link") {
                 linkTarget = .ingredients
             }
@@ -170,6 +174,75 @@ struct RecipeEditorView: View {
         } footer: {
             Text("Eine Zutat pro Zeile, etwa „300 g Zucchini (fein gehackt)“. „# Für den Teig“ beginnt einen Abschnitt.")
         }
+    }
+
+    /// Suggestions for the ingredient being typed, if any.
+    ///
+    /// SwiftUI's `textInputSuggestions` is macOS-only and `TextEditor` has no
+    /// inline completion, so the bar is drawn by hand from the cursor's line.
+    @ViewBuilder
+    private var completionBar: some View {
+        let matches = completions
+        if !matches.isEmpty {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(matches) { ingredient in
+                        Button {
+                            complete(with: ingredient)
+                        } label: {
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(ingredient.name)
+                                    .font(.callout)
+                                Text(ingredient.category.title)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.plain)
+                        .background(.quaternary, in: .capsule)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+            }
+            .scrollIndicators(.hidden)
+            .background(.bar)
+        }
+    }
+
+    private var completions: [CatalogIngredient] {
+        guard isEditingIngredients, let range = currentIngredientLine else { return [] }
+        return IngredientCompletion.suggestions(
+            forLine: String(draft.ingredientsText[range]),
+            catalog: catalog.catalog
+        )
+    }
+
+    /// The line the cursor is in, which is what gets completed.
+    private var currentIngredientLine: Range<String.Index>? {
+        guard case .selection(let selected)? = ingredientsSelection?.indices else { return nil }
+        return IngredientCompletion.lineRange(in: draft.ingredientsText, at: selected.lowerBound)
+    }
+
+    private func complete(with ingredient: CatalogIngredient) {
+        guard let range = currentIngredientLine else { return }
+        let completed = IngredientCompletion.completed(
+            line: String(draft.ingredientsText[range]),
+            with: ingredient
+        )
+        let offset = draft.ingredientsText.distance(
+            from: draft.ingredientsText.startIndex, to: range.lowerBound
+        ) + completed.count
+
+        draft.ingredientsText.replaceSubrange(range, with: completed)
+        // Indices did not survive the edit; put the cursor back by offset.
+        let cursor = draft.ingredientsText.index(
+            draft.ingredientsText.startIndex,
+            offsetBy: min(offset, draft.ingredientsText.count)
+        )
+        ingredientsSelection = TextSelection(insertionPoint: cursor)
     }
 
     /// Ingredients the catalog does not know yet, offered for adding.
