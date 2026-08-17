@@ -9,9 +9,8 @@ public final class StoredShoppingEntry {
     /// The normalized ingredient name, matching ``ShoppingItem/key``.
     public var key: String = ""
     public var name: String = ""
-    /// Serialized amounts: a line can carry several that do not combine,
-    /// like "100 g + 3 EL".
-    public var quantityData: Data = Data()
+    /// Serialized amounts added straight to the list, belonging to no recipe.
+    public var manualQuantityData: Data = Data()
     /// Serialized contributions: which recipe wants how much.
     public var sourceData: Data = Data()
     public var isChecked: Bool = false
@@ -29,14 +28,14 @@ public final class StoredShoppingEntry {
 
     public func apply(_ item: ShoppingItem) {
         name = item.name
-        quantityData = (try? SousCoding.encoder.encode(item.quantities)) ?? Data()
+        manualQuantityData = (try? SousCoding.encoder.encode(item.manualQuantities)) ?? Data()
         sourceData = (try? SousCoding.encoder.encode(item.sources)) ?? Data()
         isChecked = item.isChecked
         updatedAt = .nowInSyncPrecision
     }
 
-    public var quantities: [Quantity] {
-        (try? SousCoding.decoder.decode([Quantity].self, from: quantityData)) ?? []
+    public var manualQuantities: [Quantity] {
+        (try? SousCoding.decoder.decode([Quantity].self, from: manualQuantityData)) ?? []
     }
 
     public var sources: [ShoppingSource] {
@@ -47,8 +46,8 @@ public final class StoredShoppingEntry {
         ShoppingItem(
             key: key,
             name: name,
-            quantities: quantities,
             sources: sources,
+            manualQuantities: manualQuantities,
             isChecked: isChecked
         )
     }

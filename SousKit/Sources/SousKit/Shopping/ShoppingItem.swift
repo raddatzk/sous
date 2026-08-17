@@ -1,10 +1,6 @@
 import Foundation
 
 /// What one recipe contributes to a line on the list.
-///
-/// Kept per recipe rather than folded into one number, so the list can be
-/// read either way: "500 g Tomaten" for shopping, or "Curry: 300 g" when
-/// checking whether everything for a dish is there.
 public struct ShoppingSource: Hashable, Sendable, Codable {
     public var recipeTitle: String
     public var quantities: [Quantity]
@@ -16,6 +12,11 @@ public struct ShoppingSource: Hashable, Sendable, Codable {
 }
 
 /// One line on the shopping list.
+///
+/// Only the contributions are stored — per recipe, and whatever was typed in
+/// by hand. The total is derived from them, so the two readings of the list
+/// cannot drift apart: adding something by hand to a line that already came
+/// from a recipe used to raise the total without appearing under any dish.
 public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// Stable across rebuilds of the list, so ticking something off survives
     /// a change to the plan.
@@ -23,14 +24,20 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     public var id: String { key }
 
     public var name: String
-    /// One amount per measurement dimension: grams and millilitres of the
-    /// same thing do not add up, and neither do "2 Stück" and "1 Prise".
-    public var quantities: [Quantity]
     /// Which recipes asked for it, and how much each of them wants.
     public var sources: [ShoppingSource]
+    /// What was added straight to the list, belonging to no recipe.
+    public var manualQuantities: [Quantity]
     public var isChecked: Bool
 
-    /// Typed by hand rather than taken from a recipe.
+    /// Everything wanted of it, however it got onto the list.
+    public var quantities: [Quantity] {
+        sources
+            .reduce(into: [Quantity]()) { $0 = $0.adding($1.quantities) }
+            .adding(manualQuantities)
+    }
+
+    /// Came from no recipe at all.
     public var isManual: Bool { sources.isEmpty }
 
     public var recipeTitles: [String] { sources.map(\.recipeTitle) }
@@ -38,14 +45,14 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     public init(
         key: String,
         name: String,
-        quantities: [Quantity] = [],
         sources: [ShoppingSource] = [],
+        manualQuantities: [Quantity] = [],
         isChecked: Bool = false
     ) {
         self.key = key
         self.name = name
-        self.quantities = quantities
         self.sources = sources
+        self.manualQuantities = manualQuantities
         self.isChecked = isChecked
     }
 

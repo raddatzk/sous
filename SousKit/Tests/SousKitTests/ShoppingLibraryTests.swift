@@ -136,3 +136,23 @@ extension ShoppingLibraryTests {
         #expect(groups[2].items.map(\.name) == ["Kaffee"])
     }
 }
+
+extension ShoppingLibraryTests {
+    @Test("Topping up a line by hand shows up in both readings")
+    func manualTopUpIsAccountedFor() async throws {
+        let (shopping, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
+        await shopping.addItem("700 g Tomaten")
+
+        // One line, and the total counts both.
+        #expect(shopping.items.count == 1)
+        #expect(shopping.items[0].quantities == [Quantity(1000, .gram)])
+
+        // Grouped by dish, the recipe's share and the rest are both visible,
+        // and together they add back up to the total.
+        let groups = shopping.byRecipe
+        #expect(groups.map(\.recipe) == ["Salat", ShoppingLibrary.ungroupedTitle])
+        #expect(groups[0].items[0].quantities == [Quantity(300, .gram)])
+        #expect(groups[1].items[0].quantities == [Quantity(700, .gram)])
+    }
+}

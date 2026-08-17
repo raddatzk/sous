@@ -80,7 +80,7 @@ public final class ShoppingLibrary {
         let item = ShoppingItem(
             key: ShoppingItem.key(for: ingredient.name),
             name: name,
-            quantities: ingredient.quantity.map { [$0] } ?? []
+            manualQuantities: ingredient.quantity.map { [$0] } ?? []
         )
         do {
             try await store.add([item])
@@ -138,18 +138,28 @@ public final class ShoppingLibrary {
                     grouped[source.recipeTitle] = []
                 }
                 // Shown with this recipe's share, not the combined total.
-                var portion = item
-                portion.quantities = source.quantities
+                let portion = ShoppingItem(
+                    key: item.key,
+                    name: item.name,
+                    manualQuantities: source.quantities,
+                    isChecked: item.isChecked
+                )
                 grouped[source.recipeTitle]?.append(portion)
             }
-            if item.isManual {
+            if !item.manualQuantities.isEmpty || item.sources.isEmpty {
                 // Belongs to no dish, so it is grouped by that fact rather
-                // than by where it came from.
+                // than by where it came from. A line that came from a recipe
+                // *and* was topped up by hand appears in both places.
                 if grouped[Self.ungroupedTitle] == nil {
                     order.append(Self.ungroupedTitle)
                     grouped[Self.ungroupedTitle] = []
                 }
-                grouped[Self.ungroupedTitle]?.append(item)
+                grouped[Self.ungroupedTitle]?.append(ShoppingItem(
+                    key: item.key,
+                    name: item.name,
+                    manualQuantities: item.manualQuantities,
+                    isChecked: item.isChecked
+                ))
             }
         }
         return order.map { ($0, grouped[$0] ?? []) }

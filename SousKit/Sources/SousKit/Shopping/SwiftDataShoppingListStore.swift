@@ -20,20 +20,17 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
                 // Already on the list: fold the amounts together and note
                 // which recipe else asked for it.
                 var merged = existing.domainValue
-                for quantity in item.quantities {
-                    merged.quantities = ShoppingListBuilder.merged(merged.quantities, adding: quantity)
-                }
+                // Both kinds of contribution fold into their own place, and
+                // the total follows from them.
                 for source in item.sources {
                     if let index = merged.sources.firstIndex(where: { $0.recipeTitle == source.recipeTitle }) {
-                        for quantity in source.quantities {
-                            merged.sources[index].quantities = ShoppingListBuilder.merged(
-                                merged.sources[index].quantities, adding: quantity
-                            )
-                        }
+                        merged.sources[index].quantities = merged.sources[index].quantities
+                            .adding(source.quantities)
                     } else {
                         merged.sources.append(source)
                     }
                 }
+                merged.manualQuantities = merged.manualQuantities.adding(item.manualQuantities)
                 // Adding something again means it is wanted again.
                 merged.isChecked = false
                 existing.apply(merged)
