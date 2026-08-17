@@ -85,12 +85,12 @@ struct IngredientParserTests {
     @Test("Parsed lines render back to the text they came from")
     func roundTrip() {
         let source = """
-        Für den Teig:
+        # Für den Teig
         300 g Mehl
         1 ½ EL Zucker
-        2 Eier, verquirlt
+        2 Eier (verquirlt)
 
-        Für die Sauce:
+        # Für die Sauce
         200 ml Sahne
         Salz
         """
@@ -119,5 +119,24 @@ extension IngredientParserTests {
         let changed = IngredientParser.parse("400 g Zucchini")
 
         #expect(first[0].id != changed[0].id)
+    }
+}
+
+extension IngredientParserTests {
+    @Test("A comment in parentheses is the preparation, the way Mela writes it")
+    func parenthesizedComment() {
+        let ingredient = IngredientParser.parseLine("300 g Zucchini (fein gehackt)")
+
+        #expect(ingredient.name == "Zucchini")
+        #expect(ingredient.preparation == "fein gehackt")
+    }
+
+    @Test("Both group syntaxes are accepted")
+    func groupSyntaxes() {
+        let hash = IngredientParser.parse("# Teig\n300 g Mehl")
+        let colon = IngredientParser.parse("Teig:\n300 g Mehl")
+
+        #expect(hash[0].group == "Teig")
+        #expect(colon[0].group == "Teig")
     }
 }

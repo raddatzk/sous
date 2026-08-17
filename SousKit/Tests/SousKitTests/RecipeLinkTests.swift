@@ -50,3 +50,23 @@ struct RecipeLinkTests {
         #expect(Recipe(title: "Salat", ingredientsText: "2 Tomaten").linkedRecipeIDs.isEmpty)
     }
 }
+
+extension RecipeLinkTests {
+    @Test("Mela's own links are recognized and kept as written")
+    func melaLinks() throws {
+        let url = try #require(URL(string: "mela://recipe/rewe.de/rezepte/spaghetti-kuerbis-carbonara"))
+
+        #expect(RecipeLink.target(from: url) == .external(
+            scheme: "mela",
+            identifier: "rewe.de/rezepte/spaghetti-kuerbis-carbonara"
+        ))
+        // Not a local recipe, so nothing in this library resolves it yet.
+        #expect(RecipeLink.recipeID(from: url) == nil)
+    }
+
+    @Test("Local links resolve to their recipe")
+    func localTarget() {
+        let id = UUID()
+        #expect(RecipeLink.target(from: RecipeLink.url(for: id)) == .local(id))
+    }
+}

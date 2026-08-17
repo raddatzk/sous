@@ -98,6 +98,23 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         return order.map { ($0, buckets[$0] ?? []) }
     }
 
+    /// Steps grouped by their heading, in the order they appear.
+    ///
+    /// Numbering restarts within each group — a heading in the instructions
+    /// starts a new sequence, the way Mela treats it.
+    public var stepGroups: [(group: String?, steps: [RecipeStep])] {
+        var order: [String?] = []
+        var buckets: [String?: [RecipeStep]] = [:]
+        for step in steps {
+            if buckets[step.group] == nil {
+                order.append(step.group)
+                buckets[step.group] = []
+            }
+            buckets[step.group]?.append(step)
+        }
+        return order.map { ($0, buckets[$0] ?? []) }
+    }
+
     /// Whether there is anything to show at all.
     public var isEmpty: Bool {
         ingredientsText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty

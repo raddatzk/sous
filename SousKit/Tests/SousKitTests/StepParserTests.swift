@@ -61,3 +61,25 @@ struct StepParserTests {
         #expect(StepParser.text(for: StepParser.parse(source)) == source)
     }
 }
+
+extension StepParserTests {
+    @Test("Numbering restarts in each group")
+    func groupedNumbering() {
+        let recipe = Recipe(
+            title: "Lasagne",
+            instructionsText: """
+            # Teig
+            Mehl abwiegen
+            Ei unterrühren
+
+            # Sauce
+            Zwiebeln anbraten
+            """
+        )
+
+        let groups = recipe.stepGroups
+        #expect(groups.map(\.group) == ["Teig", "Sauce"])
+        #expect(groups[0].steps.count == 2)
+        #expect(groups[1].steps.count == 1)
+    }
+}
