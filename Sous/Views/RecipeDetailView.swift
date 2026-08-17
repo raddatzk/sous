@@ -17,30 +17,35 @@ struct RecipeDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                images
-                header
-                servingsControl
-                ingredients
-                steps
-                notes
-                sourceFooter
+            VStack(alignment: .leading, spacing: 0) {
+                heroImage
+                VStack(alignment: .leading, spacing: 28) {
+                    titleBlock
+                    actionBar
+                    servingsControl
+                    ingredients
+                    steps
+                    notes
+                    sourceFooter
+                }
+                .padding(24)
+                .frame(maxWidth: 700, alignment: .leading)
             }
-            .padding()
-            .frame(maxWidth: 700, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
+        .ignoresSafeArea(edges: recipe.imageIDs.isEmpty ? [] : .top)
         .navigationTitle(recipe.title)
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(recipe.imageIDs.isEmpty ? .automatic : .hidden, for: .navigationBar)
         #endif
         .toolbar { detailToolbar }
         .onChange(of: recipe.id) { servingsOverride = nil }
-        // Shown as a sheet rather than pushed: looking up how the dough is
-        // made is a detour, and a swipe returns to exactly where the cook was.
         .fullScreenCoverIfAvailable(isPresented: $isCooking) {
             CookModeView(recipe: recipe, servings: servings)
         }
+        // Shown as a sheet rather than pushed: looking up how the dough is
+        // made is a detour, and a swipe returns to exactly where the cook was.
         .sheet(item: $linkedRecipe) { linked in
             NavigationStack {
                 RecipeDetailView(recipe: linked)
@@ -60,64 +65,117 @@ struct RecipeDetailView: View {
         })
     }
 
+    /// Edge to edge, the way a dish deserves to be seen.
     @ViewBuilder
-    private var images: some View {
-        if !recipe.imageIDs.isEmpty {
-            ScrollView(.horizontal) {
-                HStack(spacing: 12) {
-                    ForEach(recipe.imageIDs, id: \.self) { imageID in
-                        RecipeImageView(imageID: imageID)
-                            .frame(height: 220)
-                            .frame(maxWidth: 320)
-                            .clipShape(.rect(cornerRadius: 14))
-                    }
+    private var heroImage: some View {
+        if let imageID = recipe.imageIDs.first {
+            // The placeholder decides the size and the image only fills it:
+            // a `.fill` image sized by its own content would widen the whole
+            // page past the screen and drag the text off the left edge.
+            Color.clear
+                .frame(maxWidth: .infinity)
+                .frame(height: 320)
+                .overlay { RecipeImageView(imageID: imageID) }
+                .clipped()
+                .overlay(alignment: .bottom) {
+                    // Keeps the page from starting with a hard edge.
+                    LinearGradient(
+                        colors: [.clear, Color.sousBackground],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 60)
                 }
-            }
-            .scrollIndicators(.hidden)
         }
     }
 
     @ViewBuilder
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(recipe.title)
+                .font(SousStyle.recipeTitle)
+                .fixedSize(horizontal: false, vertical: true)
+
             if let summary = recipe.summary, !summary.isEmpty {
                 Text(summary)
                     .foregroundStyle(.secondary)
             }
-            if !metaItems.isEmpty {
-                Text(metaItems.joined(separator: " · "))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+
+            metaRow
+        }
+    }
+
+    @ViewBuilder
+    private var metaRow: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if !recipe.categories.isEmpty {
+                Label(recipe.categories.joined(separator: ", "), systemImage: "tag")
+                    .metaLabel()
+            }
+            Label("\(recipe.servings) Portionen", systemImage: "person.2")
+                .metaLabel()
+            if !timeItems.isEmpty {
+                HStack(spacing: 16) {
+                    ForEach(timeItems, id: \.label) { item in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.value).font(.footnote.weight(.medium))
+                            Text(item.label)
+                                .font(.caption2)
+                                .textCase(.uppercase)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .padding(.top, 2)
             }
         }
     }
 
-    /// Renders inline markdown, falling back to the raw text if it does not
-    /// parse — a half-typed emphasis marker should not blank out a step.
-    private func markdown(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(text)
-    }
-
-    private var metaItems: [String] {
-        var items: [String] = []
+    private var timeItems: [(label: String, value: String)] {
+        var items: [(String, String)] = []
         if let prep = recipe.prepTimeSeconds, prep > 0 {
-            items.append("Vorbereitung \(prep / 60) Min.")
+            items.append(("Vorbereitung", "\(prep / 60) Min"))
         }
         if let cook = recipe.cookTimeSeconds, cook > 0 {
-            items.append("Kochzeit \(cook / 60) Min.")
+            items.append(("Zubereitung", "\(cook / 60) Min"))
         }
-        items.append(contentsOf: recipe.categories)
+        if items.count == 2 {
+            let total = (recipe.prepTimeSeconds ?? 0) + (recipe.cookTimeSeconds ?? 0)
+            items.append(("Gesamt", "\(total / 60) Min"))
+        }
         return items
+    }
+
+    @ViewBuilder
+    private var actionBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                isCooking = true
+            } label: {
+                Label("Kochen", systemImage: "play.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(recipe.steps.isEmpty)
+
+            Button {
+                Task { await library.toggleFavorite(recipe) }
+            } label: {
+                Label(
+                    recipe.isFavorite ? "Favorit" : "Merken",
+                    systemImage: recipe.isFavorite ? "star.fill" : "star"
+                )
+            }
+            .buttonStyle(.bordered)
+        }
+        .controlSize(.large)
     }
 
     @ViewBuilder
     private var servingsControl: some View {
         HStack {
-            Text("Portionen")
-                .font(.headline)
+            Label("Portionen", systemImage: "person.2")
+                .font(.subheadline.weight(.medium))
             Spacer()
             Text("\(servings)")
                 .monospacedDigit()
@@ -135,21 +193,21 @@ struct RecipeDetailView: View {
                     .font(.footnote)
             }
         }
-        .padding()
-        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+        .padding(14)
+        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder
     private var ingredients: some View {
         if !recipe.ingredients.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 Text("Zutaten")
-                    .font(.title2.bold())
+                    .font(SousStyle.sectionHeading)
                 ForEach(recipe.ingredientGroups(scaledToServings: servings), id: \.group) { group in
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         if let name = group.group {
                             Text(name)
-                                .font(.headline)
+                                .font(SousStyle.groupHeading)
                                 .padding(.top, 4)
                         }
                         ForEach(group.ingredients) { ingredient in
@@ -165,23 +223,23 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var steps: some View {
         if !recipe.steps.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
-                    .font(.title2.bold())
+                    .font(SousStyle.sectionHeading)
                 ForEach(recipe.stepGroups, id: \.group) { group in
                     if let name = group.group {
                         Text(name)
-                            .font(.headline)
+                            .font(SousStyle.groupHeading)
                             .padding(.top, 4)
                     }
                     // Numbering restarts per group, as the heading implies.
                     ForEach(Array(group.steps.enumerated()), id: \.element.id) { index, step in
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
                             Text("\(index + 1)")
-                                .font(.headline.monospacedDigit())
-                                .foregroundStyle(.secondary)
+                                .font(.system(.headline, design: .serif))
+                                .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
-                            Text(markdown(step.text))
+                            Text(markdown(recipe.scaledStepText(step, toServings: servings)))
                         }
                     }
                 }
@@ -192,9 +250,9 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var notes: some View {
         if let notes = recipe.notes, !notes.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 Text("Notizen")
-                    .font(.title2.bold())
+                    .font(SousStyle.sectionHeading)
                 Text(notes)
             }
         }
@@ -203,7 +261,7 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var sourceFooter: some View {
         if recipe.source.kind != .manual || recipe.source.url != nil {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Divider()
                 if let url = recipe.source.url {
                     Link(recipe.source.name ?? url.host() ?? url.absoluteString, destination: url)
@@ -225,17 +283,25 @@ struct RecipeDetailView: View {
         ToolbarItem(placement: .primaryAction) {
             Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
         }
-        ToolbarItem(placement: .automatic) {
-            Button("Kochen", systemImage: "play.circle") { isCooking = true }
-                .disabled(recipe.steps.isEmpty)
-        }
-        ToolbarItem(placement: .automatic) {
-            Button(
-                recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
-                systemImage: recipe.isFavorite ? "star.fill" : "star"
-            ) {
-                Task { await library.toggleFavorite(recipe) }
-            }
-        }
+    }
+
+    /// Renders inline markdown, falling back to the raw text if it does not
+    /// parse — a half-typed emphasis marker should not blank out a step.
+    private func markdown(_ text: String) -> AttributedString {
+        (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+}
+
+extension Color {
+    /// The page colour behind a recipe, used to fade a hero image into it.
+    static var sousBackground: Color {
+        #if os(macOS)
+        Color(nsColor: .windowBackgroundColor)
+        #else
+        Color(uiColor: .systemBackground)
+        #endif
     }
 }

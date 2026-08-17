@@ -160,7 +160,7 @@ struct CookModeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text("Zutaten")
-                    .font(.title2.bold())
+                    .font(SousStyle.sectionHeading)
                 ForEach(recipe.ingredientGroups(scaledToServings: servings), id: \.group) { group in
                     VStack(alignment: .leading, spacing: 10) {
                         if let name = group.group {
