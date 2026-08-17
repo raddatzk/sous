@@ -8,6 +8,8 @@ import Foundation
 public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var day: Date
+    /// Dinner unless said otherwise — it is what gets planned most.
+    public var slot: MealSlot
     public var recipeID: UUID
     /// Set when this meal is cooked for a different number of people than the
     /// recipe is written for.
@@ -24,6 +26,7 @@ public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(),
         day: Date,
+        slot: MealSlot = .dinner,
         recipeID: UUID,
         servings: Int? = nil,
         sortOrder: Int = 0,
@@ -33,6 +36,7 @@ public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
     ) {
         self.id = id
         self.day = day.startOfDay
+        self.slot = slot
         self.recipeID = recipeID
         self.servings = servings
         self.sortOrder = sortOrder

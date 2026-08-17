@@ -176,3 +176,55 @@ struct MealPlanLibraryTests {
         #expect(plan.plannedRecipes(from: Date(), through: inThreeDays).count == 2)
     }
 }
+
+@MainActor
+@Suite("Meals of the day")
+struct MealSlotTests {
+    private func makeLibrary() throws -> (MealPlanLibrary, SwiftDataRecipeStore) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let recipes = SwiftDataRecipeStore(modelContainer: container)
+        let plan = MealPlanLibrary(
+            store: SwiftDataMealPlanStore(modelContainer: container),
+            recipeStore: recipes
+        )
+        return (plan, recipes)
+    }
+
+    @Test("A day's entries come back in the order the meals happen")
+    func mealsAreOrdered() async throws {
+        let (plan, recipes) = try makeLibrary()
+        let porridge = Recipe(title: "Porridge", servings: 1)
+        let soup = Recipe(title: "Suppe", servings: 2)
+        try await recipes.save(porridge)
+        try await recipes.save(soup)
+
+        // Planned dinner first, breakfast second.
+        await plan.add(soup, to: Date(), slot: .dinner)
+        await plan.add(porridge, to: Date(), slot: .breakfast)
+
+        #expect(plan.plan(for: Date()).map(\.recipe?.title) == ["Porridge", "Suppe"])
+    }
+
+    @Test("Meals with nothing planned are left out")
+    func emptyMealsAreSkipped() async throws {
+        let (plan, recipes) = try makeLibrary()
+        let soup = Recipe(title: "Suppe", servings: 2)
+        try await recipes.save(soup)
+
+        await plan.add(soup, to: Date(), slot: .lunch)
+
+        let meals = plan.meals(for: Date())
+        #expect(meals.map(\.slot) == [.lunch])
+        #expect(meals[0].items.map(\.recipe?.title) == ["Suppe"])
+    }
+
+    @Test("Dinner is what a recipe is planned for unless said otherwise")
+    func dinnerByDefault() async throws {
+        let (plan, recipes) = try makeLibrary()
+        let soup = Recipe(title: "Suppe", servings: 2)
+        try await recipes.save(soup)
+
+        await plan.add(soup, to: Date())
+        #expect(plan.plan(for: Date())[0].entry.slot == .dinner)
+    }
+}

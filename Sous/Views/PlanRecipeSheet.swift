@@ -11,6 +11,7 @@ struct PlanRecipeSheet: View {
     let servings: Int
 
     @State private var day = Date()
+    @State private var slot: MealSlot = .dinner
     @State private var plannedServings: Int
 
     init(recipe: Recipe, servings: Int) {
@@ -26,6 +27,16 @@ struct PlanRecipeSheet: View {
                     DatePicker("Tag", selection: $day, displayedComponents: .date)
                         .datePickerStyle(.graphical)
                 }
+
+                Section {
+                    Picker("Mahlzeit", selection: $slot) {
+                        ForEach(MealSlot.allCases, id: \.self) { option in
+                            Text(option.title).tag(option)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+                .listRowBackground(Color.clear)
 
                 Section {
                     Stepper(value: $plannedServings, in: 1...50) {
@@ -49,7 +60,7 @@ struct PlanRecipeSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Einplanen") {
                         Task {
-                            await plan.add(recipe, to: day, servings: plannedServings)
+                            await plan.add(recipe, to: day, slot: slot, servings: plannedServings)
                             dismiss()
                         }
                     }

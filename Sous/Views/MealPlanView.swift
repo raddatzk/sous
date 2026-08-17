@@ -6,8 +6,15 @@ struct MealPlanView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(ShoppingLibrary.self) private var shopping
 
-    @State private var pickingDay: Date?
+    @State private var pickingSlot: PlannedSlot?
     @State private var openedRecipe: Recipe?
+
+    /// A day and the meal being planned for it.
+    private struct PlannedSlot: Identifiable {
+        let day: Date
+        let slot: MealSlot
+        var id: String { "\(day.timeIntervalSince1970)-\(slot.rawValue)" }
+    }
 
     var body: some View {
         NavigationStack {
@@ -36,9 +43,12 @@ struct MealPlanView: View {
                 .toolbar { toolbar(scroll: scroll) }
             }
             .task { await plan.reload() }
-            .sheet(item: $pickingDay) { day in
-                RecipePickerView(title: "Rezept einplanen", excluding: UUID()) { recipe in
-                    Task { await plan.add(recipe, to: day) }
+            .sheet(item: $pickingSlot) { target in
+                RecipePickerView(
+                    title: "\(target.slot.title) einplanen",
+                    excluding: UUID()
+                ) { recipe in
+                    Task { await plan.add(recipe, to: target.day, slot: target.slot) }
                 }
             }
             .navigationDestination(item: $openedRecipe) { recipe in
@@ -49,22 +59,28 @@ struct MealPlanView: View {
 
     @ViewBuilder
     private func dayContent(_ day: Date) -> some View {
-        let entries = plan.plan(for: day)
+        let meals = plan.meals(for: day)
 
-        if entries.isEmpty {
+        if meals.isEmpty {
             // One quiet line, so an empty fortnight stays scrollable.
-            Button {
-                pickingDay = day
+            Menu {
+                slotButtons(for: day)
             } label: {
                 Text("Nichts geplant")
                     .font(.callout)
                     .foregroundStyle(.tertiary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .contentShape(.rect)
         } else {
-            ForEach(entries, id: \.entry.id) { item in
+            ForEach(meals, id: \.slot) { meal in
+                Label(meal.slot.title, systemImage: meal.slot.symbolName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .listRowSeparator(.hidden)
+
+                ForEach(meal.items, id: \.entry.id) { item in
                 Group {
                     HStack(spacing: 12) {
                         if let imageID = item.recipe?.imageIDs.first {
@@ -82,13 +98,24 @@ struct MealPlanView: View {
                         Spacer()
                     }
                 }
-                .contentShape(.rect)
-                .onTapGesture { openedRecipe = item.recipe }
-                .swipeActions {
-                    Button("Entfernen", systemImage: "trash", role: .destructive) {
-                        Task { await plan.remove(item.entry) }
+                    .contentShape(.rect)
+                    .onTapGesture { openedRecipe = item.recipe }
+                    .swipeActions {
+                        Button("Entfernen", systemImage: "trash", role: .destructive) {
+                            Task { await plan.remove(item.entry) }
+                        }
                     }
                 }
+            }
+        }
+    }
+
+    /// One button per meal, for choosing where a recipe goes.
+    @ViewBuilder
+    private func slotButtons(for day: Date) -> some View {
+        ForEach(MealSlot.allCases, id: \.self) { slot in
+            Button(slot.title, systemImage: slot.symbolName) {
+                pickingSlot = PlannedSlot(day: day, slot: slot)
             }
         }
     }
@@ -103,10 +130,12 @@ struct MealPlanView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("Rezept einplanen", systemImage: "plus") { pickingDay = day }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.plain)
-                .foregroundStyle(.tint)
+            Menu {
+                slotButtons(for: day)
+            } label: {
+                Image(systemName: "plus")
+                    .foregroundStyle(.tint)
+            }
         }
         .textCase(nil)
     }
