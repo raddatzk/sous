@@ -104,23 +104,25 @@ public enum ShoppingListBuilder {
         accumulator[key] = item
     }
 
-    /// Adds an amount to the ones already gathered, combining only what
-    /// shares a dimension: 300 g and 0,2 kg make 500 g, but grams and
-    /// millilitres stay side by side.
+    /// Adds an amount to the ones already gathered.
+    ///
+    /// Only amounts bought in the same measure are combined: 300 g and 0,2 kg
+    /// make 500 g. Everything else is written side by side, the way Mela does
+    /// it — "100 g + 3 EL" is honest, while a converted "135 ml" would be a
+    /// number nobody asked for. Spoons in particular are a cooking measure,
+    /// not a shopping one: 2 EL and 1 TL stay as they are.
     static func merged(_ quantities: [Quantity], adding quantity: Quantity) -> [Quantity] {
         var result = quantities
 
-        if quantity.unit.isConvertible,
-           let index = result.firstIndex(where: {
-               $0.unit.isConvertible && $0.unit.dimension == quantity.unit.dimension
-           }) {
+        if let group = quantity.unit.shoppingGroup,
+           let index = result.firstIndex(where: { $0.unit.shoppingGroup == group }) {
             let existing = result[index]
-            guard let sum = quantity.converted(to: existing.unit) else { return result }
-            result[index] = Quantity(existing.amount + sum.amount, existing.unit)
+            guard let converted = quantity.converted(to: existing.unit) else { return result }
+            result[index] = Quantity(existing.amount + converted.amount, existing.unit)
             return result
         }
 
-        // Not convertible: only identical units can be added.
+        // Outside those groups only identical units add up.
         if let index = result.firstIndex(where: { $0.unit == quantity.unit }) {
             result[index] = Quantity(result[index].amount + quantity.amount, quantity.unit)
             return result
