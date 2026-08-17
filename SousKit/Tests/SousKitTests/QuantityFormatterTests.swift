@@ -48,7 +48,7 @@ extension QuantityFormatterTests {
             name: "Zucchini",
             quantity: Quantity(300, .gram),
             preparation: "fein gehackt"
-        )) == "300 g Zucchini, fein gehackt")
+        )) == "300 g Zucchini (fein gehackt)")
 
         #expect(formatter.string(for: RecipeIngredient(name: "Salz")) == "Salz")
 

@@ -19,11 +19,40 @@ public enum RecipeLink {
         "[\(title)](\(url(for: id).absoluteString))"
     }
 
-    /// The recipe id a URL points at, or `nil` if it is not one of ours.
+    /// The scheme Mela writes, e.g.
+    /// `mela://recipe/rewe.de/rezepte/spaghetti-kuerbis-carbonara`.
+    public static let melaScheme = "mela"
+
+    /// What a recipe link points at.
+    public enum Target: Hashable, Sendable {
+        /// A recipe in this library.
+        case local(UUID)
+        /// A recipe identified the way another app names it. Kept as written
+        /// so an import can map it once the target exists here; Mela's
+        /// identifiers are multi-part paths, not UUIDs.
+        case external(scheme: String, identifier: String)
+    }
+
+    public static func target(from url: URL) -> Target? {
+        guard url.host() == "recipe" else { return nil }
+        let identifier = url.path().trimmingPrefix("/")
+
+        switch url.scheme {
+        case scheme:
+            return UUID(uuidString: String(identifier)).map(Target.local)
+        case melaScheme:
+            return identifier.isEmpty
+                ? nil
+                : .external(scheme: melaScheme, identifier: String(identifier))
+        default:
+            return nil
+        }
+    }
+
+    /// The recipe id a URL points at, or `nil` if it is not a local one.
     public static func recipeID(from url: URL) -> UUID? {
-        guard url.scheme == scheme, url.host() == "recipe" else { return nil }
-        let identifier = url.pathComponents.last ?? ""
-        return UUID(uuidString: identifier)
+        guard case .local(let id) = target(from: url) else { return nil }
+        return id
     }
 
     /// Every recipe referenced in a piece of text, in the order they appear.

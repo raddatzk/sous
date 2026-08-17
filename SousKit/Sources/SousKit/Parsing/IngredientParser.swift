@@ -47,7 +47,7 @@ public enum IngredientParser {
             if lastGroup == nil || lastGroup! != ingredient.group {
                 if let group = ingredient.group {
                     if !lines.isEmpty { lines.append("") }
-                    lines.append("\(group):")
+                    lines.append("# \(group)")
                 }
                 lastGroup = ingredient.group
             }
@@ -81,10 +81,16 @@ public enum IngredientParser {
             quantity = Quantity(amount, unit ?? .piece)
         }
 
-        // Everything after the first comma describes how it is prepared.
+        // How it is prepared is written either in trailing parentheses, the
+        // way Mela does it, or after a comma, the way people type.
         var name = String(rest).trimmingCharacters(in: .whitespaces)
         var preparation: String?
-        if let commaIndex = name.firstIndex(of: ",") {
+
+        if name.hasSuffix(")"), let openIndex = name.lastIndex(of: "(") {
+            preparation = String(name[name.index(after: openIndex)..<name.index(before: name.endIndex)])
+                .trimmingCharacters(in: .whitespaces)
+            name = String(name[..<openIndex]).trimmingCharacters(in: .whitespaces)
+        } else if let commaIndex = name.firstIndex(of: ",") {
             preparation = String(name[name.index(after: commaIndex)...])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<commaIndex]).trimmingCharacters(in: .whitespaces)

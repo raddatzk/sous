@@ -20,10 +20,14 @@ public enum StepParser {
                 continue
             }
 
+            let text = stripListMarker(from: line)
             result.append(RecipeStep(
                 id: StableID.make(namespace: "step", index: result.count, content: line),
-                text: stripListMarker(from: line),
-                group: currentGroup
+                text: text,
+                group: currentGroup,
+                // A time written into the step is a timer the cook mode can
+                // offer, without asking for the same number twice.
+                durationSeconds: DurationParser.seconds(in: text)
             ))
         }
         return result

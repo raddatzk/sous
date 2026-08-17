@@ -38,7 +38,7 @@ struct RecipeEditorView: View {
                 } header: {
                     Text("Zutaten")
                 } footer: {
-                    Text("Eine Zutat pro Zeile, etwa „300 g Zucchini, fein gehackt“. Eine Zeile mit Doppelpunkt beginnt einen Abschnitt: „Für den Teig:“")
+                    Text("Eine Zutat pro Zeile, etwa „300 g Zucchini (fein gehackt)“. „# Für den Teig“ beginnt einen Abschnitt.")
                 }
 
                 Section {
@@ -50,7 +50,7 @@ struct RecipeEditorView: View {
                 } header: {
                     Text("Zubereitung")
                 } footer: {
-                    Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett** und *kursiv* sind erlaubt, „# Überschrift“ beginnt einen Abschnitt.")
+                    Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
                 }
 
                 Section("Notizen") {

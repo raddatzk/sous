@@ -107,7 +107,7 @@ extension QuantityFormatter {
         }
         line = line.isEmpty ? ingredient.name : "\(line) \(ingredient.name)"
         if let preparation = ingredient.preparation, !preparation.isEmpty {
-            line += ", \(preparation)"
+            line += " (\(preparation))"
         }
         return line
     }

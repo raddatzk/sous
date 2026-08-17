@@ -9,6 +9,7 @@ struct RecipeDetailView: View {
     @State private var servingsOverride: Int?
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
+    @State private var isCooking = false
 
     private let formatter = QuantityFormatter()
 
@@ -36,6 +37,9 @@ struct RecipeDetailView: View {
         .onChange(of: recipe.id) { servingsOverride = nil }
         // Shown as a sheet rather than pushed: looking up how the dough is
         // made is a detour, and a swipe returns to exactly where the cook was.
+        .fullScreenCoverIfAvailable(isPresented: $isCooking) {
+            CookModeView(recipe: recipe, servings: servings)
+        }
         .sheet(item: $linkedRecipe) { linked in
             NavigationStack {
                 RecipeDetailView(recipe: linked)
@@ -146,19 +150,20 @@ struct RecipeDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Zubereitung")
                     .font(.title2.bold())
-                ForEach(Array(recipe.steps.enumerated()), id: \.element.id) { index, step in
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        Text("\(index + 1)")
-                            .font(.headline.monospacedDigit())
-                            .foregroundStyle(.secondary)
-                            .frame(minWidth: 20, alignment: .trailing)
-                        VStack(alignment: .leading, spacing: 4) {
+                ForEach(recipe.stepGroups, id: \.group) { group in
+                    if let name = group.group {
+                        Text(name)
+                            .font(.headline)
+                            .padding(.top, 4)
+                    }
+                    // Numbering restarts per group, as the heading implies.
+                    ForEach(Array(group.steps.enumerated()), id: \.element.id) { index, step in
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text("\(index + 1)")
+                                .font(.headline.monospacedDigit())
+                                .foregroundStyle(.secondary)
+                                .frame(minWidth: 20, alignment: .trailing)
                             Text(markdown(step.text))
-                            if let seconds = step.durationSeconds, seconds > 0 {
-                                Label("\(seconds / 60) Min.", systemImage: "timer")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                     }
                 }
@@ -201,6 +206,10 @@ struct RecipeDetailView: View {
     private var detailToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+        }
+        ToolbarItem(placement: .automatic) {
+            Button("Kochen", systemImage: "play.circle") { isCooking = true }
+                .disabled(recipe.steps.isEmpty)
         }
         ToolbarItem(placement: .automatic) {
             Button(
