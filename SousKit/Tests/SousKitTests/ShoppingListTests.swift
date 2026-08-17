@@ -69,6 +69,7 @@ struct ShoppingListTests {
         #expect(list.map(\.name) == ["Kokosmilch", "Mehl", "Hefe"])
         #expect(list[1].quantities == [Quantity(250, .gram)])
         #expect(list[1].recipeTitles == ["Naan"])
+        #expect(list[1].sources[0].quantities == [Quantity(250, .gram)])
     }
 
     @Test("The amount of a linked recipe is read as its servings")

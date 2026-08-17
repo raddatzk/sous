@@ -23,8 +23,16 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
                 for quantity in item.quantities {
                     merged.quantities = ShoppingListBuilder.merged(merged.quantities, adding: quantity)
                 }
-                for title in item.recipeTitles where !merged.recipeTitles.contains(title) {
-                    merged.recipeTitles.append(title)
+                for source in item.sources {
+                    if let index = merged.sources.firstIndex(where: { $0.recipeTitle == source.recipeTitle }) {
+                        for quantity in source.quantities {
+                            merged.sources[index].quantities = ShoppingListBuilder.merged(
+                                merged.sources[index].quantities, adding: quantity
+                            )
+                        }
+                    } else {
+                        merged.sources.append(source)
+                    }
                 }
                 // Adding something again means it is wanted again.
                 merged.isChecked = false

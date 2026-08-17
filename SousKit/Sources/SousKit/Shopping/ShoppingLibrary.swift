@@ -80,8 +80,7 @@ public final class ShoppingLibrary {
         let item = ShoppingItem(
             key: ShoppingItem.key(for: ingredient.name),
             name: name,
-            quantities: ingredient.quantity.map { [$0] } ?? [],
-            isManual: true
+            quantities: ingredient.quantity.map { [$0] } ?? []
         )
         do {
             try await store.add([item])
@@ -122,4 +121,33 @@ public final class ShoppingLibrary {
 
     public var openItems: [ShoppingItem] { items.filter { !$0.isChecked } }
     public var checkedItems: [ShoppingItem] { items.filter(\.isChecked) }
+
+    /// The open items grouped by the recipe that wants them, with the amount
+    /// that recipe asks for. An ingredient two dishes need appears under both.
+    public var byRecipe: [(recipe: String, items: [ShoppingItem])] {
+        var order: [String] = []
+        var grouped: [String: [ShoppingItem]] = [:]
+
+        for item in items {
+            for source in item.sources {
+                if grouped[source.recipeTitle] == nil {
+                    order.append(source.recipeTitle)
+                    grouped[source.recipeTitle] = []
+                }
+                // Shown with this recipe's share, not the combined total.
+                var portion = item
+                portion.quantities = source.quantities
+                grouped[source.recipeTitle]?.append(portion)
+            }
+            if item.isManual {
+                let own = "Von Hand"
+                if grouped[own] == nil {
+                    order.append(own)
+                    grouped[own] = []
+                }
+                grouped[own]?.append(item)
+            }
+        }
+        return order.map { ($0, grouped[$0] ?? []) }
+    }
 }
