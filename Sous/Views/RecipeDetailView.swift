@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RecipeDetailView: View {
     @Environment(RecipeLibrary.self) private var library
+    @Environment(ShoppingLibrary.self) private var shopping
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
@@ -10,6 +11,7 @@ struct RecipeDetailView: View {
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
     @State private var isCooking = false
+    @State private var didAddToShoppingList = false
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -40,7 +42,10 @@ struct RecipeDetailView: View {
         .toolbarBackground(recipe.imageIDs.isEmpty ? .automatic : .hidden, for: .navigationBar)
         #endif
         .toolbar { detailToolbar }
-        .onChange(of: recipe.id) { servingsOverride = nil }
+        .onChange(of: recipe.id) {
+            servingsOverride = nil
+            didAddToShoppingList = false
+        }
         .fullScreenCoverIfAvailable(isPresented: $isCooking) {
             CookModeView(recipe: recipe, servings: servings)
         }
@@ -159,12 +164,27 @@ struct RecipeDetailView: View {
             .disabled(recipe.steps.isEmpty)
 
             Button {
+                addToShoppingList()
+            } label: {
+                Label(
+                    didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
+                    systemImage: didAddToShoppingList ? "checkmark" : "cart.badge.plus"
+                )
+                // Icons only: three labelled buttons do not fit a phone
+                // without wrapping mid-word.
+                .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.bordered)
+            .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
+
+            Button {
                 Task { await library.toggleFavorite(recipe) }
             } label: {
                 Label(
                     recipe.isFavorite ? "Favorit" : "Merken",
                     systemImage: recipe.isFavorite ? "star.fill" : "star"
                 )
+                .labelStyle(.iconOnly)
             }
             .buttonStyle(.bordered)
         }
@@ -282,6 +302,15 @@ struct RecipeDetailView: View {
     private var detailToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+        }
+    }
+
+    /// Puts the ingredients on the list at the serving count on screen, so
+    /// what is bought matches what was just read.
+    private func addToShoppingList() {
+        Task {
+            await shopping.add(recipe, servings: servings)
+            didAddToShoppingList = true
         }
     }
 

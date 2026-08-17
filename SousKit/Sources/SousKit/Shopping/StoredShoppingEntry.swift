@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-/// A tick, an item added by hand, or both.
+/// One line on the shopping list.
 @Model
 public final class StoredShoppingEntry {
     #Index<StoredShoppingEntry>([\.key])
@@ -9,39 +9,44 @@ public final class StoredShoppingEntry {
     /// The normalized ingredient name, matching ``ShoppingItem/key``.
     public var key: String = ""
     public var name: String = ""
-    public var amount: Double?
-    public var unitSymbol: String?
+    /// Serialized amounts: a line can carry several that do not combine,
+    /// like "100 g + 3 EL".
+    public var quantityData: Data = Data()
+    /// The recipes that asked for it, empty for a line typed by hand.
+    public var recipeTitles: [String] = []
     public var isChecked: Bool = false
-    public var isManual: Bool = false
+    /// Position on the list. A timestamp is not enough: a whole recipe is
+    /// added within the same millisecond, and its ingredients should keep the
+    /// order they are written in.
+    public var sortOrder: Int = 0
+    public var addedAt: Date = Date.nowInSyncPrecision
     public var updatedAt: Date = Date.nowInSyncPrecision
 
-    public init(
-        key: String,
-        name: String,
-        amount: Double? = nil,
-        unitSymbol: String? = nil,
-        isChecked: Bool = false,
-        isManual: Bool = false
-    ) {
-        self.key = key
-        self.name = name
-        self.amount = amount
-        self.unitSymbol = unitSymbol
-        self.isChecked = isChecked
-        self.isManual = isManual
+    public init(_ item: ShoppingItem) {
+        key = item.key
+        apply(item)
+    }
+
+    public func apply(_ item: ShoppingItem) {
+        name = item.name
+        quantityData = (try? SousCoding.encoder.encode(item.quantities)) ?? Data()
+        recipeTitles = item.recipeTitles
+        isChecked = item.isChecked
+        updatedAt = .nowInSyncPrecision
+    }
+
+    public var quantities: [Quantity] {
+        (try? SousCoding.decoder.decode([Quantity].self, from: quantityData)) ?? []
     }
 
     public var domainValue: ShoppingItem {
-        var quantities: [Quantity] = []
-        if let amount, let unitSymbol {
-            quantities.append(Quantity(amount, IngredientUnit(symbol: unitSymbol)))
-        }
-        return ShoppingItem(
+        ShoppingItem(
             key: key,
             name: name,
             quantities: quantities,
+            recipeTitles: recipeTitles,
             isChecked: isChecked,
-            isManual: isManual
+            isManual: recipeTitles.isEmpty
         )
     }
 }

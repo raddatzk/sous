@@ -22,9 +22,8 @@ struct SousApp: App {
             )
             _mealPlan = State(initialValue: plan)
             _shopping = State(initialValue: ShoppingLibrary(
-                mealPlan: plan,
-                recipeStore: recipes,
-                store: SwiftDataShoppingListStore(modelContainer: container)
+                store: SwiftDataShoppingListStore(modelContainer: container),
+                recipeStore: recipes
             ))
         } catch {
             // A recipe app without its database has nothing to show, and

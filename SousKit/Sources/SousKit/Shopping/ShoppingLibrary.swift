@@ -1,55 +1,60 @@
 import Foundation
 import Observation
 
-/// The view-facing shopping list: what the planned week needs, plus whatever
-/// was added by hand, with ticks remembered across rebuilds.
+/// The view-facing shopping list.
+///
+/// The list is what it is; nothing changes it but adding, ticking, and
+/// clearing. Recipes and whole weeks are put on it deliberately.
 @MainActor
 @Observable
 public final class ShoppingLibrary {
-    private let mealPlan: MealPlanLibrary
-    private let recipeStore: any RecipeStore
     private let store: any ShoppingListStore
+    private let recipeStore: any RecipeStore
 
     public private(set) var items: [ShoppingItem] = []
     public var errorMessage: String?
+    /// Set after something was added, so the interface can say what happened.
+    public var lastAddition: String?
 
-    public init(
-        mealPlan: MealPlanLibrary,
-        recipeStore: any RecipeStore,
-        store: any ShoppingListStore
-    ) {
-        self.mealPlan = mealPlan
-        self.recipeStore = recipeStore
+    public init(store: any ShoppingListStore, recipeStore: any RecipeStore) {
         self.store = store
+        self.recipeStore = recipeStore
     }
 
-    /// Rebuilds the list from the week the plan is currently showing.
     public func reload() async {
         do {
-            await mealPlan.reload()
+            items = try await store.items()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
 
-            // Linked recipes contribute their own ingredients, so the builder
-            // needs to look them up; they are fetched once up front.
-            let planned = mealPlan.plannedRecipes
+    /// Puts a recipe's ingredients on the list, at the servings it is being
+    /// cooked for. Linked recipes contribute what they are made of.
+    public func add(_ recipe: Recipe, servings: Int? = nil) async {
+        await add([(recipe, servings ?? recipe.servings)], describing: recipe.title)
+    }
+
+    /// Puts everything planned for a set of days on the list.
+    public func add(planned: [(recipe: Recipe, servings: Int)], describing description: String) async {
+        await add(planned, describing: description)
+    }
+
+    private func add(_ planned: [(Recipe, Int)], describing description: String) async {
+        do {
             var known: [UUID: Recipe] = [:]
             for entry in planned {
-                known[entry.recipe.id] = entry.recipe
-                try await resolveLinks(of: entry.recipe, into: &known)
+                known[entry.0.id] = entry.0
+                try await resolveLinks(of: entry.0, into: &known)
             }
 
-            let generated = ShoppingListBuilder.build(from: planned) { known[$0] }
-            let manual = try await store.manualItems()
-            let checked = try await store.checkedKeys()
+            let built = ShoppingListBuilder.build(
+                from: planned.map { (recipe: $0.0, servings: $0.1) }
+            ) { known[$0] }
 
-            var combined = generated
-            for item in manual where !combined.contains(where: { $0.key == item.key }) {
-                combined.append(item)
-            }
-            items = combined.map { item in
-                var copy = item
-                copy.isChecked = checked.contains(item.key)
-                return copy
-            }
+            try await store.add(built)
+            await reload()
+            lastAddition = description
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -65,6 +70,27 @@ public final class ShoppingLibrary {
         }
     }
 
+    /// Adds a line typed by hand, parsed like an ingredient so "2 kg
+    /// Kartoffeln" arrives with its amount.
+    public func addItem(_ line: String) async {
+        let ingredient = IngredientParser.parseLine(line)
+        let name = ShoppingItem.displayName(for: ingredient.name)
+        guard !name.isEmpty else { return }
+
+        let item = ShoppingItem(
+            key: ShoppingItem.key(for: ingredient.name),
+            name: name,
+            quantities: ingredient.quantity.map { [$0] } ?? [],
+            isManual: true
+        )
+        do {
+            try await store.add([item])
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     public func toggle(_ item: ShoppingItem) async {
         do {
             try await store.setChecked(!item.isChecked, key: item.key)
@@ -76,22 +102,9 @@ public final class ShoppingLibrary {
         }
     }
 
-    /// Adds a line typed by hand, parsed like an ingredient so "2 kg
-    /// Kartoffeln" arrives with its amount.
-    public func addItem(_ line: String) async {
-        let ingredient = IngredientParser.parseLine(line)
-        guard !ingredient.name.isEmpty else { return }
+    public func remove(_ item: ShoppingItem) async {
         do {
-            try await store.addManualItem(name: ingredient.name, quantity: ingredient.quantity)
-            await reload()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    public func removeManual(_ item: ShoppingItem) async {
-        do {
-            try await store.removeManualItem(key: item.key)
+            try await store.remove(key: item.key)
             await reload()
         } catch {
             errorMessage = error.localizedDescription

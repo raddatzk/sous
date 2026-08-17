@@ -1,17 +1,16 @@
 import Foundation
 
-/// What the shopping list keeps between rebuilds.
+/// The shopping list, as a list that exists.
 ///
-/// The list itself is derived from the plan and rebuilt whenever the plan
-/// changes; only two things have to survive that: what has been ticked off,
-/// and what was added by hand.
+/// Things get on it because someone put them there — from a recipe, from a
+/// week's plan, or typed by hand. It does not follow the meal plan on its
+/// own: a list that rewrites itself while shopping is worse than useless.
 public protocol ShoppingListStore: Sendable {
-    func checkedKeys() async throws -> Set<String>
+    func items() async throws -> [ShoppingItem]
+    /// Adds items, merging amounts into lines already on the list.
+    func add(_ items: [ShoppingItem]) async throws
     func setChecked(_ checked: Bool, key: String) async throws
-    func manualItems() async throws -> [ShoppingItem]
-    func addManualItem(name: String, quantity: Quantity?) async throws
-    func removeManualItem(key: String) async throws
-    /// Clears ticks and removes ticked-off manual items — after the shopping
-    /// is done.
+    func remove(key: String) async throws
+    /// Removes everything ticked off — after the shopping is done.
     func clearChecked() async throws
 }

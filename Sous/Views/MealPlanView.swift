@@ -5,6 +5,7 @@ import SwiftUI
 struct MealPlanView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(RecipeLibrary.self) private var library
+    @Environment(ShoppingLibrary.self) private var shopping
 
     @State private var pickingDay: Date?
     @State private var openedRecipe: Recipe?
@@ -130,6 +131,18 @@ struct MealPlanView: View {
             Button("Heute") {
                 Task { await plan.showCurrentWeek() }
             }
+        }
+        ToolbarItem(placement: .automatic) {
+            Button("Woche auf die Einkaufsliste", systemImage: "cart.badge.plus") {
+                Task {
+                    await shopping.add(
+                        planned: plan.plannedRecipes,
+                        describing: "Woche"
+                    )
+                }
+            }
+            .labelStyle(.iconOnly)
+            .disabled(plan.plannedRecipes.isEmpty)
         }
     }
 }
