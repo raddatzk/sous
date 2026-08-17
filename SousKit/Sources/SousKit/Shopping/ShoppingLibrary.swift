@@ -77,9 +77,11 @@ public final class ShoppingLibrary {
         let name = ShoppingItem.displayName(for: ingredient.name)
         guard !name.isEmpty else { return }
 
+        let known = IngredientCatalog.bundled.ingredient(for: name)
         let item = ShoppingItem(
             key: ShoppingItem.key(for: ingredient.name),
-            name: name,
+            name: known?.name ?? name,
+            category: known?.category,
             manualQuantities: ingredient.quantity.map { [$0] } ?? []
         )
         do {
@@ -122,6 +124,18 @@ public final class ShoppingLibrary {
     public var openItems: [ShoppingItem] { items.filter { !$0.isChecked } }
     public var checkedItems: [ShoppingItem] { items.filter(\.isChecked) }
 
+    /// The open items grouped by the aisle they are found in, in the order a
+    /// shop is usually walked. Unknown ingredients come last.
+    public var byCategory: [(category: IngredientCategory, items: [ShoppingItem])] {
+        var grouped: [IngredientCategory: [ShoppingItem]] = [:]
+        for item in items {
+            grouped[item.category ?? .other, default: []].append(item)
+        }
+        return grouped
+            .map { (category: $0.key, items: $0.value) }
+            .sorted { $0.category.aisleOrder < $1.category.aisleOrder }
+    }
+
     /// The heading for items that belong to no recipe.
     public static let ungroupedTitle = "Sonstiges"
 
@@ -141,6 +155,7 @@ public final class ShoppingLibrary {
                 let portion = ShoppingItem(
                     key: item.key,
                     name: item.name,
+                    category: item.category,
                     manualQuantities: source.quantities,
                     isChecked: item.isChecked
                 )
@@ -157,6 +172,7 @@ public final class ShoppingLibrary {
                 grouped[Self.ungroupedTitle]?.append(ShoppingItem(
                     key: item.key,
                     name: item.name,
+                    category: item.category,
                     manualQuantities: item.manualQuantities,
                     isChecked: item.isChecked
                 ))

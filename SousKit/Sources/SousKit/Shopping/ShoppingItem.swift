@@ -24,6 +24,8 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     public var id: String { key }
 
     public var name: String
+    /// The aisle it is found in, when the catalog knows the ingredient.
+    public var category: IngredientCategory?
     /// Which recipes asked for it, and how much each of them wants.
     public var sources: [ShoppingSource]
     /// What was added straight to the list, belonging to no recipe.
@@ -45,27 +47,24 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     public init(
         key: String,
         name: String,
+        category: IngredientCategory? = nil,
         sources: [ShoppingSource] = [],
         manualQuantities: [Quantity] = [],
         isChecked: Bool = false
     ) {
         self.key = key
         self.name = name
+        self.category = category
         self.sources = sources
         self.manualQuantities = manualQuantities
         self.isChecked = isChecked
     }
 
-    /// The key an ingredient name reduces to: lowercased, without markdown
-    /// link syntax, so "[Naan](sous://…)" and "Naan" are the same thing.
-    public static func key(for name: String) -> String {
-        var cleaned = name
-        if let match = name.firstMatch(of: /\[([^\]]+)\]\([^)]*\)/) {
-            cleaned = String(match.1)
-        }
-        return cleaned
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .lowercased()
+    /// The key an ingredient name reduces to: stripped of markdown link
+    /// syntax and resolved through the catalog, so "Tomaten", "tomate" and
+    /// "Cocktailtomaten" are one line on the list.
+    public static func key(for name: String, catalog: IngredientCatalog = .bundled) -> String {
+        IngredientCatalog.normalize(catalog.canonicalName(for: displayName(for: name)))
     }
 
     /// The name without link syntax, for display.

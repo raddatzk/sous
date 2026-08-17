@@ -6,18 +6,18 @@ import SwiftUI
 struct ShoppingListView: View {
     @Environment(ShoppingLibrary.self) private var shopping
 
-    @State private var grouping: Grouping = .ingredient
+    @State private var grouping: Grouping = .aisle
     @State private var newItem = ""
 
     private let formatter = QuantityFormatter(locale: .sous)
 
     private enum Grouping: String, CaseIterable {
-        case ingredient
+        case aisle
         case recipe
 
         var title: String {
             switch self {
-            case .ingredient: "Nach Zutat"
+            case .aisle: "Nach Abteilung"
             case .recipe: "Nach Rezept"
             }
         }
@@ -39,7 +39,7 @@ struct ShoppingListView: View {
                 }
 
                 switch grouping {
-                case .ingredient: byIngredient
+                case .aisle: byAisle
                 case .recipe: byRecipe
                 }
             }
@@ -67,15 +67,20 @@ struct ShoppingListView: View {
         shopping.items.contains { !$0.sources.isEmpty }
     }
 
+    /// Grouped by aisle, in the order a shop is walked — and what is already
+    /// in the basket drops to the bottom, out of the way.
     @ViewBuilder
-    private var byIngredient: some View {
-        if !shopping.openItems.isEmpty {
+    private var byAisle: some View {
+        ForEach(openByCategory, id: \.category) { group in
             Section {
-                ForEach(shopping.openItems) { item in
+                ForEach(group.items) { item in
                     row(item, showingSource: true)
                 }
+            } header: {
+                sectionHeader(group.category.title)
             }
         }
+
         if !shopping.checkedItems.isEmpty {
             Section {
                 ForEach(shopping.checkedItems) { item in
@@ -84,6 +89,13 @@ struct ShoppingListView: View {
             } header: {
                 sectionHeader("Erledigt")
             }
+        }
+    }
+
+    private var openByCategory: [(category: IngredientCategory, items: [ShoppingItem])] {
+        shopping.byCategory.compactMap { group in
+            let open = group.items.filter { !$0.isChecked }
+            return open.isEmpty ? nil : (group.category, open)
         }
     }
 

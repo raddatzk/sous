@@ -17,6 +17,7 @@ struct ShoppingListTests {
 
         let list = build([(first, 2), (second, 2)])
         #expect(list.count == 1)
+        #expect(list[0].name == "Tomate")
         #expect(list[0].quantities == [Quantity(500, .gram)])
         #expect(list[0].recipeTitles == ["Salat", "Sauce"])
     }
