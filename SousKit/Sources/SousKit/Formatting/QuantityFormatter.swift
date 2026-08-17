@@ -94,3 +94,21 @@ public struct QuantityFormatter: Sendable {
         )
     }
 }
+
+extension QuantityFormatter {
+    /// A whole ingredient line: "300 g Zucchini, fein gehackt".
+    ///
+    /// Lives here rather than in the UI because the same line is needed for
+    /// shopping lists, export, and the prompts handed to the model.
+    public func string(for ingredient: RecipeIngredient) -> String {
+        var line = ""
+        if let quantity = ingredient.quantity {
+            line = string(for: quantity)
+        }
+        line = line.isEmpty ? ingredient.name : "\(line) \(ingredient.name)"
+        if let preparation = ingredient.preparation, !preparation.isEmpty {
+            line += ", \(preparation)"
+        }
+        return line
+    }
+}

@@ -1,0 +1,37 @@
+name: Sous
+options:
+  bundleIdPrefix: com.raddatz
+  deploymentTarget:
+    iOS: "26.0"
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  SousKit:
+    path: SousKit
+
+targets:
+  Sous:
+    type: application
+    supportedDestinations: [iOS, macOS]
+    sources:
+      - path: Sous
+    dependencies:
+      - package: SousKit
+        product: SousKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.raddatz.sous
+        PRODUCT_NAME: Sous
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Sous
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.lifestyle
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        ENABLE_HARDENED_RUNTIME: YES
+        CODE_SIGN_STYLE: Automatic

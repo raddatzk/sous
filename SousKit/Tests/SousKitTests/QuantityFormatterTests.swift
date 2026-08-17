@@ -38,3 +38,23 @@ struct QuantityFormatterTests {
         #expect(formatter.string(for: Quantity(333.333, .gram)) == "333 g")
     }
 }
+
+extension QuantityFormatterTests {
+    @Test("Ingredient lines read as they would be written down")
+    func ingredientLines() {
+        let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+
+        #expect(formatter.string(for: RecipeIngredient(
+            name: "Zucchini",
+            quantity: Quantity(300, .gram),
+            preparation: "fein gehackt"
+        )) == "300 g Zucchini, fein gehackt")
+
+        #expect(formatter.string(for: RecipeIngredient(name: "Salz")) == "Salz")
+
+        #expect(formatter.string(for: RecipeIngredient(
+            name: "Eier",
+            quantity: Quantity(2, .piece)
+        )) == "2 Eier")
+    }
+}
