@@ -95,15 +95,11 @@ public enum ShoppingListBuilder {
         }
 
         guard var item = accumulator[key] else { return }
-        if let quantity = ingredient.quantity {
-            item.quantities = merged(item.quantities, adding: quantity)
-        }
 
-        // The same amount is also kept under the recipe that wants it, so the
-        // list can be grouped by dish as well as by ingredient.
+        // Amounts are kept per recipe; the line's total follows from them.
         if let index = item.sources.firstIndex(where: { $0.recipeTitle == origin }) {
             if let quantity = ingredient.quantity {
-                item.sources[index].quantities = merged(item.sources[index].quantities, adding: quantity)
+                item.sources[index].quantities = item.sources[index].quantities.adding(quantity)
             }
         } else {
             item.sources.append(ShoppingSource(
@@ -114,31 +110,4 @@ public enum ShoppingListBuilder {
         accumulator[key] = item
     }
 
-    /// Adds an amount to the ones already gathered.
-    ///
-    /// Only amounts bought in the same measure are combined: 300 g and 0,2 kg
-    /// make 500 g. Everything else is written side by side, the way Mela does
-    /// it — "100 g + 3 EL" is honest, while a converted "135 ml" would be a
-    /// number nobody asked for. Spoons in particular are a cooking measure,
-    /// not a shopping one: 2 EL and 1 TL stay as they are.
-    static func merged(_ quantities: [Quantity], adding quantity: Quantity) -> [Quantity] {
-        var result = quantities
-
-        if let group = quantity.unit.shoppingGroup,
-           let index = result.firstIndex(where: { $0.unit.shoppingGroup == group }) {
-            let existing = result[index]
-            guard let converted = quantity.converted(to: existing.unit) else { return result }
-            result[index] = Quantity(existing.amount + converted.amount, existing.unit)
-            return result
-        }
-
-        // Outside those groups only identical units add up.
-        if let index = result.firstIndex(where: { $0.unit == quantity.unit }) {
-            result[index] = Quantity(result[index].amount + quantity.amount, quantity.unit)
-            return result
-        }
-
-        result.append(quantity)
-        return result
-    }
 }

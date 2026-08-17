@@ -135,3 +135,21 @@ extension ShoppingListTests {
         #expect(build([(first, 2), (second, 2)])[0].quantities == [Quantity(1500, .milliliter)])
     }
 }
+
+extension ShoppingListTests {
+    @Test("The total is the sum of the contributions, whatever their origin")
+    func totalFollowsContributions() {
+        let item = ShoppingItem(
+            key: "tomaten",
+            name: "Tomaten",
+            sources: [
+                ShoppingSource(recipeTitle: "Salat", quantities: [Quantity(300, .gram)]),
+                ShoppingSource(recipeTitle: "Sauce", quantities: [Quantity(200, .gram)]),
+            ],
+            manualQuantities: [Quantity(500, .gram)]
+        )
+
+        // 300 + 200 from two dishes, plus 500 added by hand.
+        #expect(item.quantities == [Quantity(1000, .gram)])
+    }
+}
