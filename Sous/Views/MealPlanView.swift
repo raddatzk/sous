@@ -27,7 +27,7 @@ struct MealPlanView: View {
             .toolbar { weekToolbar }
             .task { await plan.reload() }
             .sheet(item: $pickingDay) { day in
-                RecipePickerView(excluding: UUID()) { recipe in
+                RecipePickerView(title: "Rezept einplanen", excluding: UUID()) { recipe in
                     Task { await plan.add(recipe, to: day) }
                 }
             }
@@ -51,9 +51,7 @@ struct MealPlanView: View {
             }
         } else {
             ForEach(entries, id: \.entry.id) { item in
-                Button {
-                    openedRecipe = item.recipe
-                } label: {
+                Group {
                     HStack(spacing: 12) {
                         if let imageID = item.recipe?.imageIDs.first {
                             RecipeImageView(imageID: imageID, thumbnail: true)
@@ -70,8 +68,8 @@ struct MealPlanView: View {
                         Spacer()
                     }
                 }
-                .buttonStyle(.plain)
-                .disabled(item.recipe == nil)
+                .contentShape(.rect)
+                .onTapGesture { openedRecipe = item.recipe }
                 .swipeActions {
                     Button("Entfernen", systemImage: "trash", role: .destructive) {
                         Task { await plan.remove(item.entry) }

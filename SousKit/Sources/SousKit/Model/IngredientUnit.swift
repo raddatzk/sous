@@ -58,15 +58,43 @@ public enum IngredientUnit: Hashable, Sendable {
         self == .piece ? "" : symbol
     }
 
+    /// How a unit is written in practice, beyond its canonical symbol —
+    /// plurals and the spellings people actually type. Recipes are written by
+    /// hand and imported from sites; "2 Stück", "2 Stk." and "2 St" are all
+    /// the same thing.
+    var spellings: [String] {
+        switch self {
+        case .gram: ["g", "gr", "gramm"]
+        case .kilogram: ["kg", "kilo", "kilogramm"]
+        case .milliliter: ["ml", "milliliter"]
+        case .liter: ["l", "liter"]
+        case .teaspoon: ["tl", "teelöffel"]
+        case .tablespoon: ["el", "esslöffel"]
+        case .piece: ["stk", "stück", "st", "x"]
+        case .pinch: ["prise", "prisen"]
+        case .bunch: ["bund", "bünde"]
+        case .clove: ["zehe", "zehen"]
+        case .package: ["pck", "packung", "packungen", "päckchen"]
+        case .portion: ["portion", "portionen"]
+        case .custom: []
+        }
+    }
+
     public init(symbol: String) {
-        let trimmed = symbol.trimmingCharacters(in: .whitespaces)
-        if let known = Self.allKnown.first(where: {
-            $0.symbol.compare(trimmed, options: .caseInsensitive) == .orderedSame
-        }) {
+        let normalized = Self.normalize(symbol)
+        if let known = Self.allKnown.first(where: { $0.spellings.contains(normalized) }) {
             self = known
         } else {
-            self = .custom(trimmed)
+            self = .custom(symbol.trimmingCharacters(in: .whitespaces))
         }
+    }
+
+    /// Lowercased and stripped of the trailing period an abbreviation carries.
+    private static func normalize(_ symbol: String) -> String {
+        symbol
+            .trimmingCharacters(in: .whitespaces)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "."))
+            .lowercased()
     }
 
     public var dimension: UnitDimension {
