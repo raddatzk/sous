@@ -30,6 +30,9 @@ struct RecipeDetailView: View {
         }
         .frame(maxWidth: .infinity)
         .navigationTitle(recipe.title)
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.large)
+        #endif
         .toolbar { detailToolbar }
         .onChange(of: recipe.id) { servingsOverride = nil }
     }
@@ -37,8 +40,6 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(recipe.title)
-                .font(.largeTitle.bold())
             if let summary = recipe.summary, !summary.isEmpty {
                 Text(summary)
                     .foregroundStyle(.secondary)
@@ -70,14 +71,15 @@ struct RecipeDetailView: View {
             Text("Portionen")
                 .font(.headline)
             Spacer()
-            Stepper(value: Binding(
+            Text("\(servings)")
+                .monospacedDigit()
+                .frame(minWidth: 24)
+            // The count is its own label: hiding the stepper's label would
+            // hide the number with it.
+            Stepper("Portionen", value: Binding(
                 get: { servings },
                 set: { servingsOverride = max(1, $0) }
-            ), in: 1...50) {
-                Text("\(servings)")
-                    .monospacedDigit()
-                    .frame(minWidth: 24)
-            }
+            ), in: 1...50)
             .labelsHidden()
             if servingsOverride != nil, servingsOverride != recipe.servings {
                 Button("Zurücksetzen") { servingsOverride = nil }

@@ -31,7 +31,11 @@ struct RecipeEditorView: View {
             .navigationTitle(draft.title.isEmpty ? "Neues Rezept" : draft.title)
             .toolbar { editorToolbar }
         }
+        // A minimum size is right for a macOS sheet and wrong on a phone,
+        // where it pushes the content wider than the screen.
+        #if os(macOS)
         .frame(minWidth: 480, minHeight: 560)
+        #endif
     }
 
     @ViewBuilder
