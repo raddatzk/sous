@@ -10,15 +10,26 @@ import Observation
 public final class ShoppingLibrary {
     private let store: any ShoppingListStore
     private let recipeStore: any RecipeStore
+    /// Kept so that ingredients the cook added resolve like the bundled ones.
+    private let catalogLibrary: IngredientCatalogLibrary?
 
     public private(set) var items: [ShoppingItem] = []
     public var errorMessage: String?
     /// Set after something was added, so the interface can say what happened.
     public var lastAddition: String?
 
-    public init(store: any ShoppingListStore, recipeStore: any RecipeStore) {
+    public init(
+        store: any ShoppingListStore,
+        recipeStore: any RecipeStore,
+        catalogLibrary: IngredientCatalogLibrary? = nil
+    ) {
         self.store = store
         self.recipeStore = recipeStore
+        self.catalogLibrary = catalogLibrary
+    }
+
+    private var catalog: IngredientCatalog {
+        catalogLibrary?.catalog ?? .bundled
     }
 
     public func reload() async {
@@ -49,7 +60,8 @@ public final class ShoppingLibrary {
             }
 
             let built = ShoppingListBuilder.build(
-                from: planned.map { (recipe: $0.0, servings: $0.1) }
+                from: planned.map { (recipe: $0.0, servings: $0.1) },
+                catalog: catalog
             ) { known[$0] }
 
             try await store.add(built)
@@ -77,9 +89,9 @@ public final class ShoppingLibrary {
         let name = ShoppingItem.displayName(for: ingredient.name)
         guard !name.isEmpty else { return }
 
-        let known = IngredientCatalog.bundled.ingredient(for: name)
+        let known = catalog.ingredient(for: name)
         let item = ShoppingItem(
-            key: ShoppingItem.key(for: ingredient.name),
+            key: ShoppingItem.key(for: ingredient.name, catalog: catalog),
             name: known?.name ?? name,
             category: known?.category,
             manualQuantities: ingredient.quantity.map { [$0] } ?? []

@@ -99,7 +99,7 @@ extension ModelContainer {
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self,
+            for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self, StoredCatalogIngredient.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }

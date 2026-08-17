@@ -7,6 +7,7 @@ struct SousApp: App {
     @State private var library: RecipeLibrary
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
+    @State private var catalog: IngredientCatalogLibrary
 
     init() {
         do {
@@ -21,9 +22,14 @@ struct SousApp: App {
                 recipeStore: recipes
             )
             _mealPlan = State(initialValue: plan)
+            let catalogLibrary = IngredientCatalogLibrary(
+                store: SwiftDataIngredientCatalogStore(modelContainer: container)
+            )
+            _catalog = State(initialValue: catalogLibrary)
             _shopping = State(initialValue: ShoppingLibrary(
                 store: SwiftDataShoppingListStore(modelContainer: container),
-                recipeStore: recipes
+                recipeStore: recipes,
+                catalogLibrary: catalogLibrary
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -38,6 +44,7 @@ struct SousApp: App {
                 .environment(library)
                 .environment(mealPlan)
                 .environment(shopping)
+                .environment(catalog)
         }
         .commands {
             CommandGroup(after: .newItem) {

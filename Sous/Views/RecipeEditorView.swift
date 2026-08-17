@@ -5,6 +5,7 @@ import SwiftUI
 struct RecipeEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(RecipeLibrary.self) private var library
+    @Environment(IngredientCatalogLibrary.self) private var catalog
 
     @State private var draft: Recipe
     @State private var categoriesText: String
@@ -18,6 +19,8 @@ struct RecipeEditorView: View {
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
+    /// An unknown ingredient the cook is about to teach the app.
+    @State private var teaching: CatalogIngredient?
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -55,6 +58,10 @@ struct RecipeEditorView: View {
                     insert(link: picked, at: target)
                 }
             }
+            .sheet(item: $teaching) { ingredient in
+                IngredientFormView(ingredient: ingredient)
+            }
+            .task { await catalog.reload() }
         }
         // A minimum size is right for a macOS sheet and wrong on a phone,
         // where it pushes the content wider than the screen.
@@ -157,10 +164,49 @@ struct RecipeEditorView: View {
             Button("Rezept verlinken", systemImage: "link") {
                 linkTarget = .ingredients
             }
+            unknownIngredients
         } header: {
             sectionHeader("Zutaten")
         } footer: {
             Text("Eine Zutat pro Zeile, etwa „300 g Zucchini (fein gehackt)“. „# Für den Teig“ beginnt einen Abschnitt.")
+        }
+    }
+
+    /// Ingredients the catalog does not know yet, offered for adding.
+    ///
+    /// Nothing is wrong with an unknown ingredient — it just has no aisle on
+    /// the shopping list and does not merge with other spellings until the
+    /// app is told what it is.
+    @ViewBuilder
+    private var unknownIngredients: some View {
+        let unknown = catalog.unknownIngredients(in: draft.ingredientsText)
+        if !unknown.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Noch unbekannt", systemImage: "questionmark.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ScrollView(.horizontal) {
+                    HStack(spacing: 8) {
+                        ForEach(unknown, id: \.self) { name in
+                            Button {
+                                teaching = CatalogIngredient(name: name, category: .other)
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(name)
+                                    Image(systemName: "plus.circle.fill")
+                                }
+                                .font(.callout)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                            }
+                            .buttonStyle(.plain)
+                            .background(.quaternary, in: .capsule)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .scrollIndicators(.hidden)
+            }
         }
     }
 
