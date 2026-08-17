@@ -4,55 +4,49 @@ import SwiftData
 /// A ``ShoppingListStore`` backed by SwiftData.
 @ModelActor
 public actor SwiftDataShoppingListStore: ShoppingListStore {
-    public func checkedKeys() async throws -> Set<String> {
-        let descriptor = FetchDescriptor<StoredShoppingEntry>(predicate: #Predicate { $0.isChecked })
-        return Set(try modelContext.fetch(descriptor).map(\.key))
-    }
-
-    public func setChecked(_ checked: Bool, key: String) async throws {
-        if let existing = try entry(key: key) {
-            existing.isChecked = checked
-            existing.updatedAt = .nowInSyncPrecision
-            // A tick on a generated line is all we stored about it; without
-            // the tick there is nothing left worth keeping.
-            if !checked, !existing.isManual {
-                modelContext.delete(existing)
-            }
-        } else if checked {
-            modelContext.insert(StoredShoppingEntry(key: key, name: key, isChecked: true))
-        }
-        try modelContext.save()
-    }
-
-    public func manualItems() async throws -> [ShoppingItem] {
-        var descriptor = FetchDescriptor<StoredShoppingEntry>(predicate: #Predicate { $0.isManual })
-        descriptor.sortBy = [SortDescriptor(\.updatedAt)]
+    public func items() async throws -> [ShoppingItem] {
+        var descriptor = FetchDescriptor<StoredShoppingEntry>()
+        descriptor.sortBy = [SortDescriptor(\.sortOrder)]
         return try modelContext.fetch(descriptor).map(\.domainValue)
     }
 
-    public func addManualItem(name: String, quantity: Quantity?) async throws {
-        let key = ShoppingItem.key(for: name)
-        guard !key.isEmpty else { return }
+    public func add(_ items: [ShoppingItem]) async throws {
+        var position = try nextSortOrder()
 
-        if let existing = try entry(key: key) {
-            existing.isManual = true
-            existing.name = name
-            existing.amount = quantity?.amount
-            existing.unitSymbol = quantity?.unit.symbol
-            existing.updatedAt = .nowInSyncPrecision
-        } else {
-            modelContext.insert(StoredShoppingEntry(
-                key: key,
-                name: name,
-                amount: quantity?.amount,
-                unitSymbol: quantity?.unit.symbol,
-                isManual: true
-            ))
+        for item in items {
+            guard !item.key.isEmpty else { continue }
+
+            if let existing = try entry(key: item.key) {
+                // Already on the list: fold the amounts together and note
+                // which recipe else asked for it.
+                var merged = existing.domainValue
+                for quantity in item.quantities {
+                    merged.quantities = ShoppingListBuilder.merged(merged.quantities, adding: quantity)
+                }
+                for title in item.recipeTitles where !merged.recipeTitles.contains(title) {
+                    merged.recipeTitles.append(title)
+                }
+                // Adding something again means it is wanted again.
+                merged.isChecked = false
+                existing.apply(merged)
+            } else {
+                let entry = StoredShoppingEntry(item)
+                entry.sortOrder = position
+                position += 1
+                modelContext.insert(entry)
+            }
         }
         try modelContext.save()
     }
 
-    public func removeManualItem(key: String) async throws {
+    public func setChecked(_ checked: Bool, key: String) async throws {
+        guard let existing = try entry(key: key) else { return }
+        existing.isChecked = checked
+        existing.updatedAt = .nowInSyncPrecision
+        try modelContext.save()
+    }
+
+    public func remove(key: String) async throws {
         guard let existing = try entry(key: key) else { return }
         modelContext.delete(existing)
         try modelContext.save()
@@ -64,6 +58,13 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
             modelContext.delete(entry)
         }
         try modelContext.save()
+    }
+
+    private func nextSortOrder() throws -> Int {
+        var descriptor = FetchDescriptor<StoredShoppingEntry>()
+        descriptor.sortBy = [SortDescriptor(\.sortOrder, order: .reverse)]
+        descriptor.fetchLimit = 1
+        return (try modelContext.fetch(descriptor).first?.sortOrder ?? -1) + 1
     }
 
     private func entry(key: String) throws -> StoredShoppingEntry? {

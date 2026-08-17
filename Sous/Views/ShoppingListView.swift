@@ -92,10 +92,8 @@ struct ShoppingListView: View {
         .contentShape(.rect)
         .onTapGesture { Task { await shopping.toggle(item) } }
         .swipeActions {
-            if item.isManual {
-                Button("Entfernen", systemImage: "trash", role: .destructive) {
-                    Task { await shopping.removeManual(item) }
-                }
+            Button("Entfernen", systemImage: "trash", role: .destructive) {
+                Task { await shopping.remove(item) }
             }
         }
     }
@@ -115,7 +113,7 @@ struct ShoppingListView: View {
             ContentUnavailableView {
                 Label("Nichts einzukaufen", systemImage: "cart")
             } description: {
-                Text("Plane Rezepte im Essensplan ein, dann steht hier, was fehlt.")
+                Text("Setze ein Rezept oder eine geplante Woche auf die Liste, oder tippe oben etwas ein.")
             }
         }
     }
