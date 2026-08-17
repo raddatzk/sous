@@ -6,6 +6,8 @@ struct RecipePickerView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
 
+    /// Shown as the title, since the picker both links and plans.
+    var title = "Rezept verlinken"
     /// The recipe being edited, so it cannot link to itself.
     let excluding: Recipe.ID
     let onPick: (Recipe) -> Void
@@ -16,22 +18,23 @@ struct RecipePickerView: View {
     var body: some View {
         NavigationStack {
             List(results) { recipe in
-                Button {
-                    onPick(recipe)
-                    dismiss()
-                } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(recipe.title)
-                        if !recipe.categories.isEmpty {
-                            Text(recipe.categories.joined(separator: " · "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(recipe.title)
+                        .font(SousStyle.recipeName)
+                    if !recipe.categories.isEmpty {
+                        Text(recipe.categories.joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+                .onTapGesture {
+                    onPick(recipe)
+                    dismiss()
+                }
             }
-            .navigationTitle("Rezept verlinken")
+            .navigationTitle(title)
             .searchable(text: $searchText, prompt: "Rezept suchen")
             .overlay {
                 if results.isEmpty {

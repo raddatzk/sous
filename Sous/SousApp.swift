@@ -6,6 +6,7 @@ import SwiftUI
 struct SousApp: App {
     @State private var library: RecipeLibrary
     @State private var mealPlan: MealPlanLibrary
+    @State private var shopping: ShoppingLibrary
 
     init() {
         do {
@@ -15,9 +16,15 @@ struct SousApp: App {
                 store: recipes,
                 imageStore: SwiftDataRecipeImageStore(modelContainer: container)
             ))
-            _mealPlan = State(initialValue: MealPlanLibrary(
+            let plan = MealPlanLibrary(
                 store: SwiftDataMealPlanStore(modelContainer: container),
                 recipeStore: recipes
+            )
+            _mealPlan = State(initialValue: plan)
+            _shopping = State(initialValue: ShoppingLibrary(
+                mealPlan: plan,
+                recipeStore: recipes,
+                store: SwiftDataShoppingListStore(modelContainer: container)
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -31,6 +38,7 @@ struct SousApp: App {
             RootView()
                 .environment(library)
                 .environment(mealPlan)
+                .environment(shopping)
         }
         .commands {
             CommandGroup(after: .newItem) {
