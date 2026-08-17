@@ -10,7 +10,9 @@ public actor SwiftDataMealPlanStore: MealPlanStore {
         var descriptor = FetchDescriptor<StoredMealPlanEntry>(
             predicate: #Predicate { $0.deletedAt == nil && $0.day >= first && $0.day <= last }
         )
-        descriptor.sortBy = [SortDescriptor(\.day), SortDescriptor(\.sortOrder)]
+        descriptor.sortBy = [
+            SortDescriptor(\.day), SortDescriptor(\.slotRaw), SortDescriptor(\.sortOrder),
+        ]
         return try modelContext.fetch(descriptor).map(\.domainValue)
     }
 

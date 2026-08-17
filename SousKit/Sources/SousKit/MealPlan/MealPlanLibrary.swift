@@ -68,19 +68,39 @@ public final class MealPlanLibrary {
         }
     }
 
-    /// Entries planned for a day, with their recipe where it still exists.
+    /// Entries planned for a day, with their recipe where it still exists,
+    /// in the order the meals happen.
     public func plan(for day: Date) -> [(entry: MealPlanEntry, recipe: Recipe?)] {
         entries
             .filter { $0.day == day.startOfDay }
-            .sorted { $0.sortOrder < $1.sortOrder }
+            .sorted {
+                $0.slot.order == $1.slot.order
+                    ? $0.sortOrder < $1.sortOrder
+                    : $0.slot.order < $1.slot.order
+            }
             .map { ($0, recipes[$0.recipeID]) }
+    }
+
+    /// A day's entries grouped by meal, skipping meals nothing is planned for.
+    public func meals(for day: Date) -> [(slot: MealSlot, items: [(entry: MealPlanEntry, recipe: Recipe?)])] {
+        let all = plan(for: day)
+        return MealSlot.allCases.compactMap { slot in
+            let items = all.filter { $0.entry.slot == slot }
+            return items.isEmpty ? nil : (slot, items)
+        }
     }
 
     /// Plans a recipe for a day, optionally for a different number of people
     /// than the recipe is written for.
-    public func add(_ recipe: Recipe, to day: Date, servings: Int? = nil) async {
+    public func add(
+        _ recipe: Recipe,
+        to day: Date,
+        slot: MealSlot = .dinner,
+        servings: Int? = nil
+    ) async {
         let entry = MealPlanEntry(
             day: day,
+            slot: slot,
             recipeID: recipe.id,
             servings: servings == recipe.servings ? nil : servings,
             sortOrder: plan(for: day).count

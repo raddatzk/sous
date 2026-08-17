@@ -8,6 +8,7 @@ public final class StoredMealPlanEntry {
 
     public var id: UUID = UUID()
     public var day: Date = Date.nowInSyncPrecision
+    public var slotRaw: String = MealSlot.dinner.rawValue
     public var recipeID: UUID = UUID()
     public var servings: Int?
     public var sortOrder: Int = 0
@@ -22,6 +23,7 @@ public final class StoredMealPlanEntry {
 
     public func apply(_ entry: MealPlanEntry) {
         day = entry.day
+        slotRaw = entry.slot.rawValue
         recipeID = entry.recipeID
         servings = entry.servings
         sortOrder = entry.sortOrder
@@ -34,6 +36,7 @@ public final class StoredMealPlanEntry {
         MealPlanEntry(
             id: id,
             day: day,
+            slot: MealSlot(rawValue: slotRaw) ?? .dinner,
             recipeID: recipeID,
             servings: servings,
             sortOrder: sortOrder,
