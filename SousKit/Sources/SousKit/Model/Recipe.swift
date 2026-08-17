@@ -21,6 +21,13 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public var categories: [String]
     public var isFavorite: Bool
     public var wantToCook: Bool
+    /// A recipe that belongs to another one — the tortellini for the
+    /// tortellini pan, a dough for the tart above it.
+    ///
+    /// Marked by hand rather than inferred from being linked: a tomato sauce
+    /// can stand on its own *and* be used by the lasagne, and inferring would
+    /// make it vanish from the library the moment someone references it.
+    public var isComponent: Bool
     public var notes: String?
     public var source: RecipeSource
     public var prepTimeSeconds: Int?
@@ -49,6 +56,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         categories: [String] = [],
         isFavorite: Bool = false,
         wantToCook: Bool = false,
+        isComponent: Bool = false,
         notes: String? = nil,
         source: RecipeSource = .manual,
         prepTimeSeconds: Int? = nil,
@@ -68,6 +76,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.categories = categories
         self.isFavorite = isFavorite
         self.wantToCook = wantToCook
+        self.isComponent = isComponent
         self.notes = notes
         self.source = source
         self.prepTimeSeconds = prepTimeSeconds

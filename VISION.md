@@ -16,14 +16,15 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
 
 ## Core features
 
-1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, cross-linking between one's own recipes
+1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, sub-recipes (a component belongs to the recipe that uses it and stays out of the library), and a manually planned week the optimizer later builds on
 2. **AI recipe generation from the personal collection** — new recipes in the user's own style, via retrieval (tool calling against the local database) plus structured generation
 3. **Ad-hoc leftover cooking** — free-text input ("zucchini and feta need to go"), no persistent pantry record, reusing the same generation mechanism as feature 2
 4. **Web research for new recipe ideas** — scraping of comparable existing recipes as a tool, using the same structured extraction path as the conventional URL import
 5. **Video import (Instagram/TikTok/YouTube)** — implemented as a **share extension**: the user shares a post into the app, and the app processes what it is handed rather than fetching from the platform itself (see Distribution below). Where a video file is available, actual video analysis applies: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
 6. **Per-recipe nutrition** — ingredients extracted and normalized structurally (AI), matched against an external nutrition database (conventional code)
-7. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
-8. **Household sharing** — a household is the unit of sharing: one owner invites members, and the household's recipes and meal plans are shared with all of them. Individual profiles (diet, exercise load, etc.) stay personal and feed into personal nutrition targets.
+7. **Shopping list** — assembled from the planned week, with amounts of the same ingredient added together
+8. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
+9. **Household sharing** — a household is the unit of sharing: one owner invites members, and the household's recipes and meal plans are shared with all of them. Individual profiles (diet, exercise load, etc.) stay personal and feed into personal nutrition targets.
 
 ## Technical architecture pillars
 

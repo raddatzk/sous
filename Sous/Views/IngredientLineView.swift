@@ -6,7 +6,7 @@ import SwiftUI
 /// and the comment steps back.
 struct IngredientLineView: View {
     let ingredient: RecipeIngredient
-    var formatter = QuantityFormatter()
+    var formatter = QuantityFormatter(locale: .sous)
 
     var body: some View {
         Text(amount)

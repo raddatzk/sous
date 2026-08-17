@@ -15,7 +15,7 @@ struct CookModeView: View {
     @State private var checkedIngredients: Set<UUID> = []
     @State private var timer: StepTimer?
 
-    private let formatter = QuantityFormatter()
+    private let formatter = QuantityFormatter(locale: .sous)
 
     private var steps: [RecipeStep] { recipe.steps }
 

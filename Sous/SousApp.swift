@@ -5,13 +5,19 @@ import SwiftUI
 @main
 struct SousApp: App {
     @State private var library: RecipeLibrary
+    @State private var mealPlan: MealPlanLibrary
 
     init() {
         do {
             let container = try ModelContainer.sousContainer()
+            let recipes = SwiftDataRecipeStore(modelContainer: container)
             _library = State(initialValue: RecipeLibrary(
-                store: SwiftDataRecipeStore(modelContainer: container),
+                store: recipes,
                 imageStore: SwiftDataRecipeImageStore(modelContainer: container)
+            ))
+            _mealPlan = State(initialValue: MealPlanLibrary(
+                store: SwiftDataMealPlanStore(modelContainer: container),
+                recipeStore: recipes
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -22,8 +28,9 @@ struct SousApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RecipeListView()
+            RootView()
                 .environment(library)
+                .environment(mealPlan)
         }
         .commands {
             CommandGroup(after: .newItem) {

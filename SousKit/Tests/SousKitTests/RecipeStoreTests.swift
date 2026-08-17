@@ -163,3 +163,23 @@ struct RecipeStoreTests {
         #expect(try await store.categories() == ["Schnell", "Vegetarisch"])
     }
 }
+
+extension RecipeStoreTests {
+    @Test("Sub-recipes stay out of the library but are findable by name")
+    func components() async throws {
+        let store = try makeStore()
+        var tortellini = sampleRecipe(title: "Tortellini")
+        tortellini.isComponent = true
+
+        try await store.save(sampleRecipe(title: "Tortellinipfanne"))
+        try await store.save(tortellini)
+
+        #expect(try await store.recipes(matching: .all).map(\.title) == ["Tortellinipfanne"])
+        #expect(try await store.recipes(matching: RecipeQuery(includeComponents: true)).count == 2)
+
+        let found = try await store.recipes(
+            matching: RecipeQuery(searchText: "Tortellini", includeComponents: true)
+        )
+        #expect(found.count == 2)
+    }
+}

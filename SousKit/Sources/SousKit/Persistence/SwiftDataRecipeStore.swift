@@ -28,6 +28,9 @@ public actor SwiftDataRecipeStore: RecipeStore {
         if let category = query.category {
             results = results.filter { $0.categories.contains(category) }
         }
+        if !query.includeComponents {
+            results = results.filter { !$0.isComponent }
+        }
         return results.map(\.domainValue)
     }
 
@@ -99,7 +102,7 @@ extension ModelContainer {
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: StoredRecipe.self, StoredRecipeImage.self,
+            for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }
