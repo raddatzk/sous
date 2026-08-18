@@ -44,11 +44,18 @@ struct CookModeView: View {
                 ProgressView()
                 Spacer()
             }
+            // Along the bottom on the phone, where the hand already is. The
+            // Mac has no thumb resting there and a title bar going spare, so
+            // the pots ride in it instead.
+            #if os(iOS)
             Divider()
             switcher
+            #endif
         }
         #if os(macOS)
-        .navigationTitle(activeRecipe?.title ?? "Kochen")
+        // No title: the chips in the toolbar name the recipe, and the window
+        // keeps the name the scene gave it. The subtitle says how far along
+        // the pot is, which the step numbers alone cannot.
         .navigationSubtitle(activeSubtitle)
         .toolbar {
             ToolbarItem(placement: .navigation) {
@@ -56,6 +63,12 @@ struct CookModeView: View {
                     if let entry = session.activeEntry { finish(entry) }
                 }
                 .disabled(session.activeEntry == nil)
+            }
+            ToolbarItem(placement: .principal) {
+                switcher.chips
+            }
+            ToolbarItem(placement: .primaryAction) {
+                Button("Rezept dazunehmen", systemImage: "plus") { isPicking = true }
             }
             // A pot that turns out to be for four rather than two should not
             // need the cook to leave the kitchen. On the phone this hangs off
@@ -231,8 +244,9 @@ struct CookModeView: View {
         .presentationCompactAdaptation(.popover)
     }
 
-    @ViewBuilder
-    private var switcher: some View {
+    /// The concrete type rather than `some View`, so the Mac can reach past
+    /// the bar to the chips inside it and the two cannot drift apart.
+    private var switcher: CookSwitcherBar {
         CookSwitcherBar(
             entries: session.entries,
             titles: recipes.mapValues(\.title),
