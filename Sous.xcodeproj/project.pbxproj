@@ -7,8 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		020691D514B2724CE5B4EA3C /* SousKit in Frameworks */ = {isa = PBXBuildFile; productRef = 57B9B12ADC1A695E43272EB5 /* SousKit */; };
 		0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5FCA0AB252031EC1359F91A /* CategoryManagerView.swift */; };
 		03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */; };
+		1E2217794E3F6F932FE32539 /* SousShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1E6F8015698D15D392FF7A3F /* SousShare.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2C3ECA59D675AEAFFCB6010B /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */; };
 		32869974DB3B7157938EF911 /* ShoppingListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAEFB6DFD6E7D9654258ACDA /* ShoppingListView.swift */; };
 		419B4D0856A1C3D7F12E9C66 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
 		4247A7980AD155610352A4AD /* SousApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B651330E061A44821ADA43 /* SousApp.swift */; };
@@ -32,17 +35,44 @@
 		FC9975780EBE413A7F1F048E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17926632D910B9FEE5B9A8A3 /* RootView.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		EA3F670F6830272C26FD1B19 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E24DE48081CE5169B96200AC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 83B28C8691FBBCD10A309992;
+			remoteInfo = SousShare;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		4E94B50EB9EA745EB66A33A7 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1E2217794E3F6F932FE32539 /* SousShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		027C4D97EB668FD81EEF6515 /* RecipeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRow.swift; sourceTree = "<group>"; };
 		0C70498384AEDCBCE42346CB /* IngredientLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineView.swift; sourceTree = "<group>"; };
 		17926632D910B9FEE5B9A8A3 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		1E6F8015698D15D392FF7A3F /* SousShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		1F7A9B74CF19472A4FA13548 /* MealPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealPlanView.swift; sourceTree = "<group>"; };
 		3A4D64C09129B00714574B3E /* RecipeImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImageView.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
 		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SousKit; path = SousKit; sourceTree = SOURCE_ROOT; };
+		55F31777C34595DD4F836518 /* SousShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SousShare.entitlements; sourceTree = "<group>"; };
 		6343A2B8A34CDA5210A8E4FF /* IngredientCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientCatalogView.swift; sourceTree = "<group>"; };
 		643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipePickerView.swift; sourceTree = "<group>"; };
 		6D629FB2F5517CF39B9396A2 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		81EC8BE16C6318DA2600D33C /* RecipeSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeSearchField.swift; sourceTree = "<group>"; };
 		8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
 		90E750DD65005E77F070E4A9 /* RecipeExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeExportView.swift; sourceTree = "<group>"; };
@@ -54,12 +84,22 @@
 		CAEFB6DFD6E7D9654258ACDA /* ShoppingListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingListView.swift; sourceTree = "<group>"; };
 		CBAB32A5E9329993EB86EEB1 /* CookModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookModeView.swift; sourceTree = "<group>"; };
 		D9726B813A724D39D4FE79CB /* SousStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousStyle.swift; sourceTree = "<group>"; };
+		E02CEE8EA0D9984B1F91AEA1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E155E60C8508D02CC07CDB18 /* PlanRecipeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRecipeSheet.swift; sourceTree = "<group>"; };
 		E17F156912A3CDF5E6CA988B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E5283BC9D2FF854805BEEA02 /* Sous.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Sous.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		485F783EBC63537D552EB375 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				020691D514B2724CE5B4EA3C /* SousKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		D537504DE824DCCA6B74064D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -101,6 +141,7 @@
 		385D7563B39635A740AE0A77 /* Sous */ = {
 			isa = PBXGroup;
 			children = (
+				E8ABAC23FD01EBA09CA4CCE5 /* Supporting */,
 				0B1D145DA0D7595B25BA6B4D /* Views */,
 				E17F156912A3CDF5E6CA988B /* Assets.xcassets */,
 				42B651330E061A44821ADA43 /* SousApp.swift */,
@@ -108,10 +149,21 @@
 			path = Sous;
 			sourceTree = "<group>";
 		};
+		7B5BBD4FBDE721817673AC7C /* SousShare */ = {
+			isa = PBXGroup;
+			children = (
+				E02CEE8EA0D9984B1F91AEA1 /* Info.plist */,
+				F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */,
+				55F31777C34595DD4F836518 /* SousShare.entitlements */,
+			);
+			path = SousShare;
+			sourceTree = "<group>";
+		};
 		89C6E23C69E3FDED67EFADAE /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				E5283BC9D2FF854805BEEA02 /* Sous.app */,
+				1E6F8015698D15D392FF7A3F /* SousShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,6 +173,7 @@
 			children = (
 				D5AC50DF757A8AA9099FE4A0 /* Packages */,
 				385D7563B39635A740AE0A77 /* Sous */,
+				7B5BBD4FBDE721817673AC7C /* SousShare */,
 				89C6E23C69E3FDED67EFADAE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -133,6 +186,14 @@
 			name = Packages;
 			sourceTree = "<group>";
 		};
+		E8ABAC23FD01EBA09CA4CCE5 /* Supporting */ = {
+			isa = PBXGroup;
+			children = (
+				7CBF4A5F5006626CFD84006A /* Sous.entitlements */,
+			);
+			path = Supporting;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -143,10 +204,12 @@
 				A593CA870442090A0E262982 /* Sources */,
 				9E627FB24BB1D9994DBE2209 /* Resources */,
 				D537504DE824DCCA6B74064D /* Frameworks */,
+				4E94B50EB9EA745EB66A33A7 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				7C8E08CC42672446304FB9EF /* PBXTargetDependency */,
 			);
 			name = Sous;
 			packageProductDependencies = (
@@ -155,6 +218,25 @@
 			productName = Sous;
 			productReference = E5283BC9D2FF854805BEEA02 /* Sous.app */;
 			productType = "com.apple.product-type.application";
+		};
+		83B28C8691FBBCD10A309992 /* SousShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 694CFC9E7816CDA69CF91152 /* Build configuration list for PBXNativeTarget "SousShare" */;
+			buildPhases = (
+				1DBA99FCA12D585BCF2D42DE /* Sources */,
+				485F783EBC63537D552EB375 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SousShare;
+			packageProductDependencies = (
+				57B9B12ADC1A695E43272EB5 /* SousKit */,
+			);
+			productName = SousShare;
+			productReference = 1E6F8015698D15D392FF7A3F /* SousShare.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -166,6 +248,9 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					431E661229E6C99F6B5E8474 = {
+						ProvisioningStyle = Automatic;
+					};
+					83B28C8691FBBCD10A309992 = {
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -188,6 +273,7 @@
 			projectRoot = "";
 			targets = (
 				431E661229E6C99F6B5E8474 /* Sous */,
+				83B28C8691FBBCD10A309992 /* SousShare */,
 			);
 		};
 /* End PBXProject section */
@@ -204,6 +290,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		1DBA99FCA12D585BCF2D42DE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C3ECA59D675AEAFFCB6010B /* ShareViewController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A593CA870442090A0E262982 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -233,6 +327,15 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		7C8E08CC42672446304FB9EF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			platformFilter = ios;
+			target = 83B28C8691FBBCD10A309992 /* SousShare */;
+			targetProxy = EA3F670F6830272C26FD1B19 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		0B93642751DA12B4E9417D69 /* Debug */ = {
@@ -304,6 +407,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -331,11 +435,66 @@
 			};
 			name = Debug;
 		};
+		1870DF700757312E751F4B92 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SousShare/SousShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = SousShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous.share;
+				PRODUCT_NAME = SousShare;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		610916E8B47056404D7CAE5E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SousShare/SousShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				INFOPLIST_FILE = SousShare/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous.share;
+				PRODUCT_NAME = SousShare;
+				SDKROOT = auto;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
 		D3626432C4572DE83BE3D298 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -441,6 +600,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		694CFC9E7816CDA69CF91152 /* Build configuration list for PBXNativeTarget "SousShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				610916E8B47056404D7CAE5E /* Debug */,
+				1870DF700757312E751F4B92 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -452,6 +620,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		4F8CD0E43DB8F39F072182B7 /* SousKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = SousKit;
+		};
+		57B9B12ADC1A695E43272EB5 /* SousKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SousKit;
 		};

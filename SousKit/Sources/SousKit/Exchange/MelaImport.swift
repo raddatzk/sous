@@ -87,9 +87,9 @@ public enum MelaImport: RecipeImportFormat {
         let title = string(object["title"])?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let title, !title.isEmpty else { return nil }
 
-        let prep = seconds(in: string(object["prepTime"]))
-        let cook = seconds(in: string(object["cookTime"]))
-        let total = seconds(in: string(object["totalTime"]))
+        let prep = RecipeFieldParsing.seconds(in: string(object["prepTime"]))
+        let cook = RecipeFieldParsing.seconds(in: string(object["cookTime"]))
+        let total = RecipeFieldParsing.seconds(in: string(object["totalTime"]))
 
         let recipe = Recipe(
             // Derived from Mela's own id, so importing the same library twice
@@ -97,7 +97,7 @@ public enum MelaImport: RecipeImportFormat {
             id: identifier(for: object),
             title: title,
             summary: nonEmpty(string(object["text"])),
-            servings: servings(from: string(object["yield"])),
+            servings: RecipeFieldParsing.servings(from: string(object["yield"])),
             ingredientsText: lines(object["ingredients"]),
             instructionsText: lines(object["instructions"]),
             categories: categories(object["categories"]),
@@ -187,61 +187,6 @@ public enum MelaImport: RecipeImportFormat {
         return Data(base64Encoded: encoded, options: .ignoreUnknownCharacters)
     }
 
-    /// "4 Portionen", "4", "Für 4 Personen" — the first number in it.
-    static func servings(from text: String?) -> Int {
-        guard let text, let match = text.firstMatch(of: /\d+/), let value = Int(match.0) else {
-            return 2
-        }
-        return value.clamped(to: Recipe.servingsRange)
-    }
-
-    /// A duration as Mela may have stored it.
-    ///
-    /// Real exports carry "40min", "1h 30min", "20 Min", "5 Minuten", "95"
-    /// and ISO-8601 periods from its web import, sometimes several of them
-    /// in one field. Every number with its unit is therefore added up: a
-    /// parser that stopped at the first one would read "1h 30min" as an
-    /// hour and quietly lose half of every long recipe.
-    static func seconds(in text: String?) -> Int? {
-        guard let text = nonEmpty(text) else { return nil }
-        if let period = isoPeriodSeconds(text) { return period }
-
-        var total = 0
-        var found = false
-        for match in text.matches(of: /(\d+)\s*([\p{L}.]*)/) {
-            guard let value = Int(match.1) else { continue }
-            let unit = String(match.2).lowercased().trimmingCharacters(in: .init(charactersIn: "."))
-            let multiplier: Int
-            // "std" before "s": both start the same way and mean very
-            // different things.
-            if unit.hasPrefix("h") || unit.hasPrefix("std") || unit.hasPrefix("stunde") {
-                multiplier = 3600
-            } else if unit.hasPrefix("sek") || unit.hasPrefix("sec") || unit == "s" {
-                multiplier = 1
-            } else if unit.isEmpty || unit.hasPrefix("m") {
-                // A bare number in a time field means minutes.
-                multiplier = 60
-            } else {
-                continue
-            }
-            total += value * multiplier
-            found = true
-        }
-        return found && total > 0 ? total : nil
-    }
-
-    private static func isoPeriodSeconds(_ text: String) -> Int? {
-        guard let match = text.firstMatch(
-            of: /^P(?:(\d+)D)?T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.ignoresCase()
-        ) else { return nil }
-        let days = match.1.flatMap { Int($0) } ?? 0
-        let hours = match.2.flatMap { Int($0) } ?? 0
-        let minutes = match.3.flatMap { Int($0) } ?? 0
-        let seconds = match.4.flatMap { Int($0) } ?? 0
-        let total = days * 86400 + hours * 3600 + minutes * 60 + seconds
-        return total > 0 ? total : nil
-    }
-
     /// Mela writes the date as a number. Which epoch it counts from depends
     /// on the version, so the value decides: anything below the year 2001 in
     /// Unix terms is counting from Apple's reference date instead.
@@ -283,11 +228,5 @@ public enum MelaImport: RecipeImportFormat {
             return nil
         }
         return text
-    }
-}
-
-extension Comparable {
-    public func clamped(to range: ClosedRange<Self>) -> Self {
-        min(max(self, range.lowerBound), range.upperBound)
     }
 }
