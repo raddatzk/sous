@@ -99,7 +99,10 @@ struct RecipeListView: View {
         .searchable(
             text: $library.searchText,
             tokens: tokens,
-            placement: .sidebar,
+            // Left to the system on purpose. `.sidebar` would be right on the
+            // Mac and a guess on the phone, where this list is a stack and has
+            // no sidebar to put it in.
+            placement: .automatic,
             prompt: "Titel, Zutat, Kategorie"
         ) { filter in
             Label(
