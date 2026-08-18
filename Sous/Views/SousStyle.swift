@@ -54,6 +54,19 @@ extension Color {
         #endif
     }
 
+    /// The warm red the app is built around.
+    ///
+    /// The same two values as the `AccentColor` asset, written out because a
+    /// colour handed to a Live Activity is resolved in the widget's process —
+    /// and an asset reference there finds no asset, falling back to system
+    /// blue in the middle of an orange app.
+    static var sousAccent: Color {
+        adaptive(
+            light: Color(red: 0.706, green: 0.271, blue: 0.118),
+            dark: Color(red: 0.929, green: 0.451, blue: 0.278)
+        )
+    }
+
     /// A block set apart from the page: the servings control, a banner.
     static var sousSurface: Color {
         adaptive(light: .black.opacity(0.05), dark: .white.opacity(0.09))

@@ -14,7 +14,9 @@ struct CookModeView: View {
 
     @State private var focusedStepID: RecipeStep.ID?
     @State private var checkedIngredients: Set<UUID> = []
-    @State private var timer: StepTimer?
+    @Environment(CookTimerCenter.self) private var timers
+    /// The step whose duration is being set, if the sheet is open.
+    @State private var settingTimer: TimerDraft?
 
     /// Whether the last step has been in focus at any point. Kept as state
     /// rather than compared on the way out, because scrolling back up to
@@ -39,6 +41,32 @@ struct CookModeView: View {
         // Cook mode is presented over the app, and a sheet does not pick up
         // a change to the window's scheme — so it names the same one again.
         .sousAppearance()
+        .sheet(item: $settingTimer) { draft in
+            TimerSetupSheet(
+                stepNumber: draft.stepNumber,
+                suggested: draft.seconds
+            ) { seconds in
+                Task {
+                    await timers.start(
+                        seconds: seconds,
+                        stepID: draft.stepID,
+                        stepNumber: draft.stepNumber,
+                        recipeTitle: recipe.title
+                    )
+                }
+            }
+        }
+        .alert(
+            "Timer",
+            isPresented: Binding(
+                get: { timers.errorMessage != nil },
+                set: { if !$0 { timers.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { timers.errorMessage = nil }
+        } message: {
+            Text(timers.errorMessage ?? "")
+        }
         .onAppear {
             focusedStepID = steps.first?.id
             didReachLastStep = steps.count <= 1
@@ -141,30 +169,69 @@ struct CookModeView: View {
             }
 
             if let seconds = step.durationSeconds, seconds > 0 {
-                timerControl(step: step, seconds: seconds)
+                timerControl(step: step, seconds: seconds, number: number)
                     .padding(.leading, 60)
             }
         }
     }
 
+    /// The timer on a step: the offer to start one, or the one that is
+    /// running. Both, if it was started and the offer still makes sense.
     @ViewBuilder
-    private func timerControl(step: RecipeStep, seconds: Int) -> some View {
-        HStack(spacing: 12) {
-            if let timer, timer.stepID == step.id {
-                Text(timer.formattedRemaining)
-                    .font(.system(.title2, design: .rounded).monospacedDigit())
-                    .foregroundStyle(timer.isFinished ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
-                Button(timer.isFinished ? "Zurücksetzen" : "Stopp") { self.timer = nil }
-            } else {
-                Button(
-                    "Timer \(seconds >= 60 ? "\(seconds / 60) Min." : "\(seconds) Sek.")",
-                    systemImage: "timer"
-                ) {
-                    timer = StepTimer(stepID: step.id, seconds: seconds)
+    private func timerControl(step: RecipeStep, seconds: Int, number: Int) -> some View {
+        let running = timers.timers(forStep: step.id)
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(running) { timer in
+                runningTimer(timer)
+            }
+            if running.isEmpty {
+                Button("Timer \(TimeInterval(seconds).cookTimerLabel)", systemImage: "timer") {
+                    settingTimer = TimerDraft(
+                        stepID: step.id,
+                        stepNumber: number,
+                        seconds: TimeInterval(seconds)
+                    )
                 }
                 .buttonStyle(.borderedProminent)
             }
         }
+    }
+
+    /// A countdown, redrawn every second while it runs.
+    ///
+    /// The seconds come from the end time rather than a stored count, so a
+    /// screen that was off for a minute comes back a minute further along.
+    @ViewBuilder
+    private func runningTimer(_ timer: CookTimer) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { tick in
+            let finished = timer.isFinished(at: tick.date)
+            HStack(spacing: 12) {
+                Image(systemName: finished ? "bell.fill" : "timer")
+                    .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+                    .symbolEffect(.pulse, isActive: finished)
+                Text(countdown(timer, at: tick.date))
+                    .font(.system(.title2, design: .rounded).monospacedDigit())
+                    .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+                Button(finished ? "Aus" : "Stopp") { timers.cancel(timer) }
+                    .buttonStyle(.bordered)
+            }
+        }
+    }
+
+    private func countdown(_ timer: CookTimer, at now: Date) -> String {
+        let total = Int(timer.remaining(at: now).rounded())
+        let (hours, minutes, seconds) = (total / 3600, total / 60 % 60, total % 60)
+        return hours > 0
+            ? String(format: "%d:%02d:%02d", hours, minutes, seconds)
+            : String(format: "%d:%02d", minutes, seconds)
+    }
+
+    /// A timer about to be set: which step, and what the recipe suggested.
+    private struct TimerDraft: Identifiable {
+        let stepID: UUID
+        let stepNumber: Int
+        let seconds: TimeInterval
+        var id: UUID { stepID }
     }
 
     @ViewBuilder
@@ -243,33 +310,6 @@ struct CookModeView: View {
         #if os(iOS)
         UIApplication.shared.isIdleTimerDisabled = enabled
         #endif
-    }
-}
-
-/// A countdown for one step.
-@MainActor
-@Observable
-private final class StepTimer {
-    let stepID: UUID
-    private(set) var remaining: Int
-
-    init(stepID: UUID, seconds: Int) {
-        self.stepID = stepID
-        remaining = seconds
-        // Holding the timer weakly is the whole cancellation mechanism:
-        // dropping the object ends the loop on its next tick.
-        Task { [weak self] in
-            while let self, self.remaining > 0 {
-                try? await Task.sleep(for: .seconds(1))
-                self.remaining -= 1
-            }
-        }
-    }
-
-    var isFinished: Bool { remaining <= 0 }
-
-    var formattedRemaining: String {
-        String(format: "%d:%02d", remaining / 60, remaining % 60)
     }
 }
 

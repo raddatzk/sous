@@ -30,6 +30,10 @@ targets:
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
+        NSSupportsLiveActivities: true
+        NSAlarmKitUsageDescription: >-
+          Damit ein Küchentimer klingelt, auch wenn das Gerät stumm
+          geschaltet ist oder ein Fokus läuft.
         CFBundleURLTypes:
           - CFBundleURLName: me.raddatz.sous.import
             CFBundleURLSchemes: [sous]
@@ -37,6 +41,8 @@ targets:
       - package: SousKit
         product: SousKit
       - target: SousShare
+        platformFilter: iOS
+      - target: SousWidgets
         platformFilter: iOS
     settings:
       base:
@@ -51,6 +57,40 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MDQY93XVHF
         REGISTER_APP_GROUPS: YES
+
+  SousWidgets:
+    type: app-extension
+    supportedDestinations: [iOS]
+    sources:
+      - path: SousWidgets
+      # The alarm's metadata, shared with the app rather than redeclared:
+      # both sides have to agree on it or the activity will not decode.
+      - path: Sous/Timers/CookTimerMetadata.swift
+      # The palette, so the lock screen is the same orange as the app.
+      - path: Sous/Views/SousStyle.swift
+    entitlements:
+      path: SousWidgets/SousWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.me.raddatz.sous
+    info:
+      path: SousWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: Sous
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: me.raddatz.sous.widgets
+        PRODUCT_NAME: SousWidgets
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: MDQY93XVHF
+        REGISTER_APP_GROUPS: YES
+        SKIP_INSTALL: YES
 
   SousShare:
     type: app-extension
