@@ -65,7 +65,12 @@ struct CookModeView: View {
                 .disabled(session.activeEntry == nil)
             }
             ToolbarItem(placement: .principal) {
-                switcher.chips
+                CookSwitcherChips(
+                    entries: session.entries,
+                    titles: recipes.mapValues(\.title),
+                    activeRecipeID: session.activeEntry?.recipeID,
+                    onSelect: { session.show($0) }
+                )
             }
             ToolbarItem(placement: .primaryAction) {
                 Button("Rezept dazunehmen", systemImage: "plus") { isPicking = true }
@@ -244,9 +249,8 @@ struct CookModeView: View {
         .presentationCompactAdaptation(.popover)
     }
 
-    /// The concrete type rather than `some View`, so the Mac can reach past
-    /// the bar to the chips inside it and the two cannot drift apart.
-    private var switcher: CookSwitcherBar {
+    @ViewBuilder
+    private var switcher: some View {
         CookSwitcherBar(
             entries: session.entries,
             titles: recipes.mapValues(\.title),
