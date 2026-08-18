@@ -23,22 +23,16 @@ struct TrashView: View {
             List {
                 ForEach(deleted) { recipe in
                     row(recipe)
-                        .swipeActions {
-                            Button("Endgültig löschen", systemImage: "trash", role: .destructive) {
-                                Task {
-                                    await library.erase(recipe)
-                                    await load()
-                                }
-                            }
-                        }
+                        .swipeActions { eraseAction(recipe) }
                         .swipeActions(edge: .leading) {
-                            Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
-                                Task {
-                                    await library.restore(recipe)
-                                    await load()
-                                }
-                            }
-                            .tint(.accentColor)
+                            restoreAction(recipe)
+                                .tint(.accentColor)
+                        }
+                        // Both again as a menu: a swipe needs a trackpad to
+                        // exist at all, and nothing on the row says it does.
+                        .contextMenu {
+                            restoreAction(recipe)
+                            eraseAction(recipe)
                         }
                 }
             }
@@ -117,18 +111,45 @@ struct TrashView: View {
 
     @ViewBuilder
     private func row(_ recipe: Recipe) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            RecipeRow(recipe: recipe)
-            if let deletedAt = recipe.deletedAt {
-                // Without the app's locale this reads "1 hour ago" in the
-                // middle of a German sentence.
-                Text("Gelöscht \(deletedAt.formatted(.relative(presentation: .named).locale(.sous)))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        // A button rather than a tap gesture: the pointer changes over it,
+        // the keyboard reaches it, and the Mac gets the click it expects.
+        Button {
+            openedRecipe = recipe
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                RecipeRow(recipe: recipe)
+                if let deletedAt = recipe.deletedAt {
+                    // Without the app's locale this reads "1 hour ago" in the
+                    // middle of a German sentence.
+                    Text("Gelöscht \(deletedAt.formatted(.relative(presentation: .named).locale(.sous)))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func eraseAction(_ recipe: Recipe) -> some View {
+        Button("Endgültig löschen", systemImage: "trash", role: .destructive) {
+            Task {
+                await library.erase(recipe)
+                await load()
             }
         }
-        .contentShape(.rect)
-        .onTapGesture { openedRecipe = recipe }
+    }
+
+    @ViewBuilder
+    private func restoreAction(_ recipe: Recipe) -> some View {
+        Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
+            Task {
+                await library.restore(recipe)
+                await load()
+            }
+        }
     }
 
     private func load() async {
