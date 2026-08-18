@@ -187,6 +187,38 @@ public final class RecipeLibrary {
         await save(updated)
     }
 
+    // MARK: - Categories
+
+    /// Categories with how many recipes use each.
+    public func categoryCounts() async -> [(name: String, count: Int)] {
+        do {
+            return try await store.categoryCounts()
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
+    public func renameCategory(_ name: String, to newName: String) async {
+        do {
+            try await store.renameCategory(name, to: newName)
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
+    public func deleteCategory(_ name: String) async {
+        do {
+            try await store.deleteCategory(name)
+            // A category being filtered on has just stopped existing.
+            activeFilters.removeAll { $0.kind == .category && $0.key == name.lowercased() }
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
     public func startNewRecipe() {
         editing = Recipe(title: "")
     }

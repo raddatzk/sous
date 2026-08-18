@@ -56,4 +56,11 @@ public protocol RecipeStore: Sendable {
     func delete(id: UUID) async throws
     func restore(id: UUID) async throws
     func categories() async throws -> [String]
+    /// Categories with how many recipes use each — for managing them.
+    func categoryCounts() async throws -> [(name: String, count: Int)]
+    /// Renames a category across every recipe. Renaming onto an existing
+    /// name merges the two.
+    func renameCategory(_ name: String, to newName: String) async throws
+    /// Removes a category from every recipe that carries it.
+    func deleteCategory(_ name: String) async throws
 }

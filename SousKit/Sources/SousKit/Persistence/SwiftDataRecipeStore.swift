@@ -78,6 +78,64 @@ public actor SwiftDataRecipeStore: RecipeStore {
         return Array(Set(all)).sorted { $0.localizedStandardCompare($1) == .orderedAscending }
     }
 
+    public func categoryCounts() async throws -> [(name: String, count: Int)] {
+        var counts: [String: (name: String, count: Int)] = [:]
+        for recipe in try liveRecipes() {
+            for category in recipe.categories {
+                let key = category.lowercased()
+                counts[key, default: (category, 0)].count += 1
+            }
+        }
+        return counts.values.sorted {
+            $0.name.localizedStandardCompare($1.name) == .orderedAscending
+        }
+    }
+
+    public func renameCategory(_ name: String, to newName: String) async throws {
+        let target = newName.trimmingCharacters(in: .whitespaces)
+        guard !target.isEmpty else { return }
+        let key = name.lowercased()
+
+        for recipe in try liveRecipes() where recipe.categories.contains(where: { $0.lowercased() == key }) {
+            var updated = recipe.domainValue
+            // Renaming onto a name a recipe already has merges the two
+            // rather than listing it twice.
+            var renamed = updated.categories.map { $0.lowercased() == key ? target : $0 }
+            var seen = Set<String>()
+            renamed = renamed.filter { seen.insert($0.lowercased()).inserted }
+
+            updated.categories = renamed
+            updated.updatedAt = .nowInSyncPrecision
+            // Only the categories change here. Going through `apply` would
+            // also rebuild the ingredient index, and this store has no
+            // access to the cook's own catalog to do that faithfully.
+            recipe.categories = updated.categories
+            recipe.updatedAt = updated.updatedAt
+            recipe.searchText = StoredRecipe.searchText(for: updated)
+        }
+        try modelContext.save()
+    }
+
+    public func deleteCategory(_ name: String) async throws {
+        let key = name.lowercased()
+
+        for recipe in try liveRecipes() where recipe.categories.contains(where: { $0.lowercased() == key }) {
+            var updated = recipe.domainValue
+            updated.categories.removeAll { $0.lowercased() == key }
+            updated.updatedAt = .nowInSyncPrecision
+            recipe.categories = updated.categories
+            recipe.updatedAt = updated.updatedAt
+            recipe.searchText = StoredRecipe.searchText(for: updated)
+        }
+        try modelContext.save()
+    }
+
+    private func liveRecipes() throws -> [StoredRecipe] {
+        try modelContext.fetch(
+            FetchDescriptor<StoredRecipe>(predicate: #Predicate { $0.deletedAt == nil })
+        )
+    }
+
     private func stored(id: UUID) throws -> StoredRecipe? {
         var descriptor = FetchDescriptor<StoredRecipe>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1
