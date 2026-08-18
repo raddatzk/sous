@@ -1,8 +1,5 @@
 import SousKit
 import SwiftUI
-#if os(iOS)
-import UIKit
-#endif
 
 struct RecipeListView: View {
     @Environment(RecipeLibrary.self) private var library
@@ -174,27 +171,20 @@ struct RecipeListView: View {
                 }
                 #endif
                 #if os(iOS)
-                // Only the phone. The Mac has these in the Ablage menu, and
-                // so does the iPad since iPadOS 26 — `#if os(iOS)` cannot see
-                // that difference, because it is not a compile-time one.
-                //
-                // The idiom rather than the size class: an iPad in Split View
-                // is compact and still has its menu bar, so the question is
-                // which device this is, not how much room it has.
-                if UIDevice.current.userInterfaceIdiom != .pad {
-                    Divider()
-                    Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
-                        exchange.isImporting = true
-                    }
-                    Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
-                        Task {
-                            if let data = await library.exportedLibrary() {
-                                exchange.export = RecipeExport(
-                                    data: data,
-                                    name: "Rezepte",
-                                    contentType: RecipeExport.library
-                                )
-                            }
+                // The Mac has these in the Ablage menu, where it looks for
+                // them; the phone has no menu bar and keeps them here.
+                Divider()
+                Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
+                    exchange.isImporting = true
+                }
+                Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
+                    Task {
+                        if let data = await library.exportedLibrary() {
+                            exchange.export = RecipeExport(
+                                data: data,
+                                name: "Rezepte",
+                                contentType: RecipeExport.library
+                            )
                         }
                     }
                 }
