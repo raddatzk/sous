@@ -16,14 +16,14 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
 
 ## Core features
 
-1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, recipes linked from one another (a curry references the naan, which is an ordinary recipe in its own right), and a manually planned week the optimizer later builds on
+1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, recipes linked from one another (a curry references the naan, which is an ordinary recipe in its own right), and a plan that is either dated or loose — meals sit on a day or in an undated pool, and move between the two — which the optimizer later builds on
 2. **AI recipe generation from the personal collection** — new recipes in the user's own style, via retrieval (tool calling against the local database) plus structured generation
 3. **Ad-hoc leftover cooking** — free-text input ("zucchini and feta need to go"), no persistent pantry record, reusing the same generation mechanism as feature 2
 4. **Web research for new recipe ideas** — scraping of comparable existing recipes as a tool, using the same structured extraction path as the conventional URL import
 5. **Video import (Instagram/TikTok/YouTube)** — implemented as a **share extension**: the user shares a post into the app, and the app processes what it is handed rather than fetching from the platform itself (see Distribution below). Where a video file is available, actual video analysis applies: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
 6. **Per-recipe nutrition** — ingredients extracted and normalized structurally (AI), matched against an external nutrition database (conventional code)
-7. **Shopping list** — assembled from the planned week, with amounts of the same ingredient added together
-8. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector, drawing first on the recipes the user has marked "want to cook"; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
+7. **Shopping list** — assembled from a stretch of planned days or from the undated pool, with amounts of the same ingredient added together
+8. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector, drawing first on what is already in the undated pool and then on the recipes the user has marked "want to cook"; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
 9. **Household sharing** — a household is the unit of sharing: one owner invites members, and the household's recipes and meal plans are shared with all of them. Individual profiles (diet, exercise load, etc.) stay personal and feed into personal nutrition targets.
 
 ## Technical architecture pillars
@@ -62,7 +62,8 @@ The nutrient target vector has mixed constraint directions and must not be treat
 
 * **Lower bounds** (protein, fiber, micronutrients) — under-delivery is penalized
 * **Upper bounds** (calories, saturated fat, sugar, sodium) — over-delivery is penalized
-* **"Want to cook" is a wish the plan honours** — a recipe the user has marked is one they already decided they feel like eating, which is the one thing a nutrient target vector cannot know. It enters the cost function as a bonus on top of the nutrient score, not as a constraint: the optimizer reaches for marked recipes first and passes one over only when it cannot be fitted without breaking the bounds. A bonus rather than a hard requirement, because a plan that seats every marked recipe at the cost of the nutrient targets has stopped being an optimizer and become a queue. **Cooking consumes the mark**: it clears itself once the recipe has actually been cooked, not when it is planned — a plan can be rearranged, and a wish the cook never got round to should stay on the list. Otherwise every mark would have to be cleared by hand, and a list nobody prunes stops meaning anything.
+* **The undated pool is what the optimizer plans with.** Meals in the pool are already decided on — chosen, with a serving count, just not scheduled — which makes them a stronger signal than a "want to cook" mark and the natural material for filling a week. The optimizer therefore seats the pool first, falls back to marked recipes, and only then reaches into the wider collection. **Dated entries are not its to move**: a meal on a Thursday is there because somebody put it there, and rearranging it would make the plan something the cook has to check rather than trust. The optimizer fills what is empty.
+* **"Want to cook" is a wish the plan honours** — a recipe the user has marked is one they already decided they feel like eating, which is the one thing a nutrient target vector cannot know. It enters the cost function as a bonus on top of the nutrient score, not as a constraint: the optimizer reaches for marked recipes ahead of the rest of the collection and passes one over only when it cannot be fitted without breaking the bounds. A bonus rather than a hard requirement, because a plan that seats every marked recipe at the cost of the nutrient targets has stopped being an optimizer and become a queue. **Cooking consumes the mark**: it clears itself once the recipe has actually been cooked, not when it is planned — a plan can be rearranged, and a wish the cook never got round to should stay on the list. Otherwise every mark would have to be cleared by hand, and a list nobody prunes stops meaning anything.
 
 A plain greedy "cover the largest remaining deficit" pass systematically overshoots the upper bounds and cannot take anything back, and its final day is left closing whatever gap remains with whatever is available. With 7 days × n recipes the search space is small, so greedy construction plus a local swap pass (exchange a single meal whenever it lowers total cost) is cheap and produces markedly better plans.
 
@@ -96,6 +97,7 @@ Not fundamentally unresolved, but not yet settled in detail. Each should be deci
 * Whether to hand-roll the crypto or adopt a managed E2EE SDK — pricing for Seald and the maintenance status of Virgil E3Kit both need checking before that can be decided
 * Whether the weekly plan optimizer draws only on the household's own recipes or also pulls in automatically researched ones, and which meals it covers
 * Whether the "want to cook" bonus should decay for marks the user has been carrying for months, or count the same on day one and day two hundred
+* Whether the optimizer may put a meal back into the pool when it cannot place it — a plan that quietly drops something is worse than one that hands it back undated
 * Whether a single user can belong to more than one household (e.g. shared flat plus family)
 
 ## Rough phase roadmap
