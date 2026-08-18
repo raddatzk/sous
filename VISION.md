@@ -62,7 +62,7 @@ The nutrient target vector has mixed constraint directions and must not be treat
 
 * **Lower bounds** (protein, fiber, micronutrients) — under-delivery is penalized
 * **Upper bounds** (calories, saturated fat, sugar, sodium) — over-delivery is penalized
-* **"Want to cook" is a wish the plan honours** — a recipe the user has marked is one they already decided they feel like eating, which is the one thing a nutrient target vector cannot know. It enters the cost function as a bonus on top of the nutrient score, not as a constraint: the optimizer reaches for marked recipes first and passes one over only when it cannot be fitted without breaking the bounds. A bonus rather than a hard requirement, because a plan that seats every marked recipe at the cost of the nutrient targets has stopped being an optimizer and become a queue.
+* **"Want to cook" is a wish the plan honours** — a recipe the user has marked is one they already decided they feel like eating, which is the one thing a nutrient target vector cannot know. It enters the cost function as a bonus on top of the nutrient score, not as a constraint: the optimizer reaches for marked recipes first and passes one over only when it cannot be fitted without breaking the bounds. A bonus rather than a hard requirement, because a plan that seats every marked recipe at the cost of the nutrient targets has stopped being an optimizer and become a queue. **Cooking consumes the mark**: it clears itself once the recipe has actually been cooked, not when it is planned — a plan can be rearranged, and a wish the cook never got round to should stay on the list. Otherwise every mark would have to be cleared by hand, and a list nobody prunes stops meaning anything.
 
 A plain greedy "cover the largest remaining deficit" pass systematically overshoots the upper bounds and cannot take anything back, and its final day is left closing whatever gap remains with whatever is available. With 7 days × n recipes the search space is small, so greedy construction plus a local swap pass (exchange a single meal whenever it lowers total cost) is cheap and produces markedly better plans.
 
@@ -95,7 +95,7 @@ Not fundamentally unresolved, but not yet settled in detail. Each should be deci
 * Household lifecycle: key rotation when a member leaves (data they already hold stays readable with the old key), and whether a member can take a copy of a recipe with them
 * Whether to hand-roll the crypto or adopt a managed E2EE SDK — pricing for Seald and the maintenance status of Virgil E3Kit both need checking before that can be decided
 * Whether the weekly plan optimizer draws only on the household's own recipes or also pulls in automatically researched ones, and which meals it covers
-* Whether a "want to cook" mark clears itself once the recipe has been planned or cooked, and whether the bonus should decay for marks the user has been carrying for months
+* Whether the "want to cook" bonus should decay for marks the user has been carrying for months, or count the same on day one and day two hundred
 * Whether a single user can belong to more than one household (e.g. shared flat plus family)
 
 ## Rough phase roadmap
