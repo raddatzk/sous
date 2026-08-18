@@ -29,6 +29,9 @@ struct MelaImportTests {
         #expect(recipe.ingredients.count == 3)
         #expect(recipe.steps.count == 2)
         #expect(recipe.prepTimeSeconds == 900)
+        // Mela's totalTime is a reading of its own, not cooking time.
+        #expect(recipe.cookTimeSeconds == nil)
+        #expect(recipe.totalTimeSeconds == 900)
         #expect(recipe.source.kind == .web)
         #expect(recipe.source.url?.host() == "example.com")
         #expect(imported.images.count == 1)

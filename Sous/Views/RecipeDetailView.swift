@@ -140,19 +140,36 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// The times worth showing, in the order they happen.
+    ///
+    /// "Gesamt" appears whenever it says something the other numbers do not
+    /// — either because waiting stretches it, or because it is all a recipe
+    /// records. Repeating a total that is plainly the sum of two numbers
+    /// beside it would be noise.
     private var timeItems: [(label: String, value: String)] {
         var items: [(String, String)] = []
         if let prep = recipe.prepTimeSeconds, prep > 0 {
-            items.append(("Vorbereitung", "\(prep / 60) Min"))
+            items.append(("Vorbereitung", minutes(prep)))
         }
         if let cook = recipe.cookTimeSeconds, cook > 0 {
-            items.append(("Zubereitung", "\(cook / 60) Min"))
+            items.append(("Zubereitung", minutes(cook)))
         }
-        if items.count == 2 {
-            let total = (recipe.prepTimeSeconds ?? 0) + (recipe.cookTimeSeconds ?? 0)
-            items.append(("Gesamt", "\(total / 60) Min"))
+        if let resting = recipe.restingTimeSeconds {
+            items.append(("Ruhezeit", minutes(resting)))
+        }
+        if let elapsed = recipe.elapsedTimeSeconds, items.count != 1 {
+            items.append(("Gesamt", minutes(elapsed)))
         }
         return items
+    }
+
+    /// Minutes up to an hour, then hours and minutes: "1:30 Std" is read at
+    /// a glance where "90 Min" has to be divided first.
+    private func minutes(_ seconds: Int) -> String {
+        let total = seconds / 60
+        guard total >= 60 else { return "\(total) Min" }
+        let rest = total % 60
+        return rest == 0 ? "\(total / 60) Std" : String(format: "%d:%02d Std", total / 60, rest)
     }
 
     @ViewBuilder

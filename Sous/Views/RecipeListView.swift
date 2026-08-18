@@ -255,8 +255,9 @@ private struct RecipeRow: View {
         .foregroundStyle(tinted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
     }
 
+    /// The time it takes from start to finish — the number that answers
+    /// "can I have this tonight".
     private var totalMinutes: Int? {
-        let seconds = (recipe.prepTimeSeconds ?? 0) + (recipe.cookTimeSeconds ?? 0)
-        return seconds > 0 ? seconds / 60 : nil
+        recipe.elapsedTimeSeconds.map { $0 / 60 }
     }
 }
