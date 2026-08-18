@@ -64,18 +64,8 @@ struct RecipeEditorView: View {
             }
             .task { await catalog.reload() }
         }
-        // A minimum size is right for a macOS sheet and wrong on a phone,
-        // where it pushes the content wider than the screen.
-        #if os(macOS)
-        .frame(minWidth: 520, minHeight: 620)
-        #elseif os(iOS)
-        // A recipe is written, not glanced at. `.medium` as a second detent
-        // let the sheet open at half height — enough for the title and not
-        // much else — and on iPad a form sheet stops well short of the
-        // window unless it is asked to be a page.
-        .presentationDetents([.large])
-        .presentationSizing(.page)
-        #endif
+        // A recipe is written, not glanced at.
+        .sousSheetSizing(.page)
     }
 
     /// Pictures come first, as a row of tiles with the picker as the last one

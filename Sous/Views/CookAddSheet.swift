@@ -60,11 +60,7 @@ struct CookAddSheet: View {
         }
         .task { await reload() }
         .task(id: searchText) { await reload() }
-        #if os(macOS)
-        .frame(minWidth: 380, minHeight: 460)
-        #elseif os(iOS)
-        .presentationDetents([.large])
-        #endif
+        .sousSheetSizing(.page)
     }
 
     /// Nothing left to offer reads differently from nothing found: the first
@@ -134,13 +130,9 @@ struct CookAddSheet: View {
                     }
                 }
             }
-            #if os(iOS)
-            // Only a stepper and a title; a full-height sheet for that would
-            // hide the list the cook just chose from.
-            .presentationDetents([.height(240)])
-            #else
-            .frame(minWidth: 320, minHeight: 200)
-            #endif
+            // Only a stepper and a title; a full-height sheet for that
+            // would hide the list the cook just chose from.
+            .sousSheetSizing(.question)
         }
     }
 }

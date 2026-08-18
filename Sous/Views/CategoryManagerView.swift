@@ -78,11 +78,7 @@ struct CategoryManagerView: View {
                 Text("Der neue Name gilt für alle Rezepte mit dieser Kategorie.")
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 360, minHeight: 420)
-        #elseif os(iOS)
-        .presentationDetents([.medium])
-        #endif
+        .sousSheetSizing(.form)
     }
 
     private func rename() {

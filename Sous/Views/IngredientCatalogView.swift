@@ -57,11 +57,7 @@ struct IngredientCatalogView: View {
         .sheet(isPresented: $isAdding) {
             IngredientFormView(ingredient: CatalogIngredient(name: "", category: .other))
         }
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 520)
-        #elseif os(iOS)
-        .presentationDetents([.large])
-        #endif
+        .sousSheetSizing(.page)
     }
 
     @ViewBuilder
@@ -180,11 +176,7 @@ struct IngredientFormView: View {
                 }
             }
         }
-        #if os(macOS)
-        .frame(minWidth: 380, minHeight: 340)
-        #elseif os(iOS)
-        .presentationDetents([.medium])
-        #endif
+        .sousSheetSizing(.form)
     }
 
     private func save() {

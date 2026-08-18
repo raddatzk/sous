@@ -60,6 +60,58 @@ extension View {
     }
 }
 
+/// How much room a sheet needs, said once so that ten sheets do not each
+/// invent their own numbers.
+///
+/// Every sheet used to name a minimum size for the Mac and a detent for the
+/// phone by hand, which is how the recipe editor ended up opening at half
+/// height on the iPad and nobody noticed: the decision was made ten times,
+/// so it could be wrong in one place while looking right in the other nine.
+enum SousSheetSize {
+    /// One question with one or two controls: a duration, a serving count.
+    case question
+    /// A form to fill in, or a short list to pick from.
+    case form
+    /// Something worked on at length: the editor, a whole catalogue.
+    case page
+}
+
+extension View {
+    /// Sizes a sheet for whichever device it opens on.
+    ///
+    /// Three mechanisms, because the platforms disagree about what a sheet
+    /// is: the Mac wants a minimum window size, the phone a detent it can be
+    /// dragged between, and the iPad a presentation size — a form sheet there
+    /// otherwise stops well short of the window no matter what the detents
+    /// say. The detent and the presentation size can both be stated, since
+    /// each is ignored where the other applies.
+    @ViewBuilder
+    func sousSheetSizing(_ size: SousSheetSize) -> some View {
+        #if os(macOS)
+        switch size {
+        case .question: frame(minWidth: 340, minHeight: 320)
+        case .form: frame(minWidth: 380, minHeight: 480)
+        case .page: frame(minWidth: 520, minHeight: 620)
+        }
+        #else
+        switch size {
+        case .question:
+            presentationDetents([.height(300)])
+                .presentationSizing(.form)
+        case .form:
+            presentationDetents([.medium])
+                .presentationSizing(.form)
+        case .page:
+            // Deliberately only `.large`: a set of detents is unordered, so
+            // adding `.medium` does not offer a bigger sheet, it gambles on
+            // which one opens.
+            presentationDetents([.large])
+                .presentationSizing(.page)
+        }
+        #endif
+    }
+}
+
 extension Locale {
     /// The language the app is written in. A stand-in until it is localized:
     /// hard-coded German strings and system-locale dates do not mix.
