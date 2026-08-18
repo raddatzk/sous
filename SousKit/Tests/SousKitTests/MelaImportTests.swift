@@ -78,16 +78,16 @@ struct MelaImportTests {
 
     @Test("Durations are read however Mela wrote them")
     func durations() {
-        #expect(MelaImport.seconds(in: "PT45M") == 2700)
-        #expect(MelaImport.seconds(in: "PT1H30M") == 5400)
-        #expect(MelaImport.seconds(in: "20 Minuten") == 1200)
-        #expect(MelaImport.seconds(in: "1 Stunde") == 3600)
-        #expect(MelaImport.seconds(in: "45 minutes") == 2700)
-        #expect(MelaImport.seconds(in: "2 hours") == 7200)
-        #expect(MelaImport.seconds(in: "30") == 1800)
-        #expect(MelaImport.seconds(in: "") == nil)
-        #expect(MelaImport.seconds(in: nil) == nil)
-        #expect(MelaImport.seconds(in: "ohne Angabe") == nil)
+        #expect(RecipeFieldParsing.seconds(in: "PT45M") == 2700)
+        #expect(RecipeFieldParsing.seconds(in: "PT1H30M") == 5400)
+        #expect(RecipeFieldParsing.seconds(in: "20 Minuten") == 1200)
+        #expect(RecipeFieldParsing.seconds(in: "1 Stunde") == 3600)
+        #expect(RecipeFieldParsing.seconds(in: "45 minutes") == 2700)
+        #expect(RecipeFieldParsing.seconds(in: "2 hours") == 7200)
+        #expect(RecipeFieldParsing.seconds(in: "30") == 1800)
+        #expect(RecipeFieldParsing.seconds(in: "") == nil)
+        #expect(RecipeFieldParsing.seconds(in: nil) == nil)
+        #expect(RecipeFieldParsing.seconds(in: "ohne Angabe") == nil)
     }
 
     /// Every shape that actually turned up in an exported library of a few
@@ -95,40 +95,40 @@ struct MelaImportTests {
     /// taking the first number it finds.
     @Test("Compound durations add up instead of stopping at the first number")
     func compoundDurations() {
-        #expect(MelaImport.seconds(in: "40min") == 2400)
-        #expect(MelaImport.seconds(in: "1h 30min") == 5400)
-        #expect(MelaImport.seconds(in: "1h 5min") == 3900)
-        #expect(MelaImport.seconds(in: "2h 5min") == 7500)
-        #expect(MelaImport.seconds(in: "4h 45min") == 17100)
-        #expect(MelaImport.seconds(in: "5h 30min") == 19800)
-        #expect(MelaImport.seconds(in: "1h") == 3600)
-        #expect(MelaImport.seconds(in: "15 min") == 900)
-        #expect(MelaImport.seconds(in: "20 Min") == 1200)
-        #expect(MelaImport.seconds(in: "5 Minuten") == 300)
-        #expect(MelaImport.seconds(in: "95") == 5700)
-        #expect(MelaImport.seconds(in: "90 Sekunden") == 90)
+        #expect(RecipeFieldParsing.seconds(in: "40min") == 2400)
+        #expect(RecipeFieldParsing.seconds(in: "1h 30min") == 5400)
+        #expect(RecipeFieldParsing.seconds(in: "1h 5min") == 3900)
+        #expect(RecipeFieldParsing.seconds(in: "2h 5min") == 7500)
+        #expect(RecipeFieldParsing.seconds(in: "4h 45min") == 17100)
+        #expect(RecipeFieldParsing.seconds(in: "5h 30min") == 19800)
+        #expect(RecipeFieldParsing.seconds(in: "1h") == 3600)
+        #expect(RecipeFieldParsing.seconds(in: "15 min") == 900)
+        #expect(RecipeFieldParsing.seconds(in: "20 Min") == 1200)
+        #expect(RecipeFieldParsing.seconds(in: "5 Minuten") == 300)
+        #expect(RecipeFieldParsing.seconds(in: "95") == 5700)
+        #expect(RecipeFieldParsing.seconds(in: "90 Sekunden") == 90)
     }
 
     @Test("A yield larger than a dinner party survives the import")
     func largeYield() {
         // A tray of biscuits is a reference amount like any other; clamping
         // it would rewrite what the ingredient amounts refer to.
-        #expect(MelaImport.servings(from: "62 Keks") == 62)
-        #expect(MelaImport.servings(from: "10 Stücke") == 10)
-        #expect(MelaImport.servings(from: "1 Kuchen") == 1)
+        #expect(RecipeFieldParsing.servings(from: "62 Keks") == 62)
+        #expect(RecipeFieldParsing.servings(from: "10 Stücke") == 10)
+        #expect(RecipeFieldParsing.servings(from: "1 Kuchen") == 1)
         // Still bounded, so a stray number cannot claim a thousand portions.
-        #expect(MelaImport.servings(from: "999") == 200)
+        #expect(RecipeFieldParsing.servings(from: "999") == 200)
     }
 
     @Test("Servings come out of whatever the yield says")
     func servings() {
-        #expect(MelaImport.servings(from: "4 Portionen") == 4)
-        #expect(MelaImport.servings(from: "Für 6 Personen") == 6)
-        #expect(MelaImport.servings(from: "2") == 2)
-        #expect(MelaImport.servings(from: "ergibt 1 Blech") == 1)
+        #expect(RecipeFieldParsing.servings(from: "4 Portionen") == 4)
+        #expect(RecipeFieldParsing.servings(from: "Für 6 Personen") == 6)
+        #expect(RecipeFieldParsing.servings(from: "2") == 2)
+        #expect(RecipeFieldParsing.servings(from: "ergibt 1 Blech") == 1)
         // Nothing to go on, and nothing worth guessing.
-        #expect(MelaImport.servings(from: "eine Schüssel") == 2)
-        #expect(MelaImport.servings(from: nil) == 2)
+        #expect(RecipeFieldParsing.servings(from: "eine Schüssel") == 2)
+        #expect(RecipeFieldParsing.servings(from: nil) == 2)
     }
 
     @Test("A recipe without a title is reported, not stored")
