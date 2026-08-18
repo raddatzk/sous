@@ -168,7 +168,7 @@ struct RootView: View {
         let isActive = item == section
 
         Button {
-            withAnimation(.smooth(duration: 0.3)) { section = item }
+            section = item
         } label: {
             HStack(spacing: 6) {
                 // A fixed width so the narrow buttons match each other. A
@@ -195,6 +195,13 @@ struct RootView: View {
             .frame(width: isActive ? 132 : 16)
         }
         .buttonStyle(SectionButtonStyle(isActive: isActive))
+        // The animation belongs to the button rather than to the press that
+        // changed the section. Wrapped in `withAnimation` at the call site it
+        // rode on the transaction, and the toolbar swallowed that on at least
+        // one pair — Essensplan to Einkaufsliste changed inside a single frame
+        // while the others took thirteen. Tied to `isActive`, each button
+        // animates its own width and fill whoever moved them.
+        .animation(.smooth(duration: 0.3), value: isActive)
         // While a button is narrow, this is the only thing that says which
         // section it is.
         .help(item.title)
