@@ -13,6 +13,10 @@ struct CookModeView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(CookTimerCenter.self) private var timers
     @Environment(CookSession.self) private var session
+    #if os(macOS)
+    /// Cooking is a window of its own here, and this closes it.
+    @Environment(\.dismiss) private var dismiss
+    #endif
 
     /// The recipes on the hob, looked up from the ids the session keeps.
     @State private var recipes: [UUID: Recipe] = [:]
@@ -150,6 +154,14 @@ struct CookModeView: View {
         } message: {
             Text("Der Timer wird mit dem Rezept beendet.")
         }
+        #if os(macOS)
+        // The last pot off the hob takes the window with it. Closed here
+        // rather than by the main window noticing: that window can itself be
+        // closed, and then nobody would be left to notice.
+        .onChange(of: session.isEmpty) { _, isEmpty in
+            if isEmpty { dismiss() }
+        }
+        #endif
         // The ids are the truth; the recipes behind them are fetched, and
         // refetched whenever something joins or leaves the hob.
         .task(id: session.entries.map(\.recipeID)) { await resolveRecipes() }
