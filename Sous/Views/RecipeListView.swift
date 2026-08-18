@@ -58,6 +58,10 @@ struct RecipeListView: View {
                 selectedRecipeID = edited.id
             }
         }
+        // A draft the cook walked away from takes its pictures with it.
+        .onChange(of: library.editing) { _, editing in
+            if editing == nil { Task { await library.discardUnsavedDraft() } }
+        }
         .alert(
             "Fehler",
             isPresented: Binding(

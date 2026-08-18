@@ -1,53 +1,28 @@
 import Foundation
-import SwiftData
 
-/// Fetches a recipe page and puts what it finds into the collection.
+/// Fetches a recipe page and reads the recipe out of it.
 ///
-/// Its own type rather than a method on ``RecipeLibrary``: the share
-/// extension has no library, no views and no main actor to speak of — it
-/// needs the store and nothing else.
+/// Nothing is stored here. A recipe off a web page is a draft — the title is
+/// often the site's headline and the yield a guess — so it goes to the
+/// editor first and into the collection only if the cook says so.
 public struct RecipeWebImporter: Sendable {
-    private let store: any RecipeStore
-    private let imageStore: any RecipeImageStore
     private let session: URLSession
 
-    public init(store: any RecipeStore, imageStore: any RecipeImageStore, session: URLSession = .shared) {
-        self.store = store
-        self.imageStore = imageStore
+    public init(session: URLSession = .shared) {
         self.session = session
     }
 
-    /// Opens the shared store, which is what an extension wants — and
-    /// refuses to run without it rather than saving where nobody looks.
-    public init(session: URLSession = .shared) throws {
-        let container = try ModelContainer.sousContainer(requiringSharedStore: true)
-        self.init(
-            store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            session: session
-        )
-    }
-
-    /// Reads the page, stores the recipe, and returns it as stored.
-    @discardableResult
-    public func importRecipe(from url: URL) async throws -> Recipe {
+    /// Reads the page and returns the recipe with its pictures, unsaved.
+    public func draft(from url: URL) async throws -> (recipe: Recipe, images: [Data]) {
         let html = try await html(from: url)
         let found = try RecipeWebImport.extract(from: html, url: url)
 
-        var recipe = try await store.save(found.recipe)
-        var ids: [UUID] = []
+        var images: [Data] = []
         for imageURL in found.imageURLs {
             // A missing picture is not worth failing the import over.
-            guard let data = try? await self.data(from: imageURL),
-                  let id = try? await imageStore.add(data, to: recipe.id)
-            else { continue }
-            ids.append(id)
+            if let data = try? await data(from: imageURL) { images.append(data) }
         }
-        if !ids.isEmpty {
-            recipe.imageIDs = ids
-            recipe = try await store.save(recipe)
-        }
-        return recipe
+        return (found.recipe, images)
     }
 
     private func html(from url: URL) async throws -> String {
