@@ -1,7 +1,7 @@
 import SousKit
 import SwiftUI
 
-/// Puts a recipe on a day of the meal plan.
+/// Puts a recipe on the meal plan — on a day, or into the undated pool.
 struct PlanRecipeSheet: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(\.dismiss) private var dismiss
@@ -12,6 +12,8 @@ struct PlanRecipeSheet: View {
 
     @State private var day = Date()
     @State private var slot: MealSlot = .dinner
+    /// Planned, but not for any particular evening.
+    @State private var withoutDay = false
     @State private var plannedServings: Int
 
     init(recipe: Recipe, servings: Int) {
@@ -24,19 +26,29 @@ struct PlanRecipeSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    DatePicker("Tag", selection: $day, displayedComponents: .date)
-                        .datePickerStyle(.graphical)
+                    Toggle("Ohne festen Tag", isOn: $withoutDay.animation())
+                } footer: {
+                    if withoutDay {
+                        Text("Das Gericht landet in der Sammlung und kann später auf einen Tag gelegt werden.")
+                    }
                 }
 
-                Section {
-                    Picker("Mahlzeit", selection: $slot) {
-                        ForEach(MealSlot.allCases, id: \.self) { option in
-                            Text(option.title).tag(option)
-                        }
+                if !withoutDay {
+                    Section {
+                        DatePicker("Tag", selection: $day, displayedComponents: .date)
+                            .datePickerStyle(.graphical)
                     }
-                    .pickerStyle(.segmented)
+
+                    Section {
+                        Picker("Mahlzeit", selection: $slot) {
+                            ForEach(MealSlot.allCases, id: \.self) { option in
+                                Text(option.title).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .listRowBackground(Color.clear)
                 }
-                .listRowBackground(Color.clear)
 
                 Section {
                     Stepper(value: $plannedServings, in: 1...50) {
@@ -58,9 +70,14 @@ struct PlanRecipeSheet: View {
                     Button("Abbrechen") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Einplanen") {
+                    Button(withoutDay ? "Vormerken" : "Einplanen") {
                         Task {
-                            await plan.add(recipe, to: day, slot: slot, servings: plannedServings)
+                            await plan.add(
+                                recipe,
+                                to: withoutDay ? nil : day,
+                                slot: slot,
+                                servings: plannedServings
+                            )
                             dismiss()
                         }
                     }

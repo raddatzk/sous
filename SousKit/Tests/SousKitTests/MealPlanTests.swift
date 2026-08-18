@@ -228,3 +228,79 @@ struct MealSlotTests {
         #expect(plan.plan(for: Date())[0].entry.slot == .dinner)
     }
 }
+
+@MainActor
+@Suite("The undated pool")
+struct MealPlanPoolTests {
+    private func makeLibrary() throws -> (MealPlanLibrary, SwiftDataRecipeStore) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let recipes = SwiftDataRecipeStore(modelContainer: container)
+        let library = MealPlanLibrary(
+            store: SwiftDataMealPlanStore(modelContainer: container),
+            recipeStore: recipes
+        )
+        return (library, recipes)
+    }
+
+    private func saved(_ title: String, in store: SwiftDataRecipeStore) async throws -> Recipe {
+        try await store.save(Recipe(title: title, servings: 2, ingredientsText: "200 g Linsen"))
+    }
+
+    @Test("A recipe planned without a day lands in the pool, not on the calendar")
+    func addToPool() async throws {
+        let (library, recipes) = try makeLibrary()
+        let recipe = try await saved("Linsensuppe", in: recipes)
+
+        await library.add(recipe, to: nil)
+
+        #expect(library.pool.count == 1)
+        #expect(library.pool.first?.isInPool == true)
+        #expect(library.entries.isEmpty)
+        #expect(library.pooledMeals.first?.recipe?.title == "Linsensuppe")
+    }
+
+    @Test("A pool entry moves onto a day and keeps what was planned with it")
+    func moveOntoDay() async throws {
+        let (library, recipes) = try makeLibrary()
+        let recipe = try await saved("Linsensuppe", in: recipes)
+        await library.add(recipe, to: nil, servings: 6)
+        let entry = try #require(library.pool.first)
+
+        let today = try #require(library.days.first)
+        await library.move(entry, to: today, slot: .lunch)
+
+        #expect(library.pool.isEmpty)
+        let planned = try #require(library.plan(for: today).first)
+        // The same entry, not a fresh one: six people are still coming.
+        #expect(planned.entry.id == entry.id)
+        #expect(planned.entry.servings == 6)
+        #expect(planned.entry.slot == .lunch)
+    }
+
+    @Test("A meal can be taken off its day and left loose")
+    func moveIntoPool() async throws {
+        let (library, recipes) = try makeLibrary()
+        let recipe = try await saved("Linsensuppe", in: recipes)
+        let today = try #require(library.days.first)
+        await library.add(recipe, to: today)
+        let entry = try #require(library.entries.first)
+
+        await library.move(entry, to: nil)
+
+        #expect(library.entries.isEmpty)
+        #expect(library.pool.map(\.id) == [entry.id])
+    }
+
+    @Test("The shopping list can take the pool as it is")
+    func shoppingFromPool() async throws {
+        let (library, recipes) = try makeLibrary()
+        await library.add(try await saved("Linsensuppe", in: recipes), to: nil, servings: 4)
+        await library.add(try await saved("Rührei", in: recipes), to: nil)
+
+        let planned = library.pooledRecipes
+        #expect(planned.count == 2)
+        #expect(planned.first { $0.recipe.title == "Linsensuppe" }?.servings == 4)
+        // A day range never reaches the pool, however wide it is.
+        #expect(library.plannedRecipes(from: .distantPast, through: .distantFuture).isEmpty)
+    }
+}

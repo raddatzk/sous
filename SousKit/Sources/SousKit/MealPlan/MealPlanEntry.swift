@@ -1,13 +1,18 @@
 import Foundation
 
-/// One recipe planned for one day.
+/// One recipe on the meal plan, with or without a day of its own.
 ///
-/// Days are stored as the start of the day in the current calendar, so a plan
-/// entry is a date, not a moment — moving across a time zone must not shift
-/// dinner to the day before.
+/// A day is optional because cooking rarely keeps to a calendar: what was
+/// meant for Tuesday happens on Thursday, depending on what there is time and
+/// appetite for. An entry without a day sits in the pool — planned to be
+/// cooked, not planned for a date.
+///
+/// Days are stored as the start of the day in the current calendar, so a
+/// dated entry is a date, not a moment — moving across a time zone must not
+/// shift dinner to the day before.
 public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
-    public var day: Date
+    public var day: Date?
     /// Dinner unless said otherwise — it is what gets planned most.
     public var slot: MealSlot
     public var recipeID: UUID
@@ -23,9 +28,12 @@ public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
 
     public var isDeleted: Bool { deletedAt != nil }
 
+    /// Whether this entry is in the loose pool rather than on a day.
+    public var isInPool: Bool { day == nil }
+
     public init(
         id: UUID = UUID(),
-        day: Date,
+        day: Date?,
         slot: MealSlot = .dinner,
         recipeID: UUID,
         servings: Int? = nil,
@@ -35,7 +43,7 @@ public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
         deletedAt: Date? = nil
     ) {
         self.id = id
-        self.day = day.startOfDay
+        self.day = day?.startOfDay
         self.slot = slot
         self.recipeID = recipeID
         self.servings = servings
