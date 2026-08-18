@@ -44,6 +44,16 @@ struct TimerSetupSheet: View {
                 .controlSize(.large)
                 .disabled(total <= 0)
 
+                #if os(macOS)
+                // Said here rather than discovered by missing the pasta: the
+                // Mac has no AlarmKit, so this is a notification rather than
+                // an alarm that rings until somebody answers it.
+                Text("Der Mac meldet sich mit einer Mitteilung — nicht durch Stummschaltung oder einen Fokus hindurch.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                #endif
+
                 Spacer(minLength: 0)
             }
             .padding(24)
