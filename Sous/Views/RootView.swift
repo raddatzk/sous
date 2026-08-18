@@ -6,18 +6,22 @@ import SwiftUI
 struct RootView: View {
     @Environment(CookSession.self) private var session
 
+    /// Which of the three the Mac is showing. The phone and iPad keep a tab
+    /// view, which holds this itself.
+    @State private var section: SousSection = .recipes
+
     var body: some View {
         @Bindable var session = session
 
         VStack(spacing: 0) {
-            // Above the tabs rather than inside one of them: the cook who
+            // Above everything rather than inside one section: the cook who
             // left to check the shopping list has to find the way back from
             // there, not only from the recipe list.
             if !session.isEmpty && !session.isPresented {
                 ContinueCookingBanner()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
-            tabs
+            sections
         }
         .animation(.easeInOut(duration: 0.2), value: session.isEmpty)
         .animation(.easeInOut(duration: 0.2), value: session.isPresented)
@@ -35,21 +39,86 @@ struct RootView: View {
         .environment(\.locale, .sous)
     }
 
+    #if os(macOS)
+    /// A switch above the content rather than a column beside it.
+    ///
+    /// A sidebar earns its width by holding something that grows — Mela's
+    /// holds categories and smart lists. Here it would hold three fixed
+    /// entries, and the recipe list brings its own split view, so the window
+    /// ended up with a sidebar inside a sidebar. Three fixed entries are a
+    /// mode, not a place to navigate to, and a segmented control says that.
+    ///
+    /// Categories are not missed: they are filters here, combined with
+    /// ingredients and free text in the search field, which is something a
+    /// list you pick one row from cannot do.
     @ViewBuilder
-    private var tabs: some View {
-        TabView {
-            Tab("Rezepte", systemImage: "book.closed") {
-                RecipeListView()
+    private var sections: some View {
+        VStack(spacing: 0) {
+            Picker("Bereich", selection: $section) {
+                ForEach(SousSection.allCases) { section in
+                    Label(section.title, systemImage: section.symbol)
+                        .tag(section)
+                }
             }
-            Tab("Essensplan", systemImage: "calendar") {
-                MealPlanView()
-            }
-            Tab("Einkaufsliste", systemImage: "cart") {
-                ShoppingListView()
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(maxWidth: 420)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+
+            Divider()
+
+            switch section {
+            case .recipes: RecipeListView()
+            case .mealPlan: MealPlanView()
+            case .shopping: ShoppingListView()
             }
         }
-        // On the Mac and iPad this becomes a sidebar; on the phone it stays a
-        // tab bar at the bottom.
+    }
+    #else
+    @ViewBuilder
+    private var sections: some View {
+        TabView {
+            ForEach(SousSection.allCases) { section in
+                Tab(section.title, systemImage: section.symbol) {
+                    switch section {
+                    case .recipes: RecipeListView()
+                    case .mealPlan: MealPlanView()
+                    case .shopping: ShoppingListView()
+                    }
+                }
+            }
+        }
+        // On the iPad this becomes the floating bar along the top, which can
+        // be opened into a sidebar; on the phone it stays a tab bar at the
+        // bottom.
         .tabViewStyle(.sidebarAdaptable)
+    }
+    #endif
+}
+
+/// The three places the app is used from, named once so the tab bar and the
+/// Mac's switch cannot drift apart on wording or order.
+enum SousSection: String, CaseIterable, Identifiable {
+    case recipes
+    case mealPlan
+    case shopping
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .recipes: "Rezepte"
+        case .mealPlan: "Essensplan"
+        case .shopping: "Einkaufsliste"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .recipes: "book.closed"
+        case .mealPlan: "calendar"
+        case .shopping: "cart"
+        }
     }
 }
