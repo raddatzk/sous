@@ -15,6 +15,7 @@ struct CookModeView: View {
     @State private var focusedStepID: RecipeStep.ID?
     @State private var checkedIngredients: Set<UUID> = []
     @State private var timer: StepTimer?
+
     /// Whether the last step has been in focus at any point. Kept as state
     /// rather than compared on the way out, because scrolling back up to
     /// check something does not undo having cooked the dish.
@@ -34,8 +35,10 @@ struct CookModeView: View {
             Divider()
             pages
         }
-        .background(.black)
-        .preferredColorScheme(.dark)
+        .background(Color.sousCookBackground)
+        // Cook mode is presented over the app, and a sheet does not pick up
+        // a change to the window's scheme — so it names the same one again.
+        .sousAppearance()
         .onAppear {
             focusedStepID = steps.first?.id
             didReachLastStep = steps.count <= 1

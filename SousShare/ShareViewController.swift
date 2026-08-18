@@ -67,7 +67,8 @@ struct ShareRootView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(.black.opacity(0.2))
+        .background(Color.sousScrim)
+        .sousAppearance()
         .task { await start() }
     }
 

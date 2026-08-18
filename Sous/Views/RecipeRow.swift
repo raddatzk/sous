@@ -103,7 +103,7 @@ struct RecipeRow: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .background(
-            tinted ? AnyShapeStyle(.tint.opacity(0.13)) : AnyShapeStyle(.quaternary.opacity(0.6)),
+            tinted ? AnyShapeStyle(.tint.opacity(SousStyle.chipTint)) : AnyShapeStyle(Color.sousField),
             in: .capsule
         )
         .foregroundStyle(tinted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))

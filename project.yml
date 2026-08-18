@@ -66,6 +66,7 @@ targets:
       - path: Sous/Views/RecipeRow.swift
       - path: Sous/Views/FlowLayout.swift
       - path: Sous/Views/SousStyle.swift
+      - path: Sous/Views/SousAppearance.swift
       - path: Sous/Views/IngredientCatalogView.swift
       - path: Sous/Views/IngredientLineView.swift
     entitlements:
