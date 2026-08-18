@@ -161,7 +161,7 @@ struct RootView: View {
         let isActive = item == section
 
         Button {
-            withAnimation(.snappy) { section = item }
+            withAnimation(.smooth(duration: 0.3)) { section = item }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: item.symbol)
@@ -171,7 +171,21 @@ struct RootView: View {
                     // three widths where Mail has three of one.
                     .frame(width: 16)
                 if isActive {
-                    Text(item.title)
+                    // Every name is laid out and all but this one hidden, so
+                    // the wide button is the same width whichever section it
+                    // is. Otherwise "Rezepte" and "Einkaufsliste" gave the row
+                    // two different lengths and the buttons beside them slid
+                    // sideways on every switch — which is most of what made
+                    // the movement look restless.
+                    //
+                    // Measured rather than a number picked by hand, so it
+                    // survives a font change and a longer word.
+                    ZStack(alignment: .leading) {
+                        ForEach(SousSection.allCases) { other in
+                            Text(other.title).hidden()
+                        }
+                        Text(item.title)
+                    }
                 }
             }
             .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
