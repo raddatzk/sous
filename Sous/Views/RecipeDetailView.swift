@@ -189,16 +189,6 @@ struct RecipeDetailView: View {
             .buttonStyle(.bordered)
             .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
 
-            Button {
-                Task { await library.toggleFavorite(recipe) }
-            } label: {
-                Label(
-                    recipe.isFavorite ? "Favorit" : "Merken",
-                    systemImage: recipe.isFavorite ? "star.fill" : "star"
-                )
-                .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.bordered)
         }
         .controlSize(.large)
     }
@@ -310,9 +300,32 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// The two marks a recipe can carry live here rather than in the action
+    /// bar below: they are what this recipe *is* to the cook — one says it
+    /// has proved itself, the other that it is still on the list of things
+    /// to try — while the bar underneath is for what to do with it now. The
+    /// bar also has no room left for them without squeezing "Kochen" flat.
     @ToolbarContentBuilder
     private var detailToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Button {
+                Task { await library.toggleFavorite(recipe) }
+            } label: {
+                Label(
+                    recipe.isFavorite ? "Favorit" : "Merken",
+                    systemImage: recipe.isFavorite ? "star.fill" : "star"
+                )
+            }
+
+            Button {
+                Task { await library.toggleWantToCook(recipe) }
+            } label: {
+                Label(
+                    recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
+                    systemImage: recipe.wantToCook ? "bookmark.fill" : "bookmark"
+                )
+            }
+
             Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
         }
     }
