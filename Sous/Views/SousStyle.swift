@@ -18,6 +18,8 @@ enum SousStyle {
     static let groupHeading = Font.system(.headline, design: .serif)
     /// The big step number in cook mode.
     static let stepNumber = Font.system(size: 40, weight: .bold, design: .serif)
+    /// A recipe name on a chip: the switcher at the foot of cook mode.
+    static let recipeChip = Font.system(.subheadline, design: .serif, weight: .semibold)
 
     /// How much accent a tinted chip carries behind its label. One value
     /// so a filter chip and a recipe's category chip look like siblings.

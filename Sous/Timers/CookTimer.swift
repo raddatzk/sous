@@ -11,6 +11,10 @@ struct CookTimer: Identifiable, Codable, Hashable, Sendable {
     var id: UUID
     /// The step it was started from, so it can be shown where it belongs.
     var stepID: UUID
+    /// The recipe the step belongs to, so the switcher can say which pot a
+    /// countdown is for. Optional only so timers written down by an earlier
+    /// version still decode — a missing key would drop a running alarm.
+    var recipeID: UUID?
     var recipeTitle: String
     var stepNumber: Int
     /// What was asked for, which is not what is left.
