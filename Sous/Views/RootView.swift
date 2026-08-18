@@ -130,42 +130,50 @@ struct RootView: View {
         // minimum the column asks for.
         .toolbar(removing: .sidebarToggle)
         .toolbar {
-            // One button per section rather than one segmented control, the
-            // way Mail carries its categories: the section you are in is a
-            // filled capsule with its name, the other two are quiet buttons
-            // with only their symbol.
+            // One button per section, the way Mail carries its categories:
+            // the one you are in is a filled capsule with its name, the other
+            // two are quiet buttons showing only their symbol. Pressing one
+            // widens it into its name while the one you left shrinks back to
+            // its symbol.
             //
-            // Each is its own toolbar item on purpose. The system draws the
-            // capsule around a toolbar item, so letting the button styles do
-            // the work keeps it from becoming a capsule inside a capsule —
-            // which is what the switcher chips in cook mode looked like until
-            // they stopped drawing their own.
-            ToolbarItemGroup(placement: .navigation) {
-                ForEach(SousSection.allCases) { item in
-                    sectionButton(item)
-                }
-            }
+            // Three items rather than one group: a group is drawn as a single
+            // capsule, which put the calendar and the trolley in one pill as
+            // though they belonged together. Written out one by one because
+            // `ForEach` is not toolbar content — there is no way to loop here.
+            ToolbarItem(placement: .navigation) { sectionButton(.recipes) }
+            ToolbarItem(placement: .navigation) { sectionButton(.mealPlan) }
+            ToolbarItem(placement: .navigation) { sectionButton(.shopping) }
         }
     }
 
+    /// One section's button, wide with its name or narrow with its symbol.
+    ///
+    /// The styles are the system's rather than a background of our own: the
+    /// capsule comes from being a toolbar item, and drawing a second one
+    /// inside it is what the switcher chips in cook mode were doing wrong.
     @ViewBuilder
     private func sectionButton(_ item: SousSection) -> some View {
+        // Two branches rather than one button with a ternary: label styles
+        // and button styles are distinct types, so there is nothing to choose
+        // between at the call site.
         if item == section {
             Button {} label: {
                 Label(item.title, systemImage: item.symbol)
+                    // Without this the Mac shows the symbol and drops the
+                    // name, even on the one meant to be carrying it.
+                    .labelStyle(.titleAndIcon)
             }
             .buttonStyle(.borderedProminent)
-            .disabled(true)
         } else {
             Button {
-                section = item
+                withAnimation(.snappy) { section = item }
             } label: {
                 Label(item.title, systemImage: item.symbol)
                     .labelStyle(.iconOnly)
             }
             .buttonStyle(.bordered)
-            // The name is worth having somewhere: with only a symbol showing,
-            // this is the only thing that says which is which.
+            // While a button is narrow, this is the only thing that says
+            // which section it is.
             .help(item.title)
         }
     }
