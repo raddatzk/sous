@@ -58,9 +58,12 @@ struct MealPlanView: View {
 
     @ViewBuilder
     private var planColumn: some View {
-        VStack(spacing: 0) {
-            modePicker
-            content
+        // The reader wraps both, so the row above the list can scroll it.
+        ScrollViewReader { scroll in
+            VStack(spacing: 0) {
+                modeRow(scroll: scroll)
+                content
+            }
         }
         .navigationTitle("Essensplan")
         #if os(iOS)
@@ -85,13 +88,30 @@ struct MealPlanView: View {
         }
     }
 
+    /// Which of the two views, and — in the calendar — the way back to today.
+    ///
+    /// One row rather than two: "Heute" is a single small button and had a
+    /// line of its own above the days, which is a lot of chrome for one word.
     @ViewBuilder
-    private var modePicker: some View {
-        Picker("Ansicht", selection: $mode) {
-            Text(PlanMode.calendar.title).tag(PlanMode.calendar)
-            Text(PlanMode.pool.title).tag(PlanMode.pool)
+    private func modeRow(scroll: ScrollViewProxy) -> some View {
+        HStack(spacing: 12) {
+            Picker("Ansicht", selection: $mode) {
+                Text(PlanMode.calendar.title).tag(PlanMode.calendar)
+                Text(PlanMode.pool.title).tag(PlanMode.pool)
+            }
+            .pickerStyle(.segmented)
+            // macOS shows a segmented picker's label; iOS hides it. Without
+            // this the word "Ansicht" sits in front of the two choices.
+            .labelsHidden()
+            .frame(maxWidth: 320)
+
+            if mode == .calendar {
+                Button("Heute") {
+                    withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
+                }
+            }
+            Spacer(minLength: 0)
         }
-        .pickerStyle(.segmented)
         .padding(.horizontal)
         .padding(.bottom, 8)
     }
@@ -108,42 +128,24 @@ struct MealPlanView: View {
 
     @ViewBuilder
     private var calendar: some View {
-        ScrollViewReader { scroll in
-            List {
-                ForEach(plan.days, id: \.self) { day in
-                    Section {
-                        dayContent(day)
-                    } header: {
-                        dayHeader(day)
-                    }
-                    .id(day)
+        List {
+            ForEach(plan.days, id: \.self) { day in
+                Section {
+                    dayContent(day)
+                } header: {
+                    dayHeader(day)
                 }
+                .id(day)
+            }
 
-                // Reaching the end simply adds more days rather than
-                // stopping at a boundary.
-                Color.clear
-                    .frame(height: 1)
-                    .listRowSeparator(.hidden)
-                    .onAppear { Task { await plan.loadMore() } }
-            }
-            // Above the list rather than in the window's toolbar. The toolbar
-            // is shared with the section switch beside it, so an entry that
-            // only the calendar has was shifting that switch sideways every
-            // time the reader changed section — the one control that has to
-            // stay put is the one you use to move between them.
-            .safeAreaInset(edge: .top, spacing: 0) {
-                HStack {
-                    Button("Heute") {
-                        withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
-                    }
-                    .buttonStyle(.bordered)
-                    Spacer(minLength: 0)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
-            }
-            .toolbar { calendarToolbar }
+            // Reaching the end simply adds more days rather than
+            // stopping at a boundary.
+            Color.clear
+                .frame(height: 1)
+                .listRowSeparator(.hidden)
+                .onAppear { Task { await plan.loadMore() } }
         }
+        .toolbar { calendarToolbar }
     }
 
     @ViewBuilder
