@@ -120,7 +120,7 @@ struct RecipeListView: View {
                     isShowingCategories = true
                 }
                 Divider()
-                Button("Aus Mela importieren", systemImage: "square.and.arrow.down") {
+                Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
                     isImporting = true
                 }
                 Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
@@ -129,7 +129,7 @@ struct RecipeListView: View {
                             export = RecipeExport(
                                 data: data,
                                 name: "Rezepte",
-                                contentType: RecipeExport.melaLibrary
+                                contentType: RecipeExport.library
                             )
                         }
                     }

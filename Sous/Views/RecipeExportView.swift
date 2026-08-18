@@ -8,10 +8,10 @@ import UniformTypeIdentifiers
 /// library with its photos takes seconds to assemble, and a save panel that
 /// waits on that looks broken.
 struct RecipeExport: FileDocument, Identifiable {
-    static let melaRecipe = UTType(filenameExtension: "melarecipe") ?? .data
-    static let melaLibrary = UTType(filenameExtension: "melarecipes") ?? .data
+    static let recipe = UTType(filenameExtension: "sousrecipe") ?? .data
+    static let library = UTType(filenameExtension: "sousrecipes") ?? .data
 
-    static var readableContentTypes: [UTType] { [melaLibrary, melaRecipe] }
+    static var readableContentTypes: [UTType] { [library, recipe] }
 
     let id = UUID()
     var data: Data
@@ -27,13 +27,13 @@ struct RecipeExport: FileDocument, Identifiable {
 
     /// One recipe, as a file named after it.
     init(recipe: Recipe, data: Data) {
-        self.init(data: data, name: recipe.title, contentType: Self.melaRecipe)
+        self.init(data: data, name: recipe.title, contentType: Self.recipe)
     }
 
     init(configuration: ReadConfiguration) throws {
         data = configuration.file.regularFileContents ?? Data()
         name = configuration.file.preferredFilename ?? "Rezepte"
-        contentType = Self.melaLibrary
+        contentType = Self.library
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
@@ -60,7 +60,7 @@ private struct RecipeExporter: ViewModifier {
                     set: { if !$0 { export = nil } }
                 ),
                 document: export,
-                contentType: export?.contentType ?? RecipeExport.melaLibrary,
+                contentType: export?.contentType ?? RecipeExport.library,
                 defaultFilename: export?.name
             ) { result in
                 export = nil

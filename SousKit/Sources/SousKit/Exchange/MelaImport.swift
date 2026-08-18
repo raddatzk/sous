@@ -14,7 +14,11 @@ import Foundation
 /// concern us. Anything unreadable is reported per entry, so one damaged
 /// recipe never costs the user the other four hundred.
 public enum MelaImport: RecipeImportFormat {
-    public static let fileExtensions = ["melarecipe", "melarecipes"]
+    /// Mela's own extensions and Sous's. The bytes are the same format —
+    /// Sous writes under its own name, and reads either.
+    public static let fileExtensions = [
+        "sousrecipe", "sousrecipes", "melarecipe", "melarecipes",
+    ]
 
     public static func read(_ data: Data, named name: String) throws -> RecipeImportBatch {
         if ZIPArchive.looksLikeArchive(data) {

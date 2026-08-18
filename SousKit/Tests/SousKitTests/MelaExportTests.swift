@@ -92,11 +92,11 @@ struct MelaExportTests {
         let slashes = MelaExport.fileName(for: Recipe(title: "Süß/Sauer"), avoiding: &used)
         let untitled = MelaExport.fileName(for: Recipe(title: " "), avoiding: &used)
 
-        #expect(first == "Pasta.melarecipe")
-        #expect(second == "Pasta 2.melarecipe")
+        #expect(first == "Pasta.sousrecipe")
+        #expect(second == "Pasta 2.sousrecipe")
         // A slash in a title must not become a folder.
         #expect(!slashes.contains("/"))
-        #expect(untitled == "Rezept.melarecipe")
+        #expect(untitled == "Rezept.sousrecipe")
     }
 
     @Test("Durations are written the way Mela writes them")
