@@ -19,9 +19,10 @@ struct SousApp: App {
     /// Which recipe the Mac's detail column is showing — outlives the section
     /// on the left, so it does not belong to any one of them.
     @State private var selection = RecipeSelection()
-    /// Importing and exporting the library, which the Mac reaches from the
-    /// menu bar and so cannot keep inside the recipe list.
-    @State private var exchange = LibraryExchange()
+    /// What the menu bar can ask of the library — which lives here rather
+    /// than in the recipe list, because a command in the scene cannot see a
+    /// view's state.
+    @State private var commands = LibraryCommands()
 
     init() {
         do {
@@ -62,7 +63,7 @@ struct SousApp: App {
                 .environment(timers)
                 .environment(session)
                 .environment(selection)
-                .environment(exchange)
+                .environment(commands)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
@@ -88,20 +89,29 @@ struct SousApp: App {
                 Button("Neues Rezept") { library.startNewRecipe() }
                     .keyboardShortcut("n", modifiers: .command)
             }
-            // Where a Mac looks for these. The same two entries stay in the
-            // list's own menu on the phone, which has no menu bar to look in.
+            // Where a Mac looks for these. The iPad keeps the toolbar's copy
+            // as well — see the note there.
             CommandGroup(replacing: .importExport) {
-                Button("Rezepte importieren…") { exchange.isImporting = true }
+                Button("Rezepte importieren…") { commands.isImporting = true }
                 Button("Alle Rezepte exportieren…") {
                     Task {
                         guard let data = await library.exportedLibrary() else { return }
-                        exchange.export = RecipeExport(
+                        commands.export = RecipeExport(
                             data: data,
                             name: "Rezepte",
                             contentType: RecipeExport.library
                         )
                     }
                 }
+            }
+            // Managing the library rather than a recipe. Its own menu because
+            // none of the standard groups is about this, and on both platforms
+            // because the iPad has a menu bar too since iPadOS 26.
+            CommandMenu("Bibliothek") {
+                Button("Zutaten verwalten…") { commands.panel = .catalog }
+                Button("Kategorien verwalten…") { commands.panel = .categories }
+                Divider()
+                Button("Papierkorb…") { commands.panel = .trash }
             }
         }
 
