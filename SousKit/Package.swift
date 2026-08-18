@@ -9,6 +9,10 @@ let package = Package(
     ],
     targets: [
         .target(name: "SousKit", resources: [.process("Resources")]),
-        .testTarget(name: "SousKitTests", dependencies: ["SousKit"]),
+        .testTarget(
+            name: "SousKitTests",
+            dependencies: ["SousKit"],
+            resources: [.copy("Fixtures")]
+        ),
     ]
 )

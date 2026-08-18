@@ -34,6 +34,9 @@ public final class RecipeLibrary {
     /// A recipe being created or edited, presented as a sheet when set.
     public var editing: Recipe?
 
+    /// How far a running import has got. `nil` when none is running.
+    public private(set) var importProgress: RecipeImportProgress?
+
     public var searchText = "" { didSet { scheduleReload(if: oldValue != searchText) } }
     public var filter: Filter = .all { didSet { scheduleReload(if: oldValue != filter) } }
     /// Ingredients and categories recognized in what was typed, applied as
@@ -217,6 +220,80 @@ public final class RecipeLibrary {
         } catch {
             report(error)
         }
+    }
+
+    // MARK: - Import
+
+    /// Reads a recipe file and stores everything in it.
+    ///
+    /// Recipes are saved one at a time rather than as a batch: a library of a
+    /// few hundred with their photos takes long enough that the user should
+    /// see it filling up, and a single recipe the file got wrong should not
+    /// roll back the ones that were fine.
+    public func importRecipes(from data: Data, named name: String) async -> RecipeImportSummary {
+        importProgress = RecipeImportProgress(done: 0, total: 0)
+        defer { importProgress = nil }
+
+        let batch: RecipeImportBatch
+        do {
+            // Decoding an archive with its photos is seconds of work, and it
+            // has no business happening on the main actor.
+            batch = try await Task.detached { try RecipeImport.read(data, named: name) }.value
+        } catch {
+            errorMessage = error.localizedDescription
+            return RecipeImportSummary(
+                imported: 0,
+                problems: [RecipeImportProblem(name: name, reason: error.localizedDescription)]
+            )
+        }
+
+        var problems = batch.problems
+        var imported = 0
+        importProgress = RecipeImportProgress(done: 0, total: batch.recipes.count)
+
+        for item in batch.recipes {
+            do {
+                try await save(imported: item)
+                imported += 1
+            } catch {
+                problems.append(
+                    RecipeImportProblem(
+                        name: item.recipe.title,
+                        reason: error.localizedDescription
+                    )
+                )
+            }
+            importProgress = RecipeImportProgress(done: imported, total: batch.recipes.count)
+        }
+
+        await reload()
+        return RecipeImportSummary(imported: imported, problems: problems)
+    }
+
+    /// Saves one imported recipe together with its pictures.
+    ///
+    /// The recipe is written first without images, because a picture is
+    /// stored against a recipe id; the ids that come back are then written
+    /// onto the recipe. Re-importing the same file overwrites both, since the
+    /// recipe keeps the id derived from its origin.
+    private func save(imported item: ImportedRecipe) async throws {
+        var recipe = item.recipe
+        recipe.imageIDs = []
+        try await store.save(recipe)
+
+        var ids: [UUID] = []
+        for image in item.images {
+            // A picture that will not decode is not worth failing over —
+            // the recipe is the part that matters.
+            if let id = try? await imageStore.add(image, to: recipe.id) {
+                ids.append(id)
+            }
+        }
+        if !ids.isEmpty {
+            recipe.imageIDs = ids
+            try await store.save(recipe)
+        }
+        try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: ids)
     }
 
     public func startNewRecipe() {
