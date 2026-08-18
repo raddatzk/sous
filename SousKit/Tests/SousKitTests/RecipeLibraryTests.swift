@@ -57,6 +57,32 @@ struct RecipeLibraryTests {
         #expect(library.recipes.isEmpty)
     }
 
+    @Test("Cooking a recipe through consumes its want-to-cook mark")
+    func cookingClearsWantToCook() async throws {
+        let (library, _) = try makeLibrary()
+        await library.save(Recipe(title: "Linsensuppe", isFavorite: true, wantToCook: true))
+        let recipe = try #require(library.recipes.first)
+
+        await library.markCooked(recipe)
+
+        let cooked = try #require(library.recipes.first)
+        #expect(!cooked.wantToCook)
+        // Only the wish is spent; being a favorite is not about one evening.
+        #expect(cooked.isFavorite)
+    }
+
+    @Test("Cooking something that was never marked changes nothing")
+    func cookingUnmarkedRecipe() async throws {
+        let (library, _) = try makeLibrary()
+        await library.save(Recipe(title: "Rührei"))
+        let recipe = try #require(library.recipes.first)
+        let before = recipe.updatedAt
+
+        await library.markCooked(recipe)
+
+        #expect(library.recipes.first?.updatedAt == before)
+    }
+
     @Test("Toggling favorite and want-to-cook persists")
     func toggles() async throws {
         let (library, store) = try makeLibrary()

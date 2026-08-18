@@ -5,6 +5,7 @@ import SwiftUI
 /// focus, and the full ingredient list is one swipe to the left.
 struct CookModeView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(RecipeLibrary.self) private var library
 
     let recipe: Recipe
     /// The serving count the reader had chosen, so every amount shown here —
@@ -14,6 +15,10 @@ struct CookModeView: View {
     @State private var focusedStepID: RecipeStep.ID?
     @State private var checkedIngredients: Set<UUID> = []
     @State private var timer: StepTimer?
+    /// Whether the last step has been in focus at any point. Kept as state
+    /// rather than compared on the way out, because scrolling back up to
+    /// check something does not undo having cooked the dish.
+    @State private var didReachLastStep = false
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -33,9 +38,13 @@ struct CookModeView: View {
         .preferredColorScheme(.dark)
         .onAppear {
             focusedStepID = steps.first?.id
+            didReachLastStep = steps.count <= 1
             keepDisplayAwake(true)
         }
         .onDisappear { keepDisplayAwake(false) }
+        .onChange(of: focusedStepID) {
+            if focusedStepID == steps.last?.id { didReachLastStep = true }
+        }
     }
 
     @ViewBuilder
@@ -59,7 +68,7 @@ struct CookModeView: View {
     @ViewBuilder
     private var header: some View {
         HStack {
-            Button("Fertig") { dismiss() }
+            Button("Fertig") { finish() }
             Spacer()
             VStack(spacing: 2) {
                 Text(recipe.title)
@@ -191,6 +200,15 @@ struct CookModeView: View {
             .padding(24)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Leaving after the last step counts as having cooked the dish; leaving
+    /// halfway through does not.
+    private func finish() {
+        if didReachLastStep {
+            Task { await library.markCooked(recipe) }
+        }
+        dismiss()
     }
 
     /// Numbering restarts within a group, as its heading implies.
