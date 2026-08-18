@@ -374,11 +374,7 @@ private struct MoveToDaySheet: View {
             }
             .onAppear { slot = entry.slot }
         }
-        #if os(macOS)
-        .frame(minWidth: 380, minHeight: 480)
-        #elseif os(iOS)
-        .presentationDetents([.medium])
-        #endif
+        .sousSheetSizing(.form)
     }
 }
 

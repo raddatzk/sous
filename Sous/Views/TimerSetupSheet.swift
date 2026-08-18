@@ -58,11 +58,7 @@ struct TimerSetupSheet: View {
             }
         }
         .sousAppearance()
-        #if os(macOS)
-        .frame(minWidth: 340, minHeight: 340)
-        #elseif os(iOS)
-        .presentationDetents([.medium])
-        #endif
+        .sousSheetSizing(.question)
         .onAppear { set(to: suggested) }
     }
 
