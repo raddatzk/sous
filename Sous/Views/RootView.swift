@@ -148,35 +148,41 @@ struct RootView: View {
 
     /// One section's button, wide with its name or narrow with its symbol.
     ///
-    /// The styles are the system's rather than a background of our own: the
-    /// capsule comes from being a toolbar item, and drawing a second one
-    /// inside it is what the switcher chips in cook mode were doing wrong.
+    /// One button whose label changes, not two buttons swapped for each
+    /// other. The first attempt branched on the active section and gave each
+    /// branch its own style, so SwiftUI replaced one view with another — and
+    /// a view that is replaced cannot grow. At sixty frames a second the
+    /// change happened inside a single frame.
+    ///
+    /// The tint carries the difference instead: the accent while this is the
+    /// section you are in, the app's neutral field colour otherwise.
     @ViewBuilder
     private func sectionButton(_ item: SousSection) -> some View {
-        // Two branches rather than one button with a ternary: label styles
-        // and button styles are distinct types, so there is nothing to choose
-        // between at the call site.
-        if item == section {
-            Button {} label: {
-                Label(item.title, systemImage: item.symbol)
-                    // Without this the Mac shows the symbol and drops the
-                    // name, even on the one meant to be carrying it.
-                    .labelStyle(.titleAndIcon)
+        let isActive = item == section
+
+        Button {
+            withAnimation(.snappy) { section = item }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: item.symbol)
+                    // A fixed width so the narrow buttons match each other. A
+                    // book, a calendar and a trolley are not the same shape,
+                    // and left to themselves they made three capsules of
+                    // three widths where Mail has three of one.
+                    .frame(width: 16)
+                if isActive {
+                    Text(item.title)
+                }
             }
-            .buttonStyle(.borderedProminent)
-        } else {
-            Button {
-                withAnimation(.snappy) { section = item }
-            } label: {
-                Label(item.title, systemImage: item.symbol)
-                    .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.bordered)
-            // While a button is narrow, this is the only thing that says
-            // which section it is.
-            .help(item.title)
+            .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         }
+        .buttonStyle(.borderedProminent)
+        .tint(isActive ? Color.sousAccent : Color.sousField)
+        // While a button is narrow, this is the only thing that says which
+        // section it is.
+        .help(item.title)
     }
+
     #else
     @ViewBuilder
     private var sections: some View {
