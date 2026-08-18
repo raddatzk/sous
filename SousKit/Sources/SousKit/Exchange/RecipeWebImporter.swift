@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 /// Fetches a recipe page and reads the recipe out of it.
 ///
@@ -10,6 +11,30 @@ public struct RecipeWebImporter: Sendable {
 
     public init(session: URLSession = .shared) {
         self.session = session
+    }
+
+    /// Saves a draft into the shared store, pictures and all.
+    ///
+    /// Used by the share extension, which has no library to go through.
+    @discardableResult
+    public static func save(
+        _ recipe: Recipe,
+        images: [Data],
+        into container: ModelContainer
+    ) async throws -> Recipe {
+        let store = SwiftDataRecipeStore(modelContainer: container)
+        let imageStore = SwiftDataRecipeImageStore(modelContainer: container)
+
+        var saved = try await store.save(recipe)
+        var ids: [UUID] = []
+        for image in images {
+            if let id = try? await imageStore.add(image, to: saved.id) { ids.append(id) }
+        }
+        if !ids.isEmpty {
+            saved.imageIDs = ids
+            saved = try await store.save(saved)
+        }
+        return saved
     }
 
     /// Reads the page and returns the recipe with its pictures, unsaved.
