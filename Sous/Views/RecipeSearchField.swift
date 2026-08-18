@@ -42,9 +42,7 @@ struct RecipeSearchField: View {
                     .padding(.top, 2)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.sousField, in: .rect(cornerRadius: 12))
+            .sousFieldBox()
 
             suggestions
         }
@@ -64,10 +62,7 @@ struct RecipeSearchField: View {
             .font(.caption2)
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(.tint.opacity(SousStyle.chipTint), in: .capsule)
-        .foregroundStyle(.tint)
+        .sousChip()
     }
 
     @ViewBuilder
@@ -93,11 +88,9 @@ struct RecipeSearchField: View {
                                         .foregroundStyle(.secondary)
                                 }
                             }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
+                            .sousSuggestionChip()
                         }
                         .buttonStyle(.plain)
-                        .background(Color.sousField, in: .capsule)
                     }
                 }
             }

@@ -12,8 +12,6 @@
 		02B9D85978357A0B6E4A8D91 /* RecipePickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */; };
 		0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5FCA0AB252031EC1359F91A /* CategoryManagerView.swift */; };
 		03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */; };
-		0B3815353034A9790056FA4F /* sous.icon in Resources */ = {isa = PBXBuildFile; fileRef = 0B3815343034A9790056FA4F /* sous.icon */; };
-		0B3815373034ABBF0056FA4F /* ChipTextField 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3815363034ABBF0056FA4F /* ChipTextField 2.swift */; };
 		1E2217794E3F6F932FE32539 /* SousShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1E6F8015698D15D392FF7A3F /* SousShare.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		21102CFF51F26CED67D7FDC6 /* CookSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B6026111A4BDC9288A3121F /* CookSession.swift */; };
 		2C3ECA59D675AEAFFCB6010B /* ShareViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */; };
@@ -44,6 +42,7 @@
 		9F25406D385F3C6DECBE3864 /* MealPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A9B74CF19472A4FA13548 /* MealPlanView.swift */; };
 		AAD143278712E842054B39FE /* CookSwitcherBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */; };
 		B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D887BABFAA022A8033B9EDBE /* ContinueCookingBanner.swift */; };
+		B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */ = {isa = PBXBuildFile; fileRef = E5991E77C580417358950F92 /* sous.icon */; };
 		B1AFE064640D52D8CCD724C4 /* PlanRecipeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E155E60C8508D02CC07CDB18 /* PlanRecipeSheet.swift */; };
 		B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E17F156912A3CDF5E6CA988B /* Assets.xcassets */; };
 		B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */; };
@@ -95,8 +94,6 @@
 
 /* Begin PBXFileReference section */
 		027C4D97EB668FD81EEF6515 /* RecipeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRow.swift; sourceTree = "<group>"; };
-		0B3815343034A9790056FA4F /* sous.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = sous.icon; sourceTree = "<group>"; };
-		0B3815363034ABBF0056FA4F /* ChipTextField 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ChipTextField 2.swift"; sourceTree = "<group>"; };
 		0C70498384AEDCBCE42346CB /* IngredientLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineView.swift; sourceTree = "<group>"; };
 		17926632D910B9FEE5B9A8A3 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		1E6F8015698D15D392FF7A3F /* SousShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -108,7 +105,7 @@
 		368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerCenter.swift; sourceTree = "<group>"; };
 		3A4D64C09129B00714574B3E /* RecipeImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImageView.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
-		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; path = SousKit; sourceTree = SOURCE_ROOT; };
+		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SousKit; path = SousKit; sourceTree = SOURCE_ROOT; };
 		4712F12086F7ADC2088261B3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B6026111A4BDC9288A3121F /* CookSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookSession.swift; sourceTree = "<group>"; };
 		55F31777C34595DD4F836518 /* SousShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SousShare.entitlements; sourceTree = "<group>"; };
@@ -139,7 +136,8 @@
 		E155E60C8508D02CC07CDB18 /* PlanRecipeSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanRecipeSheet.swift; sourceTree = "<group>"; };
 		E17F156912A3CDF5E6CA988B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E4581FC4BBB3B481728B7E97 /* CookTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimer.swift; sourceTree = "<group>"; };
-		E5283BC9D2FF854805BEEA02 /* Sous.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sous.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5283BC9D2FF854805BEEA02 /* Sous.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Sous.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5991E77C580417358950F92 /* sous.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = sous.icon; sourceTree = "<group>"; };
 		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -192,7 +190,6 @@
 				D9726B813A724D39D4FE79CB /* SousStyle.swift */,
 				8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */,
 				BF5F5A49BEF93D3CFF7287EA /* TrashView.swift */,
-				0B3815363034ABBF0056FA4F /* ChipTextField 2.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -214,7 +211,7 @@
 				77A3933FE095081587E52DAC /* Timers */,
 				0B1D145DA0D7595B25BA6B4D /* Views */,
 				E17F156912A3CDF5E6CA988B /* Assets.xcassets */,
-				0B3815343034A9790056FA4F /* sous.icon */,
+				E5991E77C580417358950F92 /* sous.icon */,
 				42B651330E061A44821ADA43 /* SousApp.swift */,
 			);
 			path = Sous;
@@ -402,8 +399,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0B3815353034A9790056FA4F /* sous.icon in Resources */,
 				B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */,
+				B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -444,7 +441,6 @@
 				0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */,
 				B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */,
 				027DB14287C4B8F7C448B5C6 /* CookAddSheet.swift in Sources */,
-				0B3815373034ABBF0056FA4F /* ChipTextField 2.swift in Sources */,
 				C9037E1C2FF887B28090B806 /* CookModeView.swift in Sources */,
 				21102CFF51F26CED67D7FDC6 /* CookSession.swift in Sources */,
 				B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */,
@@ -562,7 +558,7 @@
 		14604203440A234B4A38F641 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = sous;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -571,7 +567,6 @@
 				DEVELOPMENT_TEAM = MDQY93XVHF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Sous/Supporting/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -710,7 +705,7 @@
 		D3626432C4572DE83BE3D298 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = sous;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -719,7 +714,6 @@
 				DEVELOPMENT_TEAM = MDQY93XVHF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Sous/Supporting/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.food-and-drink";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

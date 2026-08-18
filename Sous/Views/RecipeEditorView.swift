@@ -68,6 +68,13 @@ struct RecipeEditorView: View {
         // where it pushes the content wider than the screen.
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 620)
+        #elseif os(iOS)
+        // A recipe is written, not glanced at. `.medium` as a second detent
+        // let the sheet open at half height — enough for the title and not
+        // much else — and on iPad a form sheet stops well short of the
+        // window unless it is asked to be a page.
+        .presentationDetents([.large])
+        .presentationSizing(.page)
         #endif
     }
 
