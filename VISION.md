@@ -16,7 +16,7 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
 
 ## Core features
 
-1. **Recipe management** — list, categories, favorites, "want to cook", cook mode, serving scaling, recipes linked from one another (a curry references the naan, which is an ordinary recipe in its own right), and a plan that is either dated or loose — meals sit on a day or in an undated pool, and move between the two — which the optimizer later builds on
+1. **Recipe management** — list, categories, favorites, "want to cook", a long-press that previews the recipe itself with its actions underneath rather than a bare menu, cook mode, serving scaling, recipes linked from one another (a curry references the naan, which is an ordinary recipe in its own right), and a plan that is either dated or loose — meals sit on a day or in an undated pool, and move between the two — which the optimizer later builds on
 2. **AI recipe generation from the personal collection** — new recipes in the user's own style, via retrieval (tool calling against the local database) plus structured generation
 3. **Ad-hoc leftover cooking** — free-text input ("zucchini and feta need to go"), no persistent pantry record, reusing the same generation mechanism as feature 2
 4. **Web research for new recipe ideas** — scraping of comparable existing recipes as a tool, using the same structured extraction path as the conventional URL import
