@@ -25,17 +25,9 @@ struct RecipePickerView: View {
                     onPick(recipe)
                     dismiss()
                 } label: {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(recipe.title)
-                            .font(SousStyle.recipeName)
-                        if !recipe.categories.isEmpty {
-                            Text(recipe.categories.joined(separator: " · "))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(.rect)
+                    RecipeRow(recipe: recipe)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
             }
