@@ -92,6 +92,11 @@ struct RecipeListView: View {
                     .contextMenu { contextActions(for: recipe) }
             }
         }
+        // Without this the selected row is a solid slab of accent across the
+        // whole width; a sidebar list draws its selection as a capsule.
+        #if os(macOS)
+        .listStyle(.sidebar)
+        #endif
         .navigationTitle("Rezepte")
         // The system places it: the sidebar's own field on the Mac and iPad,
         // under the title on the phone. Ingredients and categories ride in it
