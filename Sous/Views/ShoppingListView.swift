@@ -168,8 +168,8 @@ struct ShoppingListView: View {
     private func label(for item: ShoppingItem) -> Text {
         let amounts = item.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
         guard !amounts.isEmpty else { return Text(item.name) }
-        return Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
-            + Text(" \(item.name)")
+        let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
+        return Text("\(amount) \(item.name)")
     }
 
     private func sectionHeader(_ title: String) -> some View {

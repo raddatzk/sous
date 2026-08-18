@@ -59,7 +59,6 @@ struct TimerSetupSheet: View {
         }
         .sousAppearance()
         #if os(macOS)
-        .presentationDetents([.medium])
         .frame(minWidth: 340, minHeight: 340)
         #elseif os(iOS)
         .presentationDetents([.medium])

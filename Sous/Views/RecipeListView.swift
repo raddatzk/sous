@@ -188,10 +188,14 @@ struct RecipeListView: View {
                 Button("Papierkorb", systemImage: "trash") {
                     isShowingTrash = true
                 }
+                #if os(iOS)
+                // The Mac has the Settings scene behind Cmd-, and would
+                // otherwise offer the same form twice.
                 Divider()
                 Button("Einstellungen", systemImage: "gearshape") {
                     isShowingSettings = true
                 }
+                #endif
                 Divider()
                 Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
                     isImporting = true
