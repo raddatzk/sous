@@ -164,36 +164,30 @@ struct RootView: View {
             withAnimation(.smooth(duration: 0.3)) { section = item }
         } label: {
             HStack(spacing: 6) {
+                // A fixed width so the narrow buttons match each other. A
+                // book, a calendar and a trolley are not the same shape, and
+                // left to themselves they made three capsules of three widths
+                // where Mail has three of one.
                 Image(systemName: item.symbol)
-                    // A fixed width so the narrow buttons match each other. A
-                    // book, a calendar and a trolley are not the same shape,
-                    // and left to themselves they made three capsules of
-                    // three widths where Mail has three of one.
                     .frame(width: 16)
-                    // On the leaf rather than on the label or in the style:
-                    // set anywhere further out, the toolbar overrode it and
-                    // left a white book on a pale grey field.
-                    .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 if isActive {
                     Text(item.title)
-                        .foregroundStyle(.white)
-                        // One width for every name, so the row keeps its
-                        // length whichever section is open and the buttons
-                        // beside this one stop sliding sideways.
-                        //
-                        // A number rather than the widest name measured: the
-                        // measured version laid out all three names and hid
-                        // two, and SwiftUI faded the hidden ones in during the
-                        // switch — three words on top of each other for a
-                        // fifth of a second. Room for the longest name and a
-                        // little air.
-                        .frame(width: 104, alignment: .leading)
+                        .fixedSize()
                 }
             }
-            .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            // Centred in a width that does not depend on the word: the row
+            // keeps its length whichever section is open, so the buttons
+            // beside this one stop sliding sideways, and the symbol sits in
+            // the middle of what it shares the capsule with rather than being
+            // pushed about by the length of a name.
+            //
+            // A number rather than the widest name measured. The measured
+            // version laid out all three names and hid two, and SwiftUI faded
+            // the hidden ones in during a switch — three words on top of each
+            // other for a fifth of a second.
+            .frame(width: isActive ? 132 : 16)
         }
-        .buttonStyle(.borderedProminent)
-        .tint(isActive ? Color.sousAccent : Color.sousField)
+        .buttonStyle(SectionButtonStyle(isActive: isActive))
         // While a button is narrow, this is the only thing that says which
         // section it is.
         .help(item.title)
