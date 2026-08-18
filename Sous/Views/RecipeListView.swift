@@ -7,6 +7,8 @@ struct RecipeListView: View {
     @State private var isShowingCatalog = false
     @State private var isShowingCategories = false
     @State private var isShowingTrash = false
+    /// Only the phone offers this: the Mac has the Settings scene behind
+    /// Cmd-, and would otherwise reach the same form twice.
     @State private var isShowingSettings = false
     @State private var isImporting = false
     @State private var export: RecipeExport?
@@ -53,9 +55,6 @@ struct RecipeListView: View {
         }
         .sheet(isPresented: $isShowingTrash) {
             TrashView()
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            SettingsView()
         }
         .sheet(item: $library.editing) { recipe in
             RecipeEditorView(recipe: recipe) { edited in
