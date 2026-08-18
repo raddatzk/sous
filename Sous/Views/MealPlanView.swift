@@ -126,7 +126,23 @@ struct MealPlanView: View {
                     .listRowSeparator(.hidden)
                     .onAppear { Task { await plan.loadMore() } }
             }
-            .toolbar { calendarToolbar(scroll: scroll) }
+            // Above the list rather than in the window's toolbar. The toolbar
+            // is shared with the section switch beside it, so an entry that
+            // only the calendar has was shifting that switch sideways every
+            // time the reader changed section — the one control that has to
+            // stay put is the one you use to move between them.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                HStack {
+                    Button("Heute") {
+                        withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
+                    }
+                    .buttonStyle(.bordered)
+                    Spacer(minLength: 0)
+                }
+                .padding(.horizontal)
+                .padding(.bottom, 8)
+            }
+            .toolbar { calendarToolbar }
         }
     }
 
@@ -290,12 +306,7 @@ struct MealPlanView: View {
     }
 
     @ToolbarContentBuilder
-    private func calendarToolbar(scroll: ScrollViewProxy) -> some ToolbarContent {
-        ToolbarItem(placement: .navigation) {
-            Button("Heute") {
-                withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
-            }
-        }
+    private var calendarToolbar: some ToolbarContent {
         shoppingListButton
     }
 
