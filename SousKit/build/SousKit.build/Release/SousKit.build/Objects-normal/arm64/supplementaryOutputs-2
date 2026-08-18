@@ -1,0 +1,12 @@
+{
+  "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "abi-baseline-json" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit.abi.json",
+    "const-values" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit-primary.swiftconstvalues",
+    "dependencies" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit-primary.d",
+    "diagnostics" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit-primary.dia",
+    "objc-header" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit-Swift.h",
+    "swiftdoc" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit.swiftdoc",
+    "swiftmodule" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit.swiftmodule",
+    "swiftsourceinfo" : "/Users/kevin.raddatz/IdeaProjects/sous/SousKit/build/SousKit.build/Release/SousKit.build/Objects-normal/arm64/SousKit.swiftsourceinfo"
+  }
+}

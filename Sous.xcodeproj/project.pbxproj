@@ -24,7 +24,6 @@
 		3A59E789915A6696873AE9FD /* CookTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4581FC4BBB3B481728B7E97 /* CookTimer.swift */; };
 		419B4D0856A1C3D7F12E9C66 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
 		4247A7980AD155610352A4AD /* SousApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B651330E061A44821ADA43 /* SousApp.swift */; };
-		4F0EDD9C664E64CBED42E08F /* RecipeSearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81EC8BE16C6318DA2600D33C /* RecipeSearchField.swift */; };
 		54E27685ECB3D7C4073717E2 /* CookTimerMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */; };
 		551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */; };
 		58B55AC7746A47C07A591E81 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
@@ -122,7 +121,6 @@
 		7209502695EB1AED927F3B9B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerMetadata.swift; sourceTree = "<group>"; };
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
-		81EC8BE16C6318DA2600D33C /* RecipeSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeSearchField.swift; sourceTree = "<group>"; };
 		8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSetupSheet.swift; sourceTree = "<group>"; };
 		874968D982EF7B9D954ECC27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
@@ -187,7 +185,6 @@
 				C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */,
 				643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */,
 				027C4D97EB668FD81EEF6515 /* RecipeRow.swift */,
-				81EC8BE16C6318DA2600D33C /* RecipeSearchField.swift */,
 				6F8922998B49034A53E80D14 /* RecipeSelection.swift */,
 				17926632D910B9FEE5B9A8A3 /* RootView.swift */,
 				7209502695EB1AED927F3B9B /* SettingsView.swift */,
@@ -468,7 +465,6 @@
 				03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */,
 				C984ED23911E8BCB2FF58A17 /* RecipePickerView.swift in Sources */,
 				7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */,
-				4F0EDD9C664E64CBED42E08F /* RecipeSearchField.swift in Sources */,
 				0E92EEF71FE14B17916E18AB /* RecipeSelection.swift in Sources */,
 				FC9975780EBE413A7F1F048E /* RootView.swift in Sources */,
 				30F10695B40D3C51CC2EF538 /* SettingsView.swift in Sources */,

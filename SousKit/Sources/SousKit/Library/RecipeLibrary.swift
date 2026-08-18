@@ -125,6 +125,18 @@ public final class RecipeLibrary {
         await reload()
     }
 
+    /// Replaces the whole set at once.
+    ///
+    /// For the search field's tokens: the system hands back the list it has
+    /// after the reader deleted one with the backspace key, rather than
+    /// telling us which one went. Nothing is done unless it actually changed,
+    /// so that a redraw does not cost a query.
+    public func setFilters(_ filters: [RecipeFilter]) async {
+        guard filters != activeFilters else { return }
+        activeFilters = filters
+        await reload()
+    }
+
     public func reload() async {
         isLoading = true
         defer { isLoading = false }
