@@ -300,33 +300,33 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// The two marks a recipe can carry live here rather than in the action
-    /// bar below: they are what this recipe *is* to the cook — one says it
-    /// has proved itself, the other that it is still on the list of things
-    /// to try — while the bar underneath is for what to do with it now. The
-    /// bar also has no room left for them without squeezing "Kochen" flat.
+    /// What a recipe *is* to the cook — kept apart from the action bar
+    /// below, which is for what to do with it now.
+    ///
+    /// A menu rather than a row of icons: a filled star beside a filled
+    /// bookmark asks the reader to remember which is which, where a menu
+    /// says it in words, and it leaves the toolbar to the recipe's name.
+    /// The wording matches the list's context menu, so the same action
+    /// reads the same wherever it is reached from.
     @ToolbarContentBuilder
     private var detailToolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .primaryAction) {
-            Button {
-                Task { await library.toggleFavorite(recipe) }
-            } label: {
-                Label(
-                    recipe.isFavorite ? "Favorit" : "Merken",
-                    systemImage: recipe.isFavorite ? "star.fill" : "star"
-                )
-            }
-
-            Button {
-                Task { await library.toggleWantToCook(recipe) }
-            } label: {
-                Label(
+        ToolbarItem(placement: .primaryAction) {
+            Menu("Mehr", systemImage: "ellipsis.circle") {
+                Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                Divider()
+                Button(
+                    recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
+                    systemImage: recipe.isFavorite ? "star.slash" : "star"
+                ) {
+                    Task { await library.toggleFavorite(recipe) }
+                }
+                Button(
                     recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
-                    systemImage: recipe.wantToCook ? "bookmark.fill" : "bookmark"
-                )
+                    systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
+                ) {
+                    Task { await library.toggleWantToCook(recipe) }
+                }
             }
-
-            Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
         }
     }
 
