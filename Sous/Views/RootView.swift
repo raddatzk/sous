@@ -6,6 +6,10 @@ import SwiftUI
 struct RootView: View {
     @Environment(CookSession.self) private var session
     @Environment(RecipeSelection.self) private var selection
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    @Environment(\.dismissWindow) private var dismissWindow
+    #endif
 
     /// Which of the three the Mac is showing. The phone and iPad keep a tab
     /// view, which holds this itself.
@@ -27,10 +31,21 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.2), value: session.isEmpty)
         .animation(.easeInOut(duration: 0.2), value: session.isPresented)
         // Cooking is presented from the root, so it survives leaving the
-        // recipe it was started from.
-        .fullScreenCoverIfAvailable(isPresented: $session.isPresented) {
+        // recipe it was started from. On the Mac it is a window of its own
+        // instead — see `SousApp`.
+        #if os(iOS)
+        .fullScreenCover(isPresented: $session.isPresented) {
             CookModeView()
         }
+        #else
+        .onChange(of: session.isPresented) { _, isPresented in
+            if isPresented {
+                openWindow(id: SousApp.cookWindow)
+            } else {
+                dismissWindow(id: SousApp.cookWindow)
+            }
+        }
+        #endif
         // Light or dark for the whole app, cook mode included, rather than
         // one screen deciding for itself.
         .sousAppearance()

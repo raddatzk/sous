@@ -4,6 +4,8 @@ import SwiftUI
 
 @main
 struct SousApp: App {
+    /// The cooking window's id, shared with whoever opens it.
+    static let cookWindow = "cook"
     @State private var library: RecipeLibrary
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
@@ -76,6 +78,7 @@ struct SousApp: App {
                     Task { await library.importFromWeb(target) }
                 }
         }
+        .defaultSize(width: 1180, height: 800)
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Neues Rezept") { library.startNewRecipe() }
@@ -84,6 +87,31 @@ struct SousApp: App {
         }
 
         #if os(macOS)
+        // Cooking gets a window of its own rather than a sheet over the
+        // library. A sheet is modal, and cooking is the opposite of modal:
+        // it runs for an hour beside everything else, and the cook wants the
+        // recipe on the second screen or next to the shopping list. The
+        // session already lives in the app rather than in a view, so a second
+        // window needs nothing but the same environment.
+        Window("Kochen", id: Self.cookWindow) {
+            CookModeView()
+                .environment(library)
+                .environment(mealPlan)
+                .environment(shopping)
+                .environment(catalog)
+                .environment(timers)
+                .environment(session)
+                .environment(selection)
+                // Cook mode names the appearance itself; the locale it needs
+                // from here, since it no longer sits inside `RootView`.
+                .environment(\.locale, .sous)
+                // Closing the window with the red button has to reach the
+                // session too, or the band would keep offering a way back
+                // into a window that is already open.
+                .onDisappear { session.isPresented = false }
+        }
+        .defaultSize(width: 940, height: 720)
+
         // Cmd-, is where a Mac user looks; the sheet in the "Mehr" menu is
         // for the phone, and both write the same defaults.
         Settings {
