@@ -9,6 +9,11 @@ import Foundation
 /// "3-4 Tomaten" stays "3-4 Tomaten" even though scaling only understands
 /// the lower bound. It also makes importing a Mela library a direct copy.
 public struct Recipe: Identifiable, Codable, Hashable, Sendable {
+    /// What a recipe can be written for. Wide enough for a tray of sixty
+    /// biscuits, which is a yield like any other, and narrow enough that a
+    /// misread number stays visible as one.
+    public static let servingsRange = 1...200
+
     public var id: UUID
     public var title: String
     public var summary: String?

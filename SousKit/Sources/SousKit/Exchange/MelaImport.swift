@@ -187,24 +187,42 @@ public enum MelaImport: RecipeImportFormat {
         guard let text, let match = text.firstMatch(of: /\d+/), let value = Int(match.0) else {
             return 2
         }
-        return value.clamped(to: 1...50)
+        return value.clamped(to: Recipe.servingsRange)
     }
 
-    /// A duration as Mela may have stored it: an ISO-8601 period from a web
-    /// import, or whatever the user typed.
+    /// A duration as Mela may have stored it.
+    ///
+    /// Real exports carry "40min", "1h 30min", "20 Min", "5 Minuten", "95"
+    /// and ISO-8601 periods from its web import, sometimes several of them
+    /// in one field. Every number with its unit is therefore added up: a
+    /// parser that stopped at the first one would read "1h 30min" as an
+    /// hour and quietly lose half of every long recipe.
     static func seconds(in text: String?) -> Int? {
         guard let text = nonEmpty(text) else { return nil }
         if let period = isoPeriodSeconds(text) { return period }
-        if let german = DurationParser.seconds(in: text) { return german }
-        if let match = text.firstMatch(of: /(\d+)\s*(hours?|hrs?|minutes?|mins?)/.ignoresCase()),
-           let value = Int(match.1) {
-            return String(match.2).lowercased().hasPrefix("h") ? value * 3600 : value * 60
+
+        var total = 0
+        var found = false
+        for match in text.matches(of: /(\d+)\s*([\p{L}.]*)/) {
+            guard let value = Int(match.1) else { continue }
+            let unit = String(match.2).lowercased().trimmingCharacters(in: .init(charactersIn: "."))
+            let multiplier: Int
+            // "std" before "s": both start the same way and mean very
+            // different things.
+            if unit.hasPrefix("h") || unit.hasPrefix("std") || unit.hasPrefix("stunde") {
+                multiplier = 3600
+            } else if unit.hasPrefix("sek") || unit.hasPrefix("sec") || unit == "s" {
+                multiplier = 1
+            } else if unit.isEmpty || unit.hasPrefix("m") {
+                // A bare number in a time field means minutes.
+                multiplier = 60
+            } else {
+                continue
+            }
+            total += value * multiplier
+            found = true
         }
-        // A bare number in a time field means minutes.
-        if let match = text.firstMatch(of: /^\s*(\d+)\s*$/), let value = Int(match.1) {
-            return value * 60
-        }
-        return nil
+        return found && total > 0 ? total : nil
     }
 
     private static func isoPeriodSeconds(_ text: String) -> Int? {
@@ -264,7 +282,7 @@ public enum MelaImport: RecipeImportFormat {
 }
 
 extension Comparable {
-    func clamped(to range: ClosedRange<Self>) -> Self {
+    public func clamped(to range: ClosedRange<Self>) -> Self {
         min(max(self, range.lowerBound), range.upperBound)
     }
 }

@@ -206,8 +206,8 @@ struct RecipeDetailView: View {
             // hide the number with it.
             Stepper("Portionen", value: Binding(
                 get: { servings },
-                set: { servingsOverride = max(1, $0) }
-            ), in: 1...50)
+                set: { servingsOverride = $0.clamped(to: Recipe.servingsRange) }
+            ), in: Recipe.servingsRange)
             .labelsHidden()
             if servingsOverride != nil, servingsOverride != recipe.servings {
                 Button("Zurücksetzen") { servingsOverride = nil }

@@ -71,7 +71,9 @@ struct RecipeListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        if library.recipes.isEmpty, !library.isLoading {
+        // An import in progress is about to fill the list; telling the user
+        // there is nothing here while it counts up says the opposite.
+        if library.recipes.isEmpty, !library.isLoading, library.importProgress == nil {
             if library.searchText.isEmpty, library.filter == .all, library.activeFilters.isEmpty {
                 ContentUnavailableView {
                     Label("Noch keine Rezepte", systemImage: "book.closed")
