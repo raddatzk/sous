@@ -23,7 +23,7 @@ targets:
       path: Sous/Supporting/Info.plist
       properties:
         CFBundleDisplayName: Sous
-        LSApplicationCategoryType: public.app-category.lifestyle
+        LSApplicationCategoryType: public.app-category.food-and-drink
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         UILaunchScreen: {}
@@ -47,6 +47,7 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MDQY93XVHF
+        REGISTER_APP_GROUPS: YES
 
   SousShare:
     type: app-extension
@@ -90,4 +91,5 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MDQY93XVHF
+        REGISTER_APP_GROUPS: YES
         SKIP_INSTALL: YES
