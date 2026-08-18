@@ -239,6 +239,53 @@ public final class RecipeLibrary {
         }
     }
 
+    // MARK: - From the web
+
+    /// Reads a recipe off a page and opens it for checking.
+    ///
+    /// The recipe is not saved. What a page yields is a draft — the title is
+    /// often the site's headline, the yield a guess, and the last two steps
+    /// are sometimes an advertisement — so the editor gets it and the cook
+    /// decides. Pictures are stored right away, because the editor works in
+    /// image ids; anything the cook throws away goes with the draft.
+    public func importFromWeb(_ url: URL) async {
+        importProgress = RecipeImportProgress(done: 0, total: 0)
+        defer { importProgress = nil }
+
+        do {
+            let found = try await RecipeWebImporter().draft(from: url)
+            var draft = found.recipe
+            for image in found.images {
+                if let id = try? await imageStore.add(image, to: draft.id) {
+                    draft.imageIDs.append(id)
+                }
+            }
+            unsavedDraft = (draft.id, draft.imageIDs)
+            editing = draft
+        } catch {
+            report(error)
+        }
+    }
+
+    /// A draft from the web and the pictures fetched for it, until the
+    /// editor is done with it.
+    private var unsavedDraft: (id: UUID, imageIDs: [UUID])?
+
+    /// Throws away what an abandoned draft brought with it.
+    ///
+    /// Called when the editor closes: if the recipe was saved, the store has
+    /// it and the pictures belong to it. If it was not, they are blobs
+    /// nothing references.
+    public func discardUnsavedDraft() async {
+        guard let draft = unsavedDraft else { return }
+        unsavedDraft = nil
+        guard await recipe(id: draft.id) == nil else { return }
+
+        for id in draft.imageIDs {
+            try? await imageStore.delete(id: id)
+        }
+    }
+
     // MARK: - Trash
 
     /// Recipes that were deleted and are still recoverable, most recently

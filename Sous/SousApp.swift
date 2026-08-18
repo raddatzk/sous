@@ -45,6 +45,15 @@ struct SousApp: App {
                 .environment(mealPlan)
                 .environment(shopping)
                 .environment(catalog)
+                // A page shared from Safari arrives as sous://import?url=…
+                .onOpenURL { url in
+                    guard url.scheme == "sous", url.host() == "import",
+                          let shared = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                              .queryItems?.first(where: { $0.name == "url" })?.value,
+                          let target = URL(string: shared)
+                    else { return }
+                    Task { await library.importFromWeb(target) }
+                }
         }
         .commands {
             CommandGroup(after: .newItem) {
