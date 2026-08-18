@@ -4,14 +4,18 @@ import SwiftUI
 /// Recipes that were deleted, and the way back.
 ///
 /// Deleting has always kept the recipe — the store only marks it — but until
-/// now nothing showed it, which made a slip of the finger final. The list
-/// reads like the recipe list so the same recipe is recognizable in both.
+/// now nothing showed it, which made a slip of the finger final.
+///
+/// It is the recipe list, with the same rows and the same tap: deciding
+/// whether to keep something means looking at it, and a stripped-down list
+/// would make the user restore a recipe just to find out what it was.
 struct TrashView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
 
     @State private var deleted: [Recipe] = []
     @State private var isConfirmingEmpty = false
+    @State private var openedRecipe: Recipe?
 
     var body: some View {
         NavigationStack {
@@ -75,6 +79,9 @@ struct TrashView: View {
             } message: {
                 Text("Die Rezepte und ihre Bilder sind danach weg.")
             }
+            .navigationDestination(item: $openedRecipe) { recipe in
+                RecipeDetailView(recipe: recipe)
+            }
             .task { await load() }
         }
         #if os(macOS)
@@ -84,26 +91,18 @@ struct TrashView: View {
 
     @ViewBuilder
     private func row(_ recipe: Recipe) -> some View {
-        HStack(spacing: 12) {
-            if let imageID = recipe.imageIDs.first {
-                RecipeImageView(imageID: imageID, thumbnail: true)
-                    .frame(width: 44, height: 44)
-                    .clipShape(.rect(cornerRadius: 8))
+        VStack(alignment: .leading, spacing: 2) {
+            RecipeRow(recipe: recipe)
+            if let deletedAt = recipe.deletedAt {
+                // Without the app's locale this reads "1 hour ago" in the
+                // middle of a German sentence.
+                Text("Gelöscht \(deletedAt.formatted(.relative(presentation: .named).locale(.sous)))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(recipe.title)
-                    .font(SousStyle.recipeName)
-                if let deletedAt = recipe.deletedAt {
-                    // Without the app's locale this reads "1 hour ago" in
-                    // the middle of a German sentence.
-                    Text("Gelöscht \(deletedAt.formatted(.relative(presentation: .named).locale(.sous)))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
         }
-        .padding(.vertical, 2)
+        .contentShape(.rect)
+        .onTapGesture { openedRecipe = recipe }
     }
 
     private func load() async {
