@@ -19,6 +19,9 @@ struct SousApp: App {
     /// Which recipe the Mac's detail column is showing — outlives the section
     /// on the left, so it does not belong to any one of them.
     @State private var selection = RecipeSelection()
+    /// Importing and exporting the library, which the Mac reaches from the
+    /// menu bar and so cannot keep inside the recipe list.
+    @State private var exchange = LibraryExchange()
 
     init() {
         do {
@@ -59,6 +62,7 @@ struct SousApp: App {
                 .environment(timers)
                 .environment(session)
                 .environment(selection)
+                .environment(exchange)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
@@ -83,6 +87,21 @@ struct SousApp: App {
             CommandGroup(after: .newItem) {
                 Button("Neues Rezept") { library.startNewRecipe() }
                     .keyboardShortcut("n", modifiers: .command)
+            }
+            // Where a Mac looks for these. The same two entries stay in the
+            // list's own menu on the phone, which has no menu bar to look in.
+            CommandGroup(replacing: .importExport) {
+                Button("Rezepte importieren…") { exchange.isImporting = true }
+                Button("Alle Rezepte exportieren…") {
+                    Task {
+                        guard let data = await library.exportedLibrary() else { return }
+                        exchange.export = RecipeExport(
+                            data: data,
+                            name: "Rezepte",
+                            contentType: RecipeExport.library
+                        )
+                    }
+                }
             }
         }
 
