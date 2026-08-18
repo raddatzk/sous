@@ -43,11 +43,13 @@ struct RecipeImporter: ViewModifier {
             }
     }
 
-    /// Mela's own extensions, plus anything at all — a Mac that has never
-    /// seen Mela does not know those types, and a picker that greys out the
-    /// file the user came to import is worse than one that shows too much.
+    /// Sous's extensions and Mela's, plus anything at all — a Mac that has
+    /// seen neither app does not know those types, and a picker that greys
+    /// out the file the user came to import is worse than one that shows too
+    /// much.
     private static var readableTypes: [UTType] {
-        ["melarecipes", "melarecipe"].compactMap { UTType(filenameExtension: $0) } + [.data]
+        ["sousrecipes", "sousrecipe", "melarecipes", "melarecipe"]
+            .compactMap { UTType(filenameExtension: $0) } + [.data]
     }
 
     private func load(_ urls: [URL]) async {

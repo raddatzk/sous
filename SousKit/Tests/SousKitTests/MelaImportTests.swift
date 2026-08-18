@@ -159,6 +159,9 @@ struct MelaImportTests {
     func routing() throws {
         let data = Data(#"{"title": "Eins"}"#.utf8)
         #expect(try RecipeImport.read(data, named: "a.melarecipe").recipes.count == 1)
+        // Sous's own extension is the same format under a different name.
+        #expect(try RecipeImport.read(data, named: "a.sousrecipe").recipes.count == 1)
+        #expect(try RecipeImport.read(data, named: "a.sousrecipes").recipes.count == 1)
         #expect(throws: RecipeImportError.self) {
             try RecipeImport.read(data, named: "a.paprikarecipes")
         }

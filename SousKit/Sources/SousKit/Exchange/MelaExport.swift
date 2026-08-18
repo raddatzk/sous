@@ -1,6 +1,7 @@
 import Foundation
 
-/// Writes recipes in the format ``MelaImport`` reads.
+/// Writes recipes in the format ``MelaImport`` reads, under Sous's own
+/// extension: `.sousrecipe` for one, `.sousrecipes` for a library.
 ///
 /// Mela's format rather than one of Sous's own: it is the format this app's
 /// model was shaped after, so nothing has to be left behind, and a file
@@ -8,7 +9,7 @@ import Foundation
 /// read it. A second, private format would be one more thing to keep in step
 /// for no reader that does not already exist.
 public enum MelaExport {
-    /// One recipe with its pictures, as the contents of a `.melarecipe` file.
+    /// One recipe with its pictures, as the contents of a `.sousrecipe` file.
     public static func recipe(_ recipe: Recipe, images: [Data]) throws -> Data {
         try JSONSerialization.data(
             withJSONObject: object(for: recipe, images: images),
@@ -16,7 +17,7 @@ public enum MelaExport {
         )
     }
 
-    /// A whole library as a `.melarecipes` archive.
+    /// A whole library as a `.sousrecipes` archive.
     public static func library(_ recipes: [(recipe: Recipe, images: [Data])]) throws -> Data {
         var used = Set<String>()
         let entries = try recipes.map { item in
@@ -45,7 +46,7 @@ public enum MelaExport {
             suffix += 1
         }
         used.insert(candidate.lowercased())
-        return "\(candidate).melarecipe"
+        return "\(candidate).sousrecipe"
     }
 
     private static func object(for recipe: Recipe, images: [Data]) -> [String: Any] {
