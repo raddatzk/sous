@@ -171,8 +171,13 @@ struct RecipeListView: View {
                 }
                 #endif
                 #if os(iOS)
-                // The Mac has these in the Ablage menu, where it looks for
-                // them; the phone has no menu bar and keeps them here.
+                // Kept here on the iPad as well as the phone, even though
+                // iPadOS 26 has a menu bar and the commands appear in it. The
+                // Mac's menu bar is always on screen, so a second path inside
+                // the window is redundant there; the iPad's waits behind a
+                // swipe from the top edge, or a keyboard being attached. A
+                // command that only lives there is hidden from anyone using
+                // the iPad with their fingers.
                 Divider()
                 Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
                     exchange.isImporting = true
