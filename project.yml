@@ -53,6 +53,17 @@ targets:
     supportedDestinations: [iOS]
     sources:
       - path: SousShare
+      # The editor and what it draws with, shared with the app rather than
+      # rebuilt: a recipe off the web is checked in the same screen it would
+      # be edited in later.
+      - path: Sous/Views/RecipeEditorView.swift
+      - path: Sous/Views/RecipeImageView.swift
+      - path: Sous/Views/RecipePickerView.swift
+      - path: Sous/Views/RecipeRow.swift
+      - path: Sous/Views/FlowLayout.swift
+      - path: Sous/Views/SousStyle.swift
+      - path: Sous/Views/IngredientCatalogView.swift
+      - path: Sous/Views/IngredientLineView.swift
     entitlements:
       path: SousShare/SousShare.entitlements
     dependencies:
