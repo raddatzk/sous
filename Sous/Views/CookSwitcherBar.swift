@@ -20,12 +20,8 @@ struct CookSwitcherBar: View {
     var body: some View {
         HStack(spacing: 8) {
             ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(entries) { entry in
-                        chip(for: entry)
-                    }
-                }
-                .padding(.vertical, 8)
+                chips
+                    .padding(.vertical, 8)
             }
             .scrollIndicators(.hidden)
 
@@ -38,6 +34,17 @@ struct CookSwitcherBar: View {
         }
         .padding(.horizontal, 12)
         .background(.bar)
+    }
+
+    /// The chips on their own, without the bar around them — the Mac puts
+    /// them in the toolbar, where the bar would be a second one.
+    @ViewBuilder
+    var chips: some View {
+        HStack(spacing: 8) {
+            ForEach(entries) { entry in
+                chip(for: entry)
+            }
+        }
     }
 
     @ViewBuilder
