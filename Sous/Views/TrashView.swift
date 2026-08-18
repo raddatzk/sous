@@ -16,6 +16,7 @@ struct TrashView: View {
     @State private var deleted: [Recipe] = []
     @State private var isConfirmingEmpty = false
     @State private var openedRecipe: Recipe?
+    @State private var editing: Recipe?
 
     var body: some View {
         NavigationStack {
@@ -82,11 +83,30 @@ struct TrashView: View {
             .navigationDestination(item: $openedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe)
             }
+            // A recipe opened from here asks the library to edit it. Take the
+            // request over rather than letting it fall through to the list,
+            // which cannot present anything while this sheet is up.
+            .onChange(of: library.editing) { _, wanted in
+                guard let wanted else { return }
+                library.editing = nil
+                editing = wanted
+            }
             // A recipe restored from its own page leaves the trash behind it.
             .onChange(of: openedRecipe) { _, opened in
                 if opened == nil { Task { await load() } }
             }
             .task { await load() }
+            // The recipe list carries the same sheet, but it sits below this
+            // one: a sheet can only be presented by what is on top, so the
+            // trash presents the editor itself.
+            .sheet(item: $editing) { recipe in
+                RecipeEditorView(recipe: recipe) { edited in
+                    await library.save(edited)
+                    await load()
+                    // Whatever page is open should show what was just saved.
+                    if openedRecipe?.id == edited.id { openedRecipe = edited }
+                }
+            }
         }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)

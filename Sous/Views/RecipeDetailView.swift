@@ -386,9 +386,11 @@ struct RecipeDetailView: View {
                     Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
                         Task { await library.restore(recipe) }
                     }
-                } else {
-                    Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
                 }
+                // Editing stays: a recipe in the trash is an ordinary recipe
+                // that happens to be marked, and fixing a typo while reading
+                // it costs nothing. Saving keeps the tombstone.
+                Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
                 Button("Exportieren", systemImage: "square.and.arrow.up") {
                     Task {
                         if let data = await library.exportedRecipe(recipe) {
