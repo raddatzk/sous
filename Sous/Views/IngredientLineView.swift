@@ -13,12 +13,21 @@ struct IngredientLineView: View {
     var formatter = QuantityFormatter(locale: .sous)
 
     var body: some View {
+        // Interpolated rather than added together: `Text + Text` is
+        // deprecated as of the 26 SDKs, and interpolation keeps each part's
+        // own styling the way the sum did.
+        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(commentText)")
+    }
+
+    /// The amount carries the accent, so it is its own styled run.
+    private var amountText: Text {
         Text(amount)
             .foregroundStyle(.tint)
             .fontWeight(.medium)
-        + Text(amount.isEmpty ? "" : " ")
-        + Text(name)
-        + Text(comment)
+    }
+
+    private var commentText: Text {
+        Text(comment)
             .foregroundStyle(.secondary)
     }
 
