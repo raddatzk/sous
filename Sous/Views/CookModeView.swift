@@ -65,6 +65,10 @@ struct CookModeView: View {
                     Button("\(entry.servings) Portionen", systemImage: "person.2") {
                         isSettingServings = true
                     }
+                    // With the icon alone the count is invisible until the
+                    // button is pressed — and it was taken out of the
+                    // subtitle on the promise that this would show it.
+                    .labelStyle(.titleAndIcon)
                     .popover(isPresented: $isSettingServings) {
                         servingsPopover(entry: entry, recipe: recipe)
                     }
@@ -285,6 +289,10 @@ struct CookModeView: View {
             .scrollTargetLayout()
             .padding(24)
             .frame(maxWidth: 640, alignment: .leading)
+            // Centred in the rest. Capped and pinned left, the steps sat
+            // against the window's edge with the width of a Mac window empty
+            // beside them.
+            .frame(maxWidth: .infinity)
         }
         .scrollPosition(id: focusBinding(entry, steps: steps), anchor: .top)
         .frame(maxWidth: .infinity)
