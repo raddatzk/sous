@@ -55,6 +55,13 @@ public protocol RecipeStore: Sendable {
     /// and be undone.
     func delete(id: UUID) async throws
     func restore(id: UUID) async throws
+    /// Removes the row itself, tombstone and all.
+    ///
+    /// Emptying the trash is the only thing that does this. Once recipes
+    /// sync, a deletion has to stay visible to the other devices, so this
+    /// will become "keep the tombstone, drop the contents" rather than
+    /// disappearing a row another device still expects to hear about.
+    func erase(id: UUID) async throws
     func categories() async throws -> [String]
     /// Categories with how many recipes use each — for managing them.
     func categoryCounts() async throws -> [(name: String, count: Int)]

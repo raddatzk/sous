@@ -125,3 +125,73 @@ struct RecipeLibraryTests {
         #expect(library.recipes.map(\.title) == ["Linsensuppe"])
     }
 }
+
+@MainActor
+@Suite("The trash")
+struct RecipeTrashTests {
+    private func makeLibrary() throws -> (RecipeLibrary, SwiftDataRecipeImageStore) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let images = SwiftDataRecipeImageStore(modelContainer: container)
+        return (
+            RecipeLibrary(store: SwiftDataRecipeStore(modelContainer: container), imageStore: images),
+            images
+        )
+    }
+
+    @Test("A deleted recipe leaves the list but waits in the trash")
+    func deletedGoesToTrash() async throws {
+        let (library, _) = try makeLibrary()
+        await library.save(Recipe(title: "Linsensuppe"))
+        let recipe = try #require(library.recipes.first)
+
+        await library.delete(recipe)
+
+        #expect(library.recipes.isEmpty)
+        #expect(await library.deletedRecipes().map(\.title) == ["Linsensuppe"])
+    }
+
+    @Test("Restoring puts it back the way it was")
+    func restore() async throws {
+        let (library, _) = try makeLibrary()
+        await library.save(Recipe(title: "Linsensuppe", categories: ["Suppe"], isFavorite: true))
+        let recipe = try #require(library.recipes.first)
+        await library.delete(recipe)
+
+        await library.restore(recipe)
+
+        let back = try #require(library.recipes.first)
+        #expect(back.title == "Linsensuppe")
+        #expect(back.isFavorite)
+        #expect(library.categories.contains("Suppe"))
+        #expect(await library.deletedRecipes().isEmpty)
+    }
+
+    @Test("Emptying the trash takes the pictures with it")
+    func emptyingTrashFreesImages() async throws {
+        let (library, images) = try makeLibrary()
+        let picture = try #require(pngData())
+        await library.save(Recipe(title: "Linsensuppe"))
+        var recipe = try #require(library.recipes.first)
+        let imageID = try #require(await library.addImage(picture, to: recipe.id))
+        recipe.imageIDs = [imageID]
+        await library.save(recipe)
+        await library.delete(recipe)
+
+        let emptied = await library.emptyTrash()
+
+        #expect(emptied == 1)
+        #expect(await library.deletedRecipes().isEmpty)
+        #expect(library.recipes.isEmpty)
+        // The blob is gone too, which is the point of emptying it.
+        #expect(try await images.image(id: imageID) == nil)
+    }
+
+    /// A one-pixel PNG, since the image store insists on something readable.
+    private func pngData() -> Data? {
+        Data(
+            base64Encoded: """
+            iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==
+            """
+        )
+    }
+}

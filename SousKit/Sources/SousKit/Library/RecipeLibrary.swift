@@ -239,6 +239,51 @@ public final class RecipeLibrary {
         }
     }
 
+    // MARK: - Trash
+
+    /// Recipes that were deleted and are still recoverable, most recently
+    /// deleted first.
+    public func deletedRecipes() async -> [Recipe] {
+        do {
+            return try await store.recipes(matching: RecipeQuery(includeDeleted: true))
+                .filter(\.isDeleted)
+                .sorted { ($0.deletedAt ?? .distantPast) > ($1.deletedAt ?? .distantPast) }
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
+    /// Puts a deleted recipe back into the collection.
+    public func restore(_ recipe: Recipe) async {
+        do {
+            try await store.restore(id: recipe.id)
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Removes a recipe for good, pictures included.
+    public func erase(_ recipe: Recipe) async {
+        do {
+            try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
+            try await store.erase(id: recipe.id)
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Empties the trash. Returns how many recipes it held.
+    @discardableResult
+    public func emptyTrash() async -> Int {
+        let deleted = await deletedRecipes()
+        for recipe in deleted {
+            await erase(recipe)
+        }
+        return deleted.count
+    }
+
     // MARK: - Import
 
     /// Reads a recipe file and stores everything in it.
