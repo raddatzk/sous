@@ -32,6 +32,32 @@ extension View {
         font(.footnote)
             .foregroundStyle(.secondary)
     }
+
+    /// The box a field of chips sits in — the search field, the category
+    /// field. Written once because the two are the same control doing two
+    /// different jobs, and a difference in padding between them would read
+    /// as a mistake rather than a distinction.
+    func sousFieldBox() -> some View {
+        padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.sousField, in: .rect(cornerRadius: 12))
+    }
+
+    /// A value sitting inside such a field: a filter, a category.
+    func sousChip() -> some View {
+        padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(.tint.opacity(SousStyle.chipTint), in: .capsule)
+            .foregroundStyle(.tint)
+    }
+
+    /// A value being offered rather than held — the suggestions under a
+    /// field. Neutral, because taking the offer is what tints it.
+    func sousSuggestionChip() -> some View {
+        padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.sousField, in: .capsule)
+    }
 }
 
 extension Locale {

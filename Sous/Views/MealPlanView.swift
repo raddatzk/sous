@@ -361,4 +361,3 @@ extension Date: @retroactive Identifiable {
     public var id: TimeInterval { timeIntervalSince1970 }
 }
 
-extension MealPlanEntry: @retroactive Identifiable {}
