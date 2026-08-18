@@ -58,8 +58,12 @@ struct TimerSetupSheet: View {
             }
         }
         .sousAppearance()
+        #if os(macOS)
         .presentationDetents([.medium])
         .frame(minWidth: 340, minHeight: 340)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
+        #endif
         .onAppear { set(to: suggested) }
     }
 
@@ -67,19 +71,19 @@ struct TimerSetupSheet: View {
     /// looks. The Mac has no wheel picker, so it counts in steppers.
     @ViewBuilder
     private var picker: some View {
-        #if os(iOS)
-        HStack(spacing: 0) {
-            wheel($hours, range: 0..<13, unit: "Std.")
-            wheel($minutes, range: 0..<60, unit: "Min.")
-            wheel($seconds, range: 0..<60, unit: "Sek.")
-        }
-        #else
+        #if os(macOS)
         Form {
             Stepper("Stunden: \(hours)", value: $hours, in: 0...12)
             Stepper("Minuten: \(minutes)", value: $minutes, in: 0...59)
             Stepper("Sekunden: \(seconds)", value: $seconds, in: 0...59)
         }
         .formStyle(.grouped)
+        #else
+        HStack(spacing: 0) {
+            wheel($hours, range: 0..<13, unit: "Std.")
+            wheel($minutes, range: 0..<60, unit: "Min.")
+            wheel($seconds, range: 0..<60, unit: "Sek.")
+        }
         #endif
     }
 

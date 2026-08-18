@@ -81,6 +81,8 @@ struct CategoryManagerView: View {
         }
         #if os(macOS)
         .frame(minWidth: 360, minHeight: 420)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
         #endif
     }
 

@@ -54,6 +54,8 @@ struct RecipePickerView: View {
         .task(id: searchText) { await reload() }
         #if os(macOS)
         .frame(minWidth: 380, minHeight: 420)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
         #endif
     }
 

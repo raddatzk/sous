@@ -14,6 +14,7 @@ struct RecipeListView: View {
     var body: some View {
         @Bindable var library = library
 
+        #if os(macOS)
         NavigationSplitView {
             List(selection: $selectedRecipeID) {
                 filterBar
@@ -62,7 +63,6 @@ struct RecipeListView: View {
                 selectedRecipeID = edited.id
             }
         }
-        // A draft the cook walked away from takes its pictures with it.
         .onChange(of: library.editing) { _, editing in
             if editing == nil { Task { await library.discardUnsavedDraft() } }
         }
@@ -77,6 +77,60 @@ struct RecipeListView: View {
         } message: {
             Text(library.errorMessage ?? "")
         }
+        #else
+        NavigationStack {
+            List(selection: $selectedRecipeID) {
+                filterBar
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+
+                ForEach(library.recipes) { recipe in
+                    RecipeRow(recipe: recipe)
+                        .tag(recipe.id)
+                        .contextMenu { contextActions(for: recipe) }
+                }
+            }
+            .navigationTitle("Rezepte")
+            .overlay { emptyState }
+            .toolbar { listToolbar }
+            .task { await library.reload() }
+        }
+        .recipeImporter(isPresented: $isImporting)
+        .recipeExporter($export)
+        .sheet(isPresented: $isShowingCatalog) {
+            IngredientCatalogView()
+        }
+        .sheet(isPresented: $isShowingCategories) {
+            CategoryManagerView()
+        }
+        .sheet(isPresented: $isShowingTrash) {
+            TrashView()
+        }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+        }
+        .sheet(item: $library.editing) { recipe in
+            RecipeEditorView(recipe: recipe) { edited in
+                await library.save(edited)
+                selectedRecipeID = edited.id
+            }
+        }
+        .onChange(of: library.editing) { _, editing in
+            if editing == nil { Task { await library.discardUnsavedDraft() } }
+        }
+        .alert(
+            "Fehler",
+            isPresented: Binding(
+                get: { library.errorMessage != nil },
+                set: { if !$0 { library.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { library.errorMessage = nil }
+        } message: {
+            Text(library.errorMessage ?? "")
+        }
+        #endif
     }
 
     private var selectedRecipe: Recipe? {

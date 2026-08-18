@@ -54,6 +54,8 @@ struct CookAddSheet: View {
         .task(id: searchText) { await reload() }
         #if os(macOS)
         .frame(minWidth: 380, minHeight: 460)
+        #elseif os(iOS)
+        .presentationDetents([.large])
         #endif
     }
 

@@ -353,6 +353,8 @@ private struct MoveToDaySheet: View {
         }
         #if os(macOS)
         .frame(minWidth: 380, minHeight: 480)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
         #endif
     }
 }
