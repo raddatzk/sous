@@ -207,6 +207,33 @@ struct RootView: View {
     #endif
 }
 
+#if os(macOS)
+/// The section buttons' look, as one style rather than two.
+///
+/// `borderedProminent` insists on a white label whatever it is tinted with,
+/// which on the pale grey of an inactive section left a white book on a white
+/// field. Two different button styles would fix the colour and lose the
+/// animation, since SwiftUI would then be swapping one view for another rather
+/// than widening one — so the style takes the state instead and the view stays
+/// put.
+private struct SectionButtonStyle: ButtonStyle {
+    let isActive: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(isActive ? .semibold : .regular))
+            .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                isActive ? AnyShapeStyle(Color.sousAccent) : AnyShapeStyle(Color.sousField),
+                in: .capsule
+            )
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+#endif
+
 /// The three places the app is used from, named once so the tab bar and the
 /// Mac's switch cannot drift apart on wording or order.
 enum SousSection: String, CaseIterable, Identifiable {
