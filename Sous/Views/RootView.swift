@@ -123,6 +123,12 @@ struct RootView: View {
         // the list and the page have both named — either way a word in the
         // title bar that nothing needed.
         .toolbar(removing: .title)
+        // And no way to collapse the sidebar. In a mail client the sidebar is
+        // a place you can put away once you are reading; here it is the only
+        // way into anything — collapse it and the window is a recipe with no
+        // route to another one. The width can still be dragged, down to the
+        // minimum the column asks for.
+        .toolbar(removing: .sidebarToggle)
         .toolbar {
             // Beside the traffic lights and the sidebar button, where macOS 26
             // draws it as the floating capsule the iPad has along its top.
