@@ -16,6 +16,7 @@ struct RecipeDetailView: View {
     @State private var showsToolbarTitle = false
     @State private var didAddToShoppingList = false
     @State private var isPlanning = false
+    @State private var export: RecipeExport?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -57,6 +58,7 @@ struct RecipeDetailView: View {
         )
         #endif
         .toolbar { detailToolbar }
+        .recipeExporter($export)
         .onChange(of: recipe.id) {
             servingsOverride = nil
             didAddToShoppingList = false
@@ -357,6 +359,13 @@ struct RecipeDetailView: View {
         ToolbarItem(placement: .primaryAction) {
             Menu("Mehr", systemImage: "ellipsis.circle") {
                 Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                Button("Exportieren", systemImage: "square.and.arrow.up") {
+                    Task {
+                        if let data = await library.exportedRecipe(recipe) {
+                            export = RecipeExport(recipe: recipe, data: data)
+                        }
+                    }
+                }
                 Divider()
                 Button(
                     recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
