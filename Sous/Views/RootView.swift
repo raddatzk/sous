@@ -152,10 +152,12 @@ struct RootView: View {
                 }
             }
         }
-        // On the iPad this becomes the floating bar along the top, which can
-        // be opened into a sidebar; on the phone it stays a tab bar at the
-        // bottom.
-        .tabViewStyle(.sidebarAdaptable)
+        // The floating bar along the top of an iPad, the bar along the foot
+        // of a phone — but no sidebar. `.sidebarAdaptable` puts a button at
+        // the left of the bar offering to open one, and the sidebar it opens
+        // holds the same three entries and nothing else: an offer with
+        // nothing behind it.
+        .tabViewStyle(.tabBarOnly)
     }
     #endif
 }
