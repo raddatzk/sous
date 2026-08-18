@@ -15,21 +15,38 @@ struct RootView: View {
     /// view, which holds this itself.
     @State private var section: SousSection = .recipes
 
+    /// Whether the way back to the hob is offered.
+    ///
+    /// Above everything rather than inside one section: the cook who left to
+    /// check the shopping list has to find the way back from there, not only
+    /// from the recipe list.
+    ///
+    /// On the Mac it shows whenever something is cooking, even while the
+    /// cooking window is open — that window is a separate one and can be
+    /// behind this one, so the band doubles as the way to bring it forward.
+    /// It also means nothing depends on noticing that the window was closed:
+    /// a band that is always there cannot leave the cook shut out of a
+    /// session with no way back into it. The phone has no such problem, since
+    /// cooking covers the screen there.
+    private var showsBanner: Bool {
+        #if os(macOS)
+        !session.isEmpty
+        #else
+        !session.isEmpty && !session.isPresented
+        #endif
+    }
+
     var body: some View {
         @Bindable var session = session
 
         VStack(spacing: 0) {
-            // Above everything rather than inside one section: the cook who
-            // left to check the shopping list has to find the way back from
-            // there, not only from the recipe list.
-            if !session.isEmpty && !session.isPresented {
+            if showsBanner {
                 ContinueCookingBanner()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
             sections
         }
-        .animation(.easeInOut(duration: 0.2), value: session.isEmpty)
-        .animation(.easeInOut(duration: 0.2), value: session.isPresented)
+        .animation(.easeInOut(duration: 0.2), value: showsBanner)
         // Cooking is presented from the root, so it survives leaving the
         // recipe it was started from. On the Mac it is a window of its own
         // instead — see `SousApp`.
