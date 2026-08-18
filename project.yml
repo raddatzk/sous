@@ -19,6 +19,9 @@ targets:
       - path: Sous
     entitlements:
       path: Sous/Supporting/Sous.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.me.raddatz.sous
     info:
       path: Sous/Supporting/Info.plist
       properties:
@@ -67,6 +70,9 @@ targets:
       - path: Sous/Views/IngredientLineView.swift
     entitlements:
       path: SousShare/SousShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.me.raddatz.sous
     dependencies:
       - package: SousKit
         product: SousKit
