@@ -4,33 +4,28 @@ import SwiftUI
 struct RecipeListView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(RecipeSelection.self) private var selection
-    /// Held by the app rather than here, because the Mac starts both from
-    /// the menu bar, which cannot see this view's state.
-    @Environment(LibraryExchange.self) private var exchange
+    /// Held by the app rather than here, because the menu bar issues the
+    /// same commands and cannot see this view's state.
+    @Environment(LibraryCommands.self) private var commands
 
     @State private var selectedRecipeID: Recipe.ID?
-    @State private var isShowingCatalog = false
-    @State private var isShowingCategories = false
-    @State private var isShowingTrash = false
     /// Only the phone offers this: the Mac has the Settings scene behind
     /// Cmd-, and would otherwise reach the same form twice.
     @State private var isShowingSettings = false
 
     var body: some View {
         @Bindable var library = library
-        @Bindable var exchange = exchange
+        @Bindable var commands = commands
 
         root
-            .recipeImporter(isPresented: $exchange.isImporting)
-            .recipeExporter($exchange.export)
-            .sheet(isPresented: $isShowingCatalog) {
-                IngredientCatalogView()
-            }
-            .sheet(isPresented: $isShowingCategories) {
-                CategoryManagerView()
-            }
-            .sheet(isPresented: $isShowingTrash) {
-                TrashView()
+            .recipeImporter(isPresented: $commands.isImporting)
+            .recipeExporter($commands.export)
+            .sheet(item: $commands.panel) { panel in
+                switch panel {
+                case .catalog: IngredientCatalogView()
+                case .categories: CategoryManagerView()
+                case .trash: TrashView()
+                }
             }
             #if os(iOS)
             .sheet(isPresented: $isShowingSettings) {
@@ -151,41 +146,37 @@ struct RecipeListView: View {
         ToolbarItem(placement: .primaryAction) {
             Button("Neues Rezept", systemImage: "plus") { library.startNewRecipe() }
         }
+        // Everything in here is in the Mac's menu bar, which is always on
+        // screen — so on the Mac the menu would be empty and is left out
+        // entirely. The iPad keeps it: its menu bar waits behind a swipe from
+        // the top edge or a keyboard being attached, and a command that only
+        // lives there is hidden from anyone using the iPad with their fingers.
+        #if os(iOS)
         ToolbarItem(placement: .automatic) {
             Menu("Mehr", systemImage: "ellipsis.circle") {
                 Button("Zutaten verwalten", systemImage: "carrot") {
-                    isShowingCatalog = true
+                    commands.panel = .catalog
                 }
                 Button("Kategorien verwalten", systemImage: "tag") {
-                    isShowingCategories = true
+                    commands.panel = .categories
                 }
                 Button("Papierkorb", systemImage: "trash") {
-                    isShowingTrash = true
+                    commands.panel = .trash
                 }
-                #if os(iOS)
-                // The Mac has the Settings scene behind Cmd-, and would
-                // otherwise offer the same form twice.
+                // No Settings entry on the Mac either — it has the Settings
+                // scene behind Cmd-, — but this whole menu is gone there.
                 Divider()
                 Button("Einstellungen", systemImage: "gearshape") {
                     isShowingSettings = true
                 }
-                #endif
-                #if os(iOS)
-                // Kept here on the iPad as well as the phone, even though
-                // iPadOS 26 has a menu bar and the commands appear in it. The
-                // Mac's menu bar is always on screen, so a second path inside
-                // the window is redundant there; the iPad's waits behind a
-                // swipe from the top edge, or a keyboard being attached. A
-                // command that only lives there is hidden from anyone using
-                // the iPad with their fingers.
                 Divider()
                 Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
-                    exchange.isImporting = true
+                    commands.isImporting = true
                 }
                 Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
                     Task {
                         if let data = await library.exportedLibrary() {
-                            exchange.export = RecipeExport(
+                            commands.export = RecipeExport(
                                 data: data,
                                 name: "Rezepte",
                                 contentType: RecipeExport.library
@@ -193,9 +184,9 @@ struct RecipeListView: View {
                         }
                     }
                 }
-                #endif
             }
         }
+        #endif
     }
 
     @ViewBuilder
