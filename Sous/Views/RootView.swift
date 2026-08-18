@@ -149,30 +149,24 @@ struct RootView: View {
                     sectionButton(.mealPlan)
                     sectionButton(.shopping)
                 }
-                // A width the toolbar can be told rather than has to measure.
-                // One wide button and two narrow ones always come to the same
-                // total, but the toolbar was still remeasuring the item on
-                // every switch — and on one pair it rebuilt instead of
-                // animating, dropping the change into a single frame.
-                //
-                // 152 for the wide one, 36 each for the narrow, 8 between:
-                // 240. Stated here so a change to the padding or the label
-                // width has to be brought here too.
-                .frame(width: 240)
             }
         }
     }
 
-    /// One section's button, wide with its name or narrow with its symbol.
+    /// One section's button: symbol and name, always both.
     ///
-    /// One button whose label changes, not two buttons swapped for each
-    /// other. The first attempt branched on the active section and gave each
-    /// branch its own style, so SwiftUI replaced one view with another — and
-    /// a view that is replaced cannot grow. At sixty frames a second the
-    /// change happened inside a single frame.
+    /// Mail's shape — the section you are in wide with its name, the others
+    /// narrow with only their symbol — was tried and given up. Two of the
+    /// three transitions animated and the third landed in a single frame,
+    /// and no amount of moving the animation about changed it: the toolbar
+    /// rebuilds that item rather than animating it, which is not something
+    /// SwiftUI can reach.
     ///
-    /// The tint carries the difference instead: the accent while this is the
-    /// section you are in, the app's neutral field colour otherwise.
+    /// So nothing changes shape. Every button keeps its width whatever is
+    /// selected, and only the fill moves — a thing that cannot tear, because
+    /// there is no layout in it. It also answers the objection that started
+    /// this: a book, a calendar and a trolley are a guessing game, and now
+    /// all three names are readable all the time.
     @ViewBuilder
     private func sectionButton(_ item: SousSection) -> some View {
         let isActive = item == section
@@ -181,40 +175,15 @@ struct RootView: View {
             section = item
         } label: {
             HStack(spacing: 6) {
-                // A fixed width so the narrow buttons match each other. A
-                // book, a calendar and a trolley are not the same shape, and
-                // left to themselves they made three capsules of three widths
-                // where Mail has three of one.
                 Image(systemName: item.symbol)
+                    // One width for three symbols of three shapes, so they
+                    // line up with each other.
                     .frame(width: 16)
-                if isActive {
-                    Text(item.title)
-                        .fixedSize()
-                }
+                Text(item.title)
             }
-            // Centred in a width that does not depend on the word: the row
-            // keeps its length whichever section is open, so the buttons
-            // beside this one stop sliding sideways, and the symbol sits in
-            // the middle of what it shares the capsule with rather than being
-            // pushed about by the length of a name.
-            //
-            // A number rather than the widest name measured. The measured
-            // version laid out all three names and hid two, and SwiftUI faded
-            // the hidden ones in during a switch — three words on top of each
-            // other for a fifth of a second.
-            .frame(width: isActive ? 132 : 16)
         }
         .buttonStyle(SectionButtonStyle(isActive: isActive))
-        // The animation belongs to the button rather than to the press that
-        // changed the section. Wrapped in `withAnimation` at the call site it
-        // rode on the transaction, and the toolbar swallowed that on at least
-        // one pair — Essensplan to Einkaufsliste changed inside a single frame
-        // while the others took thirteen. Tied to `isActive`, each button
-        // animates its own width and fill whoever moved them.
-        .animation(.smooth(duration: 0.3), value: isActive)
-        // While a button is narrow, this is the only thing that says which
-        // section it is.
-        .help(item.title)
+        .animation(.smooth(duration: 0.2), value: isActive)
     }
 
     #else
