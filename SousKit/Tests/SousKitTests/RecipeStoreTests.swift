@@ -218,6 +218,43 @@ struct RecipeFilterTests {
         #expect(suggestions.contains { $0.kind == .category && $0.title == "Tomatig" })
     }
 
+    @Test("Categories are ranked beside ingredients, not behind them")
+    func categoriesAreNotPushedOut() throws {
+        let suggestions = RecipeFilter.suggestions(
+            for: "sal",
+            catalog: .bundled,
+            categories: ["Salate"]
+        )
+
+        // "Salat", "Salami", "Salbei" and "Salz" all start with it too, so
+        // appending categories afterwards would drop "Salate" off the end.
+        #expect(suggestions.contains { $0.kind == .category && $0.title == "Salate" })
+        #expect(try #require(suggestions.first).title == "Salz")
+    }
+
+    @Test("A match through an alias says which spelling matched")
+    func aliasMatchesAreExplained() throws {
+        let suggestions = RecipeFilter.suggestions(
+            for: "salatgur",
+            catalog: .bundled,
+            categories: []
+        )
+
+        let cucumber = try #require(suggestions.first { $0.title == "Gurke" })
+        #expect(cucumber.matchedAs == "Salatgurke")
+    }
+
+    @Test("A match on the name itself needs no explanation")
+    func directMatchesHaveNoSubtitle() throws {
+        let suggestions = RecipeFilter.suggestions(
+            for: "gurk",
+            catalog: .bundled,
+            categories: []
+        )
+
+        #expect(try #require(suggestions.first { $0.title == "Gurke" }).matchedAs == nil)
+    }
+
     @Test("A filter already applied is not offered again")
     func appliedFiltersAreSkipped() throws {
         let tomato = try #require(IngredientCatalog.bundled.ingredient(for: "Tomate"))

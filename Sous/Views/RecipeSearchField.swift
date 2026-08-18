@@ -85,6 +85,13 @@ struct RecipeSearchField: View {
                                     .font(.caption2)
                                 Text(filter.title)
                                     .font(.callout)
+                                // Says why something matched when its own
+                                // name does not contain what was typed.
+                                if let matched = filter.matchedAs {
+                                    Text(matched)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)

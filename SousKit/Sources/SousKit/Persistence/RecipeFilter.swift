@@ -17,24 +17,40 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
     public let key: String
     /// What is shown on the chip.
     public let title: String
+    /// The spelling that actually matched, when it was not the title —
+    /// otherwise "Gurke" appears for "sal" with no way to tell why.
+    public let matchedAs: String?
 
     public var id: String { "\(kind)-\(key)" }
 
-    public init(kind: Kind, key: String, title: String) {
+    public init(kind: Kind, key: String, title: String, matchedAs: String? = nil) {
         self.kind = kind
         self.key = key
         self.title = title
+        self.matchedAs = matchedAs
     }
 
-    public static func ingredient(_ ingredient: CatalogIngredient) -> RecipeFilter {
-        RecipeFilter(kind: .ingredient, key: ingredient.key, title: ingredient.name)
+    public static func ingredient(
+        _ ingredient: CatalogIngredient,
+        matchedAs: String? = nil
+    ) -> RecipeFilter {
+        RecipeFilter(
+            kind: .ingredient,
+            key: ingredient.key,
+            title: ingredient.name,
+            matchedAs: matchedAs
+        )
     }
 
     public static func category(_ name: String) -> RecipeFilter {
         RecipeFilter(kind: .category, key: name.lowercased(), title: name)
     }
 
-    /// What the typed text could be filtered by, ingredients first.
+    /// What the typed text could be filtered by.
+    ///
+    /// Ingredients and categories are ranked together rather than one after
+    /// the other: typing "Sal" should offer the category "Salate" beside the
+    /// ingredient "Salat", not push it out with five ingredients first.
     ///
     /// Anything already applied is left out — there is no point offering a
     /// filter twice.
@@ -48,19 +64,45 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         let query = IngredientCatalog.normalize(text)
         guard query.count >= 2 else { return [] }
 
-        let matchingCategories = categories
-            .filter { $0.lowercased().contains(query) }
-            .map(RecipeFilter.category)
+        var candidates: [(filter: RecipeFilter, rank: Int)] = []
 
-        let matchingIngredients = catalog
-            .suggestions(for: text, limit: limit)
-            .map(RecipeFilter.ingredient)
+        for category in categories {
+            guard let rank = rank(of: category, matching: query) else { continue }
+            candidates.append((.category(category), rank))
+        }
+
+        for ingredient in catalog.ingredients {
+            // The closest spelling decides both whether it matches and how
+            // well; the title matching counts as better than an alias.
+            let ranked = ingredient.keys.enumerated().compactMap { index, key -> (Int, Int)? in
+                guard let rank = rank(of: key, matching: query) else { return nil }
+                return (index == 0 ? rank : rank + 1, index)
+            }
+            guard let best = ranked.min(by: { $0.0 < $1.0 }) else { continue }
+
+            let matchedSpelling = best.1 == 0 ? nil : ([ingredient.name] + ingredient.aliases)[best.1]
+            candidates.append((.ingredient(ingredient, matchedAs: matchedSpelling), best.0))
+        }
 
         let appliedIDs = Set(applied.map(\.id))
-        return Array(
-            (matchingIngredients + matchingCategories)
-                .filter { !appliedIDs.contains($0.id) }
-                .prefix(limit)
-        )
+        return candidates
+            .filter { !appliedIDs.contains($0.filter.id) }
+            .sorted { first, second in
+                first.rank == second.rank
+                    ? (first.filter.title.count == second.filter.title.count
+                        ? first.filter.title < second.filter.title
+                        : first.filter.title.count < second.filter.title.count)
+                    : first.rank < second.rank
+            }
+            .prefix(limit)
+            .map(\.filter)
+    }
+
+    /// Lower is closer: starting with what was typed beats containing it.
+    private static func rank(of candidate: String, matching query: String) -> Int? {
+        let normalized = IngredientCatalog.normalize(candidate)
+        if normalized.hasPrefix(query) { return 0 }
+        if normalized.contains(query) { return 2 }
+        return nil
     }
 }
