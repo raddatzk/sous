@@ -25,9 +25,17 @@ struct CookAddSheet: View {
     var body: some View {
         NavigationStack {
             List(results) { recipe in
-                RecipeRow(recipe: recipe)
-                    .contentShape(.rect)
-                    .onTapGesture { picked = recipe }
+                // A button rather than a tap gesture: the pointer changes
+                // over it, the keyboard reaches it, and the Mac gets the
+                // click it expects.
+                Button {
+                    picked = recipe
+                } label: {
+                    RecipeRow(recipe: recipe)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
             }
             .navigationTitle("Rezept dazunehmen")
             #if os(iOS)

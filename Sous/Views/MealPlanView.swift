@@ -142,16 +142,15 @@ struct MealPlanView: View {
 
                 ForEach(meal.items, id: \.entry.id) { item in
                     mealRow(item)
-                        .swipeActions {
-                            Button("Entfernen", systemImage: "trash", role: .destructive) {
-                                Task { await plan.remove(item.entry) }
-                            }
-                        }
+                        .swipeActions { removeAction(item.entry) }
                         .swipeActions(edge: .leading) {
-                            Button("In die Sammlung", systemImage: "tray") {
-                                Task { await plan.move(item.entry, to: nil) }
-                            }
-                            .tint(.orange)
+                            toPoolAction(item.entry).tint(.orange)
+                        }
+                        // Both again as a menu: a swipe needs a trackpad to
+                        // exist at all, and nothing on the row says it does.
+                        .contextMenu {
+                            toPoolAction(item.entry)
+                            removeAction(item.entry)
                         }
                 }
             }
@@ -199,16 +198,13 @@ struct MealPlanView: View {
         List {
             ForEach(plan.pooledMeals, id: \.entry.id) { item in
                 mealRow(item)
-                    .swipeActions {
-                        Button("Entfernen", systemImage: "trash", role: .destructive) {
-                            Task { await plan.remove(item.entry) }
-                        }
-                    }
+                    .swipeActions { removeAction(item.entry) }
                     .swipeActions(edge: .leading) {
-                        Button("Auf einen Tag", systemImage: "calendar") {
-                            movingEntry = item.entry
-                        }
-                        .tint(.accentColor)
+                        toDayAction(item.entry).tint(.accentColor)
+                    }
+                    .contextMenu {
+                        toDayAction(item.entry)
+                        removeAction(item.entry)
                     }
             }
         }
@@ -229,24 +225,51 @@ struct MealPlanView: View {
     // MARK: - Shared parts
 
     @ViewBuilder
-    private func mealRow(_ item: (entry: MealPlanEntry, recipe: Recipe?)) -> some View {
-        HStack(spacing: 12) {
-            if let imageID = item.recipe?.imageIDs.first {
-                RecipeImageView(imageID: imageID, thumbnail: true)
-                    .frame(width: 44, height: 44)
-                    .clipShape(.rect(cornerRadius: 8))
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.recipe?.title ?? "Gelöschtes Rezept")
-                    .font(SousStyle.recipeName)
-                Text("\(item.entry.servings ?? item.recipe?.servings ?? 0) Portionen")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
+    private func removeAction(_ entry: MealPlanEntry) -> some View {
+        Button("Entfernen", systemImage: "trash", role: .destructive) {
+            Task { await plan.remove(entry) }
         }
-        .contentShape(.rect)
-        .onTapGesture { openedRecipe = item.recipe }
+    }
+
+    @ViewBuilder
+    private func toPoolAction(_ entry: MealPlanEntry) -> some View {
+        Button("In die Sammlung", systemImage: "tray") {
+            Task { await plan.move(entry, to: nil) }
+        }
+    }
+
+    @ViewBuilder
+    private func toDayAction(_ entry: MealPlanEntry) -> some View {
+        Button("Auf einen Tag", systemImage: "calendar") {
+            movingEntry = entry
+        }
+    }
+
+    @ViewBuilder
+    private func mealRow(_ item: (entry: MealPlanEntry, recipe: Recipe?)) -> some View {
+        // A button rather than a tap gesture: the pointer changes over it,
+        // the keyboard reaches it, and the Mac gets the click it expects.
+        Button {
+            openedRecipe = item.recipe
+        } label: {
+            HStack(spacing: 12) {
+                if let imageID = item.recipe?.imageIDs.first {
+                    RecipeImageView(imageID: imageID, thumbnail: true)
+                        .frame(width: 44, height: 44)
+                        .clipShape(.rect(cornerRadius: 8))
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(item.recipe?.title ?? "Gelöschtes Rezept")
+                        .font(SousStyle.recipeName)
+                    Text("\(item.entry.servings ?? item.recipe?.servings ?? 0) Portionen")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 
     @ToolbarContentBuilder

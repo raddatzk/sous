@@ -128,7 +128,11 @@ struct ShoppingListView: View {
 
     @ViewBuilder
     private func row(_ item: ShoppingItem, showingSource: Bool) -> some View {
-        Group {
+        // A button rather than a tap gesture: the pointer changes over it,
+        // the keyboard reaches it, and the Mac gets the click it expects.
+        Button {
+            Task { await shopping.toggle(item) }
+        } label: {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(.tint)
@@ -144,13 +148,19 @@ struct ShoppingListView: View {
                 Spacer(minLength: 0)
             }
             .opacity(item.isChecked ? 0.5 : 1)
+            .contentShape(.rect)
         }
-        .contentShape(.rect)
-        .onTapGesture { Task { await shopping.toggle(item) } }
-        .swipeActions {
-            Button("Entfernen", systemImage: "trash", role: .destructive) {
-                Task { await shopping.remove(item) }
-            }
+        .buttonStyle(.plain)
+        .swipeActions { actions(for: item) }
+        // The same actions again, because a swipe needs a trackpad to exist
+        // at all and gives no sign that it is there.
+        .contextMenu { actions(for: item) }
+    }
+
+    @ViewBuilder
+    private func actions(for item: ShoppingItem) -> some View {
+        Button("Entfernen", systemImage: "trash", role: .destructive) {
+            Task { await shopping.remove(item) }
         }
     }
 

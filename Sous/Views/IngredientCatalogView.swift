@@ -68,7 +68,13 @@ struct IngredientCatalogView: View {
     private func row(_ ingredient: CatalogIngredient) -> some View {
         let isOwn = catalog.isOwn(ingredient)
 
-        Group {
+        // A button rather than a tap gesture: the pointer changes over it,
+        // the keyboard reaches it, and the Mac gets the click it expects.
+        // Disabled for the bundled entries, which says on its own that they
+        // cannot be edited.
+        Button {
+            editing = ingredient
+        } label: {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ingredient.name)
@@ -87,14 +93,21 @@ struct IngredientCatalogView: View {
                         .foregroundStyle(.tint)
                 }
             }
+            .contentShape(.rect)
         }
-        .contentShape(.rect)
-        .onTapGesture { if isOwn { editing = ingredient } }
-        .swipeActions {
-            if isOwn {
-                Button("Entfernen", systemImage: "trash", role: .destructive) {
-                    Task { await catalog.delete(ingredient) }
-                }
+        .buttonStyle(.plain)
+        .disabled(!isOwn)
+        .swipeActions { deleteAction(ingredient, isOwn: isOwn) }
+        // The same action again, because a swipe needs a trackpad to exist
+        // at all and gives no sign that it is there.
+        .contextMenu { deleteAction(ingredient, isOwn: isOwn) }
+    }
+
+    @ViewBuilder
+    private func deleteAction(_ ingredient: CatalogIngredient, isOwn: Bool) -> some View {
+        if isOwn {
+            Button("Entfernen", systemImage: "trash", role: .destructive) {
+                Task { await catalog.delete(ingredient) }
             }
         }
     }

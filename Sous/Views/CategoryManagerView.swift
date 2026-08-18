@@ -18,7 +18,13 @@ struct CategoryManagerView: View {
         NavigationStack {
             List {
                 ForEach(counts, id: \.name) { entry in
-                    Group {
+                    // A button rather than a tap gesture: the pointer changes
+                    // over it, the keyboard reaches it, and the Mac gets the
+                    // click it expects.
+                    Button {
+                        newName = entry.name
+                        renaming = entry.name
+                    } label: {
                         HStack {
                             Label(entry.name, systemImage: "tag")
                             Spacer()
@@ -27,20 +33,13 @@ struct CategoryManagerView: View {
                                 .foregroundStyle(.secondary)
                                 .monospacedDigit()
                         }
+                        .contentShape(.rect)
                     }
-                    .contentShape(.rect)
-                    .onTapGesture {
-                        newName = entry.name
-                        renaming = entry.name
-                    }
-                    .swipeActions {
-                        Button("Entfernen", systemImage: "trash", role: .destructive) {
-                            Task {
-                                await library.deleteCategory(entry.name)
-                                await reload()
-                            }
-                        }
-                    }
+                    .buttonStyle(.plain)
+                    .swipeActions { deleteAction(entry.name) }
+                    // The same action again, because a swipe needs a trackpad
+                    // to exist at all and gives no sign that it is there.
+                    .contextMenu { deleteAction(entry.name) }
                 }
             }
             .navigationTitle("Kategorien")
@@ -92,6 +91,16 @@ struct CategoryManagerView: View {
         Task {
             await library.renameCategory(old, to: newName)
             await reload()
+        }
+    }
+
+    @ViewBuilder
+    private func deleteAction(_ name: String) -> some View {
+        Button("Entfernen", systemImage: "trash", role: .destructive) {
+            Task {
+                await library.deleteCategory(name)
+                await reload()
+            }
         }
     }
 

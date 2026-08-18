@@ -18,21 +18,26 @@ struct RecipePickerView: View {
     var body: some View {
         NavigationStack {
             List(results) { recipe in
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(recipe.title)
-                        .font(SousStyle.recipeName)
-                    if !recipe.categories.isEmpty {
-                        Text(recipe.categories.joined(separator: " · "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-                .onTapGesture {
+                // A button rather than a tap gesture: the pointer changes
+                // over it, the keyboard reaches it, and the Mac gets the
+                // click it expects.
+                Button {
                     onPick(recipe)
                     dismiss()
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(recipe.title)
+                            .font(SousStyle.recipeName)
+                        if !recipe.categories.isEmpty {
+                            Text(recipe.categories.joined(separator: " · "))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
             }
             .navigationTitle(title)
             .searchable(text: $searchText, prompt: "Rezept suchen")
