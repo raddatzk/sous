@@ -28,6 +28,17 @@ struct RecipeDetailView: View {
         GeometryReader { screen in
             let barEdge = screen.safeAreaInsets.top + Self.barHeight
 
+            // Not the size class: that describes the window, and this view
+            // is a column inside it. On a Mac with a narrow window, or an
+            // iPad in Split View, the window stays regular while the column
+            // has no room — only its own width can answer this.
+            // Both halves have to exist, or the fixed ingredient column
+            // becomes 300 points of nothing with the steps shoved off to
+            // the right of it.
+            let isWide = screen.size.width >= Self.splitWidth
+                && !recipe.ingredients.isEmpty
+                && !recipe.steps.isEmpty
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     heroImage
@@ -39,13 +50,25 @@ struct RecipeDetailView: View {
                             actionBar
                         }
                         servingsControl
-                        ingredients
-                        steps
+                        if isWide {
+                            // What to get out and what to do with it, side by
+                            // side: the cook reads the steps and glances left
+                            // instead of scrolling back up.
+                            HStack(alignment: .top, spacing: 40) {
+                                ingredients
+                                    .frame(width: Self.ingredientColumn, alignment: .leading)
+                                steps
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        } else {
+                            ingredients
+                            steps
+                        }
                         notes
                         sourceFooter
                     }
                     .padding(24)
-                    .frame(maxWidth: 700, alignment: .leading)
+                    .frame(maxWidth: isWide ? Self.wideContent : Self.narrowContent, alignment: .leading)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -117,6 +140,16 @@ struct RecipeDetailView: View {
 
     /// How much of the navigation bar sits below the safe area.
     private static let barHeight: CGFloat = 44
+
+    /// Where the page stops being one column.
+    ///
+    /// The ingredient column plus a step column wide enough to read a
+    /// sentence in, with the padding and the gap between them — below this
+    /// the split makes both halves worse than the single column was.
+    private static let splitWidth: CGFloat = 820
+    private static let ingredientColumn: CGFloat = 300
+    private static let narrowContent: CGFloat = 700
+    private static let wideContent: CGFloat = 1100
 
     @ViewBuilder
     private func titleBlock(barEdge: CGFloat) -> some View {
