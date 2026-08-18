@@ -1,11 +1,16 @@
 import Foundation
 import Observation
 
-/// The meal plan as one continuous run of days rather than a week at a time.
+/// The meal plan as one continuous run of days rather than a week at a time,
+/// with a pool of undated meals beside it.
 ///
 /// Planning does not happen in weekly blocks: two days ahead on Monday, then
 /// nothing until the weekend. The list starts today and grows as it is
 /// scrolled, so there is no boundary to bump into.
+///
+/// Not every plan wants dates at all. A recipe can be planned into the pool
+/// instead — cooked this week, on whichever evening there is time for it —
+/// and moved onto a day later, or never.
 @MainActor
 @Observable
 public final class MealPlanLibrary {
@@ -18,6 +23,8 @@ public final class MealPlanLibrary {
     /// The days on screen, starting today, in order.
     public private(set) var days: [Date] = []
     public private(set) var entries: [MealPlanEntry] = []
+    /// Meals planned without a day, oldest first.
+    public private(set) var pool: [MealPlanEntry] = []
     /// Recipes referenced by the visible days, by id.
     public private(set) var recipes: [UUID: Recipe] = [:]
     public var errorMessage: String?
@@ -34,10 +41,12 @@ public final class MealPlanLibrary {
     public func reload() async {
         do {
             entries = try await store.entries(for: days)
+            pool = try await store.poolEntries()
 
-            // Only the recipes these days actually show, fetched once each.
+            // Only the recipes these days and the pool actually show,
+            // fetched once each.
             var resolved: [UUID: Recipe] = [:]
-            for id in Set(entries.map(\.recipeID)) {
+            for id in Set((entries + pool).map(\.recipeID)) {
                 resolved[id] = try await recipeStore.recipe(id: id)
             }
             recipes = resolved
@@ -91,10 +100,10 @@ public final class MealPlanLibrary {
     }
 
     /// Plans a recipe for a day, optionally for a different number of people
-    /// than the recipe is written for.
+    /// than the recipe is written for. A `nil` day puts it in the pool.
     public func add(
         _ recipe: Recipe,
-        to day: Date,
+        to day: Date?,
         slot: MealSlot = .dinner,
         servings: Int? = nil
     ) async {
@@ -103,12 +112,30 @@ public final class MealPlanLibrary {
             slot: slot,
             recipeID: recipe.id,
             servings: servings == recipe.servings ? nil : servings,
-            sortOrder: plan(for: day).count
+            sortOrder: day.map { plan(for: $0).count } ?? pool.count
         )
         do {
             try await store.save(entry)
             // A day past the end of the run would otherwise be invisible.
-            extend(through: day)
+            if let day { extend(through: day) }
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Moves an entry onto a day, or off every day and into the pool.
+    ///
+    /// The same entry rather than a new one, so what was planned for four
+    /// people stays planned for four when the evening changes.
+    public func move(_ entry: MealPlanEntry, to day: Date?, slot: MealSlot? = nil) async {
+        var moved = entry
+        moved.day = day?.startOfDay
+        if let slot { moved.slot = slot }
+        moved.sortOrder = day.map { plan(for: $0).count } ?? pool.count
+        do {
+            try await store.save(moved)
+            if let day { extend(through: day) }
             await reload()
         } catch {
             errorMessage = error.localizedDescription
@@ -133,11 +160,27 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// The pool, with each entry's recipe where it still exists.
+    public var pooledMeals: [(entry: MealPlanEntry, recipe: Recipe?)] {
+        pool.map { ($0, recipes[$0.recipeID]) }
+    }
+
+    /// Everything in the pool, for putting it all on the shopping list.
+    public var pooledRecipes: [(recipe: Recipe, servings: Int)] {
+        pool.compactMap { entry in
+            guard let recipe = recipes[entry.recipeID] else { return nil }
+            return (recipe, entry.servings ?? recipe.servings)
+        }
+    }
+
     /// The recipes planned for a stretch of days, for putting a few days'
     /// worth on the shopping list at once.
     public func plannedRecipes(from start: Date, through end: Date) -> [(recipe: Recipe, servings: Int)] {
         entries
-            .filter { $0.day >= start.startOfDay && $0.day <= end.startOfDay }
+            .filter { entry in
+                guard let day = entry.day else { return false }
+                return day >= start.startOfDay && day <= end.startOfDay
+            }
             .compactMap { entry in
                 guard let recipe = recipes[entry.recipeID] else { return nil }
                 return (recipe, entry.servings ?? recipe.servings)

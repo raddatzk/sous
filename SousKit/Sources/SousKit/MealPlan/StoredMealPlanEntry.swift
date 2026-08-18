@@ -7,7 +7,7 @@ public final class StoredMealPlanEntry {
     #Index<StoredMealPlanEntry>([\.day])
 
     public var id: UUID = UUID()
-    public var day: Date = Date.nowInSyncPrecision
+    public var day: Date?
     public var slotRaw: String = MealSlot.dinner.rawValue
     public var recipeID: UUID = UUID()
     public var servings: Int?

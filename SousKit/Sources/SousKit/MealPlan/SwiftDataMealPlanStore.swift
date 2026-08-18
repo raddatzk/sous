@@ -7,12 +7,28 @@ public actor SwiftDataMealPlanStore: MealPlanStore {
     public func entries(for days: [Date]) async throws -> [MealPlanEntry] {
         guard let first = days.min(), let last = days.max() else { return [] }
 
+        // A pool entry has no day, and the coalesced dates put it outside
+        // any window rather than making the query lie about it.
+        let before = Date.distantPast
+        let after = Date.distantFuture
         var descriptor = FetchDescriptor<StoredMealPlanEntry>(
-            predicate: #Predicate { $0.deletedAt == nil && $0.day >= first && $0.day <= last }
+            predicate: #Predicate {
+                $0.deletedAt == nil
+                    && ($0.day ?? before) >= first
+                    && ($0.day ?? after) <= last
+            }
         )
         descriptor.sortBy = [
             SortDescriptor(\.day), SortDescriptor(\.slotRaw), SortDescriptor(\.sortOrder),
         ]
+        return try modelContext.fetch(descriptor).map(\.domainValue)
+    }
+
+    public func poolEntries() async throws -> [MealPlanEntry] {
+        var descriptor = FetchDescriptor<StoredMealPlanEntry>(
+            predicate: #Predicate { $0.deletedAt == nil && $0.day == nil }
+        )
+        descriptor.sortBy = [SortDescriptor(\.sortOrder), SortDescriptor(\.createdAt)]
         return try modelContext.fetch(descriptor).map(\.domainValue)
     }
 
