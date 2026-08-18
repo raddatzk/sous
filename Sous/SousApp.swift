@@ -8,6 +8,9 @@ struct SousApp: App {
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
     @State private var catalog: IngredientCatalogLibrary
+    /// Timers outlive the screen they were started from, so they are held by
+    /// the app rather than by cook mode.
+    @State private var timers = CookTimerCenter()
 
     init() {
         do {
@@ -45,6 +48,15 @@ struct SousApp: App {
                 .environment(mealPlan)
                 .environment(shopping)
                 .environment(catalog)
+                .environment(timers)
+                // Timers stopped from the lock screen have to disappear from
+                // the step too, so AlarmKit's own list is the one that counts.
+                .task {
+                    timers.forgetStale()
+                    #if os(iOS)
+                    await timers.watchAlarms()
+                    #endif
+                }
                 // A page shared from Safari arrives as sous://import?url=…
                 .onOpenURL { url in
                     guard url.scheme == "sous", url.host() == "import",
