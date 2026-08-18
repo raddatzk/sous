@@ -73,7 +73,8 @@ struct CookModeView: View {
                     entries: session.entries,
                     titles: recipes.mapValues(\.title),
                     activeRecipeID: session.activeEntry?.recipeID,
-                    onSelect: { session.show($0) }
+                    onSelect: { session.show($0) },
+                    presentation: .toolbar
                 )
             }
             ToolbarItem(placement: .primaryAction) {
@@ -468,6 +469,15 @@ struct CookModeView: View {
             .padding(24)
         }
         .frame(maxWidth: .infinity)
+        // A window has to give the keyboard focus to something when it opens,
+        // and the first thing here that can take it is the first ingredient's
+        // tick box. In the app's own accent the ring around it reads as "this
+        // one is selected", which is exactly what the tick box means and
+        // exactly what has not happened.
+        //
+        // The effect goes, not the focusability: the boxes can still be
+        // reached and pressed from the keyboard.
+        .focusEffectDisabled()
     }
 
     // MARK: - Session

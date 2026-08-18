@@ -55,12 +55,23 @@ struct CookSwitcherBar: View {
 /// struct it belongs to: the timers would be read from an `@Environment` that
 /// has nothing in it yet.
 struct CookSwitcherChips: View {
+    /// Where the chips are standing, which decides how the active one is
+    /// marked.
+    enum Presentation {
+        /// In the bar along the foot, on its own ground.
+        case bar
+        /// In the title bar, where the system already draws a capsule around
+        /// the whole item — a second one inside it reads as a box in a box.
+        case toolbar
+    }
+
     @Environment(CookTimerCenter.self) private var timers
 
     let entries: [CookSessionEntry]
     let titles: [UUID: String]
     let activeRecipeID: UUID?
     let onSelect: (UUID) -> Void
+    var presentation: Presentation = .bar
 
     var body: some View {
         HStack(spacing: 8) {
@@ -86,10 +97,22 @@ struct CookSwitcherChips: View {
                     timerBadge(timer)
                 }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .foregroundStyle(isActive ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-            .background(isActive ? AnyShapeStyle(Color.sousField) : AnyShapeStyle(.clear), in: .capsule)
+            .padding(.horizontal, presentation == .bar ? 14 : 8)
+            .padding(.vertical, presentation == .bar ? 8 : 2)
+            // In the toolbar the active pot is told apart by weight and
+            // colour rather than by a filled capsule, since the item already
+            // sits in one.
+            .foregroundStyle(
+                isActive
+                    ? AnyShapeStyle(presentation == .bar ? AnyShapeStyle(.primary) : AnyShapeStyle(.tint))
+                    : AnyShapeStyle(.secondary)
+            )
+            .background(
+                isActive && presentation == .bar
+                    ? AnyShapeStyle(Color.sousField)
+                    : AnyShapeStyle(.clear),
+                in: .capsule
+            )
         }
         .buttonStyle(.plain)
     }
