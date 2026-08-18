@@ -13,11 +13,20 @@ struct ContinueCookingBanner: View {
     @Environment(CookTimerCenter.self) private var timers
     @Environment(RecipeLibrary.self) private var library
 
+    #if os(macOS)
+    @Environment(\.openWindow) private var openWindow
+    #endif
+
     @State private var titles: [UUID: String] = [:]
 
     var body: some View {
         Button {
             session.isPresented = true
+            #if os(macOS)
+            // Opening a window that is already open brings it forward, which
+            // is what the band is for once the cooking window exists.
+            openWindow(id: SousApp.cookWindow)
+            #endif
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: "frying.pan")
