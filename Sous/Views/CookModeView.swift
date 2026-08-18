@@ -27,8 +27,13 @@ struct CookModeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // The Mac puts all of this in the title bar: the name and the step
+            // as title and subtitle, "Fertig" as a toolbar button, and closing
+            // to the red traffic light, which is what it is for.
+            #if os(iOS)
             header
             Divider()
+            #endif
             if let entry = session.activeEntry, let recipe = recipes[entry.recipeID] {
                 pages(entry, recipe)
                     // A fresh page view per recipe: the swipe between steps
@@ -42,6 +47,31 @@ struct CookModeView: View {
             Divider()
             switcher
         }
+        #if os(macOS)
+        .navigationTitle(activeRecipe?.title ?? "Kochen")
+        .navigationSubtitle(activeSubtitle)
+        .toolbar {
+            ToolbarItem(placement: .navigation) {
+                Button("Fertig") {
+                    if let entry = session.activeEntry { finish(entry) }
+                }
+                .disabled(session.activeEntry == nil)
+            }
+            // A pot that turns out to be for four rather than two should not
+            // need the cook to leave the kitchen. On the phone this hangs off
+            // the header's serving count; here it needs a button of its own.
+            if let entry = session.activeEntry, let recipe = activeRecipe {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("\(entry.servings) Portionen", systemImage: "person.2") {
+                        isSettingServings = true
+                    }
+                    .popover(isPresented: $isSettingServings) {
+                        servingsPopover(entry: entry, recipe: recipe)
+                    }
+                }
+            }
+        }
+        #endif
         .background(Color.sousCookBackground)
         // Cook mode is presented over the app, and a sheet does not pick up
         // a change to the window's scheme — so it names the same one again.
@@ -107,6 +137,19 @@ struct CookModeView: View {
 
     // MARK: - Chrome
 
+    private var activeRecipe: Recipe? {
+        session.activeEntry.flatMap { recipes[$0.recipeID] }
+    }
+
+    /// Where the cook is, for the window's subtitle. Only the step — the
+    /// servings are a toolbar button of their own, and saying the number in
+    /// both places would be saying it twice.
+    private var activeSubtitle: String {
+        guard let entry = session.activeEntry, let recipe = activeRecipe else { return "" }
+        return stepPosition(entry: entry, recipe: recipe)
+    }
+
+    #if os(iOS)
     @ViewBuilder
     private var header: some View {
         let entry = session.activeEntry
@@ -148,6 +191,7 @@ struct CookModeView: View {
         }
         .padding()
     }
+    #endif
 
     private func stepPosition(entry: CookSessionEntry, recipe: Recipe) -> String {
         let steps = recipe.steps
