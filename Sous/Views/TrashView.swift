@@ -110,6 +110,8 @@ struct TrashView: View {
         }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 480)
+        #elseif os(iOS)
+        .presentationDetents([.large])
         #endif
     }
 

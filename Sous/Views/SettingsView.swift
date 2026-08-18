@@ -47,6 +47,10 @@ struct SettingsView: View {
         // react to it: a sheet takes the window's scheme when it opens and
         // then keeps it.
         .sousAppearance()
+        #if os(macOS)
         .frame(minWidth: 380, minHeight: 300)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
+        #endif
     }
 }

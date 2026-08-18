@@ -196,7 +196,13 @@ struct CookModeView: View {
 
     @ViewBuilder
     private func pages(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
-        #if os(iOS)
+        #if os(macOS)
+        HStack(spacing: 0) {
+            stepsPage(entry, recipe)
+            Divider()
+            ingredientsPage(entry, recipe).frame(width: 320)
+        }
+        #elseif os(iOS)
         TabView(selection: binding(entry, \.page)) {
             stepsPage(entry, recipe)
                 .tag(CookSessionEntry.Page.steps)
@@ -205,12 +211,6 @@ struct CookModeView: View {
         }
         .tabViewStyle(.page)
         .indexViewStyle(.page(backgroundDisplayMode: .always))
-        #else
-        HStack(spacing: 0) {
-            stepsPage(entry, recipe)
-            Divider()
-            ingredientsPage(entry, recipe).frame(width: 320)
-        }
         #endif
     }
 

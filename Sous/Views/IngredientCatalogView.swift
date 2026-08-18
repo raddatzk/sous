@@ -59,6 +59,8 @@ struct IngredientCatalogView: View {
         }
         #if os(macOS)
         .frame(minWidth: 420, minHeight: 520)
+        #elseif os(iOS)
+        .presentationDetents([.large])
         #endif
     }
 
@@ -167,6 +169,8 @@ struct IngredientFormView: View {
         }
         #if os(macOS)
         .frame(minWidth: 380, minHeight: 340)
+        #elseif os(iOS)
+        .presentationDetents([.medium])
         #endif
     }
 
