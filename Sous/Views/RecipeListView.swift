@@ -6,6 +6,7 @@ struct RecipeListView: View {
     @State private var selectedRecipeID: Recipe.ID?
     @State private var isShowingCatalog = false
     @State private var isShowingCategories = false
+    @State private var isImporting = false
 
     var body: some View {
         @Bindable var library = library
@@ -38,6 +39,7 @@ struct RecipeListView: View {
             }
         }
         .task { await library.reload() }
+        .recipeImporter(isPresented: $isImporting)
         .sheet(isPresented: $isShowingCatalog) {
             IngredientCatalogView()
         }
@@ -112,6 +114,10 @@ struct RecipeListView: View {
                 }
                 Button("Kategorien verwalten", systemImage: "tag") {
                     isShowingCategories = true
+                }
+                Divider()
+                Button("Aus Mela importieren", systemImage: "square.and.arrow.down") {
+                    isImporting = true
                 }
             }
         }
