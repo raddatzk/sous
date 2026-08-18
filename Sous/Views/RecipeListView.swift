@@ -13,123 +13,96 @@ struct RecipeListView: View {
     @State private var isImporting = false
     @State private var export: RecipeExport?
 
+    @Environment(RecipeSelection.self) private var selection
+
     var body: some View {
         @Bindable var library = library
 
-        #if os(macOS)
-        NavigationSplitView {
-            List(selection: $selectedRecipeID) {
-                filterBar
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-
-                ForEach(library.recipes) { recipe in
-                    RecipeRow(recipe: recipe)
-                        .tag(recipe.id)
-                        .contextMenu { contextActions(for: recipe) }
+        root
+            .recipeImporter(isPresented: $isImporting)
+            .recipeExporter($export)
+            .sheet(isPresented: $isShowingCatalog) {
+                IngredientCatalogView()
+            }
+            .sheet(isPresented: $isShowingCategories) {
+                CategoryManagerView()
+            }
+            .sheet(isPresented: $isShowingTrash) {
+                TrashView()
+            }
+            #if os(iOS)
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
+            #endif
+            .sheet(item: $library.editing) { recipe in
+                RecipeEditorView(recipe: recipe) { edited in
+                    await library.save(edited)
+                    selectedRecipeID = edited.id
                 }
             }
-            .navigationTitle("Rezepte")
-            .overlay { emptyState }
-            .toolbar { listToolbar }
-        } detail: {
-            if let recipe = selectedRecipe {
-                RecipeDetailView(recipe: recipe)
-            } else {
-                ContentUnavailableView(
-                    "Kein Rezept ausgewählt",
-                    systemImage: "fork.knife",
-                    description: Text("Wähle links ein Rezept aus.")
+            // A draft the cook walked away from takes its pictures with it.
+            .onChange(of: library.editing) { _, editing in
+                if editing == nil { Task { await library.discardUnsavedDraft() } }
+            }
+            .alert(
+                "Fehler",
+                isPresented: Binding(
+                    get: { library.errorMessage != nil },
+                    set: { if !$0 { library.errorMessage = nil } }
                 )
+            ) {
+                Button("OK", role: .cancel) { library.errorMessage = nil }
+            } message: {
+                Text(library.errorMessage ?? "")
             }
-        }
-        .task { await library.reload() }
-        .recipeImporter(isPresented: $isImporting)
-        .recipeExporter($export)
-        .sheet(isPresented: $isShowingCatalog) {
-            IngredientCatalogView()
-        }
-        .sheet(isPresented: $isShowingCategories) {
-            CategoryManagerView()
-        }
-        .sheet(isPresented: $isShowingTrash) {
-            TrashView()
-        }
-        .sheet(item: $library.editing) { recipe in
-            RecipeEditorView(recipe: recipe) { edited in
-                await library.save(edited)
-                selectedRecipeID = edited.id
-            }
-        }
-        .onChange(of: library.editing) { _, editing in
-            if editing == nil { Task { await library.discardUnsavedDraft() } }
-        }
-        .alert(
-            "Fehler",
-            isPresented: Binding(
-                get: { library.errorMessage != nil },
-                set: { if !$0 { library.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { library.errorMessage = nil }
-        } message: {
-            Text(library.errorMessage ?? "")
-        }
+    }
+
+    /// The Mac has one split view for the whole window, so this is only its
+    /// first column; the phone brings its own stack and pushes into it.
+    @ViewBuilder
+    private var root: some View {
+        #if os(macOS)
+        list
         #else
         NavigationStack {
-            List(selection: $selectedRecipeID) {
-                filterBar
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-
-                ForEach(library.recipes) { recipe in
-                    RecipeRow(recipe: recipe)
-                        .tag(recipe.id)
-                        .contextMenu { contextActions(for: recipe) }
+            list
+                // Without this, tapping a row selected it and opened nothing:
+                // a list with a selection but no destination goes nowhere.
+                .navigationDestination(item: $selectedRecipeID) { id in
+                    if let recipe = library.recipes.first(where: { $0.id == id }) {
+                        RecipeDetailView(recipe: recipe)
+                    }
                 }
-            }
-            .navigationTitle("Rezepte")
-            .overlay { emptyState }
-            .toolbar { listToolbar }
-            .task { await library.reload() }
-        }
-        .recipeImporter(isPresented: $isImporting)
-        .recipeExporter($export)
-        .sheet(isPresented: $isShowingCatalog) {
-            IngredientCatalogView()
-        }
-        .sheet(isPresented: $isShowingCategories) {
-            CategoryManagerView()
-        }
-        .sheet(isPresented: $isShowingTrash) {
-            TrashView()
-        }
-        .sheet(isPresented: $isShowingSettings) {
-            SettingsView()
-        }
-        .sheet(item: $library.editing) { recipe in
-            RecipeEditorView(recipe: recipe) { edited in
-                await library.save(edited)
-                selectedRecipeID = edited.id
-            }
-        }
-        .onChange(of: library.editing) { _, editing in
-            if editing == nil { Task { await library.discardUnsavedDraft() } }
-        }
-        .alert(
-            "Fehler",
-            isPresented: Binding(
-                get: { library.errorMessage != nil },
-                set: { if !$0 { library.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { library.errorMessage = nil }
-        } message: {
-            Text(library.errorMessage ?? "")
         }
         #endif
+    }
+
+    @ViewBuilder
+    private var list: some View {
+        List(selection: $selectedRecipeID) {
+            filterBar
+                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
+
+            ForEach(library.recipes) { recipe in
+                RecipeRow(recipe: recipe)
+                    .tag(recipe.id)
+                    .contextMenu { contextActions(for: recipe) }
+            }
+        }
+        .navigationTitle("Rezepte")
+        .overlay { emptyState }
+        .toolbar { listToolbar }
+        .task { await library.reload() }
+        // The selected row is what the detail column shows. Kept in sync
+        // rather than held there, because the list wants an id for its
+        // highlight and the column wants the recipe.
+        .onChange(of: selectedRecipeID) { selection.recipe = selectedRecipe }
+        .onChange(of: library.recipes) {
+            if selectedRecipeID != nil { selection.recipe = selectedRecipe }
+        }
     }
 
     private var selectedRecipe: Recipe? {

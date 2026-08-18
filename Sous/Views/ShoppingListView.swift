@@ -24,43 +24,52 @@ struct ShoppingListView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                addRow
+        // The Mac has one split view for the whole window, so this is only
+        // its first column; the phone brings its own stack.
+        #if os(macOS)
+        list
+        #else
+        NavigationStack { list }
+        #endif
+    }
 
-                if !shopping.items.isEmpty, hasRecipeSources {
-                    Picker("Ansicht", selection: $grouping) {
-                        ForEach(Grouping.allCases, id: \.self) { option in
-                            Text(option.title).tag(option)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                }
+    @ViewBuilder
+    private var list: some View {
+        List {
+            addRow
 
-                switch grouping {
-                case .aisle: byAisle
-                case .recipe: byRecipe
-                }
-            }
-            .navigationTitle("Einkaufsliste")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                if !shopping.checkedItems.isEmpty {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button("Erledigte entfernen", systemImage: "trash") {
-                            Task { await shopping.clearChecked() }
-                        }
-                        .labelStyle(.iconOnly)
+            if !shopping.items.isEmpty, hasRecipeSources {
+                Picker("Ansicht", selection: $grouping) {
+                    ForEach(Grouping.allCases, id: \.self) { option in
+                        Text(option.title).tag(option)
                     }
                 }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
             }
-            .overlay { emptyState }
-            .task { await shopping.reload() }
-            .refreshable { await shopping.reload() }
+
+            switch grouping {
+            case .aisle: byAisle
+            case .recipe: byRecipe
+            }
         }
+        .navigationTitle("Einkaufsliste")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .toolbar {
+            if !shopping.checkedItems.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Erledigte entfernen", systemImage: "trash") {
+                        Task { await shopping.clearChecked() }
+                    }
+                    .labelStyle(.iconOnly)
+                }
+            }
+        }
+        .overlay { emptyState }
+        .task { await shopping.reload() }
+        .refreshable { await shopping.reload() }
     }
 
     private var hasRecipeSources: Bool {
