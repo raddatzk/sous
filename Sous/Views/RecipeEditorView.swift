@@ -22,6 +22,7 @@ struct RecipeEditorView: View {
     /// An unknown ingredient the cook is about to teach the app.
     @State private var teaching: CatalogIngredient?
     @FocusState private var isEditingIngredients: Bool
+    @FocusState private var isEditingCategories: Bool
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -151,11 +152,49 @@ struct RecipeEditorView: View {
             LabeledContent {
                 TextField("Nachtisch, Schnell", text: $categoriesText)
                     .multilineTextAlignment(.trailing)
+                    .focused($isEditingCategories)
             } label: {
                 Label("Kategorien", systemImage: "tag")
             }
+            categorySuggestions
         } header: {
             sectionHeader("Angaben")
+        }
+    }
+
+    /// Categories already used elsewhere in the library, offered while
+    /// typing so a typo does not quietly create a second one.
+    @ViewBuilder
+    private var categorySuggestions: some View {
+        let matches = CategoryCompletion.suggestions(
+            for: categoriesText,
+            categories: library.categories
+        )
+        if isEditingCategories, !matches.isEmpty {
+            ScrollView(.horizontal) {
+                HStack(spacing: 8) {
+                    ForEach(matches, id: \.self) { category in
+                        Button {
+                            categoriesText = CategoryCompletion.completed(
+                                text: categoriesText, with: category
+                            )
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "tag")
+                                    .font(.caption2)
+                                Text(category)
+                                    .font(.callout)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                        }
+                        .buttonStyle(.plain)
+                        .background(.quaternary, in: .capsule)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .scrollIndicators(.hidden)
         }
     }
 
