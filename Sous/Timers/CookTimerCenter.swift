@@ -3,6 +3,8 @@ import Observation
 #if os(iOS)
 import AlarmKit
 import SwiftUI
+#elseif os(macOS)
+import UserNotifications
 #endif
 
 /// Where timers are kept while they run, so they outlive the step they were
@@ -89,6 +91,16 @@ final class CookTimerCenter {
             errorMessage = "Der Timer konnte nicht gestellt werden: \(error.localizedDescription)"
             return
         }
+        #elseif os(macOS)
+        guard await ensureNotificationsAllowed() else {
+            errorMessage = """
+                Sous darf keine Mitteilungen senden. In den Systemeinstellungen \
+                unter „Mitteilungen“ lässt sich das erlauben — sonst zählt der \
+                Timer nur, solange du hinsiehst.
+                """
+            return
+        }
+        await schedule(timer, in: seconds)
         #endif
 
         timers.append(timer)
@@ -99,6 +111,12 @@ final class CookTimerCenter {
         #if os(iOS)
         try? AlarmManager.shared.stop(id: timer.id)
         try? AlarmManager.shared.cancel(id: timer.id)
+        #elseif os(macOS)
+        let id = timer.id.uuidString
+        UNUserNotificationCenter.current()
+            .removePendingNotificationRequests(withIdentifiers: [id])
+        UNUserNotificationCenter.current()
+            .removeDeliveredNotifications(withIdentifiers: [id])
         #endif
         timers.removeAll { $0.id == timer.id }
         save()
@@ -121,6 +139,46 @@ final class CookTimerCenter {
         return (try? JSONDecoder().decode([CookTimer].self, from: data)) ?? []
     }
 }
+
+#if os(macOS)
+extension CookTimerCenter {
+    /// What the Mac has instead of an alarm.
+    ///
+    /// AlarmKit is iPhone-only, and a local notification is the weaker
+    /// substitute: it respects Do Not Disturb and Focus, it does not get
+    /// through a muted machine, and it announces itself once rather than
+    /// ringing until someone answers. A kitchen Mac is rarely muted, so it
+    /// is worth having — but ``TimerSetupSheet`` says the difference out
+    /// loud rather than letting the cook find out by missing the pasta.
+    ///
+    /// No delegate, so a notification is suppressed while the app is
+    /// frontmost. That is exactly the case where the countdown is on screen
+    /// anyway; the notification matters when the cook is somewhere else.
+    private func schedule(_ timer: CookTimer, in seconds: TimeInterval) async {
+        let content = UNMutableNotificationContent()
+        content.title = "\(timer.recipeTitle) — Schritt \(timer.stepNumber)"
+        content.body = "Der Timer ist abgelaufen."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: timer.id.uuidString,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(timeInterval: seconds, repeats: false)
+        )
+        try? await UNUserNotificationCenter.current().add(request)
+    }
+
+    private func ensureNotificationsAllowed() async -> Bool {
+        let center = UNUserNotificationCenter.current()
+        switch await center.notificationSettings().authorizationStatus {
+        case .authorized, .provisional, .ephemeral: return true
+        case .denied: return false
+        default:
+            return (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+        }
+    }
+}
+#endif
 
 #if os(iOS)
 extension CookTimerCenter {
