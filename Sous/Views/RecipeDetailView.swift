@@ -73,11 +73,22 @@ struct RecipeDetailView: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .ignoresSafeArea(edges: recipe.imageIDs.isEmpty ? [] : .top)
-        // The name is on the page already; the bar only says it once the
-        // page's own title is gone.
-        .navigationTitle(showsToolbarTitle ? recipe.title : "")
+        // Only where there is a status bar and a navigation bar to run the
+        // picture under. In the Mac's detail column there is no top safe area
+        // to ignore, and the line would claim to do something it cannot.
         #if os(iOS)
+        .ignoresSafeArea(edges: recipe.imageIDs.isEmpty ? [] : .top)
+        #endif
+        // On the phone and the iPad the name is on the page already, and the
+        // bar only says it once the page's own title has scrolled past.
+        //
+        // The Mac takes it plainly: this title names the window, and a window
+        // whose title appears and disappears as the reader scrolls is a
+        // window that looks broken.
+        #if os(macOS)
+        .navigationTitle(recipe.title)
+        #else
+        .navigationTitle(showsToolbarTitle ? recipe.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(
             recipe.imageIDs.isEmpty || showsToolbarTitle ? .automatic : .hidden,
@@ -159,7 +170,9 @@ struct RecipeDetailView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 // Watched rather than computed from the scroll offset: the
                 // title sits below a hero image that may or may not be there,
-                // and may itself run to three lines.
+                // and may itself run to three lines. Nothing to watch on the
+                // Mac, where the window keeps its title throughout.
+                #if os(iOS)
                 .onGeometryChange(for: Bool.self) { proxy in
                     proxy.frame(in: .global).maxY <= barEdge
                 } action: { isBehindBar in
@@ -167,6 +180,7 @@ struct RecipeDetailView: View {
                         showsToolbarTitle = isBehindBar
                     }
                 }
+                #endif
 
             if let summary = recipe.summary, !summary.isEmpty {
                 Text(summary)
