@@ -23,7 +23,7 @@ Rationale: language models are unreliable with numbers and facts (plausible-soun
 5. **Video import (Instagram/TikTok/YouTube)** — implemented as a **share extension**: the user shares a post into the app, and the app processes what it is handed rather than fetching from the platform itself (see Distribution below). Where a video file is available, actual video analysis applies: keyframes through Vision framework OCR (on-screen text), audio track transcribed through the Speech framework, fed into the same extractor together with the caption. Not "video understanding" by a single model — this is decomposition into text, not true video comprehension, but it covers the cases where the caption does not carry everything.
 6. **Per-recipe nutrition** — ingredients extracted and normalized structurally (AI), matched against an external nutrition database (conventional code)
 7. **Shopping list** — assembled from the planned week, with amounts of the same ingredient added together
-8. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
+8. **Automatic, nutrient-optimized weekly plan** — deterministic algorithm against a nutrient/calorie target vector, drawing first on the recipes the user has marked "want to cook"; AI is used only to generate new recipes when the existing recipe pool cannot close a gap
 9. **Household sharing** — a household is the unit of sharing: one owner invites members, and the household's recipes and meal plans are shared with all of them. Individual profiles (diet, exercise load, etc.) stay personal and feed into personal nutrition targets.
 
 ## Technical architecture pillars
@@ -62,6 +62,7 @@ The nutrient target vector has mixed constraint directions and must not be treat
 
 * **Lower bounds** (protein, fiber, micronutrients) — under-delivery is penalized
 * **Upper bounds** (calories, saturated fat, sugar, sodium) — over-delivery is penalized
+* **"Want to cook" is a wish the plan honours** — a recipe the user has marked is one they already decided they feel like eating, which is the one thing a nutrient target vector cannot know. It enters the cost function as a bonus on top of the nutrient score, not as a constraint: the optimizer reaches for marked recipes first and passes one over only when it cannot be fitted without breaking the bounds. A bonus rather than a hard requirement, because a plan that seats every marked recipe at the cost of the nutrient targets has stopped being an optimizer and become a queue.
 
 A plain greedy "cover the largest remaining deficit" pass systematically overshoots the upper bounds and cannot take anything back, and its final day is left closing whatever gap remains with whatever is available. With 7 days × n recipes the search space is small, so greedy construction plus a local swap pass (exchange a single meal whenever it lowers total cost) is cheap and produces markedly better plans.
 
@@ -94,6 +95,7 @@ Not fundamentally unresolved, but not yet settled in detail. Each should be deci
 * Household lifecycle: key rotation when a member leaves (data they already hold stays readable with the old key), and whether a member can take a copy of a recipe with them
 * Whether to hand-roll the crypto or adopt a managed E2EE SDK — pricing for Seald and the maintenance status of Virgil E3Kit both need checking before that can be decided
 * Whether the weekly plan optimizer draws only on the household's own recipes or also pulls in automatically researched ones, and which meals it covers
+* Whether a "want to cook" mark clears itself once the recipe has been planned or cooked, and whether the bonus should decay for marks the user has been carrying for months
 * Whether a single user can belong to more than one household (e.g. shared flat plus family)
 
 ## Rough phase roadmap
