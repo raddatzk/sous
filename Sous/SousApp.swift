@@ -61,5 +61,15 @@ struct SousApp: App {
                     .keyboardShortcut("n", modifiers: .command)
             }
         }
+
+        #if os(macOS)
+        // Cmd-, is where a Mac user looks; the sheet in the "Mehr" menu is
+        // for the phone, and both write the same defaults.
+        Settings {
+            SettingsForm()
+                .sousAppearance()
+                .frame(width: 420)
+        }
+        #endif
     }
 }

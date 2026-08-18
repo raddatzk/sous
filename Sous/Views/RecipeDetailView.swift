@@ -222,7 +222,7 @@ struct RecipeDetailView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding(14)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder
@@ -286,7 +286,7 @@ struct RecipeDetailView: View {
             }
         }
         .padding(14)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
     }
 
     @ViewBuilder
@@ -433,16 +433,5 @@ struct RecipeDetailView: View {
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(text)
-    }
-}
-
-extension Color {
-    /// The page colour behind a recipe, used to fade a hero image into it.
-    static var sousBackground: Color {
-        #if os(macOS)
-        Color(nsColor: .windowBackgroundColor)
-        #else
-        Color(uiColor: .systemBackground)
-        #endif
     }
 }

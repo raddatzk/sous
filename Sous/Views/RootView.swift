@@ -19,6 +19,9 @@ struct RootView: View {
         // On the Mac and iPad this becomes a sidebar; on the phone it stays a
         // tab bar at the bottom.
         .tabViewStyle(.sidebarAdaptable)
+        // Light or dark for the whole app, cook mode included, rather than
+        // one screen deciding for itself.
+        .sousAppearance()
         // Every string in the app is German, so dates and numbers have to be
         // German too — otherwise weekdays read "Monday" next to "Portionen".
         // This goes away once the app is properly localized.

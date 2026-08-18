@@ -211,7 +211,7 @@ struct RecipeEditorView: View {
                             .padding(.vertical, 5)
                         }
                         .buttonStyle(.plain)
-                        .background(.quaternary, in: .capsule)
+                        .background(Color.sousField, in: .capsule)
                     }
                 }
                 .padding(.vertical, 2)
@@ -262,7 +262,7 @@ struct RecipeEditorView: View {
                             .padding(.vertical, 6)
                         }
                         .buttonStyle(.plain)
-                        .background(.quaternary, in: .capsule)
+                        .background(Color.sousField, in: .capsule)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -334,7 +334,7 @@ struct RecipeEditorView: View {
                                 .padding(.vertical, 5)
                             }
                             .buttonStyle(.plain)
-                            .background(.quaternary, in: .capsule)
+                            .background(Color.sousField, in: .capsule)
                         }
                     }
                     .padding(.vertical, 2)

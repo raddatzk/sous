@@ -44,7 +44,7 @@ struct RecipeSearchField: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 12))
+            .background(Color.sousField, in: .rect(cornerRadius: 12))
 
             suggestions
         }
@@ -66,7 +66,7 @@ struct RecipeSearchField: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(.tint.opacity(0.15), in: .capsule)
+        .background(.tint.opacity(SousStyle.chipTint), in: .capsule)
         .foregroundStyle(.tint)
     }
 
@@ -97,7 +97,7 @@ struct RecipeSearchField: View {
                             .padding(.vertical, 5)
                         }
                         .buttonStyle(.plain)
-                        .background(.quaternary, in: .capsule)
+                        .background(Color.sousField, in: .capsule)
                     }
                 }
             }

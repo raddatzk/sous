@@ -76,7 +76,7 @@ private struct RecipeExporter: ViewModifier {
     private var progressOverlay: some View {
         if let progress = library.exportProgress {
             ZStack {
-                Color.black.opacity(0.15).ignoresSafeArea()
+                Color.sousScrim.ignoresSafeArea()
                 VStack(spacing: 10) {
                     if let fraction = progress.fraction {
                         ProgressView(value: fraction)
