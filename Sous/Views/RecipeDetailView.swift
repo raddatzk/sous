@@ -33,7 +33,11 @@ struct RecipeDetailView: View {
                     heroImage
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
-                        actionBar
+                        if recipe.isDeleted {
+                            trashBanner
+                        } else {
+                            actionBar
+                        }
                         servingsControl
                         ingredients
                         steps
@@ -201,6 +205,26 @@ struct RecipeDetailView: View {
         return rest == 0 ? "\(total / 60) Std" : String(format: "%d:%02d Std", total / 60, rest)
     }
 
+    /// What a deleted recipe offers instead of an action bar.
+    ///
+    /// Cooking, planning and shopping all assume the recipe is part of the
+    /// collection. It is readable — that is the point of keeping it — but the
+    /// only thing to do with it here is to take it back.
+    @ViewBuilder
+    private var trashBanner: some View {
+        HStack(spacing: 12) {
+            Label("Im Papierkorb", systemImage: "trash")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Wiederherstellen") {
+                Task { await library.restore(recipe) }
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(14)
+        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 12))
+    }
+
     @ViewBuilder
     private var actionBar: some View {
         HStack(spacing: 12) {
@@ -358,7 +382,13 @@ struct RecipeDetailView: View {
     private var detailToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Menu("Mehr", systemImage: "ellipsis.circle") {
-                Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                if recipe.isDeleted {
+                    Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
+                        Task { await library.restore(recipe) }
+                    }
+                } else {
+                    Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                }
                 Button("Exportieren", systemImage: "square.and.arrow.up") {
                     Task {
                         if let data = await library.exportedRecipe(recipe) {
@@ -366,18 +396,20 @@ struct RecipeDetailView: View {
                         }
                     }
                 }
-                Divider()
-                Button(
-                    recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
-                    systemImage: recipe.isFavorite ? "star.slash" : "star"
-                ) {
-                    Task { await library.toggleFavorite(recipe) }
-                }
-                Button(
-                    recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
-                    systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
-                ) {
-                    Task { await library.toggleWantToCook(recipe) }
+                if !recipe.isDeleted {
+                    Divider()
+                    Button(
+                        recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
+                        systemImage: recipe.isFavorite ? "star.slash" : "star"
+                    ) {
+                        Task { await library.toggleFavorite(recipe) }
+                    }
+                    Button(
+                        recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
+                        systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
+                    ) {
+                        Task { await library.toggleWantToCook(recipe) }
+                    }
                 }
             }
         }

@@ -82,6 +82,10 @@ struct TrashView: View {
             .navigationDestination(item: $openedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe)
             }
+            // A recipe restored from its own page leaves the trash behind it.
+            .onChange(of: openedRecipe) { _, opened in
+                if opened == nil { Task { await load() } }
+            }
             .task { await load() }
         }
         #if os(macOS)
