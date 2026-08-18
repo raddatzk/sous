@@ -139,46 +139,112 @@ struct RecipeListView: View {
     }
 }
 
+/// One recipe as a card in the list: what it looks like, what it is called,
+/// how long it takes, and what it is filed under.
+///
+/// The picture keeps its slot even when a recipe has none, so titles line up
+/// down the list instead of stepping in and out. Time and categories share
+/// one row of chips: they answer the same question — is this the right thing
+/// to cook tonight — and separate lines for each would make every row tall
+/// enough that only a handful fit on screen.
 private struct RecipeRow: View {
     let recipe: Recipe
 
+    /// Enough to say what a recipe is; more would push the rows apart.
+    private static let visibleCategories = 3
+
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            if let imageID = recipe.imageIDs.first {
-                RecipeImageView(imageID: imageID, thumbnail: true)
-                    .frame(width: 64, height: 64)
-                    .clipShape(.rect(cornerRadius: 10))
-            }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(recipe.title)
-                    .font(SousStyle.recipeName)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 14) {
+            thumbnail
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(recipe.title)
+                        .font(SousStyle.recipeName)
+                        .lineLimit(2)
+                    Spacer(minLength: 0)
+                    markers
                 }
-            }
-            Spacer()
-            if recipe.isFavorite {
-                Image(systemName: "star.fill")
-                    .foregroundStyle(.yellow)
-                    .imageScale(.small)
-            }
-            if recipe.wantToCook {
-                Image(systemName: "bookmark.fill")
-                    .foregroundStyle(.tint)
-                    .imageScale(.small)
+                attributes
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 6)
     }
 
-    private var subtitle: String? {
-        var parts = recipe.categories
-        if let minutes = totalMinutes {
-            parts.append("\(minutes) Min.")
+    @ViewBuilder
+    private var thumbnail: some View {
+        Group {
+            if let imageID = recipe.imageIDs.first {
+                RecipeImageView(imageID: imageID, thumbnail: true)
+            } else {
+                Rectangle()
+                    .fill(.quaternary)
+                    .overlay {
+                        Image(systemName: "fork.knife")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+            }
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+        .frame(width: 68, height: 68)
+        .clipShape(.rect(cornerRadius: 14, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var markers: some View {
+        if recipe.isFavorite {
+            Image(systemName: "star.fill")
+                .foregroundStyle(.yellow)
+                .imageScale(.small)
+        }
+        if recipe.wantToCook {
+            Image(systemName: "bookmark.fill")
+                .foregroundStyle(.tint)
+                .imageScale(.small)
+        }
+    }
+
+    /// The time first — it decides whether a recipe fits the evening — then
+    /// what it is filed under.
+    @ViewBuilder
+    private var attributes: some View {
+        let shown = recipe.categories.prefix(Self.visibleCategories)
+        let hidden = recipe.categories.count - shown.count
+        if totalMinutes != nil || !shown.isEmpty {
+            FlowLayout(spacing: 5, lineSpacing: 5) {
+                if let minutes = totalMinutes {
+                    chip("\(minutes) Min.", systemImage: "clock", tinted: false)
+                }
+                ForEach(Array(shown), id: \.self) { category in
+                    chip(category)
+                }
+                if hidden > 0 {
+                    chip("+\(hidden)")
+                }
+            }
+        }
+    }
+
+    private func chip(
+        _ text: String,
+        systemImage: String? = nil,
+        tinted: Bool = true
+    ) -> some View {
+        HStack(spacing: 3) {
+            if let systemImage {
+                Image(systemName: systemImage)
+                    .font(.caption2)
+            }
+            Text(text)
+                .font(.caption)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
+        .background(
+            tinted ? AnyShapeStyle(.tint.opacity(0.13)) : AnyShapeStyle(.quaternary.opacity(0.6)),
+            in: .capsule
+        )
+        .foregroundStyle(tinted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
     }
 
     private var totalMinutes: Int? {
