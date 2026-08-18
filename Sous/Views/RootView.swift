@@ -102,7 +102,11 @@ struct RootView: View {
                 case .shopping: ShoppingListView()
                 }
             }
-            .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 460)
+            // Wider than it first looked: at 320 the meal plan's day rows had
+            // the weekday, the date and the menu that adds a meal all fighting
+            // for the same line, and the view switch above them sat shoulder
+            // to shoulder with "Heute". The recipe rows want the room too.
+            .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 520)
         } detail: {
             if let recipe = selection.recipe {
                 RecipeDetailView(recipe: recipe)
