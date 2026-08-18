@@ -114,6 +114,11 @@ struct RootView: View {
                 )
             }
         }
+        // No window title at all. It would say the app's name beside a
+        // section switch that already says where you are, or repeat a recipe
+        // the list and the page have both named — either way a word in the
+        // title bar that nothing needed.
+        .toolbar(removing: .title)
         .toolbar {
             // Beside the traffic lights and the sidebar button, where macOS 26
             // draws it as the floating capsule the iPad has along its top.
