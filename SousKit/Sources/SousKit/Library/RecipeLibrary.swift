@@ -184,6 +184,20 @@ public final class RecipeLibrary {
         await save(updated)
     }
 
+    /// Records that a recipe was cooked through to its last step.
+    ///
+    /// Cooking consumes the "want to cook" mark: it was a note to try this,
+    /// and it has now been tried. Planning deliberately does not — a plan can
+    /// be rearranged, and a wish the cook never got round to should stay on
+    /// the list.
+    public func markCooked(_ recipe: Recipe) async {
+        // Cook mode may have been open for an hour. What matters is the
+        // recipe as it stands now, not the copy it was opened with.
+        guard var current = await self.recipe(id: recipe.id), current.wantToCook else { return }
+        current.wantToCook = false
+        await save(current)
+    }
+
     public func toggleWantToCook(_ recipe: Recipe) async {
         var updated = recipe
         updated.wantToCook.toggle()
