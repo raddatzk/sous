@@ -278,6 +278,13 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        // Full width on the phone, where the page is barely wider than the
+        // control. On the Mac the same row became a bar across the page with
+        // the stepper stranded at the far end of it, so it takes the width it
+        // actually needs.
+        #if os(macOS)
+        .fixedSize(horizontal: true, vertical: false)
+        #endif
     }
 
     @ViewBuilder
@@ -332,7 +339,7 @@ struct RecipeDetailView: View {
         HStack {
             Label("Portionen", systemImage: "person.2")
                 .font(.subheadline.weight(.medium))
-            Spacer()
+            Spacer(minLength: 24)
             Text("\(servings)")
                 .monospacedDigit()
                 .frame(minWidth: 24)

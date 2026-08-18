@@ -42,7 +42,10 @@ struct ContinueCookingBanner: View {
                 if let timer = nextTimer {
                     countdown(timer)
                 }
-                Image(systemName: "chevron.up")
+                // A chevron pointing up is right on the phone, where cook
+                // mode slides up over the app. On the Mac it opens a window,
+                // and a chevron promises the wrong thing.
+                Image(systemName: openSymbol)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }
@@ -62,6 +65,14 @@ struct ContinueCookingBanner: View {
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
         .task(id: session.entries.map(\.recipeID)) { await resolveTitles() }
+    }
+
+    private var openSymbol: String {
+        #if os(macOS)
+        "macwindow"
+        #else
+        "chevron.up"
+        #endif
     }
 
     /// One pot is named; several are counted, because two names do not fit
