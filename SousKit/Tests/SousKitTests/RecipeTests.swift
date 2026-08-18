@@ -4,6 +4,52 @@ import Testing
 
 @Suite("Recipe aggregate")
 struct RecipeTests {
+
+    @Test("Waiting is what the total has over the work")
+    func restingTime() {
+        let bread = Recipe(
+            title: "Brot",
+            prepTimeSeconds: 20 * 60,
+            cookTimeSeconds: 40 * 60,
+            totalTimeSeconds: 26 * 3600
+        )
+
+        #expect(bread.activeTimeSeconds == 3600)
+        #expect(bread.elapsedTimeSeconds == 26 * 3600)
+        #expect(bread.restingTimeSeconds == 25 * 3600)
+    }
+
+    @Test("A recipe that only records a total still knows how long it takes")
+    func totalOnly() {
+        // What a Mela import usually looks like.
+        let soup = Recipe(title: "Suppe", totalTimeSeconds: 25 * 60)
+
+        #expect(soup.activeTimeSeconds == nil)
+        #expect(soup.elapsedTimeSeconds == 1500)
+        // Nothing to subtract from, so no resting time is claimed.
+        #expect(soup.restingTimeSeconds == nil)
+    }
+
+    @Test("Without a total, the work is the best answer available")
+    func noTotal() {
+        let pasta = Recipe(title: "Pasta", prepTimeSeconds: 300, cookTimeSeconds: 600)
+
+        #expect(pasta.elapsedTimeSeconds == 900)
+        #expect(pasta.restingTimeSeconds == nil)
+        #expect(Recipe(title: "Ohne Zeiten").elapsedTimeSeconds == nil)
+    }
+
+    @Test("A total that undercuts the work claims no negative waiting")
+    func inconsistentTotal() {
+        let odd = Recipe(
+            title: "Widersprüchlich",
+            prepTimeSeconds: 1800,
+            cookTimeSeconds: 1800,
+            totalTimeSeconds: 600
+        )
+
+        #expect(odd.restingTimeSeconds == nil)
+    }
     @Test("The whole aggregate survives a JSON round trip")
     func aggregateRoundTrip() throws {
         let recipe = Recipe(

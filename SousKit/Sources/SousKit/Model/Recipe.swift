@@ -28,8 +28,17 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public var wantToCook: Bool
     public var notes: String?
     public var source: RecipeSource
+    /// Hands-on work before anything is on the heat.
     public var prepTimeSeconds: Int?
+    /// Time on the stove or in the oven.
     public var cookTimeSeconds: Int?
+    /// From starting to finished, waiting included.
+    ///
+    /// Not the sum of the other two, and that is the point: dough proves,
+    /// tiramisu sets, a roast sits in the oven for two hours while the cook
+    /// does nothing. Without this, a recipe cannot answer the question that
+    /// decides whether it happens tonight — when do I have to start?
+    public var totalTimeSeconds: Int?
 
     /// Pictures of the dish, referenced rather than embedded — see
     /// ``RecipeImageStore`` for why they live outside the aggregate.
@@ -58,6 +67,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         source: RecipeSource = .manual,
         prepTimeSeconds: Int? = nil,
         cookTimeSeconds: Int? = nil,
+        totalTimeSeconds: Int? = nil,
         imageIDs: [UUID] = [],
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
@@ -77,11 +87,36 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.source = source
         self.prepTimeSeconds = prepTimeSeconds
         self.cookTimeSeconds = cookTimeSeconds
+        self.totalTimeSeconds = totalTimeSeconds
         self.imageIDs = imageIDs
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.deletedAt = deletedAt
+    }
+
+    // MARK: - Time
+
+    /// Time the cook actually spends working, which is what decides whether
+    /// a recipe fits into an evening.
+    public var activeTimeSeconds: Int? {
+        let total = (prepTimeSeconds ?? 0) + (cookTimeSeconds ?? 0)
+        return total > 0 ? total : nil
+    }
+
+    /// How long it takes from start to finish. Falls back to the work if
+    /// nobody wrote down a total, which is the best guess available.
+    public var elapsedTimeSeconds: Int? {
+        totalTimeSeconds ?? activeTimeSeconds
+    }
+
+    /// Time the dish needs without the cook — proving, marinating, cooling.
+    /// Derived rather than entered: it is whatever the total has over the
+    /// work, and asking for it twice invites the two to disagree.
+    public var restingTimeSeconds: Int? {
+        guard let elapsed = elapsedTimeSeconds, let active = activeTimeSeconds else { return nil }
+        let resting = elapsed - active
+        return resting > 0 ? resting : nil
     }
 
     public var ingredients: [RecipeIngredient] {

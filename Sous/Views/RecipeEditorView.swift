@@ -140,6 +140,29 @@ struct RecipeEditorView: View {
                 Label("\(draft.servings) Portionen", systemImage: "person.2")
             }
             LabeledContent {
+                TextField("Nachtisch, Schnell", text: $categoriesText)
+                    .multilineTextAlignment(.trailing)
+                    .focused($isEditingCategories)
+            } label: {
+                Label("Kategorien", systemImage: "tag")
+            }
+            categorySuggestions
+        } header: {
+            sectionHeader("Angaben")
+        }
+
+        timesSection
+    }
+
+    /// The three times, with the one sentence that keeps them apart.
+    ///
+    /// Their own section rather than three more rows under "Angaben": the
+    /// difference between working time and waiting time needs explaining,
+    /// and an explanation belongs where the numbers are typed.
+    @ViewBuilder
+    private var timesSection: some View {
+        Section {
+            LabeledContent {
                 MinutesField(seconds: $draft.prepTimeSeconds)
             } label: {
                 Label("Vorbereitung", systemImage: "clock")
@@ -150,15 +173,14 @@ struct RecipeEditorView: View {
                 Label("Zubereitung", systemImage: "flame")
             }
             LabeledContent {
-                TextField("Nachtisch, Schnell", text: $categoriesText)
-                    .multilineTextAlignment(.trailing)
-                    .focused($isEditingCategories)
+                MinutesField(seconds: $draft.totalTimeSeconds)
             } label: {
-                Label("Kategorien", systemImage: "tag")
+                Label("Gesamt", systemImage: "hourglass")
             }
-            categorySuggestions
         } header: {
-            sectionHeader("Angaben")
+            sectionHeader("Zeiten")
+        } footer: {
+            Text("Vorbereitung und Zubereitung sind die Zeit, in der du in der Küche stehst. Gesamt ist die Zeit bis zum Essen — mit allem Warten: Teig gehen lassen, marinieren, auskühlen. Was dazwischen liegt, zeigt das Rezept als Ruhezeit.")
         }
     }
 

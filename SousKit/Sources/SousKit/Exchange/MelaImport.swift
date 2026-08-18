@@ -101,10 +101,11 @@ public enum MelaImport: RecipeImportFormat {
             wantToCook: bool(object["wantToCook"]) ?? false,
             notes: notes(from: object),
             source: source(from: object),
-            // A recipe that only records a total keeps it as the cooking
-            // time: the list shows the sum of both, which then still adds up.
             prepTimeSeconds: prep,
-            cookTimeSeconds: cook ?? (prep == nil ? total : nil),
+            cookTimeSeconds: cook,
+            // Mela usually records nothing but a total, and that is a
+            // reading of its own — not cooking time by another name.
+            totalTimeSeconds: total,
             createdAt: date(object["date"]) ?? .nowInSyncPrecision,
             updatedAt: .nowInSyncPrecision
         )
