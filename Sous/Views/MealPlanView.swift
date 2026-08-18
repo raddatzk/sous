@@ -39,36 +39,49 @@ struct MealPlanView: View {
         var id: String { "\(day.timeIntervalSince1970)-\(slot.rawValue)" }
     }
 
+    @Environment(RecipeSelection.self) private var selection
+
     var body: some View {
+        // The Mac has one split view for the whole window, so this is only
+        // its first column; the phone brings its own stack and pushes.
+        #if os(macOS)
+        planColumn
+        #else
         NavigationStack {
-            VStack(spacing: 0) {
-                modePicker
-                content
-            }
-            .navigationTitle("Essensplan")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .task { await plan.reload() }
-            .sheet(item: $pickingSlot) { target in
-                RecipePickerView(
-                    title: "\(target.slot.title) einplanen",
-                    excluding: UUID()
-                ) { recipe in
-                    Task { await plan.add(recipe, to: target.day, slot: target.slot) }
+            planColumn
+                .navigationDestination(item: $openedRecipe) { recipe in
+                    RecipeDetailView(recipe: recipe)
                 }
+        }
+        #endif
+    }
+
+    @ViewBuilder
+    private var planColumn: some View {
+        VStack(spacing: 0) {
+            modePicker
+            content
+        }
+        .navigationTitle("Essensplan")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .task { await plan.reload() }
+        .sheet(item: $pickingSlot) { target in
+            RecipePickerView(
+                title: "\(target.slot.title) einplanen",
+                excluding: UUID()
+            ) { recipe in
+                Task { await plan.add(recipe, to: target.day, slot: target.slot) }
             }
-            .sheet(isPresented: $isPickingForPool) {
-                RecipePickerView(title: "In die Sammlung", excluding: UUID()) { recipe in
-                    Task { await plan.add(recipe, to: nil) }
-                }
+        }
+        .sheet(isPresented: $isPickingForPool) {
+            RecipePickerView(title: "In die Sammlung", excluding: UUID()) { recipe in
+                Task { await plan.add(recipe, to: nil) }
             }
-            .sheet(item: $movingEntry) { entry in
-                MoveToDaySheet(entry: entry, title: plan.recipes[entry.recipeID]?.title ?? "Gericht")
-            }
-            .navigationDestination(item: $openedRecipe) { recipe in
-                RecipeDetailView(recipe: recipe)
-            }
+        }
+        .sheet(item: $movingEntry) { entry in
+            MoveToDaySheet(entry: entry, title: plan.recipes[entry.recipeID]?.title ?? "Gericht")
         }
     }
 
@@ -250,7 +263,11 @@ struct MealPlanView: View {
         // A button rather than a tap gesture: the pointer changes over it,
         // the keyboard reaches it, and the Mac gets the click it expects.
         Button {
+            #if os(macOS)
+            selection.recipe = item.recipe
+            #else
             openedRecipe = item.recipe
+            #endif
         } label: {
             HStack(spacing: 12) {
                 if let imageID = item.recipe?.imageIDs.first {

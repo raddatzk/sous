@@ -5,6 +5,7 @@ import SwiftUI
 /// what to buy for it — with whatever is on the hob riding above all three.
 struct RootView: View {
     @Environment(CookSession.self) private var session
+    @Environment(RecipeSelection.self) private var selection
 
     /// Which of the three the Mac is showing. The phone and iPad keep a tab
     /// view, which holds this itself.
@@ -54,6 +55,8 @@ struct RootView: View {
     @ViewBuilder
     private var sections: some View {
         VStack(spacing: 0) {
+            // Above the split view rather than inside its first column: the
+            // switch is for the window, not for the list.
             Picker("Bereich", selection: $section) {
                 ForEach(SousSection.allCases) { section in
                     Label(section.title, systemImage: section.symbol)
@@ -68,10 +71,25 @@ struct RootView: View {
 
             Divider()
 
-            switch section {
-            case .recipes: RecipeListView()
-            case .mealPlan: MealPlanView()
-            case .shopping: ShoppingListView()
+            // One split view for the whole window, so every section has the
+            // same shape: what to work through on the left, the recipe being
+            // read on the right.
+            NavigationSplitView {
+                switch section {
+                case .recipes: RecipeListView()
+                case .mealPlan: MealPlanView()
+                case .shopping: ShoppingListView()
+                }
+            } detail: {
+                if let recipe = selection.recipe {
+                    RecipeDetailView(recipe: recipe)
+                } else {
+                    ContentUnavailableView(
+                        "Kein Rezept ausgewählt",
+                        systemImage: "fork.knife",
+                        description: Text("Wähle links ein Rezept aus.")
+                    )
+                }
             }
         }
     }

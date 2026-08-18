@@ -14,6 +14,9 @@ struct SousApp: App {
     /// And so does the cooking itself: what is on the hob is app state, not
     /// something the screen showing it owns.
     @State private var session = CookSession()
+    /// Which recipe the Mac's detail column is showing — outlives the section
+    /// on the left, so it does not belong to any one of them.
+    @State private var selection = RecipeSelection()
 
     init() {
         do {
@@ -53,6 +56,7 @@ struct SousApp: App {
                 .environment(catalog)
                 .environment(timers)
                 .environment(session)
+                .environment(selection)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
