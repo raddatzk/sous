@@ -166,6 +166,9 @@ struct RecipeListView: View {
         // macOS shows a segmented picker's label; iOS hides it. Without this
         // the word "Filter" sits in the sidebar beside the three choices.
         .labelsHidden()
+        // Three choices stretched across an iPad is a rule with words on it.
+        // The cap never bites on a phone, where the screen is narrower.
+        .frame(maxWidth: 520, alignment: .leading)
     }
 
     /// The filters as the search field's tokens.

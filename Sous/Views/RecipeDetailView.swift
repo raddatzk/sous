@@ -45,11 +45,11 @@ struct RecipeDetailView: View {
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
                         if recipe.isDeleted {
-                            trashBanner
+                            trashBanner(isWide: isWide)
                         } else {
-                            actionBar
+                            actionBar(isWide: isWide)
                         }
-                        servingsControl
+                        servingsControl(isWide: isWide)
                         if isWide {
                             // What to get out and what to do with it, side by
                             // side: the cook reads the steps and glances left
@@ -266,7 +266,7 @@ struct RecipeDetailView: View {
     /// collection. It is readable — that is the point of keeping it — but the
     /// only thing to do with it here is to take it back.
     @ViewBuilder
-    private var trashBanner: some View {
+    private func trashBanner(isWide: Bool) -> some View {
         HStack(spacing: 12) {
             Label("Im Papierkorb", systemImage: "trash")
                 .font(.subheadline.weight(.medium))
@@ -278,16 +278,14 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: 12))
-        // Full width on the phone, where the page is barely wider than the
-        // banner. On the Mac it takes the width it needs, rather than
-        // stretching the whole page with the button stranded at the far end.
-        #if os(macOS)
-        .fixedSize(horizontal: true, vertical: false)
-        #endif
+        // Full width where the page is barely wider than the banner, and no
+        // wider than it needs where there is room. Measured rather than asked
+        // of the platform: an iPad's page is as wide as a Mac's.
+        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     @ViewBuilder
-    private var actionBar: some View {
+    private func actionBar(isWide: Bool) -> some View {
         HStack(spacing: 12) {
             Button {
                 // Puts the recipe on the hob and opens cook mode on it — the
@@ -295,14 +293,11 @@ struct RecipeDetailView: View {
                 session.start(recipe, servings: servings)
             } label: {
                 Label("Kochen", systemImage: "play.fill")
-                    // Full width on the phone, where it is the one thing to
-                    // press. On the Mac a 500-point-wide button reads as a
-                    // banner rather than something to click.
-                    #if os(iOS)
-                    .frame(maxWidth: .infinity)
-                    #else
-                    .padding(.horizontal, 8)
-                    #endif
+                    // The one thing to press on a narrow page, so it fills
+                    // it. On a wide one a button a thousand points across
+                    // reads as a banner rather than something to click.
+                    .frame(maxWidth: isWide ? nil : .infinity)
+                    .padding(.horizontal, isWide ? 8 : 0)
             }
             .buttonStyle(.borderedProminent)
             .disabled(recipe.steps.isEmpty)
@@ -334,7 +329,7 @@ struct RecipeDetailView: View {
     }
 
     @ViewBuilder
-    private var servingsControl: some View {
+    private func servingsControl(isWide: Bool) -> some View {
         HStack {
             Label("Portionen", systemImage: "person.2")
                 .font(.subheadline.weight(.medium))
@@ -357,12 +352,10 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: 12))
-        // Full width on the phone, where the page is barely wider than the
-        // control. On the Mac the same row became a bar across the page with
-        // the stepper stranded at the far end of it.
-        #if os(macOS)
-        .fixedSize(horizontal: true, vertical: false)
-        #endif
+        // Same again: a bar across a wide page with the stepper stranded at
+        // the far end of it is not a control, it is a rule with a widget on
+        // the end.
+        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     @ViewBuilder
