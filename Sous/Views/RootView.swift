@@ -120,7 +120,11 @@ struct RootView: View {
             ToolbarItem(placement: .navigation) {
                 Picker("Bereich", selection: $section) {
                     ForEach(SousSection.allCases) { section in
-                        Label(section.title, systemImage: section.symbol)
+                        // The name, not the symbol. A segmented picker built
+                        // from `Label`s shows the icon alone on macOS, and a
+                        // book, a calendar and a trolley are a guessing game
+                        // where three words are not.
+                        Text(section.title)
                             .tag(section)
                     }
                 }
