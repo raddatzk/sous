@@ -11,6 +11,9 @@ struct RecipeDetailView: View {
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
     @State private var isCooking = false
+    /// Whether the page's own title has scrolled up behind the navigation
+    /// bar, which is when the bar takes the name over.
+    @State private var showsToolbarTitle = false
     @State private var didAddToShoppingList = false
     @State private var isPlanning = false
 
@@ -19,28 +22,39 @@ struct RecipeDetailView: View {
     private var servings: Int { servingsOverride ?? recipe.servings }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                heroImage
-                VStack(alignment: .leading, spacing: 28) {
-                    titleBlock
-                    actionBar
-                    servingsControl
-                    ingredients
-                    steps
-                    notes
-                    sourceFooter
+        // The bar's own edge is what the title has to pass, and only a
+        // geometry reader knows where that is on this device.
+        GeometryReader { screen in
+            let barEdge = screen.safeAreaInsets.top + Self.barHeight
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    heroImage
+                    VStack(alignment: .leading, spacing: 28) {
+                        titleBlock(barEdge: barEdge)
+                        actionBar
+                        servingsControl
+                        ingredients
+                        steps
+                        notes
+                        sourceFooter
+                    }
+                    .padding(24)
+                    .frame(maxWidth: 700, alignment: .leading)
                 }
-                .padding(24)
-                .frame(maxWidth: 700, alignment: .leading)
             }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
         .ignoresSafeArea(edges: recipe.imageIDs.isEmpty ? [] : .top)
-        .navigationTitle(recipe.title)
+        // The name is on the page already; the bar only says it once the
+        // page's own title is gone.
+        .navigationTitle(showsToolbarTitle ? recipe.title : "")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(recipe.imageIDs.isEmpty ? .automatic : .hidden, for: .navigationBar)
+        .toolbarBackground(
+            recipe.imageIDs.isEmpty || showsToolbarTitle ? .automatic : .hidden,
+            for: .navigationBar
+        )
         #endif
         .toolbar { detailToolbar }
         .onChange(of: recipe.id) {
@@ -98,12 +112,25 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// How much of the navigation bar sits below the safe area.
+    private static let barHeight: CGFloat = 44
+
     @ViewBuilder
-    private var titleBlock: some View {
+    private func titleBlock(barEdge: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(recipe.title)
                 .font(SousStyle.recipeTitle)
                 .fixedSize(horizontal: false, vertical: true)
+                // Watched rather than computed from the scroll offset: the
+                // title sits below a hero image that may or may not be there,
+                // and may itself run to three lines.
+                .onGeometryChange(for: Bool.self) { proxy in
+                    proxy.frame(in: .global).maxY <= barEdge
+                } action: { isBehindBar in
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showsToolbarTitle = isBehindBar
+                    }
+                }
 
             if let summary = recipe.summary, !summary.isEmpty {
                 Text(summary)
