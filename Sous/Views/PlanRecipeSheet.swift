@@ -51,7 +51,7 @@ struct PlanRecipeSheet: View {
                 }
 
                 Section {
-                    Stepper(value: $plannedServings, in: 1...50) {
+                    Stepper(value: $plannedServings, in: Recipe.servingsRange) {
                         Label("\(plannedServings) Portionen", systemImage: "person.2")
                     }
                 } footer: {

@@ -136,7 +136,7 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var factsSection: some View {
         Section {
-            Stepper(value: $draft.servings, in: 1...50) {
+            Stepper(value: $draft.servings, in: Recipe.servingsRange) {
                 Label("\(draft.servings) Portionen", systemImage: "person.2")
             }
             LabeledContent {
