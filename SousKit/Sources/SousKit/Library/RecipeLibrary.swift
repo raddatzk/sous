@@ -86,12 +86,16 @@ public final class RecipeLibrary {
     }
 
     /// Filters the typed text could become, given what the app knows.
+    ///
+    /// Eight rather than a handful: the row scrolls sideways anyway, and a
+    /// close match falling off the end is worse than a long row.
     public func filterSuggestions(catalog: IngredientCatalog) -> [RecipeFilter] {
         RecipeFilter.suggestions(
             for: searchText,
             catalog: catalog,
             categories: categories,
-            applied: activeFilters
+            applied: activeFilters,
+            limit: 8
         )
     }
 
