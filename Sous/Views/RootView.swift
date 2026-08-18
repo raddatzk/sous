@@ -73,65 +73,81 @@ struct RootView: View {
     }
 
     #if os(macOS)
-    /// Second attempt at the tab bar, with the style macOS keeps for itself.
+    /// A switch above the content rather than a column beside it.
     ///
-    /// `.tabBarOnly` came out as a plain control with no glass around it, and
-    /// let the sidebar be collapsed — the second of those is fixed here, the
-    /// first is what `.grouped` is being tried for.
+    /// A sidebar earns its width by holding something that grows — Mela's
+    /// holds categories and smart lists. Here it would hold three fixed
+    /// entries, and the recipe list brings its own split view, so the window
+    /// ended up with a sidebar inside a sidebar. Three fixed entries are a
+    /// mode, not a place to navigate to, and a segmented control says that.
     ///
-    /// What has not changed is the cost: each section carries its own split
-    /// view, so the split view is inside a tab rather than at the window's
-    /// root, which is what once gave a half-width sidebar and a toolbar that
-    /// collapsed into an overflow chevron.
+    /// Categories are not missed: they are filters here, combined with
+    /// ingredients and free text in the search field, which is something a
+    /// list you pick one row from cannot do.
     @ViewBuilder
     private var sections: some View {
-        TabView(selection: $section) {
-            ForEach(SousSection.allCases) { section in
-                Tab(section.title, systemImage: section.symbol, value: section) {
-                    NavigationSplitView {
-                        sectionColumn(section)
-                            // Wider than it first looked: at 320 the meal
-                            // plan's day rows had the weekday, the date and
-                            // the menu that adds a meal all fighting for the
-                            // same line.
-                            .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 520)
-                    } detail: {
-                        detail
-                    }
-                    // The sidebar is the only way into anything here; collapse
-                    // it and the window is one recipe with no route to another.
-                    .toolbar(removing: .sidebarToggle)
+        // One split view for the whole window, so every section has the same
+        // shape: what to work through on the left, the recipe being read on
+        // the right.
+        //
+        // And nothing above it. A split view that is not the window's root
+        // gets neither a proper sidebar width nor a toolbar of its own — it
+        // came out about half as wide as it should be, and the toolbar's
+        // buttons had nowhere to sit and collapsed into an overflow chevron.
+        NavigationSplitView {
+            Group {
+                switch section {
+                case .recipes: RecipeListView()
+                case .mealPlan: MealPlanView()
+                case .shopping: ShoppingListView()
                 }
             }
+            // Wider than it first looked: at 320 the meal plan's day rows had
+            // the weekday, the date and the menu that adds a meal all fighting
+            // for the same line, and the view switch above them sat shoulder
+            // to shoulder with "Heute". The recipe rows want the room too.
+            .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 520)
+        } detail: {
+            if let recipe = selection.recipe {
+                RecipeDetailView(recipe: recipe)
+            } else {
+                ContentUnavailableView(
+                    "Kein Rezept ausgewählt",
+                    systemImage: "fork.knife",
+                    description: Text("Wähle links ein Rezept aus.")
+                )
+            }
         }
-        .tabViewStyle(.grouped)
-        // No window title: the tab bar already says where you are, and the
-        // recipe is named by the list and the page both.
+        // No window title at all. It would say the app's name beside a
+        // section switch that already says where you are, or repeat a recipe
+        // the list and the page have both named — either way a word in the
+        // title bar that nothing needed.
         .toolbar(removing: .title)
-    }
-
-    @ViewBuilder
-    private func sectionColumn(_ section: SousSection) -> some View {
-        switch section {
-        case .recipes: RecipeListView()
-        case .mealPlan: MealPlanView()
-        case .shopping: ShoppingListView()
+        // And no way to collapse the sidebar. In a mail client the sidebar is
+        // a place you can put away once you are reading; here it is the only
+        // way into anything — collapse it and the window is a recipe with no
+        // route to another one. The width can still be dragged, down to the
+        // minimum the column asks for.
+        .toolbar(removing: .sidebarToggle)
+        .toolbar {
+            // Beside the traffic lights and the sidebar button, where macOS 26
+            // draws it as the floating capsule the iPad has along its top.
+            ToolbarItem(placement: .navigation) {
+                Picker("Bereich", selection: $section) {
+                    ForEach(SousSection.allCases) { section in
+                        // The name, not the symbol. A segmented picker built
+                        // from `Label`s shows the icon alone on macOS, and a
+                        // book, a calendar and a trolley are a guessing game
+                        // where three words are not.
+                        Text(section.title)
+                            .tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
         }
     }
-
-    @ViewBuilder
-    private var detail: some View {
-        if let recipe = selection.recipe {
-            RecipeDetailView(recipe: recipe)
-        } else {
-            ContentUnavailableView(
-                "Kein Rezept ausgewählt",
-                systemImage: "fork.knife",
-                description: Text("Wähle links ein Rezept aus.")
-            )
-        }
-    }
-
     #else
     @ViewBuilder
     private var sections: some View {
