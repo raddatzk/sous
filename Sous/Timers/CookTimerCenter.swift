@@ -40,6 +40,12 @@ final class CookTimerCenter {
         timers.filter { $0.stepID == stepID }.sorted { $0.fireDate < $1.fireDate }
     }
 
+    /// The timers of one recipe, soonest first — what the switcher shows on
+    /// the recipe the cook is not currently looking at.
+    func timers(forRecipe recipeID: UUID) -> [CookTimer] {
+        timers.filter { $0.recipeID == recipeID }.sorted { $0.fireDate < $1.fireDate }
+    }
+
     /// Starts a timer, replacing whatever was running for the same step.
     ///
     /// One step is one thing on the hob, so a second timer on it is a
@@ -49,6 +55,7 @@ final class CookTimerCenter {
         seconds: TimeInterval,
         stepID: UUID,
         stepNumber: Int,
+        recipeID: UUID,
         recipeTitle: String
     ) async {
         guard seconds > 0 else { return }
@@ -57,6 +64,7 @@ final class CookTimerCenter {
         let timer = CookTimer(
             id: UUID(),
             stepID: stepID,
+            recipeID: recipeID,
             recipeTitle: recipeTitle,
             stepNumber: stepNumber,
             duration: seconds,

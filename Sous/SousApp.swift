@@ -11,6 +11,9 @@ struct SousApp: App {
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
+    /// And so does the cooking itself: what is on the hob is app state, not
+    /// something the screen showing it owns.
+    @State private var session = CookSession()
 
     init() {
         do {
@@ -49,10 +52,12 @@ struct SousApp: App {
                 .environment(shopping)
                 .environment(catalog)
                 .environment(timers)
+                .environment(session)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
                     timers.forgetStale()
+                    session.forgetStale()
                     #if os(iOS)
                     await timers.watchAlarms()
                     #endif

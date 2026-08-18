@@ -4,13 +4,13 @@ import SwiftUI
 struct RecipeDetailView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(ShoppingLibrary.self) private var shopping
+    @Environment(CookSession.self) private var session
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
     @State private var servingsOverride: Int?
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
-    @State private var isCooking = false
     /// Whether the page's own title has scrolled up behind the navigation
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
@@ -69,9 +69,6 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
-        }
-        .fullScreenCoverIfAvailable(isPresented: $isCooking) {
-            CookModeView(recipe: recipe, servings: servings)
         }
         // Shown as a sheet rather than pushed: looking up how the dough is
         // made is a detour, and a swipe returns to exactly where the cook was.
@@ -229,7 +226,9 @@ struct RecipeDetailView: View {
     private var actionBar: some View {
         HStack(spacing: 12) {
             Button {
-                isCooking = true
+                // Puts the recipe on the hob and opens cook mode on it — the
+                // session decides whether that is the only pot or a second.
+                session.start(recipe, servings: servings)
             } label: {
                 Label("Kochen", systemImage: "play.fill")
                     .frame(maxWidth: .infinity)
