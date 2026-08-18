@@ -8,7 +8,6 @@ struct RecipeEditorView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
 
     @State private var draft: Recipe
-    @State private var categoriesText: String
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
     @State private var pickedPhotos: [PhotosPickerItem] = []
@@ -22,7 +21,6 @@ struct RecipeEditorView: View {
     /// An unknown ingredient the cook is about to teach the app.
     @State private var teaching: CatalogIngredient?
     @FocusState private var isEditingIngredients: Bool
-    @FocusState private var isEditingCategories: Bool
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -35,7 +33,6 @@ struct RecipeEditorView: View {
 
     init(recipe: Recipe, onSave: @escaping (Recipe) async -> Void) {
         _draft = State(initialValue: recipe)
-        _categoriesText = State(initialValue: recipe.categories.joined(separator: ", "))
         self.onSave = onSave
     }
 
@@ -136,22 +133,52 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var factsSection: some View {
         Section {
+            
             Stepper(value: $draft.servings, in: Recipe.servingsRange) {
                 Label("\(draft.servings) Portionen", systemImage: "person.2")
             }
-            LabeledContent {
-                TextField("Nachtisch, Schnell", text: $categoriesText)
-                    .multilineTextAlignment(.trailing)
-                    .focused($isEditingCategories)
-            } label: {
+            // The label sits above rather than beside: chips wrap onto as
+            // many lines as they need, which no trailing-aligned row can hold.
+            VStack(alignment: .leading, spacing: 8) {
                 Label("Kategorien", systemImage: "tag")
+                    .font(.subheadline.weight(.medium))
+                TextField(
+                    "Nachtisch, Schnell",
+                    text: categoriesBinding
+                )
+                .textFieldStyle(.plain)
+                .sousFieldBox()
             }
-            categorySuggestions
+            .padding(.vertical, 4)
         } header: {
             sectionHeader("Angaben")
         }
 
         timesSection
+    }
+
+    private var categoriesBinding: Binding<String> {
+        Binding<String>(
+            get: {
+                draft.categories.joined(separator: ", ")
+            },
+            set: { newValue in
+                let parts = newValue
+                    .split(separator: ",")
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                var seen = Set<String>()
+                var result: [String] = []
+                for p in parts {
+                    let key = p.lowercased()
+                    if !seen.contains(key) {
+                        seen.insert(key)
+                        result.append(p)
+                    }
+                }
+                draft.categories = result
+            }
+        )
     }
 
     /// The three times, with the one sentence that keeps them apart.
@@ -181,42 +208,6 @@ struct RecipeEditorView: View {
             sectionHeader("Zeiten")
         } footer: {
             Text("Vorbereitung und Zubereitung sind die Zeit, in der du in der Küche stehst. Gesamt ist die Zeit bis zum Essen — mit allem Warten: Teig gehen lassen, marinieren, auskühlen. Was dazwischen liegt, zeigt das Rezept als Ruhezeit.")
-        }
-    }
-
-    /// Categories already used elsewhere in the library, offered while
-    /// typing so a typo does not quietly create a second one.
-    @ViewBuilder
-    private var categorySuggestions: some View {
-        let matches = CategoryCompletion.suggestions(
-            for: categoriesText,
-            categories: library.categories
-        )
-        if isEditingCategories, !matches.isEmpty {
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(matches, id: \.self) { category in
-                        Button {
-                            categoriesText = CategoryCompletion.completed(
-                                text: categoriesText, with: category
-                            )
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "tag")
-                                    .font(.caption2)
-                                Text(category)
-                                    .font(.callout)
-                            }
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                        }
-                        .buttonStyle(.plain)
-                        .background(Color.sousField, in: .capsule)
-                    }
-                }
-                .padding(.vertical, 2)
-            }
-            .scrollIndicators(.hidden)
         }
     }
 
@@ -451,11 +442,6 @@ struct RecipeEditorView: View {
         isSaving = true
         var recipe = draft
         recipe.title = recipe.title.trimmingCharacters(in: .whitespaces)
-        recipe.categories = categoriesText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
         Task {
             await onSave(recipe)
             dismiss()
