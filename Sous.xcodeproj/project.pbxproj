@@ -68,9 +68,11 @@
 		3A4D64C09129B00714574B3E /* RecipeImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImageView.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
 		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SousKit; path = SousKit; sourceTree = SOURCE_ROOT; };
+		55F31777C34595DD4F836518 /* SousShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SousShare.entitlements; sourceTree = "<group>"; };
 		6343A2B8A34CDA5210A8E4FF /* IngredientCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientCatalogView.swift; sourceTree = "<group>"; };
 		643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipePickerView.swift; sourceTree = "<group>"; };
 		6D629FB2F5517CF39B9396A2 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
+		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		81EC8BE16C6318DA2600D33C /* RecipeSearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeSearchField.swift; sourceTree = "<group>"; };
 		874968D982EF7B9D954ECC27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			children = (
 				E02CEE8EA0D9984B1F91AEA1 /* Info.plist */,
 				F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */,
+				55F31777C34595DD4F836518 /* SousShare.entitlements */,
 			);
 			path = SousShare;
 			sourceTree = "<group>";
@@ -188,6 +191,7 @@
 			isa = PBXGroup;
 			children = (
 				874968D982EF7B9D954ECC27 /* Info.plist */,
+				7CBF4A5F5006626CFD84006A /* Sous.entitlements */,
 			);
 			path = Supporting;
 			sourceTree = "<group>";
@@ -246,9 +250,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					431E661229E6C99F6B5E8474 = {
+						DevelopmentTeam = MDQY93XVHF;
 						ProvisioningStyle = Automatic;
 					};
 					83B28C8691FBBCD10A309992 = {
+						DevelopmentTeam = MDQY93XVHF;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -405,9 +411,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MDQY93XVHF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Sous/Supporting/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -415,7 +423,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous;
+				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous;
 				PRODUCT_NAME = Sous;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
@@ -431,8 +439,10 @@
 		1870DF700757312E751F4B92 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SousShare/SousShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MDQY93XVHF;
 				INFOPLIST_FILE = SousShare/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -440,7 +450,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous.share;
+				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.share;
 				PRODUCT_NAME = SousShare;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -457,8 +467,10 @@
 		610916E8B47056404D7CAE5E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = SousShare/SousShare.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MDQY93XVHF;
 				INFOPLIST_FILE = SousShare/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -466,7 +478,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous.share;
+				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.share;
 				PRODUCT_NAME = SousShare;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
@@ -485,9 +497,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = MDQY93XVHF;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Sous/Supporting/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -495,7 +509,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.raddatz.sous;
+				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous;
 				PRODUCT_NAME = Sous;
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
