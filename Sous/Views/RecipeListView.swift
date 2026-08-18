@@ -96,6 +96,11 @@ struct RecipeListView: View {
         // whole width; a sidebar list draws its selection as a capsule.
         #if os(macOS)
         .listStyle(.sidebar)
+        #else
+        // With the search field active the navigation title collapses but
+        // the room it stood in does not, leaving the filter chips floating
+        // half a title below the field. The list keeps its own spacing.
+        .contentMargins(.top, 0, for: .scrollContent)
         #endif
         .navigationTitle("Rezepte")
         // The system places it: the sidebar's own field on the Mac and iPad,
