@@ -245,7 +245,7 @@ struct CookModeView: View {
                     .font(.headline)
             }
             if entry.servings != recipe.servings {
-                HStack {
+                HStack(spacing: 12) {
                     Text("Geschrieben für \(recipe.servings).")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
@@ -254,11 +254,15 @@ struct CookModeView: View {
                     }
                     .buttonStyle(.borderless)
                     .font(.footnote)
+                    Spacer(minLength: 0)
                 }
             }
         }
         .padding(20)
-        .frame(minWidth: 260)
+        // Aligned, not just wide: a minimum width without one centres
+        // whatever is narrower than it, which is why the two lines sat in
+        // the middle of the popover instead of under each other.
+        .frame(minWidth: 260, alignment: .leading)
         .presentationCompactAdaptation(.popover)
     }
 
