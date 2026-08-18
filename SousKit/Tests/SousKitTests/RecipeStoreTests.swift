@@ -268,3 +268,69 @@ struct RecipeFilterTests {
         #expect(!suggestions.contains { $0.title == "Tomate" })
     }
 }
+
+@Suite("Managing categories")
+struct CategoryManagementTests {
+    private func makeStore() throws -> SwiftDataRecipeStore {
+        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    }
+
+    @Test("Categories are counted by how many recipes use them")
+    func counts() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "A", categories: ["Salate", "Schnell"]))
+        try await store.save(Recipe(title: "B", categories: ["Salate"]))
+
+        let counts = try await store.categoryCounts()
+        #expect(counts.map(\.name) == ["Salate", "Schnell"])
+        #expect(counts.map(\.count) == [2, 1])
+    }
+
+    @Test("Renaming reaches every recipe that used the old name")
+    func renaming() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "A", categories: ["Salat"]))
+        try await store.save(Recipe(title: "B", categories: ["Salat", "Schnell"]))
+
+        try await store.renameCategory("Salat", to: "Salate")
+
+        let counts = try await store.categoryCounts()
+        #expect(counts.map(\.name) == ["Salate", "Schnell"])
+        #expect(try await store.recipes(matching: RecipeQuery(filters: [.category("Salate")])).count == 2)
+    }
+
+    @Test("Renaming onto an existing name merges the two")
+    func merging() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "Beides", categories: ["Salat", "Salate"]))
+
+        try await store.renameCategory("Salat", to: "Salate")
+
+        let recipe = try #require(try await store.recipes(matching: .all).first)
+        // Listed once, not twice.
+        #expect(recipe.categories == ["Salate"])
+    }
+
+    @Test("Deleting takes the category off every recipe, leaving the rest")
+    func deleting() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "A", categories: ["Salate", "Schnell"]))
+
+        try await store.deleteCategory("Salate")
+
+        let recipe = try #require(try await store.recipes(matching: .all).first)
+        #expect(recipe.categories == ["Schnell"])
+        #expect(try await store.categoryCounts().map(\.name) == ["Schnell"])
+    }
+
+    @Test("A renamed category is still findable by search")
+    func searchFollowsRename() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(title: "A", categories: ["Salat"]))
+
+        try await store.renameCategory("Salat", to: "Vorspeisen")
+
+        #expect(try await store.recipes(matching: RecipeQuery(searchText: "Vorspeisen")).count == 1)
+        #expect(try await store.recipes(matching: RecipeQuery(searchText: "Salat")).isEmpty)
+    }
+}
