@@ -149,6 +149,16 @@ struct RootView: View {
                     sectionButton(.mealPlan)
                     sectionButton(.shopping)
                 }
+                // A width the toolbar can be told rather than has to measure.
+                // One wide button and two narrow ones always come to the same
+                // total, but the toolbar was still remeasuring the item on
+                // every switch — and on one pair it rebuilt instead of
+                // animating, dropping the change into a single frame.
+                //
+                // 152 for the wide one, 36 each for the narrow, 8 between:
+                // 240. Stated here so a change to the padding or the label
+                // width has to be brought here too.
+                .frame(width: 240)
             }
         }
     }
