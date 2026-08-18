@@ -170,22 +170,24 @@ struct RootView: View {
                     // and left to themselves they made three capsules of
                     // three widths where Mail has three of one.
                     .frame(width: 16)
+                    // On the leaf rather than on the label or in the style:
+                    // set anywhere further out, the toolbar overrode it and
+                    // left a white book on a pale grey field.
+                    .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 if isActive {
-                    // Every name is laid out and all but this one hidden, so
-                    // the wide button is the same width whichever section it
-                    // is. Otherwise "Rezepte" and "Einkaufsliste" gave the row
-                    // two different lengths and the buttons beside them slid
-                    // sideways on every switch — which is most of what made
-                    // the movement look restless.
-                    //
-                    // Measured rather than a number picked by hand, so it
-                    // survives a font change and a longer word.
-                    ZStack(alignment: .leading) {
-                        ForEach(SousSection.allCases) { other in
-                            Text(other.title).hidden()
-                        }
-                        Text(item.title)
-                    }
+                    Text(item.title)
+                        .foregroundStyle(.white)
+                        // One width for every name, so the row keeps its
+                        // length whichever section is open and the buttons
+                        // beside this one stop sliding sideways.
+                        //
+                        // A number rather than the widest name measured: the
+                        // measured version laid out all three names and hid
+                        // two, and SwiftUI faded the hidden ones in during the
+                        // switch — three words on top of each other for a
+                        // fifth of a second. Room for the longest name and a
+                        // little air.
+                        .frame(width: 104, alignment: .leading)
                 }
             }
             .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
@@ -236,7 +238,6 @@ private struct SectionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(isActive ? .semibold : .regular))
-            .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
             .background(
