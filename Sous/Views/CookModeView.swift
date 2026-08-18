@@ -505,18 +505,3 @@ struct CookModeView: View {
         #endif
     }
 }
-
-extension View {
-    /// `fullScreenCover` does not exist on macOS; a sheet is the closest fit.
-    @ViewBuilder
-    func fullScreenCoverIfAvailable<Content: View>(
-        isPresented: Binding<Bool>,
-        @ViewBuilder content: @escaping () -> Content
-    ) -> some View {
-        #if os(iOS)
-        fullScreenCover(isPresented: isPresented, content: content)
-        #else
-        sheet(isPresented: isPresented, content: content)
-        #endif
-    }
-}
