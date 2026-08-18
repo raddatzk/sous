@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RecipeListView: View {
     @Environment(RecipeLibrary.self) private var library
+    @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(RecipeSelection.self) private var selection
     /// Held by the app rather than here, because the menu bar issues the
     /// same commands and cannot see this view's state.
@@ -77,6 +78,8 @@ struct RecipeListView: View {
 
     @ViewBuilder
     private var list: some View {
+        @Bindable var library = library
+
         List(selection: $selectedRecipeID) {
             filterBar
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
@@ -90,6 +93,21 @@ struct RecipeListView: View {
             }
         }
         .navigationTitle("Rezepte")
+        // The system places it: the sidebar's own field on the Mac and iPad,
+        // under the title on the phone. Ingredients and categories ride in it
+        // as tokens, which is what the hand-built field was for.
+        .searchable(
+            text: $library.searchText,
+            tokens: tokens,
+            placement: .sidebar,
+            prompt: "Titel, Zutat, Kategorie"
+        ) { filter in
+            Label(
+                filter.title,
+                systemImage: filter.kind == .ingredient ? "carrot" : "tag"
+            )
+        }
+        .searchSuggestions { filterSuggestions }
         .overlay { emptyState }
         .toolbar { listToolbar }
         .task { await library.reload() }
@@ -128,16 +146,53 @@ struct RecipeListView: View {
     @ViewBuilder
     private var filterBar: some View {
         @Bindable var library = library
-        VStack(spacing: 10) {
-            RecipeSearchField()
+        // Searching is the system's field now; this is the one thing it
+        // cannot express — favourites and "will ich kochen" are not filters
+        // that stack, they are three views of the same list.
+        Picker("Filter", selection: $library.filter) {
+            ForEach(RecipeLibrary.Filter.allCases, id: \.self) { filter in
+                Text(filter.title).tag(filter)
+            }
+        }
+        .pickerStyle(.segmented)
+        // macOS shows a segmented picker's label; iOS hides it. Without this
+        // the word "Filter" sits in the sidebar beside the three choices.
+        .labelsHidden()
+    }
 
-            Picker("Filter", selection: $library.filter) {
-                ForEach(RecipeLibrary.Filter.allCases, id: \.self) { filter in
-                    Text(filter.title).tag(filter)
+    /// The filters as the search field's tokens.
+    ///
+    /// Written back as a whole set rather than as add and remove, because
+    /// that is what the field hands over: after a backspace it reports the
+    /// list it has left, not which token went.
+    private var tokens: Binding<[RecipeFilter]> {
+        Binding(
+            get: { library.activeFilters },
+            set: { filters in Task { await library.setFilters(filters) } }
+        )
+    }
+
+    /// What the typed text could be turned into, offered while typing.
+    ///
+    /// Says why something matched when its own name does not contain what was
+    /// typed — otherwise "Gurke" appears for "sal" with no way to tell why.
+    @ViewBuilder
+    private var filterSuggestions: some View {
+        ForEach(library.filterSuggestions(catalog: catalog.catalog)) { filter in
+            Button {
+                Task { await library.apply(filter) }
+            } label: {
+                HStack(spacing: 6) {
+                    Label(
+                        filter.title,
+                        systemImage: filter.kind == .ingredient ? "carrot" : "tag"
+                    )
+                    if let matched = filter.matchedAs {
+                        Text(matched)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            .pickerStyle(.segmented)
-
         }
     }
 

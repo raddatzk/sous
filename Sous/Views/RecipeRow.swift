@@ -47,7 +47,13 @@ struct RecipeRow: View {
                     }
             }
         }
+        // Smaller on the Mac: 68 points is right for a thumb-sized row on a
+        // phone and takes up most of a sidebar's width.
+        #if os(macOS)
+        .frame(width: 44, height: 44)
+        #else
         .frame(width: 68, height: 68)
+        #endif
         .clipShape(.rect(cornerRadius: 14, style: .continuous))
     }
 

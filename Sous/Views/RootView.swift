@@ -86,42 +86,46 @@ struct RootView: View {
     /// list you pick one row from cannot do.
     @ViewBuilder
     private var sections: some View {
-        VStack(spacing: 0) {
-            // Above the split view rather than inside its first column: the
-            // switch is for the window, not for the list.
-            Picker("Bereich", selection: $section) {
-                ForEach(SousSection.allCases) { section in
-                    Label(section.title, systemImage: section.symbol)
-                        .tag(section)
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .frame(maxWidth: 420)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-
-            Divider()
-
-            // One split view for the whole window, so every section has the
-            // same shape: what to work through on the left, the recipe being
-            // read on the right.
-            NavigationSplitView {
+        // One split view for the whole window, so every section has the same
+        // shape: what to work through on the left, the recipe being read on
+        // the right.
+        //
+        // And nothing above it. A split view that is not the window's root
+        // gets neither a proper sidebar width nor a toolbar of its own — it
+        // came out about half as wide as it should be, and the toolbar's
+        // buttons had nowhere to sit and collapsed into an overflow chevron.
+        NavigationSplitView {
+            Group {
                 switch section {
                 case .recipes: RecipeListView()
                 case .mealPlan: MealPlanView()
                 case .shopping: ShoppingListView()
                 }
-            } detail: {
-                if let recipe = selection.recipe {
-                    RecipeDetailView(recipe: recipe)
-                } else {
-                    ContentUnavailableView(
-                        "Kein Rezept ausgewählt",
-                        systemImage: "fork.knife",
-                        description: Text("Wähle links ein Rezept aus.")
-                    )
+            }
+            .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 460)
+        } detail: {
+            if let recipe = selection.recipe {
+                RecipeDetailView(recipe: recipe)
+            } else {
+                ContentUnavailableView(
+                    "Kein Rezept ausgewählt",
+                    systemImage: "fork.knife",
+                    description: Text("Wähle links ein Rezept aus.")
+                )
+            }
+        }
+        .toolbar {
+            // Beside the traffic lights and the sidebar button, where macOS 26
+            // draws it as the floating capsule the iPad has along its top.
+            ToolbarItem(placement: .navigation) {
+                Picker("Bereich", selection: $section) {
+                    ForEach(SousSection.allCases) { section in
+                        Label(section.title, systemImage: section.symbol)
+                            .tag(section)
+                    }
                 }
+                .pickerStyle(.segmented)
+                .labelsHidden()
             }
         }
     }
