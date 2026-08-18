@@ -69,6 +69,12 @@ struct RecipeDetailView: View {
                     }
                     .padding(24)
                     .frame(maxWidth: isWide ? Self.wideContent : Self.narrowContent, alignment: .leading)
+                    // Centred in whatever room is left. Capped at a readable
+                    // width and pinned to the left, the page sat against the
+                    // window's edge with the rest of a wide column empty
+                    // beside it — on a phone the cap never bites and the
+                    // difference does not show.
+                    .frame(maxWidth: .infinity)
                 }
             }
             .frame(maxWidth: .infinity)
