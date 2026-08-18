@@ -51,6 +51,13 @@ struct ContinueCookingBanner: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        // A window hands the keyboard focus to something when it opens, and
+        // this band is the first thing in the app that can take it. A ring
+        // drawn around a strip the width of the window does not read as
+        // "press return here", it reads as a mistake. The band stays
+        // reachable from the keyboard; it just does not announce itself
+        // before anyone has asked.
+        .focusEffectDisabled()
         .foregroundStyle(.tint)
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
