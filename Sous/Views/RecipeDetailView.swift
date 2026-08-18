@@ -88,12 +88,12 @@ struct RecipeDetailView: View {
         // On the phone and the iPad the name is on the page already, and the
         // bar only says it once the page's own title has scrolled past.
         //
-        // The Mac takes it plainly: this title names the window, and a window
-        // whose title appears and disappears as the reader scrolls is a
-        // window that looks broken.
-        #if os(macOS)
-        .navigationTitle(recipe.title)
-        #else
+        // The Mac says it not at all. This title would name the window, and
+        // the window sits above a list that already carries the name beside a
+        // page that carries it again — a third copy in the title bar is one
+        // too many. A window whose title appeared and disappeared as the
+        // reader scrolled would be worse still.
+        #if os(iOS)
         .navigationTitle(showsToolbarTitle ? recipe.title : "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(
@@ -163,8 +163,13 @@ struct RecipeDetailView: View {
     /// The ingredient column plus a step column wide enough to read a
     /// sentence in, with the padding and the gap between them — below this
     /// the split makes both halves worse than the single column was.
-    private static let splitWidth: CGFloat = 820
-    private static let ingredientColumn: CGFloat = 300
+    ///
+    /// 820 was the first guess and it never fired: a default window leaves
+    /// the detail column around 860 points, and any window smaller than that
+    /// stayed single-column for good. Measured against the real thing, the
+    /// two halves need 280 and 400.
+    private static let splitWidth: CGFloat = 740
+    private static let ingredientColumn: CGFloat = 280
     private static let narrowContent: CGFloat = 700
     private static let wideContent: CGFloat = 1100
 
@@ -284,7 +289,14 @@ struct RecipeDetailView: View {
                 session.start(recipe, servings: servings)
             } label: {
                 Label("Kochen", systemImage: "play.fill")
+                    // Full width on the phone, where it is the one thing to
+                    // press. On the Mac a 500-point-wide button reads as a
+                    // banner rather than something to click.
+                    #if os(iOS)
                     .frame(maxWidth: .infinity)
+                    #else
+                    .padding(.horizontal, 8)
+                    #endif
             }
             .buttonStyle(.borderedProminent)
             .disabled(recipe.steps.isEmpty)
