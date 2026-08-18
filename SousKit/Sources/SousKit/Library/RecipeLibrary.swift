@@ -36,6 +36,9 @@ public final class RecipeLibrary {
 
     /// How far a running import has got. `nil` when none is running.
     public private(set) var importProgress: RecipeImportProgress?
+    /// The same for an export, which on a full library is the slower of the
+    /// two — every picture is read back at full size.
+    public private(set) var exportProgress: RecipeImportProgress?
 
     public var searchText = "" { didSet { scheduleReload(if: oldValue != searchText) } }
     public var filter: Filter = .all { didSet { scheduleReload(if: oldValue != filter) } }
@@ -308,6 +311,56 @@ public final class RecipeLibrary {
             try await store.save(recipe)
         }
         try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: ids)
+    }
+
+    // MARK: - Export
+
+    /// One recipe as a `.melarecipe` file, pictures included.
+    public func exportedRecipe(_ recipe: Recipe) async -> Data? {
+        do {
+            return try MelaExport.recipe(recipe, images: await images(of: recipe))
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    /// The whole collection as a `.melarecipes` archive.
+    ///
+    /// Everything, not what the filter happens to show: an export is a copy
+    /// of the library, and a copy that quietly left out half of it would be
+    /// worse than none.
+    public func exportedLibrary() async -> Data? {
+        exportProgress = RecipeImportProgress(done: 0, total: 0)
+        defer { exportProgress = nil }
+
+        do {
+            let recipes = try await store.recipes(matching: .all)
+            exportProgress = RecipeImportProgress(done: 0, total: recipes.count)
+
+            var items: [(recipe: Recipe, images: [Data])] = []
+            for recipe in recipes {
+                items.append((recipe, await images(of: recipe)))
+                exportProgress = RecipeImportProgress(done: items.count, total: recipes.count)
+            }
+            // Writing the archive is pure computation over data already in
+            // hand, and has no business on the main actor.
+            return try await Task.detached { try MelaExport.library(items) }.value
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    /// Full-size pictures in the order the recipe lists them.
+    private func images(of recipe: Recipe) async -> [Data] {
+        var images: [Data] = []
+        for id in recipe.imageIDs {
+            if let data = try? await imageStore.image(id: id) {
+                images.append(data)
+            }
+        }
+        return images
     }
 
     public func startNewRecipe() {

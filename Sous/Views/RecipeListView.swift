@@ -7,6 +7,7 @@ struct RecipeListView: View {
     @State private var isShowingCatalog = false
     @State private var isShowingCategories = false
     @State private var isImporting = false
+    @State private var export: RecipeExport?
 
     var body: some View {
         @Bindable var library = library
@@ -40,6 +41,7 @@ struct RecipeListView: View {
         }
         .task { await library.reload() }
         .recipeImporter(isPresented: $isImporting)
+        .recipeExporter($export)
         .sheet(isPresented: $isShowingCatalog) {
             IngredientCatalogView()
         }
@@ -120,6 +122,17 @@ struct RecipeListView: View {
                 Divider()
                 Button("Aus Mela importieren", systemImage: "square.and.arrow.down") {
                     isImporting = true
+                }
+                Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
+                    Task {
+                        if let data = await library.exportedLibrary() {
+                            export = RecipeExport(
+                                data: data,
+                                name: "Rezepte",
+                                contentType: RecipeExport.melaLibrary
+                            )
+                        }
+                    }
                 }
             }
         }
