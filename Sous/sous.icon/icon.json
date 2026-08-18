@@ -1,0 +1,120 @@
+{
+  "fill" : {
+    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+  },
+  "groups" : [
+    {
+      "blur-material" : null,
+      "layers" : [
+        {
+          "blend-mode" : "hard-light",
+          "fill" : "automatic",
+          "image-name" : "03_sous_path.svg",
+          "name" : "03_sous_path",
+          "opacity" : 0.63,
+          "position" : {
+            "scale" : 0.85,
+            "translation-in-points" : [
+              0.4432622499999752,
+              -17.78399617752325
+            ]
+          }
+        },
+        {
+          "image-name" : "02_pot 2.svg",
+          "name" : "02_pot 2",
+          "position" : {
+            "scale" : 1.21,
+            "translation-in-points" : [
+              0,
+              -73.53733617752312
+            ]
+          }
+        }
+      ],
+      "lighting" : "combined",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "specular" : true,
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "04_lid.svg",
+          "name" : "04_lid",
+          "position" : {
+            "scale" : 1.2100000000000002,
+            "translation-in-points" : [
+              0,
+              -102.73733617752316
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.45
+      }
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "05_steam.svg",
+          "name" : "05_steam",
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              154.8671875,
+              -36.23029735504633
+            ]
+          }
+        }
+      ],
+      "lighting" : "individual",
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.41
+      }
+    },
+    {
+      "blur-material" : 0.5,
+      "layers" : [
+        {
+          "blend-mode" : "normal",
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "01_background.svg",
+          "name" : "01_background"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.43
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
