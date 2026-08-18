@@ -3,6 +3,11 @@ import SwiftUI
 
 struct RecipeListView: View {
     @Environment(RecipeLibrary.self) private var library
+    @Environment(RecipeSelection.self) private var selection
+    /// Held by the app rather than here, because the Mac starts both from
+    /// the menu bar, which cannot see this view's state.
+    @Environment(LibraryExchange.self) private var exchange
+
     @State private var selectedRecipeID: Recipe.ID?
     @State private var isShowingCatalog = false
     @State private var isShowingCategories = false
@@ -10,17 +15,14 @@ struct RecipeListView: View {
     /// Only the phone offers this: the Mac has the Settings scene behind
     /// Cmd-, and would otherwise reach the same form twice.
     @State private var isShowingSettings = false
-    @State private var isImporting = false
-    @State private var export: RecipeExport?
-
-    @Environment(RecipeSelection.self) private var selection
 
     var body: some View {
         @Bindable var library = library
+        @Bindable var exchange = exchange
 
         root
-            .recipeImporter(isPresented: $isImporting)
-            .recipeExporter($export)
+            .recipeImporter(isPresented: $exchange.isImporting)
+            .recipeExporter($exchange.export)
             .sheet(isPresented: $isShowingCatalog) {
                 IngredientCatalogView()
             }
@@ -168,14 +170,17 @@ struct RecipeListView: View {
                     isShowingSettings = true
                 }
                 #endif
+                #if os(iOS)
+                // The Mac has these in the Ablage menu, where it looks for
+                // them; the phone has no menu bar and keeps them here.
                 Divider()
                 Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
-                    isImporting = true
+                    exchange.isImporting = true
                 }
                 Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
                     Task {
                         if let data = await library.exportedLibrary() {
-                            export = RecipeExport(
+                            exchange.export = RecipeExport(
                                 data: data,
                                 name: "Rezepte",
                                 contentType: RecipeExport.library
@@ -183,6 +188,7 @@ struct RecipeListView: View {
                         }
                     }
                 }
+                #endif
             }
         }
     }
