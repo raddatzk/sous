@@ -130,22 +130,43 @@ struct RootView: View {
         // minimum the column asks for.
         .toolbar(removing: .sidebarToggle)
         .toolbar {
-            // Beside the traffic lights and the sidebar button, where macOS 26
-            // draws it as the floating capsule the iPad has along its top.
-            ToolbarItem(placement: .navigation) {
-                Picker("Bereich", selection: $section) {
-                    ForEach(SousSection.allCases) { section in
-                        // The name, not the symbol. A segmented picker built
-                        // from `Label`s shows the icon alone on macOS, and a
-                        // book, a calendar and a trolley are a guessing game
-                        // where three words are not.
-                        Text(section.title)
-                            .tag(section)
-                    }
+            // One button per section rather than one segmented control, the
+            // way Mail carries its categories: the section you are in is a
+            // filled capsule with its name, the other two are quiet buttons
+            // with only their symbol.
+            //
+            // Each is its own toolbar item on purpose. The system draws the
+            // capsule around a toolbar item, so letting the button styles do
+            // the work keeps it from becoming a capsule inside a capsule —
+            // which is what the switcher chips in cook mode looked like until
+            // they stopped drawing their own.
+            ToolbarItemGroup(placement: .navigation) {
+                ForEach(SousSection.allCases) { item in
+                    sectionButton(item)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
             }
+        }
+    }
+
+    @ViewBuilder
+    private func sectionButton(_ item: SousSection) -> some View {
+        if item == section {
+            Button {} label: {
+                Label(item.title, systemImage: item.symbol)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(true)
+        } else {
+            Button {
+                section = item
+            } label: {
+                Label(item.title, systemImage: item.symbol)
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.bordered)
+            // The name is worth having somewhere: with only a symbol showing,
+            // this is the only thing that says which is which.
+            .help(item.title)
         }
     }
     #else
