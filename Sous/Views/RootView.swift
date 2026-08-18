@@ -140,9 +140,16 @@ struct RootView: View {
             // capsule, which put the calendar and the trolley in one pill as
             // though they belonged together. Written out one by one because
             // `ForEach` is not toolbar content — there is no way to loop here.
-            ToolbarItem(placement: .navigation) { sectionButton(.recipes) }
-            ToolbarItem(placement: .navigation) { sectionButton(.mealPlan) }
-            ToolbarItem(placement: .navigation) { sectionButton(.shopping) }
+            // One item holding all three, so the gaps between them are ours
+            // to set. As separate items they sat flush against each other,
+            // with no say in the spacing.
+            ToolbarItem(placement: .navigation) {
+                HStack(spacing: 8) {
+                    sectionButton(.recipes)
+                    sectionButton(.mealPlan)
+                    sectionButton(.shopping)
+                }
+            }
         }
     }
 
@@ -232,10 +239,14 @@ private struct SectionButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.body.weight(isActive ? .semibold : .regular))
+            .foregroundStyle(isActive ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .padding(.horizontal, 10)
             .padding(.vertical, 5)
+            // Only the section you are in carries a fill. macOS already draws
+            // a capsule around the whole group, and a grey capsule inside a
+            // white one inside the window was three layers saying one thing.
             .background(
-                isActive ? AnyShapeStyle(Color.sousAccent) : AnyShapeStyle(Color.sousField),
+                isActive ? AnyShapeStyle(Color.sousAccent) : AnyShapeStyle(.clear),
                 in: .capsule
             )
             .opacity(configuration.isPressed ? 0.7 : 1)
