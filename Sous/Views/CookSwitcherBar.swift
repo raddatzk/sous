@@ -36,10 +36,33 @@ struct CookSwitcherBar: View {
         .background(.bar)
     }
 
-    /// The chips on their own, without the bar around them — the Mac puts
-    /// them in the toolbar, where the bar would be a second one.
     @ViewBuilder
-    var chips: some View {
+    private var chips: some View {
+        CookSwitcherChips(
+            entries: entries,
+            titles: titles,
+            activeRecipeID: activeRecipeID,
+            onSelect: onSelect
+        )
+    }
+}
+
+/// The chips on their own, without the bar around them — the Mac puts them in
+/// the toolbar, where the bar would be a second one.
+///
+/// A view of its own rather than a property on ``CookSwitcherBar``, because a
+/// property reached from outside is evaluated before SwiftUI has installed the
+/// struct it belongs to: the timers would be read from an `@Environment` that
+/// has nothing in it yet.
+struct CookSwitcherChips: View {
+    @Environment(CookTimerCenter.self) private var timers
+
+    let entries: [CookSessionEntry]
+    let titles: [UUID: String]
+    let activeRecipeID: UUID?
+    let onSelect: (UUID) -> Void
+
+    var body: some View {
         HStack(spacing: 8) {
             ForEach(entries) { entry in
                 chip(for: entry)
@@ -93,6 +116,7 @@ struct CookSwitcherBar: View {
         timers.timers(forRecipe: recipeID).first
     }
 }
+
 
 extension TimeInterval {
     /// `4:12`, `1:02:30` — a countdown small enough to sit inside a chip.
