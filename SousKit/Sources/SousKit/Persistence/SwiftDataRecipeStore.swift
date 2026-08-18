@@ -65,6 +65,12 @@ public actor SwiftDataRecipeStore: RecipeStore {
         try modelContext.save()
     }
 
+    public func erase(id: UUID) async throws {
+        guard let existing = try stored(id: id) else { return }
+        modelContext.delete(existing)
+        try modelContext.save()
+    }
+
     public func restore(id: UUID) async throws {
         guard let existing = try stored(id: id) else { return }
         existing.deletedAt = nil

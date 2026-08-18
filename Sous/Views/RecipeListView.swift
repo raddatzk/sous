@@ -6,6 +6,7 @@ struct RecipeListView: View {
     @State private var selectedRecipeID: Recipe.ID?
     @State private var isShowingCatalog = false
     @State private var isShowingCategories = false
+    @State private var isShowingTrash = false
     @State private var isImporting = false
     @State private var export: RecipeExport?
 
@@ -47,6 +48,9 @@ struct RecipeListView: View {
         }
         .sheet(isPresented: $isShowingCategories) {
             CategoryManagerView()
+        }
+        .sheet(isPresented: $isShowingTrash) {
+            TrashView()
         }
         .sheet(item: $library.editing) { recipe in
             RecipeEditorView(recipe: recipe) { edited in
@@ -118,6 +122,9 @@ struct RecipeListView: View {
                 }
                 Button("Kategorien verwalten", systemImage: "tag") {
                     isShowingCategories = true
+                }
+                Button("Papierkorb", systemImage: "trash") {
+                    isShowingTrash = true
                 }
                 Divider()
                 Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
