@@ -67,10 +67,6 @@ struct RecipeDetailView: View {
                     heroImage
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
-                        // Above the actions rather than below them: "Kochen"
-                        // and "Auf die Einkaufsliste" both use this count, so
-                        // it reads better set before those buttons than after.
-                        servingsControl(isWide: isWide)
                         if recipe.isDeleted {
                             trashBanner(isWide: isWide)
                         } else {
@@ -364,19 +360,23 @@ struct RecipeDetailView: View {
             .buttonStyle(.bordered)
             .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
 
+            servingsField
+            if servingsOverride != nil, servingsOverride != recipe.servings {
+                Button("Zurücksetzen") { updateServings(recipe.servings) }
+                    .buttonStyle(.borderless)
+                    .font(.footnote)
+            }
         }
         .controlSize(.large)
     }
 
-    @ViewBuilder
-    private func servingsControl(isWide: Bool) -> some View {
-        HStack {
-            Label("Portionen", systemImage: "person.2")
-                .font(.subheadline.weight(.medium))
-            Spacer(minLength: 24)
+    /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
+    /// beside them rather than in a card of its own above — a cook reads it
+    /// in the same glance as the buttons that act on it.
+    private var servingsField: some View {
+        HStack(spacing: 4) {
             Text("\(servings)")
                 .monospacedDigit()
-                .frame(minWidth: 24)
             // The count is its own label: hiding the stepper's label would
             // hide the number with it.
             Stepper("Portionen", value: Binding(
@@ -384,18 +384,10 @@ struct RecipeDetailView: View {
                 set: { updateServings($0.clamped(to: Recipe.servingsRange)) }
             ), in: Recipe.servingsRange)
             .labelsHidden()
-            if servingsOverride != nil, servingsOverride != recipe.servings {
-                Button("Zurücksetzen") { updateServings(recipe.servings) }
-                    .buttonStyle(.borderless)
-                    .font(.footnote)
-            }
         }
-        .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
-        // Same again: a bar across a wide page with the stepper stranded at
-        // the far end of it is not a control, it is a rule with a widget on
-        // the end.
-        .fixedSize(horizontal: isWide, vertical: false)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(Color.sousField, in: .capsule)
     }
 
     /// Scales the page for reading either way, and — when this recipe came
