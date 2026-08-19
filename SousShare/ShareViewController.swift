@@ -163,7 +163,8 @@ final class Libraries {
     init(container: ModelContainer) {
         recipes = RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container)
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
         catalog = IngredientCatalogLibrary(
             store: SwiftDataIngredientCatalogStore(modelContainer: container)

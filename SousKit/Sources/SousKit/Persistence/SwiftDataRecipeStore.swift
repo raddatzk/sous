@@ -186,7 +186,8 @@ extension ModelContainer {
         }
 
         return try ModelContainer(
-            for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self, StoredCatalogIngredient.self,
+            for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self,
+            StoredCatalogIngredient.self, StoredRecipeEnrichment.self,
             configurations: configuration
         )
     }

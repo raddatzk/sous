@@ -40,8 +40,8 @@ struct RecipeDetailView: View {
     @State private var didAddToShoppingList = false
     @State private var isPlanning = false
     @State private var export: RecipeExport?
-    /// What the model found the last time "Mengen mit KI zuordnen" ran —
-    /// kept only for this screen's lifetime, never saved.
+    /// What `RecipeLibrary` has cached for this recipe, loaded fresh
+    /// whenever the recipe shown changes — see `.task(id: recipe.id)` below.
     @State private var aiMentions: [UUID: [AmountMention]] = [:]
     @State private var isResolvingWithAI = false
     @State private var aiError: String?
@@ -143,6 +143,12 @@ struct RecipeDetailView: View {
             didAddToShoppingList = false
             aiMentions = [:]
         }
+        // A cache read, not a model call — whatever the last save's
+        // background pass found, if anything. Fires again whenever the
+        // recipe shown changes, same as `onChange(of: recipe.id)` above.
+        .task(id: recipe.id) {
+            aiMentions = await library.aiMentions(for: recipe)
+        }
         // The plan row this came from stays on screen beside this column —
         // a stepper pressed there while this recipe is still the one open
         // must show up here too, not just the next time something is opened.
@@ -181,14 +187,16 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Runs the model once over the current steps and holds its result in
-    /// memory for this screen — nothing is written back into the recipe.
+    /// The explicit "try again" — `save(_:)` already schedules this
+    /// automatically, but a background pass can fail quietly (the device
+    /// went to sleep, the model was briefly unavailable) with nothing else
+    /// to retry it. Updates the cache too, not just this screen.
     private func resolveMentionsWithAI() {
         isResolvingWithAI = true
         Task {
             defer { isResolvingWithAI = false }
             do {
-                aiMentions = try await AmountAIExtractor.extract(from: recipe)
+                aiMentions = try await library.refreshAIMentions(for: recipe)
             } catch {
                 aiError = error.localizedDescription
             }
@@ -590,7 +598,7 @@ struct RecipeDetailView: View {
                 }
                 if !recipe.steps.isEmpty {
                     Button(
-                        isResolvingWithAI ? "Wird zugeordnet…" : "Mengen mit KI zuordnen",
+                        isResolvingWithAI ? "Wird zugeordnet…" : "Mengen mit KI neu zuordnen",
                         systemImage: "sparkles"
                     ) {
                         resolveMentionsWithAI()
