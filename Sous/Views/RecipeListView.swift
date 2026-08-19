@@ -132,11 +132,21 @@ struct RecipeListView: View {
             // A plain pick from the list means "as written" — a leftover
             // scaling from whatever the meal plan last opened must not
             // follow it here.
-            selection.plannedServings = nil
+            selection.plannedEntryID = nil
         }
         .onChange(of: library.recipes) {
             if selectedRecipeID != nil { selection.recipe = selectedRecipe }
         }
+        #if os(macOS)
+        // The meal plan can also set `selection.recipe` — directly, since it
+        // has its own rows to highlight and no use for this list's id. That
+        // leaves this list's own selection stale, so a row picked here after
+        // a plan-opened recipe would silently no-op instead of switching:
+        // `selectedRecipeID` would already equal it from some earlier visit.
+        .onChange(of: selection.recipe?.id) { _, newValue in
+            if selectedRecipeID != newValue { selectedRecipeID = newValue }
+        }
+        #endif
     }
 
     private var selectedRecipe: Recipe? {

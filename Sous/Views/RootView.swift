@@ -109,7 +109,7 @@ struct RootView: View {
             .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 520)
         } detail: {
             if let recipe = selection.recipe {
-                RecipeDetailView(recipe: recipe, plannedServings: selection.plannedServings)
+                RecipeDetailView(recipe: recipe, plannedEntryID: selection.plannedEntryID)
             } else {
                 ContentUnavailableView(
                     "Kein Rezept ausgewählt",

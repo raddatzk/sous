@@ -16,9 +16,13 @@ import SwiftUI
 @Observable
 final class RecipeSelection {
     var recipe: Recipe?
-    /// How many people `recipe` was on the plan for, if it got here from one.
-    /// The detail column starts scaled to this instead of the recipe's own
-    /// count, and whoever sets `recipe` from somewhere else is responsible
-    /// for clearing it back to `nil`.
-    var plannedServings: Int?
+    /// The plan entry `recipe` was opened from, if it got here from one.
+    ///
+    /// An id rather than a captured serving count: the plan row stays live
+    /// on screen beside the detail column, so a stepper pressed there has to
+    /// be reflected here too — capturing the count at the moment of opening
+    /// would freeze it at whatever it was when the cook clicked through.
+    /// Whoever sets `recipe` from somewhere else is responsible for clearing
+    /// this back to `nil`.
+    var plannedEntryID: MealPlanEntry.ID?
 }
