@@ -245,8 +245,11 @@ struct RecipeDetailView: View {
                 Label(recipe.categories.joined(separator: ", "), systemImage: "tag")
                     .metaLabel()
             }
-            Label("\(recipe.servings) Portionen", systemImage: "person.2")
-                .metaLabel()
+            // Not repeated here as a plain "recipe.servings" label: the
+            // action row below is the one place that count is shown, since
+            // it can differ from what the recipe is written for and a
+            // second, unscaled number beside it would just read as a
+            // mismatch.
             if !timeItems.isEmpty {
                 HStack(spacing: 16) {
                     ForEach(timeItems, id: \.label) { item in
@@ -375,6 +378,10 @@ struct RecipeDetailView: View {
     /// in the same glance as the buttons that act on it.
     private var servingsField: some View {
         HStack(spacing: 4) {
+            // Icon rather than the word "Portionen": the row already reads
+            // as icon-led buttons, and a bare number beside them would have
+            // nothing saying what it counts.
+            Image(systemName: "person.2")
             Text("\(servings)")
                 .monospacedDigit()
             // The count is its own label: hiding the stepper's label would
