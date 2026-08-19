@@ -142,6 +142,21 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// Changes how many people an already-planned meal is cooked for.
+    ///
+    /// The same entry rather than a new one, for the same reason `move` keeps
+    /// it: editing servings must not duplicate the plan.
+    public func setServings(_ entry: MealPlanEntry, to servings: Int, for recipe: Recipe) async {
+        var updated = entry
+        updated.servings = servings == recipe.servings ? nil : servings
+        do {
+            try await store.save(updated)
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     public func remove(_ entry: MealPlanEntry) async {
         do {
             try await store.delete(id: entry.id)

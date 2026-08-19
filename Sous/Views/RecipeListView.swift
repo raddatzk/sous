@@ -127,7 +127,13 @@ struct RecipeListView: View {
         // The selected row is what the detail column shows. Kept in sync
         // rather than held there, because the list wants an id for its
         // highlight and the column wants the recipe.
-        .onChange(of: selectedRecipeID) { selection.recipe = selectedRecipe }
+        .onChange(of: selectedRecipeID) {
+            selection.recipe = selectedRecipe
+            // A plain pick from the list means "as written" — a leftover
+            // scaling from whatever the meal plan last opened must not
+            // follow it here.
+            selection.plannedServings = nil
+        }
         .onChange(of: library.recipes) {
             if selectedRecipeID != nil { selection.recipe = selectedRecipe }
         }
