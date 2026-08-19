@@ -472,6 +472,9 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var steps: some View {
         if !recipe.steps.isEmpty {
+            // Resolved once for the whole recipe: which line an amount
+            // belongs to can depend on every other step's claim on it.
+            let resolution = StepAmountResolver.resolve(recipe, toServings: servings, formatter: formatter)
             VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
                     .font(SousStyle.sectionHeading)
@@ -488,7 +491,7 @@ struct RecipeDetailView: View {
                                 .font(.system(.headline, design: .serif))
                                 .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
-                            Text(markdown(recipe.scaledStepText(step, toServings: servings)))
+                            Text(attributedText(for: resolution.segments(for: step)))
                         }
                     }
                 }
@@ -590,5 +593,23 @@ struct RecipeDetailView: View {
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(text)
+    }
+
+    /// A step's resolved segments, concatenated into one `AttributedString`
+    /// — a resolved amount in the accent color, the way `IngredientLineView`
+    /// sets the amount apart in the ingredient list.
+    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
+        var result = AttributedString()
+        for segment in segments {
+            switch segment {
+            case .text(let string):
+                result += markdown(string)
+            case .amount(let string):
+                var run = AttributedString(string)
+                run.foregroundColor = .accentColor
+                result += run
+            }
+        }
+        return result
     }
 }

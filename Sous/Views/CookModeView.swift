@@ -305,6 +305,9 @@ struct CookModeView: View {
     private func stepsPage(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
         let steps = recipe.steps
         let focused = focusedStep(entry, steps: steps)
+        // Resolved once for the whole page: which line an amount belongs to
+        // can depend on every other step's claim on it, not just this one's.
+        let resolution = StepAmountResolver.resolve(recipe, toServings: entry.servings, formatter: formatter)
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 32) {
                 ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
@@ -312,7 +315,8 @@ struct CookModeView: View {
                         step,
                         number: number(for: step, at: index, in: steps),
                         entry: entry,
-                        recipe: recipe
+                        recipe: recipe,
+                        resolution: resolution
                     )
                     .id(step.id)
                     .opacity(step.id == focused ? 1 : 0.4)
@@ -338,7 +342,8 @@ struct CookModeView: View {
         _ step: RecipeStep,
         number: Int,
         entry: CookSessionEntry,
-        recipe: Recipe
+        recipe: Recipe,
+        resolution: StepAmountResolver.Resolution
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let group = step.group, isFirstOfGroup(step, in: recipe.steps) {
@@ -351,11 +356,11 @@ struct CookModeView: View {
                     .font(.system(size: 40, weight: .bold, design: .rounded))
                     .foregroundStyle(.tint)
                     .frame(minWidth: 44, alignment: .trailing)
-                Text(markdown(recipe.scaledStepText(step, toServings: entry.servings)))
+                Text(attributedText(for: resolution.segments(for: step)))
                     .font(.title3)
             }
 
-            let used = recipe.ingredients(mentionedIn: step, scaledToServings: entry.servings)
+            let used = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
             if !used.isEmpty {
                 // What this step needs, so the cook does not swipe away mid-task.
                 VStack(alignment: .leading, spacing: 4) {
@@ -592,6 +597,24 @@ struct CookModeView: View {
             markdown: text,
             options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
         )) ?? AttributedString(text)
+    }
+
+    /// A step's resolved segments, concatenated into one `AttributedString`
+    /// — a resolved amount in the accent color, the way `IngredientLineView`
+    /// sets the amount apart in the ingredient list.
+    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
+        var result = AttributedString()
+        for segment in segments {
+            switch segment {
+            case .text(let string):
+                result += markdown(string)
+            case .amount(let string):
+                var run = AttributedString(string)
+                run.foregroundColor = .accentColor
+                result += run
+            }
+        }
+        return result
     }
 
     /// Hands covered in dough cannot tap a screen that has gone dark.
