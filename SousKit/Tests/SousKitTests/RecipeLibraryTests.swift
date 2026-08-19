@@ -261,4 +261,12 @@ struct RecipeLibraryAIMentionsTests {
 
         #expect(try await enrichment.claims(for: recipe) == claims)
     }
+
+    @Test("Two enrichments of the same recipe are never equal, so a still-open view's onChange always fires")
+    func enrichmentEventsForTheSameRecipeAreDistinct() {
+        let recipeID = UUID()
+        let first = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 1)
+        let second = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 2)
+        #expect(first != second)
+    }
 }
