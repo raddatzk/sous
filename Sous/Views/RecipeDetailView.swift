@@ -9,6 +9,17 @@ struct RecipeDetailView: View {
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
     @State private var servingsOverride: Int?
+    /// How many people `recipe` was planned for, when opened from a meal
+    /// plan entry scaled differently than the recipe is written for. Not
+    /// just an initial value: the Mac reuses this view's identity across
+    /// recipes, so `onChange(of: recipe.id)` reads it again on every switch.
+    let plannedServings: Int?
+
+    init(recipe: Recipe, plannedServings: Int? = nil) {
+        self.recipe = recipe
+        self.plannedServings = plannedServings
+        _servingsOverride = State(initialValue: plannedServings)
+    }
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
     /// Whether the page's own title has scrolled up behind the navigation
@@ -104,7 +115,10 @@ struct RecipeDetailView: View {
         .toolbar { detailToolbar }
         .recipeExporter($export)
         .onChange(of: recipe.id) {
-            servingsOverride = nil
+            // Not always `nil`: on the Mac this same view identity is reused
+            // as the plan hands it one planned recipe after another, and
+            // `plannedServings` carries whatever the new one was scaled for.
+            servingsOverride = plannedServings
             didAddToShoppingList = false
         }
         .sheet(isPresented: $isPlanning) {

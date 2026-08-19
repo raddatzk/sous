@@ -16,4 +16,9 @@ import SwiftUI
 @Observable
 final class RecipeSelection {
     var recipe: Recipe?
+    /// How many people `recipe` was on the plan for, if it got here from one.
+    /// The detail column starts scaled to this instead of the recipe's own
+    /// count, and whoever sets `recipe` from somewhere else is responsible
+    /// for clearing it back to `nil`.
+    var plannedServings: Int?
 }

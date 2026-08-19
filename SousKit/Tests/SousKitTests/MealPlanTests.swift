@@ -145,6 +145,26 @@ struct MealPlanLibraryTests {
         #expect(plan.plannedRecipes.first?.servings == 6)
     }
 
+    @Test("Servings on an already-planned meal can be changed, without duplicating it")
+    func changingServings() async throws {
+        let (plan, recipes) = try makeLibrary()
+        let recipe = Recipe(title: "Salat", servings: 2)
+        try await recipes.save(recipe)
+
+        await plan.add(recipe, to: Date())
+        let entry = try #require(plan.plan(for: Date()).first?.entry)
+
+        await plan.setServings(entry, to: 4, for: recipe)
+
+        let updated = try #require(plan.plan(for: Date()).first)
+        #expect(updated.entry.id == entry.id)
+        #expect(updated.entry.servings == 4)
+
+        // Back to how the recipe is written, so nothing overrides it.
+        await plan.setServings(updated.entry, to: 2, for: recipe)
+        #expect(plan.plan(for: Date()).first?.entry.servings == nil)
+    }
+
     @Test("Planning beyond the end of the run extends it")
     func planningPastTheEnd() async throws {
         let (plan, recipes) = try makeLibrary()
