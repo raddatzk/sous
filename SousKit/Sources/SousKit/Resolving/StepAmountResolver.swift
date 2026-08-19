@@ -45,6 +45,7 @@ public enum StepAmountResolver {
     public static func resolve(
         _ recipe: Recipe,
         toServings targetServings: Int,
+        additionalMentions: [UUID: [AmountMention]] = [:],
         catalog: IngredientCatalog = .bundled,
         formatter: QuantityFormatter = QuantityFormatter()
     ) -> Resolution {
@@ -62,10 +63,15 @@ public enum StepAmountResolver {
         let scaledLines = recipe.scaledIngredients(toServings: targetServings)
         let canonicalNames = lines.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) }
 
+        // `additionalMentions` — e.g. from `AmountAIExtractor` — supplements
+        // the regex scanner rather than replacing it: both just produce
+        // `AmountMention`s, and everything from here on treats them alike.
         var fixedShareMentions: [(stepIndex: Int, mention: AmountMention)] = []
         var remainingMentions: [(stepIndex: Int, mention: AmountMention)] = []
         for (stepIndex, step) in steps.enumerated() {
-            for mention in AmountMentionScanner.mentions(in: step.text) {
+            let regexMentions = AmountMentionScanner.mentions(in: step.text)
+            let mentions = regexMentions + supplementary(additionalMentions[step.id] ?? [], notAlreadyFoundBy: regexMentions)
+            for mention in mentions {
                 if case .remaining = mention.kind {
                     remainingMentions.append((stepIndex, mention))
                 } else {
@@ -150,7 +156,7 @@ public enum StepAmountResolver {
                     let blind = formatter.string(for: Quantity(quantity.amount * factor, quantity.unit))
                     operations.append(.replace(range: mention.writtenRange, text: blind, resolved: false))
                 }
-                // `bareCount`, `half` and `remaining` are left untouched
+                // `bareCount`, `fraction` and `remaining` are left untouched
                 // when they do not resolve: a bare number never scales on
                 // its own, and wording that already reads correctly must
                 // not gain a number it cannot back up.
@@ -161,6 +167,21 @@ public enum StepAmountResolver {
         }
 
         return Resolution(segmentsByStep: segmentsByStep, boundIngredientIDsByStep: boundIngredientIDsByStep)
+    }
+
+    /// Drops an extra mention (from `additionalMentions`) wherever the
+    /// regex scanner already found one naming the same noun over an
+    /// overlapping span — the two sources agreeing is not two shares to
+    /// claim, just one mention seen twice. What regex could not name at
+    /// all — a second noun under one shared "restlichen", say — has no
+    /// overlapping regex mention to match here and always survives.
+    private static func supplementary(_ extra: [AmountMention], notAlreadyFoundBy regexMentions: [AmountMention]) -> [AmountMention] {
+        extra.filter { candidate in
+            !regexMentions.contains { regex in
+                regex.writtenRange.overlaps(candidate.writtenRange)
+                    && regex.namePhrase.lowercased().hasPrefix(candidate.namePhrase.lowercased())
+            }
+        }
     }
 
     // MARK: - Matching
@@ -216,8 +237,8 @@ public enum StepAmountResolver {
             guard lineQuantity.unit.dimension == .count else { return nil }
             let value = value / lineBase
             return value <= 1.0001 ? value : nil
-        case .half:
-            return 0.5
+        case .fraction(let value):
+            return value
         case .remaining:
             return nil  // Resolved separately, from what the others leave behind.
         }
@@ -300,7 +321,7 @@ public enum StepAmountResolver {
             return formatter.string(for: converted)
         case .bareCount:
             return formatter.string(for: Quantity(share.amount, .piece))
-        case .half, .remaining:
+        case .fraction, .remaining:
             return formatter.string(for: share)
         }
     }

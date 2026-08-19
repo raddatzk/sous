@@ -8,38 +8,55 @@ import Foundation
 /// any, a mention actually belongs to is answered later, across the whole
 /// recipe at once: a step reading "die restlichen Kartoffeln" only means
 /// something once every other step's claim on the same line is known.
-struct AmountMention {
-    enum Kind {
+///
+/// Public because ``AmountAIExtractor`` — a second, optional source of
+/// mentions living outside this module's regex scanner — builds these too,
+/// to hand `StepAmountResolver` exactly what the scanner would have found.
+public struct AmountMention {
+    public enum Kind {
         /// A written amount with a recognized unit: "300 g", "1 EL".
         case absolute(Quantity)
         /// A written amount with no unit, bound only if some ingredient
         /// counts the same thing: "2" in "2 Kartoffeln".
         case bareCount(Double)
-        /// "die Hälfte der Zwiebeln" — always half, at every serving count.
-        case half
+        /// A fixed share of the line's total, independent of the number the
+        /// line itself scales to: "die Hälfte der Zwiebeln" is `0.5`, "ein
+        /// Drittel des Teigs" is `1.0 / 3.0`. Regex only ever writes `0.5`
+        /// here — the open-ended wording ("ein Viertel", "zwei Fünftel", …)
+        /// is exactly what `AmountAIExtractor` is for, since hand-listing
+        /// every fraction word regex would need to recognize is the same
+        /// brittleness the model exists to avoid.
+        case fraction(Double)
         /// "die restlichen Kartoffeln" — whatever the other mentions of the
         /// same line have not already claimed.
         case remaining
     }
 
-    let kind: Kind
+    public let kind: Kind
     /// The span written in the text: the digits (and unit, for `absolute`)
     /// for a number, or just the trigger word ("Hälfte der ", "Restliche ")
     /// for `half`/`remaining` — not the name that follows, since where
     /// exactly that name ends is only known once it has been matched
     /// against a line.
-    let writtenRange: Range<String.Index>
+    public let writtenRange: Range<String.Index>
     /// Whether a resolved amount replaces `writtenRange` outright (a
     /// written number is being corrected) or is inserted after the name in
     /// `namePhrase` that turned out to match, instead. `half` and
     /// `remaining` name no amount of their own, and wording that already
     /// reads correctly at every serving count must never be rewritten.
-    let replacesWrittenRange: Bool
+    public let replacesWrittenRange: Bool
     /// The words that follow `writtenRange`, matched against the catalog —
     /// possibly more of them than belong to the name, since how many words
     /// an ingredient name takes is not known until it is matched. See
     /// `StepAmountResolver.matchedNameEnd`.
-    let namePhrase: Substring
+    public let namePhrase: Substring
+
+    public init(kind: Kind, writtenRange: Range<String.Index>, replacesWrittenRange: Bool, namePhrase: Substring) {
+        self.kind = kind
+        self.writtenRange = writtenRange
+        self.replacesWrittenRange = replacesWrittenRange
+        self.namePhrase = namePhrase
+    }
 }
 
 /// Finds ``AmountMention``s in a step's text.
@@ -51,7 +68,7 @@ struct AmountMention {
 enum AmountMentionScanner {
     static func mentions(in text: String) -> [AmountMention] {
         var result = numberMentions(in: text)
-        result += phraseMentions(of: /[Hh]älfte\s+(?:der|des|von)\s+/, kind: .half, in: text)
+        result += phraseMentions(of: /[Hh]älfte\s+(?:der|des|von)\s+/, kind: .fraction(0.5), in: text)
         result += phraseMentions(of: /[Rr]estlich(?:e|en|es|er)\s+/, kind: .remaining, in: text)
         return result.sorted { $0.writtenRange.lowerBound < $1.writtenRange.lowerBound }
     }
