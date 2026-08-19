@@ -149,6 +149,15 @@ struct RecipeDetailView: View {
         .task(id: recipe.id) {
             aiMentions = await library.aiMentions(for: recipe)
         }
+        // The background pass `save(_:)` schedules can still be running
+        // when this screen is already open — most often right after
+        // editing this very recipe and landing straight back on it. This
+        // is how it shows up without waiting for the recipe to be left and
+        // reopened.
+        .onChange(of: library.lastEnrichment) { _, event in
+            guard event?.recipeID == recipe.id else { return }
+            Task { aiMentions = await library.aiMentions(for: recipe) }
+        }
         // The plan row this came from stays on screen beside this column —
         // a stepper pressed there while this recipe is still the one open
         // must show up here too, not just the next time something is opened.

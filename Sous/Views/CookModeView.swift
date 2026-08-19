@@ -169,6 +169,13 @@ struct CookModeView: View {
         // The ids are the truth; the recipes behind them are fetched, and
         // refetched whenever something joins or leaves the hob.
         .task(id: session.entries.map(\.recipeID)) { await resolveRecipes() }
+        // A background enrichment for a recipe already on the hob — most
+        // often the cook stepped out to fix a typo mid-cook and came right
+        // back — updates just that one recipe's mentions.
+        .onChange(of: library.lastEnrichment) { _, event in
+            guard let event, let recipe = recipes[event.recipeID] else { return }
+            Task { aiMentionsByRecipe[event.recipeID] = await library.aiMentions(for: recipe) }
+        }
         .onAppear { keepDisplayAwake(true) }
         .onDisappear { keepDisplayAwake(false) }
     }

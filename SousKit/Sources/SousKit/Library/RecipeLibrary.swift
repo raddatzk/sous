@@ -23,6 +23,12 @@ public final class RecipeLibrary {
         }
     }
 
+    /// One AI enrichment finishing — see `lastEnrichment`.
+    public struct EnrichmentEvent: Equatable, Sendable {
+        public let recipeID: UUID
+        let generation: Int
+    }
+
     private let store: any RecipeStore
     private let imageStore: any RecipeImageStore
     private let enrichmentStore: any RecipeEnrichmentStore
@@ -40,6 +46,15 @@ public final class RecipeLibrary {
     /// The same for an export, which on a full library is the slower of the
     /// two — every picture is read back at full size.
     public private(set) var exportProgress: RecipeImportProgress?
+
+    /// The most recent recipe an AI enrichment finished for, so a view
+    /// already open on that recipe can notice without polling — see
+    /// `scheduleEnrichment(for:)`. Distinct on every completion, even a
+    /// second one for the same recipe, which is why this carries a
+    /// generation rather than being a plain `UUID?`: setting the exact
+    /// same value twice would not trigger `.onChange` a second time.
+    public private(set) var lastEnrichment: EnrichmentEvent?
+    private var enrichmentGeneration = 0
 
     public var searchText = "" { didSet { scheduleReload(if: oldValue != searchText) } }
     public var filter: Filter = .all { didSet { scheduleReload(if: oldValue != filter) } }
@@ -205,6 +220,7 @@ public final class RecipeLibrary {
     public func refreshAIMentions(for recipe: Recipe) async throws -> [UUID: [AmountMention]] {
         let claims = try await AmountAIExtractor.extractClaims(from: recipe)
         try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
+        recordEnrichment(for: recipe.id)
         return AmountAIExtractor.mentions(from: claims, steps: recipe.steps)
     }
 
@@ -217,11 +233,20 @@ public final class RecipeLibrary {
     /// favoriting, marking "will ich kochen" and cooking-through all save
     /// too, and none of them touch the ingredients or instructions.
     private func scheduleEnrichment(for recipe: Recipe) {
-        Task { [enrichmentStore] in
+        Task { [weak self, enrichmentStore] in
             if (try? await enrichmentStore.claims(for: recipe)) != nil { return }
             guard let claims = try? await AmountAIExtractor.extractClaims(from: recipe) else { return }
             try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
+            self?.recordEnrichment(for: recipe.id)
         }
+    }
+
+    /// Stamps a fresh generation so `.onChange(of: library.lastEnrichment)`
+    /// fires even for a second enrichment of the same recipe — an `EnrichmentEvent`
+    /// equal to the last one would not trigger a change at all.
+    private func recordEnrichment(for recipeID: UUID) {
+        enrichmentGeneration += 1
+        lastEnrichment = EnrichmentEvent(recipeID: recipeID, generation: enrichmentGeneration)
     }
 
     public func delete(_ recipe: Recipe) async {
