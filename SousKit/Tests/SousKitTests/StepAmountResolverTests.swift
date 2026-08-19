@@ -258,4 +258,129 @@ struct StepAmountResolverTests {
         #expect(rendered.contains("amount(4)"))  // Zwiebeln, found by regex
         #expect(rendered.contains("amount(6)"))  // Karotten, only found via the supplementary mention
     }
+
+    @Test("Two ungrouped lines of the same ingredient act as one pot")
+    func ungroupedSameNameLinesShareOnePot() {
+        // The bug seen live: two `150 g Butter` lines with no group heading.
+        // Per raw line the solver sees two equally good homes for "150 g"
+        // and binds nothing — per pot there is exactly one 300-gram supply.
+        let recipe = Recipe(
+            title: "Apfelkuchen",
+            servings: 4,
+            ingredientsText: """
+            300 g Mehl
+            150 g Butter
+            150 g Butter
+            1 Ei
+            """,
+            instructionsText: """
+            300 g Mehl mit 150 g Butter und dem Ei verkneten.
+            Die restliche Butter in einer Pfanne erhitzen.
+            """
+        )
+        let steps = recipe.steps
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+
+        let step0 = segmentsText(resolution.segments(for: steps[0])).joined()
+        // 150 g is half the 300-gram pot; at double servings that half is 300 g.
+        #expect(step0.contains("amount(600 g)"))  // Mehl
+        #expect(step0.contains("amount(300 g)"))  // Butter, resolved despite the twin lines
+
+        // "Die restliche Butter" is the pot's other half.
+        let step1 = segmentsText(resolution.segments(for: steps[1])).joined()
+        #expect(step1.contains("amount(300 g)"))
+
+        // Binding the pot binds both lines — no chip repeats the butter
+        // beneath either step.
+        let butterLines = recipe.ingredients.filter { $0.name == "Butter" }
+        #expect(butterLines.count == 2)
+        for butter in butterLines {
+            #expect(resolution.mentionsAmount(of: butter, in: steps[0]))
+            #expect(resolution.mentionsAmount(of: butter, in: steps[1]))
+        }
+        #expect(recipe.ingredients(mentionedIn: steps[0], resolution: resolution, scaledToServings: 8).isEmpty)
+        #expect(recipe.ingredients(mentionedIn: steps[1], resolution: resolution, scaledToServings: 8).isEmpty)
+    }
+
+    @Test("A pot also forms over unequal amounts, and 'restliche' means what the pot has left")
+    func potPoolsUnequalAmounts() {
+        let recipe = Recipe(
+            title: "Buttergebäck",
+            servings: 2,
+            ingredientsText: """
+            100 g Butter
+            50 g Butter
+            """,
+            instructionsText: """
+            100 g Butter schmelzen.
+            Die restliche Butter unterheben.
+            """
+        )
+        let steps = recipe.steps
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+
+        #expect(segmentsText(resolution.segments(for: steps[0])).joined().contains("amount(100 g)"))
+        #expect(segmentsText(resolution.segments(for: steps[1])).joined().contains("amount(50 g)"))
+    }
+
+    @Test("An amount larger than any single line still binds when the pot as a whole covers it")
+    func potCoversAmountNoSingleLineCould() {
+        // Per raw line "150 g" exceeds both and could bind nowhere; the
+        // 150-gram pot is exactly what the step asks for.
+        let recipe = Recipe(
+            title: "Buttergebäck",
+            servings: 2,
+            ingredientsText: """
+            100 g Butter
+            50 g Butter
+            """,
+            instructionsText: "150 g Butter zerlassen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).joined().contains("amount(150 g)"))
+        for butter in recipe.ingredients {
+            #expect(resolution.mentionsAmount(of: butter, in: recipe.steps[0]))
+        }
+    }
+
+    @Test("The fallback chip lists a pot once, with the summed amount")
+    func fallbackChipCollapsesPotLines() {
+        // No amount anywhere near "Butter" in the step, so the chip is the
+        // legitimate fallback — but it must not present one supply twice.
+        let recipe = Recipe(
+            title: "Apfelkuchen",
+            servings: 4,
+            ingredientsText: """
+            150 g Butter
+            150 g Butter
+            1 kg Äpfel
+            """,
+            instructionsText: "Die Butter mit den Äpfeln verrühren."
+        )
+        let step = recipe.steps[0]
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: 8)
+
+        #expect(chips.count == 2)
+        let butter = chips.first { $0.name == "Butter" }
+        #expect(butter?.quantity == Quantity(600, .gram))  // 2 × 150 g, at double servings
+        #expect(chips.contains { $0.name == "Äpfel" })
+    }
+
+    @Test("Same-name lines whose units cannot be added stay in separate pots — and stay ambiguous")
+    func unaddableSameNameLinesStaySeparate() {
+        let recipe = Recipe(
+            title: "Ofengemüse",
+            servings: 2,
+            ingredientsText: """
+            1 Prise Salz
+            1 TL Salz
+            """,
+            instructionsText: "Restliches Salz darüber streuen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let segments = resolution.segments(for: recipe.steps[0])
+        // Two pots could be meant, so "restliches" resolves against neither.
+        #expect(!segments.contains { if case .amount = $0 { true } else { false } })
+    }
 }

@@ -24,6 +24,16 @@ public struct Quantity: Codable, Hashable, Sendable {
         return Quantity(amount * from / to, target)
     }
 
+    /// This quantity with `other` added on, kept in this quantity's unit —
+    /// `nil` when the two cannot be added at all: different dimensions, or
+    /// units nothing can convert (unless they are the very same unit, which
+    /// adds plainly).
+    public func adding(_ other: Quantity) -> Quantity? {
+        if other.unit == unit { return Quantity(amount + other.amount, unit) }
+        guard let converted = other.converted(to: unit) else { return nil }
+        return Quantity(amount + converted.amount, unit)
+    }
+
     /// The amount expressed in the dimension's base unit (gram or milliliter),
     /// `nil` for units that cannot be converted.
     public var inBaseUnit: Double? {
