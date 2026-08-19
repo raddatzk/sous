@@ -325,52 +325,86 @@ struct RecipeDetailView: View {
 
     @ViewBuilder
     private func actionBar(isWide: Bool) -> some View {
-        HStack(spacing: 12) {
-            Button {
-                // Puts the recipe on the hob and opens cook mode on it — the
-                // session decides whether that is the only pot or a second.
-                session.start(recipe, servings: servings)
-            } label: {
-                Label("Kochen", systemImage: "play.fill")
-                    // The one thing to press on a narrow page, so it fills
-                    // it. On a wide one a button a thousand points across
-                    // reads as a banner rather than something to click.
-                    .frame(maxWidth: isWide ? nil : .infinity)
-                    .padding(.horizontal, isWide ? 8 : 0)
+        if isWide {
+            HStack(spacing: 12) {
+                cookButton(isWide: true)
+                planButton
+                shoppingButton
+                servingsField
+                resetButton
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(recipe.steps.isEmpty)
-
-            Button {
-                isPlanning = true
-            } label: {
-                Label("Einplanen", systemImage: "calendar.badge.plus")
-                    .labelStyle(.iconOnly)
+            .controlSize(.large)
+        } else {
+            // Four controls do not fit one line at phone width — the wide
+            // layout's row would only squeeze "Kochen" down to a sliver,
+            // since an `HStack` does not wrap. Two rows instead: "Kochen"
+            // stays the one full-width, unmissable action, and everything
+            // else sits together underneath it.
+            VStack(spacing: 12) {
+                cookButton(isWide: false)
+                HStack(spacing: 12) {
+                    planButton
+                    shoppingButton
+                    servingsField
+                    resetButton
+                    Spacer(minLength: 0)
+                }
             }
-            .buttonStyle(.bordered)
-
-            Button {
-                addToShoppingList()
-            } label: {
-                Label(
-                    didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
-                    systemImage: didAddToShoppingList ? "checkmark" : "cart.badge.plus"
-                )
-                // Icons only: three labelled buttons do not fit a phone
-                // without wrapping mid-word.
-                .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.bordered)
-            .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
-
-            servingsField
-            if servingsOverride != nil, servingsOverride != recipe.servings {
-                Button("Zurücksetzen") { updateServings(recipe.servings) }
-                    .buttonStyle(.borderless)
-                    .font(.footnote)
-            }
+            .controlSize(.large)
         }
-        .controlSize(.large)
+    }
+
+    @ViewBuilder
+    private func cookButton(isWide: Bool) -> some View {
+        Button {
+            // Puts the recipe on the hob and opens cook mode on it — the
+            // session decides whether that is the only pot or a second.
+            session.start(recipe, servings: servings)
+        } label: {
+            Label("Kochen", systemImage: "play.fill")
+                // The one thing to press on a narrow page, so it fills it.
+                // On a wide one a button a thousand points across reads as
+                // a banner rather than something to click.
+                .frame(maxWidth: isWide ? nil : .infinity)
+                .padding(.horizontal, isWide ? 8 : 0)
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(recipe.steps.isEmpty)
+    }
+
+    private var planButton: some View {
+        Button {
+            isPlanning = true
+        } label: {
+            Label("Einplanen", systemImage: "calendar.badge.plus")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private var shoppingButton: some View {
+        Button {
+            addToShoppingList()
+        } label: {
+            Label(
+                didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
+                systemImage: didAddToShoppingList ? "checkmark" : "cart.badge.plus"
+            )
+            // Icons only: three labelled buttons do not fit a phone
+            // without wrapping mid-word.
+            .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.bordered)
+        .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
+    }
+
+    @ViewBuilder
+    private var resetButton: some View {
+        if servingsOverride != nil, servingsOverride != recipe.servings {
+            Button("Zurücksetzen") { updateServings(recipe.servings) }
+                .buttonStyle(.borderless)
+                .font(.footnote)
+        }
     }
 
     /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
