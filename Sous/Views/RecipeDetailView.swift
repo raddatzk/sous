@@ -335,19 +335,20 @@ struct RecipeDetailView: View {
             }
             .controlSize(.large)
         } else {
-            // Four controls do not fit one line at phone width — the wide
-            // layout's row would only squeeze "Kochen" down to a sliver,
-            // since an `HStack` does not wrap. Two rows instead: "Kochen"
-            // stays the one full-width, unmissable action, and everything
-            // else sits together underneath it.
-            VStack(spacing: 12) {
+            // Four controls do not fit one line at phone width — an
+            // `HStack` doesn't wrap, so it either squeezed "Kochen" down to
+            // a sliver or (once the reset button joined) compressed the
+            // servings count down to nothing rather than touch the stepper
+            // or the icons beside it. "Kochen" gets its own full-width row
+            // regardless — the one unmissable action — and `FlowLayout`
+            // wraps whatever else doesn't fit onto a line of its own.
+            VStack(alignment: .leading, spacing: 12) {
                 cookButton(isWide: false)
-                HStack(spacing: 12) {
+                FlowLayout(spacing: 12, lineSpacing: 12) {
                     planButton
                     shoppingButton
                     servingsField
                     resetButton
-                    Spacer(minLength: 0)
                 }
             }
             .controlSize(.large)
@@ -401,9 +402,16 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var resetButton: some View {
         if servingsOverride != nil, servingsOverride != recipe.servings {
-            Button("Zurücksetzen") { updateServings(recipe.servings) }
-                .buttonStyle(.borderless)
-                .font(.footnote)
+            // Icon rather than the word "Zurücksetzen": as text it was the
+            // one flexible-width element in a row of icon chips, and wrapped
+            // letter by letter the moment the row ran short on space.
+            Button {
+                updateServings(recipe.servings)
+            } label: {
+                Label("Zurücksetzen", systemImage: "arrow.uturn.backward")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.bordered)
         }
     }
 
