@@ -331,24 +331,20 @@ struct RecipeDetailView: View {
                 planButton
                 shoppingButton
                 servingsField
-                resetButton
             }
             .controlSize(.large)
         } else {
-            // Four controls do not fit one line at phone width — an
-            // `HStack` doesn't wrap, so it either squeezed "Kochen" down to
-            // a sliver or (once the reset button joined) compressed the
-            // servings count down to nothing rather than touch the stepper
-            // or the icons beside it. "Kochen" gets its own full-width row
-            // regardless — the one unmissable action — and `FlowLayout`
-            // wraps whatever else doesn't fit onto a line of its own.
+            // Three controls do not fit one line at phone width — an
+            // `HStack` doesn't wrap, so it squeezed "Kochen" down to a
+            // sliver. "Kochen" gets its own full-width row regardless — the
+            // one unmissable action — and `FlowLayout` wraps whatever else
+            // doesn't fit onto a line of its own.
             VStack(alignment: .leading, spacing: 12) {
                 cookButton(isWide: false)
                 FlowLayout(spacing: 12, lineSpacing: 12) {
                     planButton
                     shoppingButton
                     servingsField
-                    resetButton
                 }
             }
             .controlSize(.large)
@@ -399,25 +395,15 @@ struct RecipeDetailView: View {
         .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
     }
 
-    @ViewBuilder
-    private var resetButton: some View {
-        if servingsOverride != nil, servingsOverride != recipe.servings {
-            // Icon rather than the word "Zurücksetzen": as text it was the
-            // one flexible-width element in a row of icon chips, and wrapped
-            // letter by letter the moment the row ran short on space.
-            Button {
-                updateServings(recipe.servings)
-            } label: {
-                Label("Zurücksetzen", systemImage: "arrow.uturn.backward")
-                    .labelStyle(.iconOnly)
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
     /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
     /// beside them rather than in a card of its own above — a cook reads it
     /// in the same glance as the buttons that act on it.
+    ///
+    /// The reset button lives inside this same capsule rather than beside
+    /// it as its own chip: it only means something next to the count it
+    /// resets, and a wrap that separated the two — reset landing alone on
+    /// its own line, far from the field it acts on — read as misplaced.
+    /// One view keeps them together, on either side of a wrap.
     private var servingsField: some View {
         HStack(spacing: 4) {
             // Icon rather than the word "Portionen": the row already reads
@@ -433,6 +419,17 @@ struct RecipeDetailView: View {
                 set: { updateServings($0.clamped(to: Recipe.servingsRange)) }
             ), in: Recipe.servingsRange)
             .labelsHidden()
+            if servingsOverride != nil, servingsOverride != recipe.servings {
+                Button {
+                    updateServings(recipe.servings)
+                } label: {
+                    Label("Zurücksetzen", systemImage: "arrow.uturn.backward")
+                        .labelStyle(.iconOnly)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.tint)
+                .padding(.leading, 4)
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
