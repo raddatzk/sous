@@ -25,6 +25,7 @@ public final class RecipeLibrary {
 
     private let store: any RecipeStore
     private let imageStore: any RecipeImageStore
+    private let enrichmentStore: any RecipeEnrichmentStore
 
     public private(set) var recipes: [Recipe] = []
     public private(set) var categories: [String] = []
@@ -48,9 +49,10 @@ public final class RecipeLibrary {
 
     private var reloadTask: Task<Void, Never>?
 
-    public init(store: any RecipeStore, imageStore: any RecipeImageStore) {
+    public init(store: any RecipeStore, imageStore: any RecipeImageStore, enrichmentStore: any RecipeEnrichmentStore) {
         self.store = store
         self.imageStore = imageStore
+        self.enrichmentStore = enrichmentStore
     }
 
     // MARK: - Images
@@ -179,8 +181,46 @@ public final class RecipeLibrary {
             // than lingering as orphans nothing references.
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: recipe.imageIDs)
             await reload()
+            scheduleEnrichment(for: recipe)
         } catch {
             report(error)
+        }
+    }
+
+    // MARK: - AI mentions
+
+    /// What `AmountAIExtractor` found the last time it ran, if the recipe's
+    /// ingredients and instructions haven't changed since — a plain cache
+    /// read, never a model call, so a view can call this from `.task`
+    /// without worrying about cost.
+    public func aiMentions(for recipe: Recipe) async -> [UUID: [AmountMention]] {
+        guard let claims = try? await enrichmentStore.claims(for: recipe) else { return [:] }
+        return AmountAIExtractor.mentions(from: claims.map(\.asExtractedQuantity), steps: recipe.steps)
+    }
+
+    /// Calls the model regardless of what is cached, and replaces the
+    /// cache with what it finds — the explicit "try again" a person can
+    /// reach for, as opposed to the automatic pass `save(_:)` schedules.
+    @discardableResult
+    public func refreshAIMentions(for recipe: Recipe) async throws -> [UUID: [AmountMention]] {
+        let claims = try await AmountAIExtractor.extractClaims(from: recipe)
+        try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
+        return AmountAIExtractor.mentions(from: claims, steps: recipe.steps)
+    }
+
+    /// Runs after a save, not as part of it: `save(_:)` returns exactly as
+    /// fast as before, since a toggled favorite goes through here too and
+    /// must not wait on a model call it does not need.
+    ///
+    /// Skips the call entirely when the cache already matches this
+    /// recipe's text — the only reason `save(_:)` fires this often is that
+    /// favoriting, marking "will ich kochen" and cooking-through all save
+    /// too, and none of them touch the ingredients or instructions.
+    private func scheduleEnrichment(for recipe: Recipe) {
+        Task { [enrichmentStore] in
+            if (try? await enrichmentStore.claims(for: recipe)) != nil { return }
+            guard let claims = try? await AmountAIExtractor.extractClaims(from: recipe) else { return }
+            try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
         }
     }
 
@@ -327,6 +367,7 @@ public final class RecipeLibrary {
     public func erase(_ recipe: Recipe) async {
         do {
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
+            try? await enrichmentStore.delete(recipeID: recipe.id)
             try await store.erase(id: recipe.id)
         } catch {
             report(error)

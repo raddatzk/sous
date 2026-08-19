@@ -10,7 +10,8 @@ struct RecipeLibraryTests {
         let container = try ModelContainer.sousContainer(inMemory: true)
         let store = SwiftDataRecipeStore(modelContainer: container)
         let images = SwiftDataRecipeImageStore(modelContainer: container)
-        return (RecipeLibrary(store: store, imageStore: images), store)
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
+        return (RecipeLibrary(store: store, imageStore: images, enrichmentStore: enrichment), store)
     }
 
     @Test("The query mirrors the selected filters")
@@ -133,7 +134,11 @@ struct RecipeTrashTests {
         let container = try ModelContainer.sousContainer(inMemory: true)
         let images = SwiftDataRecipeImageStore(modelContainer: container)
         return (
-            RecipeLibrary(store: SwiftDataRecipeStore(modelContainer: container), imageStore: images),
+            RecipeLibrary(
+                store: SwiftDataRecipeStore(modelContainer: container),
+                imageStore: images,
+                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
+            ),
             images
         )
     }
@@ -193,5 +198,67 @@ struct RecipeTrashTests {
             iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==
             """
         )
+    }
+}
+
+@MainActor
+@Suite("AI mentions caching")
+struct RecipeLibraryAIMentionsTests {
+    private func makeLibrary() throws -> (library: RecipeLibrary, enrichment: SwiftDataRecipeEnrichmentStore) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
+        let library = RecipeLibrary(
+            store: SwiftDataRecipeStore(modelContainer: container),
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: enrichment
+        )
+        return (library, enrichment)
+    }
+
+    @Test("A cached mention comes back through the library, resolved for the current recipe")
+    func readsWhatIsCached() async throws {
+        let (library, enrichment) = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "1 kg Kartoffel",
+            instructionsText: "300 g Kartoffeln kochen."
+        )
+        try await enrichment.save(
+            [StoredAmountClaim(quantityText: "300 g", modifiedNoun: "Kartoffeln", kind: .absolute, fractionValue: nil, stepNumber: 1)],
+            for: recipe
+        )
+
+        let mentions = await library.aiMentions(for: recipe)
+        #expect(mentions[recipe.steps[0].id]?.count == 1)
+    }
+
+    @Test("Nothing cached yet is an empty result, not an error")
+    func emptyWhenNothingCached() async throws {
+        let (library, _) = try makeLibrary()
+        let recipe = Recipe(title: "Ofengemüse", instructionsText: "Gemüse schneiden.")
+        #expect(await library.aiMentions(for: recipe).isEmpty)
+    }
+
+    @Test("A metadata-only save — toggling a favorite — leaves an already-cached result untouched")
+    func metadataOnlySaveDoesNotDisturbTheCache() async throws {
+        let (library, enrichment) = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "1 kg Kartoffel",
+            instructionsText: "300 g Kartoffeln kochen."
+        )
+        await library.save(recipe)
+        let claims = [StoredAmountClaim(quantityText: "300 g", modifiedNoun: "Kartoffeln", kind: .absolute, fractionValue: nil, stepNumber: 1)]
+        try await enrichment.save(claims, for: recipe)
+
+        // Toggling a favorite goes through `save(_:)` too, but never touches
+        // the ingredients or instructions — the cache must still match.
+        guard let stored = library.recipes.first else {
+            Issue.record("Expected the saved recipe to be in the library")
+            return
+        }
+        await library.toggleFavorite(stored)
+
+        #expect(try await enrichment.claims(for: recipe) == claims)
     }
 }

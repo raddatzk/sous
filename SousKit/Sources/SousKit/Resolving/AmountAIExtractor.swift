@@ -7,7 +7,7 @@ import Foundation
 /// Hälfte" are all just `fraction` with a different `fractionValue`; no case
 /// had to be added for any of them.
 @Generable
-enum ExtractedAmountKind: String, Sendable {
+public enum ExtractedAmountKind: String, Sendable, Codable {
     /// An explicit amount with a number: "300 g", "2 Stück".
     case absolute
     /// A fixed share of the ingredient's total, independent of how the line
@@ -25,16 +25,29 @@ enum ExtractedAmountKind: String, Sendable {
 /// quantity modifies — nothing more. Which ingredient line, if any, that
 /// noun refers to is for `StepAmountResolver` to work out, exactly as it
 /// already does for the regex scanner's mentions.
+///
+/// Public so `RecipeLibrary` can cache what the model said — see
+/// `StoredAmountClaim`, a deliberately separate type for what actually gets
+/// written to disk, so the persisted schema does not silently drift with
+/// whatever `@Generable` happens to require.
 @Generable
-struct ExtractedQuantity: Equatable, Sendable {
+public struct ExtractedQuantity: Equatable, Sendable {
     @Guide(description: "The quantity phrase exactly as written in the step, e.g. '100 g', 'restlichen', 'ein Drittel'")
-    var quantityText: String
+    public var quantityText: String
     @Guide(description: "The noun this quantity grammatically modifies, exactly as written. Empty if kind is notAQuantity.")
-    var modifiedNoun: String
-    var kind: ExtractedAmountKind
+    public var modifiedNoun: String
+    public var kind: ExtractedAmountKind
     @Guide(description: "Only set when kind is 'fraction': the fraction as a decimal, e.g. 0.5 for 'die Hälfte', 0.333 for 'ein Drittel', 0.25 for 'ein Viertel', 2.0 for 'das Doppelte'")
-    var fractionValue: Double?
-    var stepNumber: Int
+    public var fractionValue: Double?
+    public var stepNumber: Int
+
+    public init(quantityText: String, modifiedNoun: String, kind: ExtractedAmountKind, fractionValue: Double?, stepNumber: Int) {
+        self.quantityText = quantityText
+        self.modifiedNoun = modifiedNoun
+        self.kind = kind
+        self.fractionValue = fractionValue
+        self.stepNumber = stepNumber
+    }
 }
 
 @Generable
@@ -68,15 +81,26 @@ public enum AmountAIExtractionError: Error, LocalizedError {
 /// found by literal search rather than by the step number the model
 /// happened to name.
 public enum AmountAIExtractor {
-    /// Calls the on-device model once for the whole recipe's steps.
+    /// Calls the on-device model once for the whole recipe's steps and
+    /// resolves its claims into mentions ready for
+    /// `StepAmountResolver.resolve(additionalMentions:)`.
     public static func extract(from recipe: Recipe) async throws -> [UUID: [AmountMention]] {
+        let claims = try await extractClaims(from: recipe)
+        return mentions(from: claims, steps: recipe.steps)
+    }
+
+    /// The model's raw claims, before they are matched against the text —
+    /// what `RecipeEnrichmentStore` persists, since an `AmountMention`
+    /// carries `String.Index` positions that only mean anything for the
+    /// exact `Recipe.steps` they were built from and cannot survive a
+    /// save-and-reload.
+    public static func extractClaims(from recipe: Recipe) async throws -> [ExtractedQuantity] {
         guard case .available = SystemLanguageModel.default.availability else {
             throw AmountAIExtractionError.modelUnavailable
         }
         let steps = recipe.steps
-        guard !steps.isEmpty else { return [:] }
-        let raw = try await requestExtraction(steps: steps)
-        return mentions(from: raw.mentions, steps: steps)
+        guard !steps.isEmpty else { return [] }
+        return try await requestExtraction(steps: steps).mentions
     }
 
     private static func requestExtraction(steps: [RecipeStep]) async throws -> AmountExtraction {

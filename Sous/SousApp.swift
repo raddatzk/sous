@@ -30,7 +30,8 @@ struct SousApp: App {
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             _library = State(initialValue: RecipeLibrary(
                 store: recipes,
-                imageStore: SwiftDataRecipeImageStore(modelContainer: container)
+                imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
             ))
             let plan = MealPlanLibrary(
                 store: SwiftDataMealPlanStore(modelContainer: container),
