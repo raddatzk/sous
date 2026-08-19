@@ -40,6 +40,11 @@ struct RecipeDetailView: View {
     @State private var didAddToShoppingList = false
     @State private var isPlanning = false
     @State private var export: RecipeExport?
+    /// What the model found the last time "Mengen mit KI zuordnen" ran —
+    /// kept only for this screen's lifetime, never saved.
+    @State private var aiMentions: [UUID: [AmountMention]] = [:]
+    @State private var isResolvingWithAI = false
+    @State private var aiError: String?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -136,6 +141,7 @@ struct RecipeDetailView: View {
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
             didAddToShoppingList = false
+            aiMentions = [:]
         }
         // The plan row this came from stays on screen beside this column —
         // a stepper pressed there while this recipe is still the one open
@@ -165,6 +171,28 @@ struct RecipeDetailView: View {
             Task { linkedRecipe = await library.recipe(id: id) }
             return .handled
         })
+        .alert(
+            "Fehler",
+            isPresented: Binding(get: { aiError != nil }, set: { if !$0 { aiError = nil } })
+        ) {
+            Button("OK", role: .cancel) { aiError = nil }
+        } message: {
+            Text(aiError ?? "")
+        }
+    }
+
+    /// Runs the model once over the current steps and holds its result in
+    /// memory for this screen — nothing is written back into the recipe.
+    private func resolveMentionsWithAI() {
+        isResolvingWithAI = true
+        Task {
+            defer { isResolvingWithAI = false }
+            do {
+                aiMentions = try await AmountAIExtractor.extract(from: recipe)
+            } catch {
+                aiError = error.localizedDescription
+            }
+        }
     }
 
     /// Edge to edge, the way a dish deserves to be seen.
@@ -474,7 +502,9 @@ struct RecipeDetailView: View {
         if !recipe.steps.isEmpty {
             // Resolved once for the whole recipe: which line an amount
             // belongs to can depend on every other step's claim on it.
-            let resolution = StepAmountResolver.resolve(recipe, toServings: servings, formatter: formatter)
+            let resolution = StepAmountResolver.resolve(
+                recipe, toServings: servings, additionalMentions: aiMentions, formatter: formatter
+            )
             VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
                     .font(SousStyle.sectionHeading)
@@ -557,6 +587,15 @@ struct RecipeDetailView: View {
                             export = RecipeExport(recipe: recipe, data: data)
                         }
                     }
+                }
+                if !recipe.steps.isEmpty {
+                    Button(
+                        isResolvingWithAI ? "Wird zugeordnet…" : "Mengen mit KI zuordnen",
+                        systemImage: "sparkles"
+                    ) {
+                        resolveMentionsWithAI()
+                    }
+                    .disabled(isResolvingWithAI)
                 }
                 if !recipe.isDeleted {
                     Divider()

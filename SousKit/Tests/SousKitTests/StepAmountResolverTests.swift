@@ -177,4 +177,85 @@ struct StepAmountResolverTests {
         #expect(AmountScaler.scaled("20 Minuten schmoren", by: 2, formatter: formatter) == "20 Minuten schmoren")
         #expect(AmountScaler.scaled("In 2 Hälften schneiden", by: 2, formatter: formatter) == "In 2 Hälften schneiden")
     }
+
+    @Test("A supplementary mention that regex already found does not render twice")
+    func supplementaryDuplicateDoesNotDoubleRender() throws {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: "1 kg Kartoffel",
+            instructionsText: """
+            300 g Kartoffeln kochen.
+            Restlichen Kartoffeln nur schälen.
+            """
+        )
+        let steps = recipe.steps
+        let text0 = steps[0].text
+        let text1 = steps[1].text
+
+        // What `AmountAIExtractor` would independently find for the exact
+        // same two mentions the regex scanner already resolves on its own.
+        let duplicateAbsolute = AmountMention(
+            kind: .absolute(Quantity(300, .gram)),
+            writtenRange: try #require(text0.range(of: "300 g")),
+            replacesWrittenRange: true,
+            namePhrase: text0[try #require(text0.range(of: "Kartoffeln"))]
+        )
+        let duplicateRemaining = AmountMention(
+            kind: .remaining,
+            writtenRange: try #require(text1.range(of: "Restlichen")),
+            replacesWrittenRange: false,
+            namePhrase: text1[try #require(text1.range(of: "Kartoffeln"))]
+        )
+
+        let resolution = StepAmountResolver.resolve(
+            recipe, toServings: 4,
+            additionalMentions: [steps[0].id: [duplicateAbsolute], steps[1].id: [duplicateRemaining]],
+            formatter: formatter
+        )
+
+        let step0 = segmentsText(resolution.segments(for: steps[0])).joined()
+        let step1 = segmentsText(resolution.segments(for: steps[1])).joined()
+        // 1 kg at double servings is 2 kg; 300 g of the original 1 kg is a
+        // 0.3 share, i.e. 600 g of the scaled line, leaving 1,4 kg restlich.
+        #expect(step0.contains("amount(600 g)"))
+        #expect(step1.contains("amount(1,4 kg)"))
+        // Exactly one resolved amount per step — not two, side by side.
+        #expect(resolution.segments(for: steps[0]).filter { if case .amount = $0 { true } else { false } }.count == 1)
+        #expect(resolution.segments(for: steps[1]).filter { if case .amount = $0 { true } else { false } }.count == 1)
+    }
+
+    @Test("A second noun under one shared 'restlichen' — which regex alone can never reach — resolves via a supplementary mention")
+    func supplementaryMentionReachesTheSecondNoun() throws {
+        let recipe = Recipe(
+            title: "Gemüsefüllung",
+            servings: 2,
+            ingredientsText: """
+            4 Zwiebeln
+            6 Karotten
+            """,
+            instructionsText: "Die restlichen Zwiebeln und Karotten zur Füllung geben."
+        )
+        let steps = recipe.steps
+        let text = steps[0].text
+
+        // Regex alone only ever reaches "Zwiebeln" (the first word after
+        // "restlichen"); "Karotten" has no regex mention pointing at it at
+        // all, so nothing here can collide with what regex already found.
+        let karotten = AmountMention(
+            kind: .remaining,
+            writtenRange: try #require(text.range(of: "restlichen")),
+            replacesWrittenRange: false,
+            namePhrase: text[try #require(text.range(of: "Karotten"))]
+        )
+
+        let resolution = StepAmountResolver.resolve(
+            recipe, toServings: 2,
+            additionalMentions: [steps[0].id: [karotten]],
+            formatter: formatter
+        )
+        let rendered = segmentsText(resolution.segments(for: steps[0])).joined()
+        #expect(rendered.contains("amount(4)"))  // Zwiebeln, found by regex
+        #expect(rendered.contains("amount(6)"))  // Karotten, only found via the supplementary mention
+    }
 }
