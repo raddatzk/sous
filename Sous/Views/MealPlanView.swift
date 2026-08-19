@@ -39,12 +39,12 @@ struct MealPlanView: View {
         var id: String { "\(day.timeIntervalSince1970)-\(slot.rawValue)" }
     }
 
-    /// A recipe opened from the plan, carrying how many people it was
-    /// planned for — the detail view starts scaled to that, not to the
-    /// recipe's own count.
+    /// A recipe opened from the plan, carrying which entry it came from —
+    /// the detail view derives its serving scale from that, not a count
+    /// captured at the moment of opening.
     private struct OpenedRecipe: Identifiable, Hashable {
         let recipe: Recipe
-        let servings: Int?
+        let entryID: MealPlanEntry.ID
         var id: Recipe.ID { recipe.id }
     }
 
@@ -59,7 +59,7 @@ struct MealPlanView: View {
         NavigationStack {
             planColumn
                 .navigationDestination(item: $openedRecipe) { opened in
-                    RecipeDetailView(recipe: opened.recipe, plannedServings: opened.servings)
+                    RecipeDetailView(recipe: opened.recipe, plannedEntryID: opened.entryID)
                 }
         }
         #endif
@@ -287,73 +287,51 @@ struct MealPlanView: View {
 
     @ViewBuilder
     private func mealRow(_ item: (entry: MealPlanEntry, recipe: Recipe?)) -> some View {
-        HStack(spacing: 12) {
-            // A button rather than a tap gesture: the pointer changes over
-            // it, the keyboard reaches it, and the Mac gets the click it
-            // expects. Only the name and picture open the recipe — the
-            // stepper beside it needs its own taps, not the row's.
-            Button {
-                open(item)
-            } label: {
-                HStack(spacing: 12) {
-                    if let imageID = item.recipe?.imageIDs.first {
-                        RecipeImageView(imageID: imageID, thumbnail: true)
-                            .frame(width: 44, height: 44)
-                            .clipShape(.rect(cornerRadius: 8))
-                    }
-                    Text(item.recipe?.title ?? "Gelöschtes Rezept")
-                        .font(SousStyle.recipeName)
+        // A button rather than a tap gesture: the pointer changes over it,
+        // the keyboard reaches it, and the Mac gets the click it expects.
+        Button {
+            open(item)
+        } label: {
+            HStack(spacing: 12) {
+                if let imageID = item.recipe?.imageIDs.first {
+                    RecipeImageView(imageID: imageID, thumbnail: true)
+                        .frame(width: 44, height: 44)
+                        .clipShape(.rect(cornerRadius: 8))
                 }
-                .contentShape(.rect)
+                Text(item.recipe?.title ?? "Gelöschtes Rezept")
+                    .font(SousStyle.recipeName)
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-
-            Spacer(minLength: 8)
-
-            servingsStepper(item)
+            .contentShape(.rect)
         }
+        .buttonStyle(.plain)
+        #if os(macOS)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            isOpen(item) ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.clear),
+            in: .rect(cornerRadius: 8)
+        )
+        #endif
     }
 
     private func open(_ item: (entry: MealPlanEntry, recipe: Recipe?)) {
         guard let recipe = item.recipe else { return }
         #if os(macOS)
         selection.recipe = recipe
-        selection.plannedServings = item.entry.servings
+        selection.plannedEntryID = item.entry.id
         #else
-        openedRecipe = OpenedRecipe(recipe: recipe, servings: item.entry.servings)
+        openedRecipe = OpenedRecipe(recipe: recipe, entryID: item.entry.id)
         #endif
     }
 
-    /// Right on the row rather than behind a menu — how many people a meal
-    /// feeds is something a cook checks and changes often enough that a
-    /// detour to get to it would be felt every time.
-    ///
-    /// Only offered once the recipe is known: servings scale against its own
-    /// count, and an entry whose recipe was deleted has none to scale from.
-    @ViewBuilder
-    private func servingsStepper(_ item: (entry: MealPlanEntry, recipe: Recipe?)) -> some View {
-        if let recipe = item.recipe {
-            HStack(spacing: 4) {
-                Text("\(item.entry.servings ?? recipe.servings)")
-                    .monospacedDigit()
-                Stepper(
-                    "Portionen",
-                    value: Binding(
-                        get: { item.entry.servings ?? recipe.servings },
-                        set: { newValue in
-                            Task { await plan.setServings(item.entry, to: newValue, for: recipe) }
-                        }
-                    ),
-                    in: Recipe.servingsRange
-                )
-                // The number is its own label: hiding the stepper's label
-                // would hide the number with it.
-                .labelsHidden()
-            }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
+    #if os(macOS)
+    /// Whether this row is the one the detail column is showing — the only
+    /// way to tell, since the split view keeps both on screen at once.
+    private func isOpen(_ item: (entry: MealPlanEntry, recipe: Recipe?)) -> Bool {
+        selection.plannedEntryID == item.entry.id
     }
+    #endif
 
     @ToolbarContentBuilder
     private var calendarToolbar: some ToolbarContent {

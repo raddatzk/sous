@@ -5,21 +5,33 @@ struct RecipeDetailView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(ShoppingLibrary.self) private var shopping
     @Environment(CookSession.self) private var session
+    @Environment(MealPlanLibrary.self) private var plan
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
     @State private var servingsOverride: Int?
-    /// How many people `recipe` was planned for, when opened from a meal
-    /// plan entry scaled differently than the recipe is written for. Not
-    /// just an initial value: the Mac reuses this view's identity across
+    /// The plan entry `recipe` was opened from, if it got here from one.
+    /// Looked up fresh rather than carried as a count: the plan is the
+    /// source of truth, and the Mac reuses this view's identity across
     /// recipes, so `onChange(of: recipe.id)` reads it again on every switch.
-    let plannedServings: Int?
+    let plannedEntryID: MealPlanEntry.ID?
 
-    init(recipe: Recipe, plannedServings: Int? = nil) {
+    init(recipe: Recipe, plannedEntryID: MealPlanEntry.ID? = nil) {
         self.recipe = recipe
-        self.plannedServings = plannedServings
-        _servingsOverride = State(initialValue: plannedServings)
+        self.plannedEntryID = plannedEntryID
+        // Not seeded here: `plan` is an `@Environment` value, and those are
+        // not available yet inside a custom initializer. `.onAppear` seeds
+        // it once the environment is actually resolved.
     }
+
+    /// The entry `plannedEntryID` names, looked up fresh from the plan every
+    /// time — not cached, so a stepper pressed on the plan row beside this
+    /// column (the Mac keeps both on screen at once) is reflected here too.
+    private var plannedEntry: MealPlanEntry? {
+        guard let plannedEntryID else { return nil }
+        return (plan.entries + plan.pool).first { $0.id == plannedEntryID }
+    }
+    private var plannedServings: Int? { plannedEntry?.servings }
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
     /// Whether the page's own title has scrolled up behind the navigation
@@ -55,12 +67,15 @@ struct RecipeDetailView: View {
                     heroImage
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
+                        // Above the actions rather than below them: "Kochen"
+                        // and "Auf die Einkaufsliste" both use this count, so
+                        // it reads better set before those buttons than after.
+                        servingsControl(isWide: isWide)
                         if recipe.isDeleted {
                             trashBanner(isWide: isWide)
                         } else {
                             actionBar(isWide: isWide)
                         }
-                        servingsControl(isWide: isWide)
                         if isWide {
                             // What to get out and what to do with it, side by
                             // side: the cook reads the steps and glances left
@@ -114,12 +129,23 @@ struct RecipeDetailView: View {
         #endif
         .toolbar { detailToolbar }
         .recipeExporter($export)
+        // The one-time seed: `init` cannot read `plan`, since `@Environment`
+        // values are not resolved yet inside a custom initializer.
+        .onAppear {
+            servingsOverride = plannedServings
+        }
         .onChange(of: recipe.id) {
             // Not always `nil`: on the Mac this same view identity is reused
             // as the plan hands it one planned recipe after another, and
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
             didAddToShoppingList = false
+        }
+        // The plan row this came from stays on screen beside this column —
+        // a stepper pressed there while this recipe is still the one open
+        // must show up here too, not just the next time something is opened.
+        .onChange(of: plannedServings) {
+            servingsOverride = plannedServings
         }
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
@@ -355,11 +381,11 @@ struct RecipeDetailView: View {
             // hide the number with it.
             Stepper("Portionen", value: Binding(
                 get: { servings },
-                set: { servingsOverride = $0.clamped(to: Recipe.servingsRange) }
+                set: { updateServings($0.clamped(to: Recipe.servingsRange)) }
             ), in: Recipe.servingsRange)
             .labelsHidden()
             if servingsOverride != nil, servingsOverride != recipe.servings {
-                Button("Zurücksetzen") { servingsOverride = nil }
+                Button("Zurücksetzen") { updateServings(recipe.servings) }
                     .buttonStyle(.borderless)
                     .font(.footnote)
             }
@@ -370,6 +396,16 @@ struct RecipeDetailView: View {
         // the far end of it is not a control, it is a rule with a widget on
         // the end.
         .fixedSize(horizontal: isWide, vertical: false)
+    }
+
+    /// Scales the page for reading either way, and — when this recipe came
+    /// from a planned meal — writes the new count back to that entry, since
+    /// this is now the only place a cook can change it.
+    private func updateServings(_ newValue: Int) {
+        servingsOverride = newValue
+        if let entry = plannedEntry {
+            Task { await plan.setServings(entry, to: newValue, for: recipe) }
+        }
     }
 
     @ViewBuilder
