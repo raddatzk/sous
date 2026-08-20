@@ -12,6 +12,11 @@ import SwiftUI
 struct RecipeRow: View {
     let recipe: Recipe
 
+    @Environment(RecipeLibrary.self) private var library
+    /// Whether this recipe still has amount suggestions nobody has looked
+    /// at — a plain, non-AI resolver read, cheap enough to run per row.
+    @State private var needsAmountReview = false
+
     /// Enough to say what a recipe is; more would push the rows apart.
     private static let visibleCategories = 3
 
@@ -30,6 +35,9 @@ struct RecipeRow: View {
             }
         }
         .padding(.vertical, 6)
+        .task(id: recipe.id) {
+            needsAmountReview = await library.needsAmountReview(recipe)
+        }
     }
 
     @ViewBuilder
@@ -67,6 +75,11 @@ struct RecipeRow: View {
         if recipe.wantToCook {
             Image(systemName: "bookmark.fill")
                 .foregroundStyle(.tint)
+                .imageScale(.small)
+        }
+        if needsAmountReview {
+            Image(systemName: "text.badge.checkmark")
+                .foregroundStyle(.secondary)
                 .imageScale(.small)
         }
     }

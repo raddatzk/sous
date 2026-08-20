@@ -32,6 +32,7 @@ public final class RecipeLibrary {
     private let store: any RecipeStore
     private let imageStore: any RecipeImageStore
     private let enrichmentStore: any RecipeEnrichmentStore
+    private let amountReviewStore: any RecipeAmountReviewStore
 
     public private(set) var recipes: [Recipe] = []
     public private(set) var categories: [String] = []
@@ -64,10 +65,16 @@ public final class RecipeLibrary {
 
     private var reloadTask: Task<Void, Never>?
 
-    public init(store: any RecipeStore, imageStore: any RecipeImageStore, enrichmentStore: any RecipeEnrichmentStore) {
+    public init(
+        store: any RecipeStore,
+        imageStore: any RecipeImageStore,
+        enrichmentStore: any RecipeEnrichmentStore,
+        amountReviewStore: any RecipeAmountReviewStore
+    ) {
         self.store = store
         self.imageStore = imageStore
         self.enrichmentStore = enrichmentStore
+        self.amountReviewStore = amountReviewStore
     }
 
     // MARK: - Images
@@ -249,6 +256,56 @@ public final class RecipeLibrary {
         lastEnrichment = EnrichmentEvent(recipeID: recipeID, generation: enrichmentGeneration)
     }
 
+    // MARK: - Amount review
+
+    /// The suggestions the resolver could not write in on its own, paired
+    /// with the resolution they came from — applying an accepted one needs
+    /// that exact resolution back, since it carries where in the text each
+    /// suggestion belongs.
+    ///
+    /// A plain read, cheap enough for a list row's `.task`: no model call,
+    /// just the same regex/pot logic the detail and cook views already run
+    /// on every open.
+    public func amountSuggestions(for recipe: Recipe) async -> (resolution: StepAmountResolver.Resolution, suggestions: [AmountSuggestion]) {
+        let mentions = await aiMentions(for: recipe)
+        let resolution = StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
+        return (resolution, resolution.allSuggestions)
+    }
+
+    /// Whether `recipe` has suggestions nobody has answered yet for its
+    /// current text — the recipe list's marker and the detail view's
+    /// banner both ask this.
+    public func needsAmountReview(_ recipe: Recipe) async -> Bool {
+        let (_, suggestions) = await amountSuggestions(for: recipe)
+        guard !suggestions.isEmpty else { return false }
+        let reviewed = try? await amountReviewStore.reviewedHash(for: recipe.id)
+        return reviewed != RecipeContentHash.hash(for: recipe)
+    }
+
+    /// Marks `recipe` reviewed against its current text — called whether
+    /// the cook accepted some suggestions or dismissed the screen without
+    /// changing anything at all; either way, nothing about this exact text
+    /// should be asked about again.
+    public func markAmountsReviewed(_ recipe: Recipe) async {
+        try? await amountReviewStore.markReviewed(recipe)
+    }
+
+    /// Writes the accepted suggestions into `recipe`'s steps, saves it, and
+    /// marks the result reviewed — the only path a suggestion ever takes
+    /// from a guess to real text. Returns the updated recipe, since the
+    /// caller's own copy is now stale the moment this returns.
+    @discardableResult
+    public func applyAmountSuggestions(
+        _ accepted: Set<AmountSuggestion.ID>,
+        resolution: StepAmountResolver.Resolution,
+        to recipe: Recipe
+    ) async -> Recipe {
+        let updated = resolution.applying(accepted, to: recipe)
+        await save(updated)
+        try? await amountReviewStore.markReviewed(updated)
+        return updated
+    }
+
     public func delete(_ recipe: Recipe) async {
         do {
             try await store.delete(id: recipe.id)
@@ -393,6 +450,7 @@ public final class RecipeLibrary {
         do {
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
             try? await enrichmentStore.delete(recipeID: recipe.id)
+            try? await amountReviewStore.delete(recipeID: recipe.id)
             try await store.erase(id: recipe.id)
         } catch {
             report(error)
