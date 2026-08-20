@@ -45,6 +45,14 @@ struct RecipeDetailView: View {
     @State private var aiMentions: [UUID: [AmountMention]] = [:]
     @State private var isResolvingWithAI = false
     @State private var aiError: String?
+    /// What the review sheet would show, computed alongside `aiMentions` so
+    /// a bare mention the AI just tied down does not also show up here.
+    @State private var amountReviewResolution: StepAmountResolver.Resolution?
+    /// Drives the banner, separately from whether suggestions exist at all:
+    /// a recipe the cook already dismissed keeps its suggestions (editing it
+    /// again should still find them) but stops nagging about them.
+    @State private var needsAmountReview = false
+    @State private var isReviewingAmounts = false
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -72,11 +80,7 @@ struct RecipeDetailView: View {
                     heroImage
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
-                        if recipe.isDeleted {
-                            trashBanner(isWide: isWide)
-                        } else {
-                            actionBar(isWide: isWide)
-                        }
+                        actionSection(isWide: isWide)
                         if isWide {
                             // What to get out and what to do with it, side by
                             // side: the cook reads the steps and glances left
@@ -142,12 +146,17 @@ struct RecipeDetailView: View {
             servingsOverride = plannedServings
             didAddToShoppingList = false
             aiMentions = [:]
+            amountReviewResolution = nil
+            needsAmountReview = false
         }
         // A cache read, not a model call — whatever the last save's
         // background pass found, if anything. Fires again whenever the
         // recipe shown changes, same as `onChange(of: recipe.id)` above.
         .task(id: recipe.id) {
             aiMentions = await library.aiMentions(for: recipe)
+            let (resolution, _) = await library.amountSuggestions(for: recipe)
+            amountReviewResolution = resolution
+            needsAmountReview = await library.needsAmountReview(recipe)
         }
         // The background pass `save(_:)` schedules can still be running
         // when this screen is already open — most often right after
@@ -156,7 +165,12 @@ struct RecipeDetailView: View {
         // reopened.
         .onChange(of: library.lastEnrichment) { _, event in
             guard event?.recipeID == recipe.id else { return }
-            Task { aiMentions = await library.aiMentions(for: recipe) }
+            Task {
+                aiMentions = await library.aiMentions(for: recipe)
+                let (resolution, _) = await library.amountSuggestions(for: recipe)
+                amountReviewResolution = resolution
+                needsAmountReview = await library.needsAmountReview(recipe)
+            }
         }
         // The plan row this came from stays on screen beside this column —
         // a stepper pressed there while this recipe is still the one open
@@ -166,6 +180,24 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
+        }
+        .sheet(isPresented: $isReviewingAmounts) {
+            if let amountReviewResolution {
+                AmountReviewSheet(recipe: recipe, resolution: amountReviewResolution) { accepted in
+                    Task {
+                        let updated: Recipe
+                        if let accepted {
+                            updated = await library.applyAmountSuggestions(accepted, resolution: amountReviewResolution, to: recipe)
+                        } else {
+                            await library.markAmountsReviewed(recipe)
+                            updated = recipe
+                        }
+                        let (resolution, _) = await library.amountSuggestions(for: updated)
+                        self.amountReviewResolution = resolution
+                        needsAmountReview = await library.needsAmountReview(updated)
+                    }
+                }
+            }
         }
         // Shown as a sheet rather than pushed: looking up how the dough is
         // made is a detour, and a swipe returns to exactly where the cook was.
@@ -365,6 +397,47 @@ struct RecipeDetailView: View {
         // Full width where the page is barely wider than the banner, and no
         // wider than it needs where there is room. Measured rather than asked
         // of the platform: an iPad's page is as wide as a Mac's.
+        .fixedSize(horizontal: isWide, vertical: false)
+    }
+
+    /// The row below the title: trashed recipes only get the one banner
+    /// that matters to them, everything else gets the normal action bar
+    /// plus, if there is one, the amount-review banner underneath it.
+    ///
+    /// Split out of `body` on its own — nesting this `if`/`if let` directly
+    /// inside the outer `VStack` was enough branching for the type checker
+    /// to time out inferring the whole scroll content at once.
+    @ViewBuilder
+    private func actionSection(isWide: Bool) -> some View {
+        if recipe.isDeleted {
+            trashBanner(isWide: isWide)
+        } else {
+            actionBar(isWide: isWide)
+            if needsAmountReview, let amountReviewResolution {
+                amountReviewBanner(amountReviewResolution.allSuggestions.count, isWide: isWide)
+            }
+        }
+    }
+
+    /// Offers to check what the resolver could not write in on its own —
+    /// stays up until the cook actually answers it (accepts some, or says
+    /// "Nicht jetzt"), not just because they looked at the recipe.
+    @ViewBuilder
+    private func amountReviewBanner(_ count: Int, isWide: Bool) -> some View {
+        HStack(spacing: 12) {
+            Label(
+                count == 1 ? "1 Menge könnte ergänzt werden" : "\(count) Mengen könnten ergänzt werden",
+                systemImage: "text.badge.checkmark"
+            )
+            .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Prüfen") {
+                isReviewingAmounts = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(14)
+        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
         .fixedSize(horizontal: isWide, vertical: false)
     }
 

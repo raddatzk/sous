@@ -367,6 +367,46 @@ struct StepAmountResolverTests {
         #expect(chips.contains { $0.name == "Äpfel" })
     }
 
+    @Test("An ingredient named only in an exclusion clause is not offered as a fallback chip")
+    func fallbackChipSkipsNegatedMentions() {
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: """
+            80 g getrocknete Tomate
+            40 ml Olivenöl
+            30 g Pinienkerne
+            """,
+            instructionsText: "Die getrocknete Tomate (abgesehen vom Olivenöl und paar Pinienkerne) in einen Mixer geben."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+
+        // Without the negation check, both would show up as bare mentions —
+        // even though the step explicitly says not to use them here.
+        #expect(!chips.contains { $0.name == "Olivenöl" })
+        #expect(!chips.contains { $0.name == "Pinienkerne" })
+        #expect(chips.contains { $0.name == "getrocknete Tomate" })
+    }
+
+    @Test("A name already followed by a written parenthetical amount is not repeated as a fallback chip")
+    func fallbackChipSkipsAlreadyAnsweredMentions() {
+        // "Olivenöl (40 ml)" is the shape Mela imports write, and the shape
+        // this app's own review sheet writes too — either way, the regex
+        // scanner never reads it as a mention (it only understands "amount
+        // name" order), so without this check the chip would repeat what
+        // the sentence already says right next to it.
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: "40 ml Olivenöl",
+            instructionsText: "Olivenöl (40 ml) hinzufügen und noch einmal kurz mixen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(!chips.contains { $0.name == "Olivenöl" })
+    }
+
     @Test("Same-name lines whose units cannot be added stay in separate pots — and stay ambiguous")
     func unaddableSameNameLinesStaySeparate() {
         let recipe = Recipe(
@@ -382,5 +422,211 @@ struct StepAmountResolverTests {
         let segments = resolution.segments(for: recipe.steps[0])
         // Two pots could be meant, so "restliches" resolves against neither.
         #expect(!segments.contains { if case .amount = $0 { true } else { false } })
+    }
+}
+
+@Suite("Suggesting amounts for bare mentions")
+struct AmountSuggestionTests {
+    private let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+
+    @Test("A name at the start of a step gets a suggestion right after it")
+    func nameAtStart() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Butter erhitzen und die Kartoffeln stampfen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let suggestions = resolution.suggestions(for: recipe.steps[0])
+        #expect(suggestions.count == 1)
+        #expect(suggestions.first?.ingredientName == "Butter")
+        #expect(suggestions.first?.displayAmount == "150 g")
+    }
+
+    @Test("A name in the middle and one at the end both get found")
+    func nameInMiddleAndEnd() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: """
+            1 kg Kartoffeln
+            150 g Butter
+            """,
+            instructionsText: "Die Kartoffeln kochen, dann mit der Butter stampfen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let names = Set(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName))
+        #expect(names == ["Kartoffeln", "Butter"])
+    }
+
+    @Test("An ingredient never named in the step gets no suggestion")
+    func nameNotPresent() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: """
+            1 kg Kartoffeln
+            1 Ei
+            """,
+            instructionsText: "Die Kartoffeln kochen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let names = resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName)
+        #expect(!names.contains("Ei"))
+    }
+
+    @Test("A name mentioned twice in one step only gets one suggestion")
+    func nameTwiceInOneStep() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen, dann noch mehr Butter dazugeben."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(resolution.suggestions(for: recipe.steps[0]).count == 1)
+    }
+
+    @Test("An amount already resolved for a pot in this step gets no extra suggestion")
+    func alreadyResolvedGetsNoSuggestion() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "150 g Butter erhitzen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(resolution.suggestions(for: recipe.steps[0]).isEmpty)
+    }
+
+    @Test("Inflected forms are found via the catalog, same as a written amount would be")
+    func inflectedFormMatches() {
+        let recipe = Recipe(
+            title: "Zwiebelsuppe",
+            servings: 2,
+            ingredientsText: "4 Zwiebeln",
+            instructionsText: "Die Zwiebeln fein würfeln."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(resolution.suggestions(for: recipe.steps[0]).count == 1)
+    }
+
+    @Test("allSuggestions counts across every step")
+    func allSuggestionsAcrossSteps() {
+        let recipe = Recipe(
+            title: "Test",
+            servings: 2,
+            ingredientsText: """
+            1 kg Kartoffeln
+            150 g Butter
+            """,
+            instructionsText: """
+            Die Kartoffeln kochen.
+            Die Butter erhitzen.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(resolution.allSuggestions.count == 2)
+    }
+
+    @Test("Accepting a suggestion inserts the amount right after the name, group headings included")
+    func applyingInsertsTheAmount() {
+        let recipe = Recipe(
+            title: "Kuchen",
+            servings: 4,
+            ingredientsText: """
+            # Für den Teig
+            300 g Mehl
+            # Für den Belag
+            200 g Äpfel
+            """,
+            instructionsText: """
+            # Für den Teig
+            Das Mehl zu einem Teig verkneten.
+            # Für den Belag
+            Die Äpfel darauf verteilen.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        let all = resolution.allSuggestions
+        #expect(all.count == 2)
+
+        let updated = resolution.applying(Set(all.map(\.id)), to: recipe)
+        #expect(updated.instructionsText.contains("Das Mehl (600 g) zu einem Teig verkneten."))
+        #expect(updated.instructionsText.contains("Die Äpfel (400 g) darauf verteilen."))
+        // The group structure survives the round trip through `StepParser`.
+        #expect(updated.instructionsText.contains("# Für den Teig"))
+        #expect(updated.instructionsText.contains("# Für den Belag"))
+
+        // Applying against the recipe it was computed from is now settled —
+        // resolving the updated recipe finds the amounts inline, no
+        // suggestions left over.
+        let newResolution = StepAmountResolver.resolve(updated, toServings: 8, formatter: formatter)
+        #expect(newResolution.allSuggestions.isEmpty)
+    }
+
+    @Test("Accepting only some suggestions leaves the rest untouched")
+    func applyingOnlySomeSuggestions() {
+        let recipe = Recipe(
+            title: "Test",
+            servings: 2,
+            ingredientsText: """
+            1 kg Kartoffeln
+            150 g Butter
+            """,
+            instructionsText: """
+            Die Kartoffeln kochen.
+            Die Butter erhitzen.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let kartoffelnSuggestion = resolution.allSuggestions.first { $0.ingredientName == "Kartoffeln" }!
+
+        let updated = resolution.applying([kartoffelnSuggestion.id], to: recipe)
+        #expect(updated.instructionsText.contains("Die Kartoffeln (1 kg) kochen."))
+        #expect(updated.instructionsText.contains("Die Butter erhitzen."))
+        #expect(!updated.instructionsText.contains("Die Butter (150 g)"))
+    }
+
+    @Test("An empty accepted set changes nothing")
+    func applyingNothingChangesNothing() {
+        let recipe = Recipe(
+            title: "Kartoffelpüree",
+            servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let updated = resolution.applying([], to: recipe)
+        #expect(updated.instructionsText == recipe.instructionsText)
+    }
+
+    @Test("A name only mentioned inside an exclusion clause gets no suggestion")
+    func nameOnlyInNegatedClauseGetsNoSuggestion() {
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: """
+            80 g getrocknete Tomate
+            40 ml Olivenöl
+            """,
+            instructionsText: "Alles Zutaten (abgesehen vom Olivenöl) in einen Mixer geben."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        let names = resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName)
+        #expect(!names.contains("Olivenöl"))
+    }
+
+    @Test("A name mentioned both inside and outside an exclusion clause still gets a suggestion for the unnegated occurrence")
+    func nameOutsideNegatedClauseStillSuggests() {
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: "40 ml Olivenöl",
+            instructionsText: "Alles (abgesehen vom Olivenöl) mixen, dann das Olivenöl unterrühren."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(resolution.suggestions(for: recipe.steps[0]).count == 1)
     }
 }

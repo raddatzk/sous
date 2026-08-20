@@ -31,7 +31,8 @@ struct SousApp: App {
             _library = State(initialValue: RecipeLibrary(
                 store: recipes,
                 imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
+                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
             ))
             let plan = MealPlanLibrary(
                 store: SwiftDataMealPlanStore(modelContainer: container),

@@ -11,7 +11,8 @@ struct RecipeLibraryTests {
         let store = SwiftDataRecipeStore(modelContainer: container)
         let images = SwiftDataRecipeImageStore(modelContainer: container)
         let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
-        return (RecipeLibrary(store: store, imageStore: images, enrichmentStore: enrichment), store)
+        let amountReview = SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        return (RecipeLibrary(store: store, imageStore: images, enrichmentStore: enrichment, amountReviewStore: amountReview), store)
     }
 
     @Test("The query mirrors the selected filters")
@@ -137,7 +138,8 @@ struct RecipeTrashTests {
             RecipeLibrary(
                 store: SwiftDataRecipeStore(modelContainer: container),
                 imageStore: images,
-                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
+                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
             ),
             images
         )
@@ -210,7 +212,8 @@ struct RecipeLibraryAIMentionsTests {
         let library = RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: enrichment
+            enrichmentStore: enrichment,
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
         )
         return (library, enrichment)
     }
@@ -268,5 +271,90 @@ struct RecipeLibraryAIMentionsTests {
         let first = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 1)
         let second = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 2)
         #expect(first != second)
+    }
+}
+
+@MainActor
+@Suite("Amount review")
+struct RecipeLibraryAmountReviewTests {
+    private func makeLibrary() throws -> RecipeLibrary {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        return RecipeLibrary(
+            store: SwiftDataRecipeStore(modelContainer: container),
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        )
+    }
+
+    @Test("A freshly imported recipe with a bare mention needs review")
+    func freshRecipeNeedsReview() async throws {
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        #expect(await library.needsAmountReview(recipe))
+    }
+
+    @Test("A recipe with nothing bare to suggest never needs review")
+    func recipeWithNoSuggestionsNeedsNoReview() async throws {
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "150 g Butter erhitzen."
+        )
+        #expect(!(await library.needsAmountReview(recipe)))
+    }
+
+    @Test("Applying accepted suggestions writes them in and settles the review")
+    func applyingSuggestionsSettlesTheReview() async throws {
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        let (resolution, suggestions) = await library.amountSuggestions(for: recipe)
+        #expect(suggestions.count == 1)
+
+        await library.applyAmountSuggestions(Set(suggestions.map(\.id)), resolution: resolution, to: recipe)
+
+        guard let saved = library.recipes.first else {
+            Issue.record("Expected the recipe to be saved")
+            return
+        }
+        #expect(saved.instructionsText.contains("Die Butter (150 g) erhitzen."))
+        #expect(!(await library.needsAmountReview(saved)))
+    }
+
+    @Test("Dismissing without any change also settles the review, for the text as it stands")
+    func dismissingWithoutChangesSettlesTheReview() async throws {
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        await library.markAmountsReviewed(recipe)
+        #expect(!(await library.needsAmountReview(recipe)))
+    }
+
+    @Test("Editing the recipe again after a review reopens the question")
+    func furtherEditingReopensTheReview() async throws {
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        await library.markAmountsReviewed(recipe)
+
+        var edited = recipe
+        edited.ingredientsText = "150 g Butter\n1 Ei"
+        edited.instructionsText = "Die Butter erhitzen. Das Ei verquirlen."
+        #expect(await library.needsAmountReview(edited))
     }
 }

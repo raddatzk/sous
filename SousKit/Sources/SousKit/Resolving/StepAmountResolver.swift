@@ -10,6 +10,34 @@ public enum StepAmountSegment: Hashable, Sendable {
     case amount(String)
 }
 
+/// A bare ingredient mention — a step names it with no share of its own,
+/// "die Butter erhitzen" — paired with the amount the resolver would write
+/// in if the cook agreed to it.
+///
+/// Never applied on its own: this only proposes. See
+/// `StepAmountResolver.Resolution.applying(_:to:)` for the one place a
+/// suggestion is allowed to become real text, and VISION.md, "amounts
+/// written into a step name an ingredient", for why a guess never gets
+/// written in silently.
+public struct AmountSuggestion: Identifiable, Sendable, Hashable {
+    public let id: UUID
+    public let stepID: UUID
+    /// The ingredient's name as written on its line — not the normalized
+    /// catalog key used for matching, which reads like nothing a cook
+    /// wrote.
+    public let ingredientName: String
+    public let displayAmount: String
+    fileprivate let insertionPoint: String.Index
+
+    fileprivate init(stepID: UUID, ingredientName: String, displayAmount: String, insertionPoint: String.Index) {
+        self.id = UUID()
+        self.stepID = stepID
+        self.ingredientName = ingredientName
+        self.displayAmount = displayAmount
+        self.insertionPoint = insertionPoint
+    }
+}
+
 /// Ties the amounts written into a recipe's steps to the ingredient lines
 /// they belong to.
 ///
@@ -30,6 +58,7 @@ public enum StepAmountResolver {
         /// under a step can collapse lines that share one pot instead of
         /// presenting the same butter twice.
         fileprivate let potIndexByLineID: [UUID: Int]
+        fileprivate let suggestionsByStep: [UUID: [AmountSuggestion]]
 
         /// `step`'s text, split into plain text and resolved amounts.
         public func segments(for step: RecipeStep) -> [StepAmountSegment] {
@@ -41,6 +70,48 @@ public enum StepAmountResolver {
         /// once its number is already part of the sentence.
         public func mentionsAmount(of ingredient: RecipeIngredient, in step: RecipeStep) -> Bool {
             boundIngredientIDsByStep[step.id]?.contains(ingredient.id) ?? false
+        }
+
+        /// Ingredients `step` names without ever giving them a share of
+        /// their own — candidates for the review screen to offer, never
+        /// written in on their own.
+        public func suggestions(for step: RecipeStep) -> [AmountSuggestion] {
+            suggestionsByStep[step.id] ?? []
+        }
+
+        /// Every suggestion across every step, for a count without
+        /// walking each one — the recipe list's "needs review" marker and
+        /// the detail view's banner both just want a number.
+        public var allSuggestions: [AmountSuggestion] {
+            suggestionsByStep.values.flatMap { $0 }
+        }
+
+        /// `recipe` with `accepted` written into its step text — the only
+        /// place a suggestion is allowed to change what the cook wrote,
+        /// and only for the ones they said yes to.
+        ///
+        /// `recipe` must be the same recipe this resolution was computed
+        /// from (same step text, same step ids) — the suggestions carry
+        /// positions into that exact text.
+        public func applying(_ accepted: Set<AmountSuggestion.ID>, to recipe: Recipe) -> Recipe {
+            guard !accepted.isEmpty else { return recipe }
+            var recipe = recipe
+            let updatedSteps = recipe.steps.map { step -> RecipeStep in
+                let toInsert = suggestions(for: step).filter { accepted.contains($0.id) }
+                guard !toInsert.isEmpty else { return step }
+                let operations = toInsert.map { Operation.insertAfter(point: $0.insertionPoint, amount: $0.displayAmount) }
+                var updated = step
+                updated.text = buildSegments(text: step.text, operations: operations)
+                    .map { segment -> String in
+                        switch segment {
+                        case .text(let s), .amount(let s): s
+                        }
+                    }
+                    .joined()
+                return updated
+            }
+            recipe.instructionsText = StepParser.text(for: updatedSteps)
+            return recipe
         }
     }
 
@@ -60,7 +131,8 @@ public enum StepAmountResolver {
             return Resolution(
                 segmentsByStep: Dictionary(uniqueKeysWithValues: steps.map { ($0.id, [.text($0.text)]) }),
                 boundIngredientIDsByStep: [:],
-                potIndexByLineID: [:]
+                potIndexByLineID: [:],
+                suggestionsByStep: [:]
             )
         }
 
@@ -132,6 +204,7 @@ public enum StepAmountResolver {
         let allMentions = fixedShareMentions + remainingMentions
         var segmentsByStep: [UUID: [StepAmountSegment]] = [:]
         var boundIngredientIDsByStep: [UUID: Set<UUID>] = [:]
+        var suggestionsByStep: [UUID: [AmountSuggestion]] = [:]
 
         for (stepIndex, step) in steps.enumerated() {
             var operations: [Operation] = []
@@ -174,6 +247,28 @@ public enum StepAmountResolver {
 
             segmentsByStep[step.id] = buildSegments(text: step.text, operations: operations)
             boundIngredientIDsByStep[step.id] = boundIDs
+
+            // Pots this step names but never gave a share of its own —
+            // candidates for the review screen, never written in here.
+            var stepSuggestions: [AmountSuggestion] = []
+            let negated = negatedRanges(in: step.text)
+            for pot in pots where !boundIDs.contains(lines[pot.lineIndices[0]].id) {
+                if let stepGroup = step.group, let potGroup = pot.group, stepGroup != potGroup { continue }
+                guard let end = firstBareNameEnd(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog) else { continue }
+                // A parenthetical right after the name is an amount someone
+                // already accepted — `AmountMentionScanner` does not read it
+                // back as a mention (nothing follows it that looks like a
+                // name), so without this check the same suggestion would
+                // keep reappearing every time the recipe is resolved again.
+                guard !isAlreadyAnswered(at: end, in: step.text) else { continue }
+                stepSuggestions.append(AmountSuggestion(
+                    stepID: step.id,
+                    ingredientName: lines[pot.lineIndices[0]].name,
+                    displayAmount: formatter.string(for: pot.scaledTotal),
+                    insertionPoint: end
+                ))
+            }
+            suggestionsByStep[step.id] = stepSuggestions
         }
 
         var potIndexByLineID: [UUID: Int] = [:]
@@ -184,7 +279,8 @@ public enum StepAmountResolver {
         return Resolution(
             segmentsByStep: segmentsByStep,
             boundIngredientIDsByStep: boundIngredientIDsByStep,
-            potIndexByLineID: potIndexByLineID
+            potIndexByLineID: potIndexByLineID,
+            suggestionsByStep: suggestionsByStep
         )
     }
 
@@ -297,6 +393,108 @@ public enum StepAmountResolver {
             }
         }
         return nil
+    }
+
+    /// Where `canonicalTarget` is first named — bare, no number anywhere
+    /// near it — in `text`, or `nil` if it never is.
+    ///
+    /// `matchedNameEnd` above assumes it is already handed the right word
+    /// window, because a written amount points at where to start looking.
+    /// A bare mention has no such anchor, so this walks every word start in
+    /// `text` instead and hands each one to `matchedNameEnd` in turn — the
+    /// same trimming logic, just seeded from a whole sentence rather than
+    /// from one number's aftermath.
+    /// A match starting inside one of `avoiding`'s ranges is skipped, not
+    /// returned — see `negatedRanges(in:)`.
+    private static func firstBareNameEnd(
+        of canonicalTarget: String, in text: String, avoiding: [Range<String.Index>], catalog: IngredientCatalog
+    ) -> String.Index? {
+        var cursor = text.startIndex
+        while cursor < text.endIndex {
+            guard text[cursor].isLetter else {
+                cursor = text.index(after: cursor)
+                continue
+            }
+            let wordStart = cursor
+            let phrase = AmountMentionScanner.namePhrase(after: cursor, in: text)
+            if let end = matchedNameEnd(in: phrase, canonicalTarget: canonicalTarget, catalog: catalog),
+               !avoiding.contains(where: { $0.contains(wordStart) }) {
+                return end
+            }
+            // This word didn't start a match — skip past all of it, not
+            // into it, so "utter" inside "Butter" is never tried on its own.
+            while cursor < text.endIndex, text[cursor].isLetter || text[cursor] == "-" {
+                cursor = text.index(after: cursor)
+            }
+        }
+        return nil
+    }
+
+    /// Whether `text` already carries a parenthetical right after `index` —
+    /// the same shape `buildSegments` writes a resolved amount in.
+    ///
+    /// A parenthetical that opens with a negation trigger — "Tomate
+    /// (abgesehen vom Öl)" — is an exclusion clause, not an answered
+    /// amount, so it does not count. See `negationTriggerWords`.
+    private static func isAlreadyAnswered(at index: String.Index, in text: String) -> Bool {
+        var cursor = index
+        while cursor < text.endIndex, text[cursor] == " " { cursor = text.index(after: cursor) }
+        guard cursor < text.endIndex, text[cursor] == "(" else { return false }
+        let inside = text[text.index(after: cursor)...].lowercased()
+        return !negationTriggerWords.contains { inside.hasPrefix($0) }
+    }
+
+    /// Words that turn what follows into an exclusion, not a use — "alles
+    /// abgesehen vom Öl" names the oil while saying not to touch it. Kept
+    /// in sync with the pattern `negatedRanges(in:)` builds below by hand,
+    /// since a `Regex` cannot be derived from this array without throwing.
+    private static let negationTriggerWords = ["abgesehen von", "abgesehen vom", "außer", "ausgenommen", "bis auf", "ohne"]
+
+    /// The spans `text` explicitly excludes something in — from a trigger
+    /// word like "abgesehen vom" to the end of that clause. A name found
+    /// only inside one of these belongs to what the step says NOT to use,
+    /// so neither a suggestion nor the fallback chip should claim it.
+    ///
+    /// fileprivate, not private: `Recipe.ingredients(mentionedIn:)` at the
+    /// bottom of this file reads it too, the same way it already reads
+    /// `Resolution.potIndexByLineID`.
+    ///
+    /// The pattern is built fresh each call rather than held in a stored
+    /// property: `Regex` is not `Sendable`, so it cannot live in static
+    /// state under strict concurrency — the same reason `AmountMentionScanner`
+    /// builds its patterns fresh each time.
+    fileprivate static func negatedRanges(in text: String) -> [Range<String.Index>] {
+        let negationTriggers = /(?i)(?:abgesehen vo[nm]|außer|ausgenommen|bis auf|ohne)\s+/
+        let enders: Set<Character> = [",", ".", ";", ")", "\n"]
+        return text.matches(of: negationTriggers).map { match in
+            var end = match.range.upperBound
+            while end < text.endIndex, !enders.contains(text[end]) {
+                end = text.index(after: end)
+            }
+            return match.range.lowerBound..<end
+        }
+    }
+
+    /// Whether `name` is genuinely a bare mention somewhere in `text` — it
+    /// appears outside every one of `negated`'s spans, and that occurrence
+    /// is not already followed by a parenthetical amount.
+    ///
+    /// "Olivenöl (40 ml) hinzufügen" already answers its own question, the
+    /// same way `isAlreadyAnswered` keeps the resolver from suggesting a
+    /// second amount there — the regex scanner just never learns that,
+    /// since it only reads "amount name" order ("40 ml Olivenöl"), not
+    /// "name (amount)". Without this check, the fallback chip would repeat
+    /// what the sentence already says.
+    fileprivate static func mentionedAsBareName(_ name: String, in text: String, negated: [Range<String.Index>]) -> Bool {
+        var searchStart = text.startIndex
+        while searchStart < text.endIndex,
+              let found = text.range(of: name, options: [.caseInsensitive], range: searchStart..<text.endIndex) {
+            if !negated.contains(where: { $0.overlaps(found) }), !isAlreadyAnswered(at: found.upperBound, in: text) {
+                return true
+            }
+            searchStart = found.upperBound
+        }
+        return false
     }
 
     /// The fraction of `pot`'s total a mention would claim, or `nil` if it
@@ -511,11 +709,12 @@ extension Recipe {
         scaledToServings targetServings: Int? = nil
     ) -> [RecipeIngredient] {
         let all = scaledIngredients(toServings: targetServings ?? servings)
+        let negated = StepAmountResolver.negatedRanges(in: step.text)
         let matching = all.filter { ingredient in
             guard !resolution.mentionsAmount(of: ingredient, in: step) else { return false }
             let name = ingredient.name.trimmingCharacters(in: .whitespaces)
             guard name.count >= 3 else { return false }
-            return step.text.localizedCaseInsensitiveContains(name)
+            return StepAmountResolver.mentionedAsBareName(name, in: step.text, negated: negated)
         }
 
         // Lines sharing a pot are one supply, and this list is answering

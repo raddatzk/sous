@@ -133,7 +133,12 @@ enum AmountMentionScanner {
     /// Up to four words right after `index` — enough for any ingredient
     /// name in the catalog, short enough not to swallow the rest of the
     /// sentence.
-    private static func namePhrase(after index: String.Index, in text: String, maxWords: Int = 4) -> Substring {
+    ///
+    /// Not `private`: `StepAmountResolver` reuses this to look for a bare
+    /// ingredient name with no number to anchor on, the same word-window
+    /// shape as a mention's `namePhrase` — just starting from a word
+    /// boundary instead of from wherever a trigger word ended.
+    static func namePhrase(after index: String.Index, in text: String, maxWords: Int = 4) -> Substring {
         var cursor = index
         while cursor < text.endIndex, text[cursor] == " " { cursor = text.index(after: cursor) }
         let start = cursor
