@@ -357,4 +357,38 @@ struct RecipeLibraryAmountReviewTests {
         edited.instructionsText = "Die Butter erhitzen. Das Ei verquirlen."
         #expect(await library.needsAmountReview(edited))
     }
+
+    @Test("A cached AI claim needs review too — it never resolves on its own, only through the sheet")
+    func cachedAIClaimNeedsReview() async throws {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
+        let library = RecipeLibrary(
+            store: SwiftDataRecipeStore(modelContainer: container),
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: enrichment,
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        )
+        let recipe = Recipe(
+            title: "Ofengemüse", servings: 2,
+            ingredientsText: "300 g Paprika",
+            instructionsText: "Ein Drittel der Paprika in Scheiben schneiden."
+        )
+        try await enrichment.save(
+            [StoredAmountClaim(quantityText: "Ein Drittel", modifiedNoun: "Paprika", kind: .fraction, fractionValue: 1.0 / 3.0, stepNumber: 1)],
+            for: recipe
+        )
+
+        let (resolution, suggestions) = await library.amountSuggestions(for: recipe)
+        #expect(suggestions.count == 1)
+        #expect(suggestions.first?.displayAmount == "100 g")
+        #expect(await library.needsAmountReview(recipe))
+
+        await library.applyAmountSuggestions(Set(suggestions.map(\.id)), resolution: resolution, to: recipe)
+        guard let saved = library.recipes.first else {
+            Issue.record("Expected the recipe to be saved")
+            return
+        }
+        #expect(saved.instructionsText.contains("Ein Drittel der Paprika (100 g) in Scheiben schneiden."))
+        #expect(!(await library.needsAmountReview(saved)))
+    }
 }

@@ -10,15 +10,28 @@ public enum StepAmountSegment: Hashable, Sendable {
     case amount(String)
 }
 
-/// A bare ingredient mention — a step names it with no share of its own,
-/// "die Butter erhitzen" — paired with the amount the resolver would write
-/// in if the cook agreed to it.
+/// Where a suggestion's amount came from — shown in the review sheet so the
+/// cook knows what they're agreeing to, not just what number it is.
+public enum AmountSuggestionOrigin: Sendable, Hashable {
+    /// A step names the ingredient with no amount of its own at all — the
+    /// long-standing bare-mention chip case.
+    case unmentioned
+    /// `AmountAIExtractor` found this phrase and resolved it against a pot,
+    /// but an AI claim is never trusted into the text on its own — see
+    /// `amount-confirmation-vs-guessing-tension`: the phrase it matched,
+    /// exactly as written, so the cook can judge it against the sentence.
+    case aiExtracted(writtenText: String)
+}
+
+/// A proposed amount for an ingredient in a step, not yet written into the
+/// text — either a bare mention with no amount of its own, or a value
+/// `AmountAIExtractor` found that has not been confirmed by a person yet.
 ///
 /// Never applied on its own: this only proposes. See
-/// `StepAmountResolver.Resolution.applying(_:to:)` for the one place a
-/// suggestion is allowed to become real text, and VISION.md, "amounts
-/// written into a step name an ingredient", for why a guess never gets
-/// written in silently.
+/// `StepAmountResolver.Resolution.applying(_:corrections:to:)` for the one
+/// place a suggestion is allowed to become real text, and VISION.md,
+/// "amounts written into a step name an ingredient", for why a guess never
+/// gets written in silently.
 public struct AmountSuggestion: Identifiable, Sendable, Hashable {
     public let id: UUID
     public let stepID: UUID
@@ -27,14 +40,25 @@ public struct AmountSuggestion: Identifiable, Sendable, Hashable {
     /// wrote.
     public let ingredientName: String
     public let displayAmount: String
-    fileprivate let insertionPoint: String.Index
+    public let origin: AmountSuggestionOrigin
+    /// Exactly one of these is set — mirrors the `insertAfter`/`replace`
+    /// split `StepAmountResolver` already makes for a mention that writes
+    /// itself in directly. A bare mention only ever inserts; an AI claim
+    /// inserts or replaces depending on whether it named a written amount.
+    fileprivate let insertionPoint: String.Index?
+    fileprivate let replaceRange: Range<String.Index>?
 
-    fileprivate init(stepID: UUID, ingredientName: String, displayAmount: String, insertionPoint: String.Index) {
+    fileprivate init(
+        stepID: UUID, ingredientName: String, displayAmount: String, origin: AmountSuggestionOrigin,
+        insertionPoint: String.Index? = nil, replaceRange: Range<String.Index>? = nil
+    ) {
         self.id = UUID()
         self.stepID = stepID
         self.ingredientName = ingredientName
         self.displayAmount = displayAmount
+        self.origin = origin
         self.insertionPoint = insertionPoint
+        self.replaceRange = replaceRange
     }
 }
 
@@ -88,18 +112,31 @@ public enum StepAmountResolver {
 
         /// `recipe` with `accepted` written into its step text — the only
         /// place a suggestion is allowed to change what the cook wrote,
-        /// and only for the ones they said yes to.
+        /// and only for the ones they said yes to. `corrections` overrides
+        /// an accepted suggestion's `displayAmount` with what the cook
+        /// actually typed in the review sheet, for the ones they corrected
+        /// rather than took as offered.
         ///
         /// `recipe` must be the same recipe this resolution was computed
         /// from (same step text, same step ids) — the suggestions carry
         /// positions into that exact text.
-        public func applying(_ accepted: Set<AmountSuggestion.ID>, to recipe: Recipe) -> Recipe {
+        public func applying(
+            _ accepted: Set<AmountSuggestion.ID>,
+            corrections: [AmountSuggestion.ID: String] = [:],
+            to recipe: Recipe
+        ) -> Recipe {
             guard !accepted.isEmpty else { return recipe }
             var recipe = recipe
             let updatedSteps = recipe.steps.map { step -> RecipeStep in
                 let toInsert = suggestions(for: step).filter { accepted.contains($0.id) }
                 guard !toInsert.isEmpty else { return step }
-                let operations = toInsert.map { Operation.insertAfter(point: $0.insertionPoint, amount: $0.displayAmount) }
+                let operations = toInsert.map { suggestion -> Operation in
+                    let text = corrections[suggestion.id] ?? suggestion.displayAmount
+                    if let range = suggestion.replaceRange {
+                        return .replace(range: range, text: text, resolved: true)
+                    }
+                    return .insertAfter(point: suggestion.insertionPoint!, amount: text)
+                }
                 var updated = step
                 updated.text = buildSegments(text: step.text, operations: operations)
                     .map { segment -> String in
@@ -113,6 +150,16 @@ public enum StepAmountResolver {
             recipe.instructionsText = StepParser.text(for: updatedSteps)
             return recipe
         }
+    }
+
+    /// Where a mention came from — decides what happens once it binds to a
+    /// pot: a regex mention writes straight into the text (trusted by
+    /// construction, VISION.md §113), an AI mention becomes a suggestion
+    /// pending confirmation (never trusted on its own, see
+    /// `amount-confirmation-vs-guessing-tension`).
+    private enum MentionOrigin: Equatable {
+        case regex
+        case ai
     }
 
     /// Resolves every amount mentioned across `recipe`'s steps against its
@@ -142,18 +189,22 @@ public enum StepAmountResolver {
         let pots = pots(lines: lines, scaledLines: scaledLines, canonicalNames: canonicalNames)
 
         // `additionalMentions` — e.g. from `AmountAIExtractor` — supplements
-        // the regex scanner rather than replacing it: both just produce
-        // `AmountMention`s, and everything from here on treats them alike.
-        var fixedShareMentions: [(stepIndex: Int, mention: AmountMention)] = []
-        var remainingMentions: [(stepIndex: Int, mention: AmountMention)] = []
+        // the regex scanner rather than replacing it: both compete for the
+        // same pot capacity in the solve below. `origin` only matters once
+        // a mention has bound — a regex mention writes straight into the
+        // text, an AI one becomes a suggestion pending confirmation, see
+        // `amount-confirmation-vs-guessing-tension`.
+        var fixedShareMentions: [(stepIndex: Int, mention: AmountMention, origin: MentionOrigin)] = []
+        var remainingMentions: [(stepIndex: Int, mention: AmountMention, origin: MentionOrigin)] = []
         for (stepIndex, step) in steps.enumerated() {
             let regexMentions = AmountMentionScanner.mentions(in: step.text)
-            let mentions = regexMentions + supplementary(additionalMentions[step.id] ?? [], notAlreadyFoundBy: regexMentions)
-            for mention in mentions {
+            let aiMentions = supplementary(additionalMentions[step.id] ?? [], notAlreadyFoundBy: regexMentions)
+            let tagged = regexMentions.map { ($0, MentionOrigin.regex) } + aiMentions.map { ($0, MentionOrigin.ai) }
+            for (mention, origin) in tagged {
                 if case .remaining = mention.kind {
-                    remainingMentions.append((stepIndex, mention))
+                    remainingMentions.append((stepIndex, mention, origin))
                 } else {
-                    fixedShareMentions.append((stepIndex, mention))
+                    fixedShareMentions.append((stepIndex, mention, origin))
                 }
             }
         }
@@ -209,6 +260,10 @@ public enum StepAmountResolver {
         for (stepIndex, step) in steps.enumerated() {
             var operations: [Operation] = []
             var boundIDs: Set<UUID> = []
+            // Both a bare mention (below) and an AI claim pending
+            // confirmation (here) land in the same list — one review sheet,
+            // regardless of which case a step turns out to need.
+            var stepSuggestions: [AmountSuggestion] = []
 
             for (offset, entry) in allMentions.enumerated() where entry.stepIndex == stepIndex {
                 let mention = entry.mention
@@ -218,24 +273,53 @@ public enum StepAmountResolver {
                         for: mention.kind, fraction: fraction,
                         scaledQuantity: pot.scaledTotal, formatter: formatter
                     )
-                    if mention.replacesWrittenRange {
-                        operations.append(.replace(range: mention.writtenRange, text: amount, resolved: true))
-                    } else {
-                        // Right after the name as matched, not after
-                        // whatever the phrase scan happened to also pick up.
-                        let point = matchedNameEnd(
-                            in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
-                        ) ?? mention.namePhrase.endIndex
-                        operations.append(.insertAfter(point: point, amount: amount))
+                    switch entry.origin {
+                    case .regex:
+                        if mention.replacesWrittenRange {
+                            operations.append(.replace(range: mention.writtenRange, text: amount, resolved: true))
+                        } else {
+                            // Right after the name as matched, not after
+                            // whatever the phrase scan happened to also pick up.
+                            let point = matchedNameEnd(
+                                in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
+                            ) ?? mention.namePhrase.endIndex
+                            operations.append(.insertAfter(point: point, amount: amount))
+                        }
+                    case .ai:
+                        // Never written straight into the text — an AI claim
+                        // only ever becomes a suggestion, confirmed or
+                        // corrected once through the review sheet before it
+                        // can render as a resolved amount anywhere.
+                        let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
+                        if mention.replacesWrittenRange {
+                            stepSuggestions.append(AmountSuggestion(
+                                stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                displayAmount: amount, origin: origin, replaceRange: mention.writtenRange
+                            ))
+                        } else {
+                            let point = matchedNameEnd(
+                                in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
+                            ) ?? mention.namePhrase.endIndex
+                            stepSuggestions.append(AmountSuggestion(
+                                stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                displayAmount: amount, origin: origin, insertionPoint: point
+                            ))
+                        }
                     }
                     // Binding a pot binds every line in it — the step's
                     // amount covers the ingredient, however many lines the
-                    // list happens to spell it across.
+                    // list happens to spell it across. True for an AI claim
+                    // too, even while it is still unconfirmed: it must not
+                    // also turn up as a bare-mention suggestion below, and
+                    // the pot's remaining capacity is real either way.
                     for lineIndex in pot.lineIndices { boundIDs.insert(lines[lineIndex].id) }
-                } else if case .absolute(let quantity) = mention.kind {
+                } else if case .absolute(let quantity) = mention.kind, entry.origin == .regex {
                     // Unresolved falls back to the old, whole-recipe scale —
                     // still moving with the serving count, just without
-                    // knowing which line it came from.
+                    // knowing which line it came from. Only for a written
+                    // number a person can see is being blindly scaled; an
+                    // unresolved AI claim has nothing written to fall back
+                    // to and is simply dropped.
                     let blind = formatter.string(for: Quantity(quantity.amount * factor, quantity.unit))
                     operations.append(.replace(range: mention.writtenRange, text: blind, resolved: false))
                 }
@@ -250,7 +334,6 @@ public enum StepAmountResolver {
 
             // Pots this step names but never gave a share of its own —
             // candidates for the review screen, never written in here.
-            var stepSuggestions: [AmountSuggestion] = []
             let negated = negatedRanges(in: step.text)
             for pot in pots where !boundIDs.contains(lines[pot.lineIndices[0]].id) {
                 if let stepGroup = step.group, let potGroup = pot.group, stepGroup != potGroup { continue }
@@ -265,6 +348,7 @@ public enum StepAmountResolver {
                     stepID: step.id,
                     ingredientName: lines[pot.lineIndices[0]].name,
                     displayAmount: formatter.string(for: pot.scaledTotal),
+                    origin: .unmentioned,
                     insertionPoint: end
                 ))
             }

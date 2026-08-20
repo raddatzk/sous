@@ -40,13 +40,12 @@ struct RecipeDetailView: View {
     @State private var didAddToShoppingList = false
     @State private var isPlanning = false
     @State private var export: RecipeExport?
-    /// What `RecipeLibrary` has cached for this recipe, loaded fresh
-    /// whenever the recipe shown changes — see `.task(id: recipe.id)` below.
-    @State private var aiMentions: [UUID: [AmountMention]] = [:]
     @State private var isResolvingWithAI = false
     @State private var aiError: String?
-    /// What the review sheet would show, computed alongside `aiMentions` so
-    /// a bare mention the AI just tied down does not also show up here.
+    /// What the review sheet would show — bare mentions and any AI-found
+    /// amount pending confirmation alike. Never fed into the step text shown
+    /// on this page: an AI claim only ever renders once it has been through
+    /// that sheet, see `amount-confirmation-vs-guessing-tension`.
     @State private var amountReviewResolution: StepAmountResolver.Resolution?
     /// Drives the banner, separately from whether suggestions exist at all:
     /// a recipe the cook already dismissed keeps its suggestions (editing it
@@ -145,7 +144,6 @@ struct RecipeDetailView: View {
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
             didAddToShoppingList = false
-            aiMentions = [:]
             amountReviewResolution = nil
             needsAmountReview = false
         }
@@ -153,7 +151,6 @@ struct RecipeDetailView: View {
         // background pass found, if anything. Fires again whenever the
         // recipe shown changes, same as `onChange(of: recipe.id)` above.
         .task(id: recipe.id) {
-            aiMentions = await library.aiMentions(for: recipe)
             let (resolution, _) = await library.amountSuggestions(for: recipe)
             amountReviewResolution = resolution
             needsAmountReview = await library.needsAmountReview(recipe)
@@ -166,7 +163,6 @@ struct RecipeDetailView: View {
         .onChange(of: library.lastEnrichment) { _, event in
             guard event?.recipeID == recipe.id else { return }
             Task {
-                aiMentions = await library.aiMentions(for: recipe)
                 let (resolution, _) = await library.amountSuggestions(for: recipe)
                 amountReviewResolution = resolution
                 needsAmountReview = await library.needsAmountReview(recipe)
@@ -183,11 +179,14 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isReviewingAmounts) {
             if let amountReviewResolution {
-                AmountReviewSheet(recipe: recipe, resolution: amountReviewResolution) { accepted in
+                AmountReviewSheet(recipe: recipe, resolution: amountReviewResolution) { outcome in
                     Task {
                         let updated: Recipe
-                        if let accepted {
-                            updated = await library.applyAmountSuggestions(accepted, resolution: amountReviewResolution, to: recipe)
+                        if let outcome {
+                            updated = await library.applyAmountSuggestions(
+                                outcome.accepted, corrections: outcome.corrections,
+                                resolution: amountReviewResolution, to: recipe
+                            )
                         } else {
                             await library.markAmountsReviewed(recipe)
                             updated = recipe
@@ -237,7 +236,10 @@ struct RecipeDetailView: View {
         Task {
             defer { isResolvingWithAI = false }
             do {
-                aiMentions = try await library.refreshAIMentions(for: recipe)
+                try await library.refreshAIMentions(for: recipe)
+                let (resolution, _) = await library.amountSuggestions(for: recipe)
+                amountReviewResolution = resolution
+                needsAmountReview = await library.needsAmountReview(recipe)
             } catch {
                 aiError = error.localizedDescription
             }
@@ -591,9 +593,12 @@ struct RecipeDetailView: View {
     private var steps: some View {
         if !recipe.steps.isEmpty {
             // Resolved once for the whole recipe: which line an amount
-            // belongs to can depend on every other step's claim on it.
+            // belongs to can depend on every other step's claim on it. No
+            // `additionalMentions` here on purpose — an AI-found amount only
+            // ever renders once it has been confirmed through the review
+            // sheet and is part of the written text, never live.
             let resolution = StepAmountResolver.resolve(
-                recipe, toServings: servings, additionalMentions: aiMentions, formatter: formatter
+                recipe, toServings: servings, formatter: formatter
             )
             VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
