@@ -292,15 +292,19 @@ public final class RecipeLibrary {
 
     /// Writes the accepted suggestions into `recipe`'s steps, saves it, and
     /// marks the result reviewed — the only path a suggestion ever takes
-    /// from a guess to real text. Returns the updated recipe, since the
-    /// caller's own copy is now stale the moment this returns.
+    /// from a guess to real text. `corrections` carries whatever the cook
+    /// edited a suggestion's amount to before accepting it, keyed by
+    /// suggestion id — see `StepAmountResolver.Resolution.applying(_:
+    /// corrections:to:)`. Returns the updated recipe, since the caller's own
+    /// copy is now stale the moment this returns.
     @discardableResult
     public func applyAmountSuggestions(
         _ accepted: Set<AmountSuggestion.ID>,
+        corrections: [AmountSuggestion.ID: String] = [:],
         resolution: StepAmountResolver.Resolution,
         to recipe: Recipe
     ) async -> Recipe {
-        let updated = resolution.applying(accepted, to: recipe)
+        let updated = resolution.applying(accepted, corrections: corrections, to: recipe)
         await save(updated)
         try? await amountReviewStore.markReviewed(updated)
         return updated

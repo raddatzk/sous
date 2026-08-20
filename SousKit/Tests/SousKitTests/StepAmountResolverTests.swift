@@ -225,7 +225,7 @@ struct StepAmountResolverTests {
         #expect(resolution.segments(for: steps[1]).filter { if case .amount = $0 { true } else { false } }.count == 1)
     }
 
-    @Test("A second noun under one shared 'restlichen' — which regex alone can never reach — resolves via a supplementary mention")
+    @Test("A second noun under one shared 'restlichen' — which regex alone can never reach — surfaces as a suggestion via a supplementary mention")
     func supplementaryMentionReachesTheSecondNoun() throws {
         let recipe = Recipe(
             title: "Gemüsefüllung",
@@ -255,8 +255,19 @@ struct StepAmountResolverTests {
             formatter: formatter
         )
         let rendered = segmentsText(resolution.segments(for: steps[0])).joined()
-        #expect(rendered.contains("amount(4)"))  // Zwiebeln, found by regex
-        #expect(rendered.contains("amount(6)"))  // Karotten, only found via the supplementary mention
+        #expect(rendered.contains("amount(4)"))  // Zwiebeln, found by regex — trusted, renders live
+        #expect(!rendered.contains("amount(6)")) // Karotten — an AI-origin claim never renders live
+
+        // "Karotten" is reachable at all, just through the review sheet
+        // rather than live text — a supplementary mention is not lost, only
+        // held back from rendering unconfirmed.
+        let suggestion = try #require(resolution.suggestions(for: steps[0]).first { $0.ingredientName == "Karotten" })
+        #expect(suggestion.displayAmount == "6")
+        guard case .aiExtracted(let writtenText) = suggestion.origin else {
+            Issue.record("Expected an AI-extracted origin, got \(suggestion.origin)")
+            return
+        }
+        #expect(writtenText == "restlichen")
     }
 
     @Test("Two ungrouped lines of the same ingredient act as one pot")
@@ -628,5 +639,111 @@ struct AmountSuggestionTests {
         )
         let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
         #expect(resolution.suggestions(for: recipe.steps[0]).count == 1)
+    }
+}
+
+@Suite("AI-found amounts stay proposals until confirmed")
+struct AmountAIProposalTests {
+    private let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+
+    @Test("A fraction word only AI can read resolves to a suggestion, never live text")
+    func aiFractionBecomesASuggestionNotLiveText() throws {
+        let recipe = Recipe(
+            title: "Ofengemüse",
+            servings: 2,
+            ingredientsText: "300 g Paprika",
+            instructionsText: "Ein Drittel der Paprika in Scheiben schneiden."
+        )
+        let claim = ExtractedQuantity(
+            quantityText: "Ein Drittel", modifiedNoun: "Paprika", kind: .fraction, fractionValue: 1.0 / 3.0, stepNumber: 1
+        )
+        let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
+
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
+        let segments = resolution.segments(for: recipe.steps[0])
+        #expect(!segments.contains { if case .amount = $0 { true } else { false } })
+
+        // Only the AI proposal — bound the pot too, so no duplicate
+        // bare-name suggestion for the same "Paprika" also shows up.
+        let suggestions = resolution.suggestions(for: recipe.steps[0])
+        let suggestion = try #require(suggestions.first)
+        #expect(suggestions.count == 1)
+        #expect(suggestion.ingredientName == "Paprika")
+        #expect(suggestion.displayAmount == "100 g")
+        guard case .aiExtracted(let writtenText) = suggestion.origin else {
+            Issue.record("Expected an AI-extracted origin, got \(suggestion.origin)")
+            return
+        }
+        #expect(writtenText == "Ein Drittel")
+    }
+
+    @Test("Accepting an AI suggestion without a correction writes the computed amount in")
+    func acceptingWithoutCorrectionUsesTheComputedAmount() throws {
+        let recipe = Recipe(
+            title: "Ofengemüse",
+            servings: 2,
+            ingredientsText: "300 g Paprika",
+            instructionsText: "Ein Drittel der Paprika in Scheiben schneiden."
+        )
+        let claim = ExtractedQuantity(
+            quantityText: "Ein Drittel", modifiedNoun: "Paprika", kind: .fraction, fractionValue: 1.0 / 3.0, stepNumber: 1
+        )
+        let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
+        let suggestion = try #require(resolution.suggestions(for: recipe.steps[0]).first)
+
+        let updated = resolution.applying([suggestion.id], to: recipe)
+        #expect(updated.instructionsText.contains("Ein Drittel der Paprika (100 g) in Scheiben schneiden."))
+
+        // Settled: resolving the updated recipe again finds no suggestions
+        // left over for this text.
+        let newResolution = StepAmountResolver.resolve(updated, toServings: 2, formatter: formatter)
+        #expect(newResolution.allSuggestions.isEmpty)
+    }
+
+    @Test("Correcting an AI suggestion writes the corrected text instead of the computed amount")
+    func correctingAnAISuggestionOverridesTheComputedAmount() throws {
+        let recipe = Recipe(
+            title: "Ofengemüse",
+            servings: 2,
+            ingredientsText: "300 g Paprika",
+            instructionsText: "Ein Drittel der Paprika in Scheiben schneiden."
+        )
+        let claim = ExtractedQuantity(
+            quantityText: "Ein Drittel", modifiedNoun: "Paprika", kind: .fraction, fractionValue: 1.0 / 3.0, stepNumber: 1
+        )
+        let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
+        let suggestion = try #require(resolution.suggestions(for: recipe.steps[0]).first)
+
+        let updated = resolution.applying([suggestion.id], corrections: [suggestion.id: "90 g"], to: recipe)
+        #expect(updated.instructionsText.contains("Ein Drittel der Paprika (90 g) in Scheiben schneiden."))
+        #expect(!updated.instructionsText.contains("100 g"))
+    }
+
+    @Test("An AI-found amount already written in 'name (amount)' order — unreadable to regex — replaces rather than inserts")
+    func aiFoundWrittenAmountReplacesInPlace() throws {
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: "40 ml Olivenöl",
+            instructionsText: "Olivenöl (40 ml) unterrühren."
+        )
+        let claim = ExtractedQuantity(
+            quantityText: "40 ml", modifiedNoun: "Olivenöl", kind: .absolute, fractionValue: nil, stepNumber: 1
+        )
+        let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
+
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
+        // Regex alone cannot read this word order, so without the AI claim
+        // there would be nothing here at all — confirms the fixture is
+        // actually exercising the AI path, not a regex mention in disguise.
+        let regexOnly = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(regexOnly.suggestions(for: recipe.steps[0]).isEmpty)
+        #expect(!regexOnly.segments(for: recipe.steps[0]).contains { if case .amount = $0 { true } else { false } })
+
+        let suggestion = try #require(resolution.suggestions(for: recipe.steps[0]).first)
+        let updated = resolution.applying([suggestion.id], corrections: [suggestion.id: "45 ml"], to: recipe)
+        #expect(updated.instructionsText.contains("Olivenöl (45 ml) unterrühren."))
     }
 }

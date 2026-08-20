@@ -20,9 +20,6 @@ struct CookModeView: View {
 
     /// The recipes on the hob, looked up from the ids the session keeps.
     @State private var recipes: [UUID: Recipe] = [:]
-    /// What `RecipeLibrary` has cached for each recipe on the hob, keyed
-    /// the same way — a cache read alongside `recipes`, never a model call.
-    @State private var aiMentionsByRecipe: [UUID: [UUID: [AmountMention]]] = [:]
     /// The step whose duration is being set, if the sheet is open.
     @State private var settingTimer: TimerDraft?
     @State private var isPicking = false
@@ -169,13 +166,6 @@ struct CookModeView: View {
         // The ids are the truth; the recipes behind them are fetched, and
         // refetched whenever something joins or leaves the hob.
         .task(id: session.entries.map(\.recipeID)) { await resolveRecipes() }
-        // A background enrichment for a recipe already on the hob — most
-        // often the cook stepped out to fix a typo mid-cook and came right
-        // back — updates just that one recipe's mentions.
-        .onChange(of: library.lastEnrichment) { _, event in
-            guard let event, let recipe = recipes[event.recipeID] else { return }
-            Task { aiMentionsByRecipe[event.recipeID] = await library.aiMentions(for: recipe) }
-        }
         .onAppear { keepDisplayAwake(true) }
         .onDisappear { keepDisplayAwake(false) }
     }
@@ -317,10 +307,11 @@ struct CookModeView: View {
         let focused = focusedStep(entry, steps: steps)
         // Resolved once for the whole page: which line an amount belongs to
         // can depend on every other step's claim on it, not just this one's.
+        // No `additionalMentions` here on purpose — an AI-found amount only
+        // ever renders once it has been confirmed and is part of the
+        // written text, never live in cook mode.
         let resolution = StepAmountResolver.resolve(
-            recipe, toServings: entry.servings,
-            additionalMentions: aiMentionsByRecipe[recipe.id] ?? [:],
-            formatter: formatter
+            recipe, toServings: entry.servings, formatter: formatter
         )
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 32) {
@@ -507,15 +498,12 @@ struct CookModeView: View {
 
     private func resolveRecipes() async {
         var resolved: [UUID: Recipe] = [:]
-        var mentions: [UUID: [UUID: [AmountMention]]] = [:]
         for entry in session.entries {
             if let recipe = await library.recipe(id: entry.recipeID), !recipe.isDeleted {
                 resolved[entry.recipeID] = recipe
-                mentions[entry.recipeID] = await library.aiMentions(for: recipe)
             }
         }
         recipes = resolved
-        aiMentionsByRecipe = mentions
         // A recipe deleted while it was on the hob cannot be cooked from.
         session.prune(toRecipes: Set(resolved.keys))
     }
