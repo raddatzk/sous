@@ -57,6 +57,17 @@ struct IngredientParserTests {
         #expect(ingredient.name == "Tomaten")
     }
 
+    @Test("A range with a unit between the numbers and the name still splits correctly")
+    func rangeWithUnit() {
+        // "Blätter" must be a recognized unit, or the whole "Blätter
+        // Basilikum" ends up as the name — leaving nothing in the recipe
+        // that can ever match a bare "Basilikum" mentioned in a step.
+        let ingredient = IngredientParser.parseLine("10-15 Blätter Basilikum")
+
+        #expect(ingredient.quantity == Quantity(10, .leaf))
+        #expect(ingredient.name == "Basilikum")
+    }
+
     @Test("Headings open a group for the lines that follow")
     func groups() {
         let ingredients = IngredientParser.parse("""

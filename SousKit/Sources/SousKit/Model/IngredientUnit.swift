@@ -27,11 +27,13 @@ public enum IngredientUnit: Hashable, Sendable {
     case package
     /// A serving of another recipe: "1 Portion [Naan](…)".
     case portion
+    /// A leaf, counted rather than weighed: "10 Blätter Basilikum".
+    case leaf
     case custom(String)
 
     public static let allKnown: [IngredientUnit] = [
         .gram, .kilogram, .milliliter, .liter, .teaspoon, .tablespoon,
-        .piece, .pinch, .bunch, .clove, .package, .portion,
+        .piece, .pinch, .bunch, .clove, .package, .portion, .leaf,
     ]
 
     public var symbol: String {
@@ -48,6 +50,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .clove: "Zehe"
         case .package: "Pck."
         case .portion: "Portion"
+        case .leaf: "Blatt"
         case .custom(let symbol): symbol
         }
     }
@@ -76,6 +79,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .clove: ["zehe", "zehen"]
         case .package: ["pck", "packung", "packungen", "päckchen"]
         case .portion: ["portion", "portionen"]
+        case .leaf: ["blatt", "blätter"]
         case .custom: []
         }
     }
@@ -102,7 +106,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .gram, .kilogram: .mass
         case .milliliter, .liter, .teaspoon, .tablespoon: .volume
         case .piece: .count
-        case .pinch, .bunch, .clove, .package, .portion, .custom: .imprecise
+        case .pinch, .bunch, .clove, .package, .portion, .leaf, .custom: .imprecise
         }
     }
 
@@ -119,7 +123,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .teaspoon: 5
         case .tablespoon: 15
         case .piece: 1
-        case .pinch, .bunch, .clove, .package, .portion, .custom: nil
+        case .pinch, .bunch, .clove, .package, .portion, .leaf, .custom: nil
         }
     }
 
