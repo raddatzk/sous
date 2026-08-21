@@ -403,10 +403,13 @@ struct StepAmountResolverTests {
     @Test("A name already followed by a written parenthetical amount is not repeated as a fallback chip")
     func fallbackChipSkipsAlreadyAnsweredMentions() {
         // "Olivenöl (40 ml)" is the shape Mela imports write, and the shape
-        // this app's own review sheet writes too — either way, the regex
-        // scanner never reads it as a mention (it only understands "amount
-        // name" order), so without this check the chip would repeat what
-        // the sentence already says right next to it.
+        // this app's own review sheet writes too. The regex scanner reads
+        // this order too (see `AmountMentionScanner.parenthesizedMentions`),
+        // so it is bound like any other mention — but even a step naming an
+        // ingredient this way without a recognizable amount at all (guarded
+        // by `isAlreadyAnswered`, not exercised by this specific fixture
+        // anymore) must not repeat what the sentence already says right
+        // next to it.
         let recipe = Recipe(
             title: "Pesto",
             servings: 2,
@@ -433,6 +436,117 @@ struct StepAmountResolverTests {
         let segments = resolution.segments(for: recipe.steps[0])
         // Two pots could be meant, so "restliches" resolves against neither.
         #expect(!segments.contains { if case .amount = $0 { true } else { false } })
+    }
+}
+
+@Suite("Amounts written after the name, in parentheses")
+struct ParenthesizedAmountTests {
+    private let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+
+    private func segmentsText(_ segments: [StepAmountSegment]) -> [String] {
+        segments.map { segment in
+            switch segment {
+            case .text(let s): "text(\(s))"
+            case .amount(let s): "amount(\(s))"
+            }
+        }
+    }
+
+    @Test("Resolves live and trusted, exactly like the forward order — no AI, no confirmation needed")
+    func resolvesLiveWithoutAI() {
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: "3 EL Rapsöl",
+            instructionsText: "Etwas Rapsöl (3 EL) in einem flachen Topf erhitzen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(resolution.allSuggestions.isEmpty)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).contains("amount(3 EL)"))
+    }
+
+    @Test("A two-word name is matched by the words closest to the parenthesis, not cut off after the first")
+    func multiWordNameMatches() {
+        let recipe = Recipe(
+            title: "Salat",
+            servings: 2,
+            ingredientsText: "200 g Rote Bete",
+            instructionsText: "Die gewaschene Rote Bete (200 g) grob raspeln."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).contains("amount(200 g)"))
+    }
+
+    @Test("A bare count with no unit word in the parentheses still resolves")
+    func bareCountInParensResolves() {
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: "2 Zwiebel",
+            instructionsText: "Zwiebel (2) pellen, halbieren und in feine Streifen schneiden."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).contains("amount(2)"))
+    }
+
+    @Test("A recognized imprecise unit resolves against a pot in the same unit — 'Zehe' needs no shared base, just a ratio")
+    func recognizedNonMetricUnitResolves() {
+        // "Zehe" (like "Blatt", "Bund", "Prise") has no `baseUnitFactor` —
+        // `Quantity.inBaseUnit` is `nil` for it — but matching against a
+        // pot already totalled in the very same unit needs no conversion
+        // at all, only a direct ratio (`fraction(for:against:)`'s
+        // same-unit fast path). Forward order resolves exactly the same
+        // way; this is the real recipe the resurfacing-findings bug and
+        // the "Name (Menge)" regex extension were both found against.
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: "1 Zehe Knoblauch",
+            instructionsText: "Knoblauch (1 Zehe) ebenfalls pellen und in feine Streifen schneiden."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).contains("amount(1 Zehe)"))
+    }
+
+    @Test("A partial share of an imprecise-unit pot resolves to a genuine fraction, not the whole pot")
+    func imprecisePartialShareResolves() {
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: "3 Zehe Knoblauch",
+            instructionsText: "Knoblauch (1 Zehe) andünsten, den restlichen Knoblauch später dazugeben."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let segments = segmentsText(resolution.segments(for: recipe.steps[0]))
+        #expect(segments.contains("amount(1 Zehe)"))
+        #expect(segments.contains("amount(2 Zehe)"))
+    }
+
+    @Test("A word in parentheses that is not a recognized unit is left alone — not every parenthetical is an amount")
+    func unrecognizedWordInParensIsNotAMention() {
+        let recipe = Recipe(
+            title: "Gulasch",
+            servings: 2,
+            ingredientsText: "750 g Rindfleisch",
+            instructionsText: "Das Rindfleisch scharf anbraten (ca. 5 Minuten)."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(!resolution.segments(for: recipe.steps[0]).contains { if case .amount = $0 { true } else { false } })
+        // Falls through to the ordinary bare-mention path instead of being
+        // silently dropped — "Rindfleisch" still gets offered for review.
+        #expect(resolution.suggestions(for: recipe.steps[0]).contains { $0.ingredientName == "Rindfleisch" })
+    }
+
+    @Test("Scales with servings like any other resolved amount")
+    func scalesWithServings() {
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: "750 g Hackfleisch",
+            instructionsText: "Das Hackfleisch (750 g) scharf anbraten."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        #expect(segmentsText(resolution.segments(for: recipe.steps[0])).contains("amount(1,5 kg)"))
     }
 }
 
@@ -721,8 +835,35 @@ struct AmountAIProposalTests {
         #expect(!updated.instructionsText.contains("100 g"))
     }
 
-    @Test("An AI-found amount already written in 'name (amount)' order — unreadable to regex — replaces rather than inserts")
+    @Test("An AI-found amount written in 'name (amount)' order but not enclosed in parentheses — unreadable to regex — replaces rather than inserts")
     func aiFoundWrittenAmountReplacesInPlace() throws {
+        let recipe = Recipe(
+            title: "Pesto",
+            servings: 2,
+            ingredientsText: "40 ml Olivenöl",
+            instructionsText: "Olivenöl, 40 ml, unterrühren."
+        )
+        let claim = ExtractedQuantity(
+            quantityText: "40 ml", modifiedNoun: "Olivenöl", kind: .absolute, fractionValue: nil, stepNumber: 1
+        )
+        let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
+
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
+        // Regex alone cannot read this word order — no live `.amount()`
+        // segment appears without the AI claim — confirming the fixture
+        // exercises the AI path, not a regex mention in disguise. (Regex's
+        // own bare-mention fallback still offers "Olivenöl" on its own,
+        // unrelated to what this test is about.)
+        let regexOnly = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
+        #expect(!regexOnly.segments(for: recipe.steps[0]).contains { if case .amount = $0 { true } else { false } })
+
+        let suggestion = try #require(resolution.suggestions(for: recipe.steps[0]).first { $0.origin != .unmentioned })
+        let updated = resolution.applying([suggestion.id], corrections: [suggestion.id: "45 ml"], to: recipe)
+        #expect(updated.instructionsText.contains("Olivenöl, 45 ml, unterrühren."))
+    }
+
+    @Test("An AI-found amount already enclosed in parentheses is trusted, not flagged — a person or a prior confirmation already made it unambiguous")
+    func aiClaimAlreadyEnclosedInParensIsNotFlaggedAgain() throws {
         let recipe = Recipe(
             title: "Pesto",
             servings: 2,
@@ -735,15 +876,35 @@ struct AmountAIProposalTests {
         let mentions = AmountAIExtractor.mentions(from: [claim], steps: recipe.steps)
 
         let resolution = StepAmountResolver.resolve(recipe, toServings: 2, additionalMentions: mentions, formatter: formatter)
-        // Regex alone cannot read this word order, so without the AI claim
-        // there would be nothing here at all — confirms the fixture is
-        // actually exercising the AI path, not a regex mention in disguise.
-        let regexOnly = StepAmountResolver.resolve(recipe, toServings: 2, formatter: formatter)
-        #expect(regexOnly.suggestions(for: recipe.steps[0]).isEmpty)
-        #expect(!regexOnly.segments(for: recipe.steps[0]).contains { if case .amount = $0 { true } else { false } })
+        #expect(resolution.suggestions(for: recipe.steps[0]).isEmpty)
+        // Still bound — the pot is accounted for, just never rendered live.
+        #expect(resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[0]))
+    }
 
-        let suggestion = try #require(resolution.suggestions(for: recipe.steps[0]).first)
-        let updated = resolution.applying([suggestion.id], corrections: [suggestion.id: "45 ml"], to: recipe)
-        #expect(updated.instructionsText.contains("Olivenöl (45 ml) unterrühren."))
+    @Test("Rewording the sentence around an already-confirmed amount does not resurface it as a new finding")
+    func rewordingAroundAConfirmedAmountDoesNotReflagIt() throws {
+        // The reported bug: two amounts already written in, in the exact
+        // shape a prior review-sheet acceptance leaves behind, survive a
+        // wording edit to the rest of the sentence — the model re-reads
+        // "Rapsöl (3 EL)" and "Hackfleisch (750 g)" fresh on every
+        // enrichment pass, and without the parenthesis check both would
+        // reappear as unconfirmed suggestions after every such edit.
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: """
+            750 g Hackfleisch
+            3 EL Rapsöl
+            """,
+            instructionsText: "Für die Suppe etwas Rapsöl (3 EL) in einem flachen Topf erhitzen und das Hackfleisch (750 g) für 2-5 Minuten scharf anbraten."
+        )
+        let claims = [
+            ExtractedQuantity(quantityText: "3 EL", modifiedNoun: "Rapsöl", kind: .absolute, fractionValue: nil, stepNumber: 1),
+            ExtractedQuantity(quantityText: "750 g", modifiedNoun: "Hackfleisch", kind: .absolute, fractionValue: nil, stepNumber: 1),
+        ]
+        let mentions = AmountAIExtractor.mentions(from: claims, steps: recipe.steps)
+
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, additionalMentions: mentions, formatter: formatter)
+        #expect(resolution.allSuggestions.isEmpty)
     }
 }
