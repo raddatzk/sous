@@ -289,21 +289,36 @@ public enum StepAmountResolver {
                         // Never written straight into the text — an AI claim
                         // only ever becomes a suggestion, confirmed or
                         // corrected once through the review sheet before it
-                        // can render as a resolved amount anywhere.
-                        let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
+                        // can render as a resolved amount anywhere. But a
+                        // claim whose own written span already sits inside
+                        // parentheses — "Rapsöl (3 EL)" — or whose insertion
+                        // point already has a parenthetical right after it
+                        // is not a new finding: it is either a prior
+                        // suggestion already confirmed, or a "Name (Menge)"
+                        // amount the person themselves wrote. The model
+                        // re-recognizes both just as readily as a genuinely
+                        // new one, and without this check every step naming
+                        // an already-answered amount would ask again after
+                        // every edit that changes the recipe's content hash.
                         if mention.replacesWrittenRange {
-                            stepSuggestions.append(AmountSuggestion(
-                                stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
-                                displayAmount: amount, origin: origin, replaceRange: mention.writtenRange
-                            ))
+                            if !isEnclosedInParens(mention.writtenRange, in: step.text) {
+                                let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
+                                stepSuggestions.append(AmountSuggestion(
+                                    stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                    displayAmount: amount, origin: origin, replaceRange: mention.writtenRange
+                                ))
+                            }
                         } else {
                             let point = matchedNameEnd(
                                 in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
                             ) ?? mention.namePhrase.endIndex
-                            stepSuggestions.append(AmountSuggestion(
-                                stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
-                                displayAmount: amount, origin: origin, insertionPoint: point
-                            ))
+                            if !isAlreadyAnswered(at: point, in: step.text) {
+                                let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
+                                stepSuggestions.append(AmountSuggestion(
+                                    stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                    displayAmount: amount, origin: origin, insertionPoint: point
+                                ))
+                            }
                         }
                     }
                     // Binding a pot binds every line in it — the step's
@@ -452,6 +467,9 @@ public enum StepAmountResolver {
     ) -> [Int] {
         pots.indices.filter { index in
             if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+            if mention.namePrecedesAmount {
+                return matchedNameStart(in: mention.namePhrase, canonicalTarget: pots[index].canonicalName, catalog: catalog) != nil
+            }
             return matchedNameEnd(in: mention.namePhrase, canonicalTarget: pots[index].canonicalName, catalog: catalog) != nil
         }
     }
@@ -474,6 +492,26 @@ public enum StepAmountResolver {
             let candidate = candidateWords.joined(separator: " ")
             if IngredientCatalog.normalize(catalog.canonicalName(for: candidate)) == canonicalTarget {
                 return candidateWords.last!.endIndex
+            }
+        }
+        return nil
+    }
+
+    /// The mirror image of `matchedNameEnd`, for a `namePhrase` that sits
+    /// before the mention instead of after it ("Rapsöl (3 EL)" — the phrase
+    /// is "…etwas Rapsöl", the name ends right where the mention starts,
+    /// not where the phrase happens to have started scanning). Tries
+    /// suffixes longest-first for the same reason `matchedNameEnd` tries
+    /// prefixes longest-first: a two-word name must get a chance before it
+    /// is cut down to a non-matching single word.
+    static func matchedNameStart(in phrase: Substring, canonicalTarget: String, catalog: IngredientCatalog) -> String.Index? {
+        let words = phrase.split(separator: " ")
+        guard !words.isEmpty else { return nil }
+        for count in stride(from: min(words.count, 4), through: 1, by: -1) {
+            let candidateWords = words.suffix(count)
+            let candidate = candidateWords.joined(separator: " ")
+            if IngredientCatalog.normalize(catalog.canonicalName(for: candidate)) == canonicalTarget {
+                return candidateWords.first!.startIndex
             }
         }
         return nil
@@ -526,6 +564,24 @@ public enum StepAmountResolver {
         guard cursor < text.endIndex, text[cursor] == "(" else { return false }
         let inside = text[text.index(after: cursor)...].lowercased()
         return !negationTriggerWords.contains { inside.hasPrefix($0) }
+    }
+
+    /// Whether `range` sits directly inside a pair of parentheses — "(3 EL)"
+    /// — immediately preceded by `(` and immediately followed by `)`.
+    ///
+    /// An AI claim whose own written span already has this shape is not a
+    /// fresh finding: either the person wrote "Name (Menge)" themselves, or
+    /// this is exactly the shape a prior confirmation left behind (a
+    /// `replace`-shaped `AmountSuggestion` never adds its own parentheses —
+    /// it substitutes text in place, keeping whatever punctuation the
+    /// written amount already sat inside of). Without this check, the model
+    /// — which is specifically good at reading "Name (Menge)" order — would
+    /// re-find the same phrase on every enrichment pass and turn it back
+    /// into an unconfirmed suggestion, undoing the point of confirming it.
+    private static func isEnclosedInParens(_ range: Range<String.Index>, in text: String) -> Bool {
+        guard range.lowerBound > text.startIndex, range.upperBound < text.endIndex else { return false }
+        let before = text.index(before: range.lowerBound)
+        return text[before] == "(" && text[range.upperBound] == ")"
     }
 
     /// Words that turn what follows into an exclusion, not a use — "alles
@@ -585,17 +641,34 @@ public enum StepAmountResolver {
     /// cannot possibly refer to `pot` at all — dimensions disagree, or the
     /// mention alone already exceeds what the pot has.
     private static func fraction(for kind: AmountMention.Kind, against pot: Pot) -> Double? {
-        guard let potBase = pot.totalQuantity.inBaseUnit, potBase > 0 else { return nil }
         switch kind {
         case .absolute(let quantity):
-            guard quantity.unit.dimension == pot.totalQuantity.unit.dimension, let mentionBase = quantity.inBaseUnit else { return nil }
+            guard quantity.unit.dimension == pot.totalQuantity.unit.dimension else { return nil }
+            // The same unit on both sides needs no shared base to divide
+            // through — "1 Zehe" against a pot already totalled in "Zehe"
+            // is a plain ratio between two numbers, the same reasoning
+            // `Quantity.adding(_:)` already uses to add two lines that
+            // share an imprecise unit. Without this, "Zehe", "Blatt",
+            // "Bund" and the rest of `UnitDimension.imprecise` could never
+            // resolve against a pot at all — `baseUnitFactor` is `nil` for
+            // all of them by definition, forward word order or backward.
+            if quantity.unit == pot.totalQuantity.unit {
+                guard pot.totalQuantity.amount > 0 else { return nil }
+                let value = quantity.amount / pot.totalQuantity.amount
+                return value <= 1.0001 ? value : nil
+            }
+            guard let potBase = pot.totalQuantity.inBaseUnit, potBase > 0, let mentionBase = quantity.inBaseUnit else { return nil }
             let value = mentionBase / potBase
             return value <= 1.0001 ? value : nil
         case .bareCount(let value):
-            guard pot.totalQuantity.unit.dimension == .count else { return nil }
+            guard pot.totalQuantity.unit.dimension == .count,
+                  let potBase = pot.totalQuantity.inBaseUnit, potBase > 0
+            else { return nil }
             let value = value / potBase
             return value <= 1.0001 ? value : nil
         case .fraction(let value):
+            // No pot-unit dependency at all — "die Hälfte des Knoblauchs"
+            // is 0.5 regardless of what the clove pot's total converts to.
             return value
         case .remaining:
             return nil  // Resolved separately, from what the others leave behind.
