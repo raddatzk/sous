@@ -13,9 +13,16 @@ struct RecipeRow: View {
     let recipe: Recipe
 
     @Environment(RecipeLibrary.self) private var library
+    @Environment(NutritionLibrary.self) private var nutritionLibrary
     /// Whether this recipe still has amount suggestions nobody has looked
     /// at — a plain, non-AI resolver read, cheap enough to run per row.
     @State private var needsAmountReview = false
+    /// A cache read, same as `needsAmountReview` — cheap once nutrition has
+    /// been computed for this recipe once.
+    @State private var kcalPerPortion: Int?
+    /// Whether the catalog is missing any of this recipe's ingredients —
+    /// the list-wide view of the same check the detail page's banner runs.
+    @State private var needsIngredientReview = false
 
     /// Enough to say what a recipe is; more would push the rows apart.
     private static let visibleCategories = 3
@@ -37,6 +44,13 @@ struct RecipeRow: View {
         .padding(.vertical, 6)
         .task(id: recipe.id) {
             needsAmountReview = await library.needsAmountReview(recipe)
+        }
+        .task(id: recipe.id) {
+            let nutrition = await nutritionLibrary.nutrition(for: recipe)
+            kcalPerPortion = nutrition.map { Int($0.perPortion.kcal.rounded()) }
+        }
+        .task(id: recipe.id) {
+            needsIngredientReview = await library.needsIngredientReview(recipe)
         }
     }
 
@@ -82,6 +96,11 @@ struct RecipeRow: View {
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
         }
+        if needsIngredientReview {
+            Image(systemName: "questionmark.circle")
+                .foregroundStyle(.secondary)
+                .imageScale(.small)
+        }
     }
 
     /// The time first — it decides whether a recipe fits the evening — then
@@ -90,13 +109,19 @@ struct RecipeRow: View {
     private var attributes: some View {
         let shown = recipe.categories.prefix(Self.visibleCategories)
         let hidden = recipe.categories.count - shown.count
-        if totalMinutes != nil || !shown.isEmpty {
+        if totalMinutes != nil || kcalPerPortion != nil || !shown.isEmpty {
             FlowLayout(spacing: 5, lineSpacing: 5) {
                 if let minutes = totalMinutes {
-                    chip("\(minutes) Min.", systemImage: "clock", tinted: false)
+                    chip("\(minutes) Min.", systemImage: "clock")
                 }
+                if let kcalPerPortion {
+                    chip("\(kcalPerPortion) kcal")
+                }
+                // Each category keeps its own colour rather than sharing the
+                // app's one accent — with several shown at once, a reader
+                // tells them apart by colour before they have read the word.
                 ForEach(Array(shown), id: \.self) { category in
-                    chip(category)
+                    chip(category, color: .sousCategory(category))
                 }
                 if hidden > 0 {
                     chip("+\(hidden)")
@@ -108,7 +133,7 @@ struct RecipeRow: View {
     private func chip(
         _ text: String,
         systemImage: String? = nil,
-        tinted: Bool = true
+        color: Color? = nil
     ) -> some View {
         HStack(spacing: 3) {
             if let systemImage {
@@ -122,10 +147,10 @@ struct RecipeRow: View {
         .padding(.horizontal, 9)
         .padding(.vertical, 4)
         .background(
-            tinted ? AnyShapeStyle(.tint.opacity(SousStyle.chipTint)) : AnyShapeStyle(Color.sousField),
+            color.map { AnyShapeStyle($0.opacity(SousStyle.chipTint)) } ?? AnyShapeStyle(Color.sousField),
             in: .capsule
         )
-        .foregroundStyle(tinted ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+        .foregroundStyle(color.map { AnyShapeStyle($0) } ?? AnyShapeStyle(.secondary))
     }
 
     /// The time it takes from start to finish — the number that answers

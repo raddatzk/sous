@@ -392,3 +392,59 @@ struct RecipeLibraryAmountReviewTests {
         #expect(!(await library.needsAmountReview(saved)))
     }
 }
+
+@MainActor
+@Suite("Ingredient review")
+struct RecipeLibraryIngredientReviewTests {
+    private func makeLibrary() async throws -> RecipeLibrary {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let catalogLibrary = IngredientCatalogLibrary(store: SwiftDataIngredientCatalogStore(modelContainer: container))
+        await catalogLibrary.reload()
+        return RecipeLibrary(
+            store: SwiftDataRecipeStore(modelContainer: container),
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+            ingredientReviewStore: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
+            catalogLibrary: catalogLibrary
+        )
+    }
+
+    @Test("A recipe with an ingredient the catalog does not know needs review")
+    func unknownIngredientNeedsReview() async throws {
+        let library = try await makeLibrary()
+        let recipe = Recipe(title: "Kimchi-Suppe", servings: 2, ingredientsText: "300 g Tomaten\n2 EL Gochujang")
+
+        #expect(library.unknownIngredients(in: recipe) == ["Gochujang"])
+        #expect(await library.needsIngredientReview(recipe))
+    }
+
+    @Test("A recipe the catalog fully recognizes never needs review")
+    func fullyKnownRecipeNeedsNoReview() async throws {
+        let library = try await makeLibrary()
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\nSalz")
+
+        #expect(library.unknownIngredients(in: recipe).isEmpty)
+        #expect(!(await library.needsIngredientReview(recipe)))
+    }
+
+    @Test("Marking reviewed settles the question for the current text")
+    func markingReviewedSettlesTheQuestion() async throws {
+        let library = try await makeLibrary()
+        let recipe = Recipe(title: "Kimchi-Suppe", servings: 2, ingredientsText: "2 EL Gochujang")
+
+        await library.markIngredientsReviewed(recipe)
+        #expect(!(await library.needsIngredientReview(recipe)))
+    }
+
+    @Test("Editing the recipe again after a review reopens the question")
+    func furtherEditingReopensTheReview() async throws {
+        let library = try await makeLibrary()
+        let recipe = Recipe(title: "Kimchi-Suppe", servings: 2, ingredientsText: "2 EL Gochujang")
+        await library.markIngredientsReviewed(recipe)
+
+        var edited = recipe
+        edited.ingredientsText = "2 EL Gochujang\n1 Sumach"
+        #expect(await library.needsIngredientReview(edited))
+    }
+}

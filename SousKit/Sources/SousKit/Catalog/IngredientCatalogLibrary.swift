@@ -58,17 +58,6 @@ public final class IngredientCatalogLibrary {
     /// The ingredients named in a recipe's text that the catalog does not
     /// know — what the editor offers to add.
     public func unknownIngredients(in text: String) -> [String] {
-        var seen = Set<String>()
-        return IngredientParser.parse(text).compactMap { ingredient in
-            let name = ShoppingItem.displayName(for: ingredient.name)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            guard name.count >= 2,
-                  // A link points at a recipe, not at something to look up.
-                  RecipeLink.referencedIDs(in: ingredient.name).isEmpty,
-                  catalog.ingredient(for: name) == nil,
-                  seen.insert(IngredientCatalog.normalize(name)).inserted
-            else { return nil }
-            return name
-        }
+        catalog.unknownIngredients(in: text)
     }
 }

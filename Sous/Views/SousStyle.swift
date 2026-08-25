@@ -157,6 +157,17 @@ extension Color {
         adaptive(light: .black.opacity(0.07), dark: .white.opacity(0.13))
     }
 
+    /// A bar docked against the keyboard. Opaque rather than a material:
+    /// sitting right on the keyboard, a material picks up its grey and
+    /// leaves `sousField` chips barely readable on top.
+    static var sousBar: Color {
+        #if os(iOS)
+        Color(uiColor: .systemBackground)
+        #else
+        Color(nsColor: .windowBackgroundColor)
+        #endif
+    }
+
     /// Dimming behind a progress card, strong enough to separate in the dark.
     static var sousScrim: Color {
         adaptive(light: .black.opacity(0.18), dark: .black.opacity(0.5))
@@ -168,6 +179,27 @@ extension Color {
         adaptive(
             light: Color(red: 0.98, green: 0.97, blue: 0.96),
             dark: Color(red: 0.05, green: 0.05, blue: 0.06)
+        )
+    }
+
+    /// A category's own colour, stable across launches and devices.
+    ///
+    /// Categories are free text — "Fleisch", "Suppen", whatever a recipe
+    /// happens to be filed under — so there is no fixed list to hand-pick
+    /// colours for. A hash of the name picks a hue instead: the same name
+    /// always lands on the same colour, without anything to store. `String`
+    /// itself cannot be used for this — `Hashable`'s seed is randomised
+    /// per launch, so the same category would change colour every time the
+    /// app opened.
+    static func sousCategory(_ name: String) -> Color {
+        var hash: UInt64 = 5381
+        for byte in name.lowercased().utf8 {
+            hash = hash &* 33 &+ UInt64(byte)
+        }
+        let hue = Double(hash % 360) / 360
+        return adaptive(
+            light: Color(hue: hue, saturation: 0.55, brightness: 0.5),
+            dark: Color(hue: hue, saturation: 0.5, brightness: 0.85)
         )
     }
 

@@ -17,7 +17,10 @@ public enum IngredientParser {
     ///
     /// A line that carries no amount and ends in a colon — or starts with a
     /// markdown heading — opens a group that the following lines belong to.
-    public static func parse(_ text: String) -> [RecipeIngredient] {
+    ///
+    /// `catalog` is consulted only to tell a name that happens to contain a
+    /// comma from a name followed by a preparation — see `parseLine`.
+    public static func parse(_ text: String, catalog: IngredientCatalog = .bundled) -> [RecipeIngredient] {
         var result: [RecipeIngredient] = []
         var currentGroup: String?
 
@@ -30,7 +33,7 @@ public enum IngredientParser {
                 continue
             }
 
-            var ingredient = parseLine(line)
+            var ingredient = parseLine(line, catalog: catalog)
             ingredient.id = StableID.make(namespace: "ingredient", index: result.count, content: line)
             ingredient.group = currentGroup
             result.append(ingredient)
@@ -70,7 +73,15 @@ public enum IngredientParser {
     }
 
     /// Parses one line into an ingredient.
-    public static func parseLine(_ line: String) -> RecipeIngredient {
+    ///
+    /// `catalog` settles a genuine ambiguity in the comma: "Zucchini, fein
+    /// gehackt" is a name and a preparation, but "Sauerrahm/Schmand, mind.
+    /// 20 % Fett" is one name that carries its own qualifier — and so are
+    /// 974 of the 2661 bundled names, since that is how the BLS writes
+    /// them. Nothing in the line itself tells the two apart, so the only
+    /// honest answer is to ask what is a known ingredient. A name the
+    /// catalog knows whole is left whole; everything else splits as before.
+    public static func parseLine(_ line: String, catalog: IngredientCatalog = .bundled) -> RecipeIngredient {
         var rest = Substring(line.trimmingCharacters(in: .whitespaces))
 
         var quantity: Quantity?
@@ -91,7 +102,7 @@ public enum IngredientParser {
             preparation = String(name[name.index(after: openIndex)..<name.index(before: name.endIndex)])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<openIndex]).trimmingCharacters(in: .whitespaces)
-        } else if let commaIndex = name.firstIndex(of: ",") {
+        } else if let commaIndex = name.firstIndex(of: ","), catalog.ingredient(for: name) == nil {
             preparation = String(name[name.index(after: commaIndex)...])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<commaIndex]).trimmingCharacters(in: .whitespaces)
@@ -184,6 +195,17 @@ public enum IngredientParser {
             return (unit, rest)
         }
         return (nil, trimmed)
+    }
+
+    /// How many leading characters of a trimmed line are its amount and
+    /// unit — for colouring a line while it is still being typed, without
+    /// waiting for it to parse into a full ingredient. `nil` if the line
+    /// does not start with an amount at all.
+    public static func leadingAmountAndUnitLength(in line: String) -> Int? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard let (_, afterAmount) = leadingAmount(in: trimmed) else { return nil }
+        let (_, afterUnit) = leadingUnit(in: afterAmount)
+        return trimmed.count - afterUnit.count
     }
 
     private static func knownUnit(_ word: String) -> IngredientUnit? {

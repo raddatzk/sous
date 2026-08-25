@@ -86,6 +86,24 @@ public struct IngredientCatalog: Sendable {
             .map { $0 }
     }
 
+    /// The ingredients named in a piece of text that this catalog does not
+    /// know — what the editor offers to add, and what a recipe's "unknown
+    /// ingredients" review checks against.
+    public func unknownIngredients(in text: String) -> [String] {
+        var seen = Set<String>()
+        return IngredientParser.parse(text, catalog: self).compactMap { ingredient in
+            let name = ShoppingItem.displayName(for: ingredient.name)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard name.count >= 2,
+                  // A link points at a recipe, not at something to look up.
+                  RecipeLink.referencedIDs(in: ingredient.name).isEmpty,
+                  self.ingredient(for: name) == nil,
+                  seen.insert(Self.normalize(name)).inserted
+            else { return nil }
+            return name
+        }
+    }
+
     /// Lowercased and stripped of surrounding whitespace. Comparison is on
     /// this form throughout, so "Rote Bete" and "rote bete" are one thing.
     public static func normalize(_ name: String) -> String {

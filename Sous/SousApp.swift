@@ -10,6 +10,7 @@ struct SousApp: App {
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
     @State private var catalog: IngredientCatalogLibrary
+    @State private var nutrition: NutritionLibrary
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -28,23 +29,32 @@ struct SousApp: App {
         do {
             let container = try ModelContainer.sousContainer()
             let recipes = SwiftDataRecipeStore(modelContainer: container)
+            let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
+            let catalogLibrary = IngredientCatalogLibrary(
+                store: SwiftDataIngredientCatalogStore(modelContainer: container)
+            )
+            _catalog = State(initialValue: catalogLibrary)
             _library = State(initialValue: RecipeLibrary(
                 store: recipes,
                 imageStore: SwiftDataRecipeImageStore(modelContainer: container),
                 enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+                nutritionStore: nutritionStore,
+                ingredientReviewStore: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
+                catalogLibrary: catalogLibrary
             ))
             let plan = MealPlanLibrary(
                 store: SwiftDataMealPlanStore(modelContainer: container),
                 recipeStore: recipes
             )
             _mealPlan = State(initialValue: plan)
-            let catalogLibrary = IngredientCatalogLibrary(
-                store: SwiftDataIngredientCatalogStore(modelContainer: container)
-            )
-            _catalog = State(initialValue: catalogLibrary)
             _shopping = State(initialValue: ShoppingLibrary(
                 store: SwiftDataShoppingListStore(modelContainer: container),
+                recipeStore: recipes,
+                catalogLibrary: catalogLibrary
+            ))
+            _nutrition = State(initialValue: NutritionLibrary(
+                store: nutritionStore,
                 recipeStore: recipes,
                 catalogLibrary: catalogLibrary
             ))
@@ -62,6 +72,7 @@ struct SousApp: App {
                 .environment(mealPlan)
                 .environment(shopping)
                 .environment(catalog)
+                .environment(nutrition)
                 .environment(timers)
                 .environment(session)
                 .environment(selection)
@@ -130,6 +141,7 @@ struct SousApp: App {
                 .environment(mealPlan)
                 .environment(shopping)
                 .environment(catalog)
+                .environment(nutrition)
                 .environment(timers)
                 .environment(session)
                 .environment(selection)
