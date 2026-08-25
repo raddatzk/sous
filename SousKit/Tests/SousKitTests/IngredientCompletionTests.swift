@@ -54,6 +54,31 @@ struct IngredientCompletionTests {
         #expect(IngredientCompletion.suggestions(forLine: "300 g Tomate", catalog: catalog).isEmpty)
     }
 
+    @Test("An ingredient already written out elsewhere is not suggested again")
+    func noSuggestionForNameUsedOnAnotherLine() {
+        let text = "1 Tomate\n2 Toma"
+        let matches = IngredientCompletion.suggestions(forLine: "2 Toma", in: text, catalog: catalog)
+
+        #expect(!matches.contains { $0.name == "Tomate" })
+        #expect(!matches.isEmpty)
+    }
+
+    @Test("A suggestion whose name carries a comma survives being read back")
+    func acceptedCommaNameStaysKnown() throws {
+        let schmand = try #require(catalog.ingredient(for: "Sauerrahm/Schmand, mind. 20 % Fett"))
+        let completed = IngredientCompletion.completed(line: "schmand", with: schmand)
+
+        // What the editor writes into the text …
+        #expect(completed == "Sauerrahm/Schmand, mind. 20 % Fett")
+        // … has to read back as that same ingredient, not as a truncated
+        // name plus a "preparation", or it re-reports as unknown and drops
+        // out of the recipe's nutrition.
+        let parsed = IngredientParser.parseLine(completed, catalog: catalog)
+        #expect(parsed.name == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(parsed.preparation == nil)
+        #expect(catalog.unknownIngredients(in: completed).isEmpty)
+    }
+
     @Test("Taking a suggestion keeps the amount and what follows the name")
     func completingALine() {
         let tomato = CatalogIngredient(name: "Tomate", category: .vegetables)

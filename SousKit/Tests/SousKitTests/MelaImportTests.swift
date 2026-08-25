@@ -37,13 +37,14 @@ struct MelaImportTests {
         #expect(imported.images.count == 1)
     }
 
-    @Test("Nutrition is parked in the notes rather than dropped")
-    func nutritionIsKept() throws {
+    @Test("Mela's own nutrition reading is dropped, not parked in notes — Sous computes its own")
+    func nutritionIsIgnored() throws {
         let batch = try MelaImport.read(fixture("Tomatensalat.melarecipe"), named: "x.melarecipe")
         let notes = try #require(batch.recipes.first?.recipe.notes)
 
         #expect(notes.contains("Mit Basilikum."))
-        #expect(notes.contains("120 kcal"))
+        #expect(!notes.contains("120 kcal"))
+        #expect(!notes.contains("Nährwerte"))
     }
 
     @Test("Importing the same file twice gives the same recipe, not a second one")

@@ -27,6 +27,7 @@ struct CategoryManagerView: View {
                     } label: {
                         HStack {
                             Label(entry.name, systemImage: "tag")
+                                .foregroundStyle(Color.sousCategory(entry.name))
                             Spacer()
                             Text("\(entry.count)")
                                 .font(.footnote)

@@ -13,6 +13,36 @@ struct IngredientParserTests {
         #expect(ingredient.preparation == "fein gehackt")
     }
 
+    @Test("A catalog name that carries its own comma is not split at it")
+    func commaInsideACatalogName() {
+        // The BLS writes a product's qualifier into the name itself, so the
+        // comma here is not the "name, preparation" comma above. 974 of the
+        // 2661 bundled names look like this.
+        let ingredient = IngredientParser.parseLine("Sauerrahm/Schmand, mind. 20 % Fett")
+
+        #expect(ingredient.name == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(ingredient.preparation == nil)
+    }
+
+    @Test("An amount still comes off a catalog name that carries a comma")
+    func commaInsideACatalogNameWithAmount() {
+        let ingredient = IngredientParser.parseLine("150 g Sauerrahm/Schmand, mind. 20 % Fett")
+
+        #expect(ingredient.quantity == Quantity(150, .gram))
+        #expect(ingredient.name == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(ingredient.preparation == nil)
+    }
+
+    @Test("A comma the catalog does not know still separates a preparation")
+    func commaOutsideACatalogNameStillSplits() {
+        // "Zwiebel, rot" is not a catalog name, so the old reading stands
+        // and the bare "Zwiebel" is what gets looked up.
+        let ingredient = IngredientParser.parseLine("1 Zwiebel, rot")
+
+        #expect(ingredient.name == "Zwiebel")
+        #expect(ingredient.preparation == "rot")
+    }
+
     @Test("A count without a unit is a piece")
     func bareCount() {
         let ingredient = IngredientParser.parseLine("2 Zwiebeln")
@@ -173,5 +203,19 @@ extension IngredientParserTests {
 
         #expect(ingredient.preparation == "lauwarm")
         #expect(ingredient.name == RecipeLink.markdown(title: "Naan", id: id))
+    }
+}
+
+extension IngredientParserTests {
+    @Test("The amount-and-unit span is measured for highlighting while typing")
+    func highlightSpan() {
+        func prefix(_ line: String) -> String? {
+            guard let length = IngredientParser.leadingAmountAndUnitLength(in: line) else { return nil }
+            return String(line.trimmingCharacters(in: .whitespaces).prefix(length))
+        }
+        #expect(prefix("300 g Zucchini") == "300 g ")
+        #expect(prefix("2 Zwiebeln") == "2 ")
+        #expect(prefix("  1 Zehe Knoblauch") == "1 Zehe ")
+        #expect(IngredientParser.leadingAmountAndUnitLength(in: "Salz") == nil)
     }
 }

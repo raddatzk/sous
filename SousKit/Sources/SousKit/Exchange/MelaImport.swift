@@ -134,15 +134,12 @@ public enum MelaImport: RecipeImportFormat {
         return RecipeSource(kind: .web, url: url, name: url.host())
     }
 
-    /// Mela keeps nutrition as a block of text of its own. Sous has nowhere
-    /// to put it until the nutrition database lands, and dropping what the
-    /// user wrote would be worse than parking it under the notes.
+    /// Mela keeps nutrition as a block of text of its own. Sous computes its
+    /// own nutrition from the ingredients now, so Mela's reading is not kept
+    /// — parking it under notes would just leave a second, disagreeing set
+    /// of numbers sitting next to the one the recipe page actually shows.
     private static func notes(from object: [String: Any]) -> String? {
-        let notes = nonEmpty(string(object["notes"]))
-        guard let nutrition = nonEmpty(string(object["nutrition"])) else { return notes }
-        let block = "Nährwerte (aus Mela):\n\(nutrition)"
-        guard let notes else { return block }
-        return "\(notes)\n\n\(block)"
+        nonEmpty(string(object["notes"]))
     }
 
     // MARK: - Fields

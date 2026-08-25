@@ -2,6 +2,10 @@ import PhotosUI
 import SousKit
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+
 struct RecipeEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(RecipeLibrary.self) private var library
@@ -11,22 +15,38 @@ struct RecipeEditorView: View {
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
     @State private var pickedPhotos: [PhotosPickerItem] = []
-    /// Where the cursor sits in each editor, so a link lands where the writer
-    /// is looking instead of at the very end.
-    @State private var ingredientsSelection: TextSelection?
-    @State private var instructionsSelection: TextSelection?
+    /// Where the cursor sits in each editor, in characters, so a link lands
+    /// where the writer is looking instead of at the very end.
+    @State private var ingredientsCursor: Int?
+    @State private var instructionsCursor: Int?
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
     /// An unknown ingredient the cook is about to teach the app.
     @State private var teaching: CatalogIngredient?
-    @FocusState private var isEditingIngredients: Bool
+    /// Mirrors each `HighlightedTextEditor`'s own `@FocusState`, since a view
+    /// cannot hand its focus state to a child to own directly.
+    @State private var isEditingIngredients = false
+    @State private var isEditingInstructions = false
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
         case ingredients
         case instructions
         var id: String { rawValue }
+    }
+
+    /// Whether editor-related actions ("Rezept verlinken", unknown
+    /// ingredients) belong in the keyboard accessory bar instead of as
+    /// `Form` rows below the editor — true only on iPhone, where the
+    /// growing editor otherwise buries them behind a long recipe. iPad and
+    /// Mac have room to keep them below the editor as before.
+    private var isCompactPhone: Bool {
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .phone
+        #else
+        false
+        #endif
     }
 
     private let onSave: (Recipe) async -> Void
@@ -211,13 +231,15 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var ingredientSection: some View {
         Section {
-            TextEditor(text: $draft.ingredientsText, selection: $ingredientsSelection)
-                .frame(minHeight: 180)
-                .focused($isEditingIngredients)
-            Button("Rezept verlinken", systemImage: "link") {
-                linkTarget = .ingredients
+            HighlightedTextEditor(
+                text: $draft.ingredientsText,
+                cursorOffset: $ingredientsCursor,
+                isFocused: $isEditingIngredients,
+                restyle: RecipeTextEditorStyle.ingredients
+            )
+            if !isCompactPhone {
+                ingredientLinkAndUnknowns
             }
-            unknownIngredients
         } header: {
             sectionHeader("Zutaten")
         } footer: {
@@ -225,54 +247,168 @@ struct RecipeEditorView: View {
         }
     }
 
-    /// Suggestions for the ingredient being typed, if any.
+    /// "Rezept verlinken" and the unknown-ingredient chips for the
+    /// ingredients editor — ordinary `Form` rows below the editor on
+    /// iPad/Mac, or the editor's keyboard accessory bar on iPhone. See
+    /// `isCompactPhone`.
+    @ViewBuilder
+    private var ingredientLinkAndUnknowns: some View {
+        Button("Rezept verlinken", systemImage: "link") {
+            linkTarget = .ingredients
+        }
+        unknownIngredients
+    }
+
+    /// The ingredients editor's iPhone keyboard bar: completions for the
+    /// line being typed take priority, since that's what the cook needs
+    /// *right now*; once nothing is being completed it falls back to
+    /// linking and the unknown-ingredient chips.
+    @ViewBuilder
+    private var ingredientAccessoryBar: some View {
+        if !completions.isEmpty {
+            completionChips(compact: true)
+        } else {
+            ingredientBarFallback
+        }
+    }
+
+    /// What the ingredients keyboard bar shows while nothing is being
+    /// completed — the same two actions as the iPad/Mac rows, but laid out
+    /// as one scrolling line, since the keyboard bar is a single row tall
+    /// and a stacked "Noch unbekannt" heading would be cut off.
+    private var ingredientBarFallback: some View {
+        let unknown = catalog.unknownIngredients(in: draft.ingredientsText)
+        return ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                Button("Rezept verlinken", systemImage: "link") {
+                    linkTarget = .ingredients
+                }
+                .font(.callout)
+                ForEach(unknown, id: \.self) { name in
+                    Button {
+                        teaching = CatalogIngredient(name: name, category: .other)
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(name)
+                                .lineLimit(1)
+                            Image(systemName: "plus.circle.fill")
+                        }
+                        .font(.callout)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                    }
+                    .buttonStyle(.plain)
+                    .background(Color.sousField, in: .capsule)
+                }
+            }
+            // Keeps the capsules' own edges off the scroll view's bounds,
+            // so the first and last chip are not shaved flat.
+            .padding(.horizontal, 2)
+        }
+        .scrollIndicators(.hidden)
+    }
+
+    /// The bar docked above the keyboard, drawn as a bottom safe-area inset
+    /// so SwiftUI lifts it clear of the keyboard for us.
     ///
-    /// SwiftUI's `textInputSuggestions` is macOS-only and `TextEditor` has no
-    /// inline completion, so the bar is drawn by hand from the cursor's line.
+    /// `ToolbarItemGroup(placement: .keyboard)` would be the native way to
+    /// say this, but it only attaches to SwiftUI's own `TextField`/
+    /// `TextEditor`; the ingredients and steps editors are a hand-wrapped
+    /// `UITextView` (`HighlightedTextEditor`), which SwiftUI does not know
+    /// to hang a keyboard toolbar on — nothing appears. Hence this inset,
+    /// keyed off the editors' mirrored focus instead.
+    ///
+    /// On iPhone it carries the actions that used to be `Form` rows below
+    /// each editor: those editors now grow to fit every line, so a row
+    /// underneath would sit behind a whole recipe's worth of scrolling.
+    /// iPad and Mac keep those rows and only get the completions.
     @ViewBuilder
     private var completionBar: some View {
-        let matches = completions
-        if !matches.isEmpty {
-            ScrollView(.horizontal) {
-                HStack(spacing: 8) {
-                    ForEach(matches) { ingredient in
-                        Button {
-                            complete(with: ingredient)
-                        } label: {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(ingredient.name)
-                                    .font(.callout)
+        if isCompactPhone {
+            if isEditingIngredients {
+                keyboardBarChrome { ingredientAccessoryBar }
+            } else if isEditingInstructions {
+                keyboardBarChrome { instructionLinkButton }
+            }
+        } else if !completions.isEmpty {
+            keyboardBarChrome { completionChips(compact: false) }
+        }
+    }
+
+    /// One opaque strip, hairline-separated from the form behind it. Opaque
+    /// rather than `.bar`: sitting right on top of the keyboard, a material
+    /// picks up the keyboard's own grey and washes out the low-contrast
+    /// `sousField` chips drawn on it.
+    private func keyboardBarChrome(@ViewBuilder _ content: () -> some View) -> some View {
+        content()
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.sousBar)
+            .overlay(alignment: .top) { Divider() }
+    }
+
+    /// `compact` drops the category subtitle: the keyboard bar is one row
+    /// tall, and a second line is what got the chips clipped off at the
+    /// bottom. The width cap keeps a long catalog name ("Sauerrahm/Schmand,
+    /// mind. 20 % Fett") from stretching one chip past the screen edge —
+    /// the row scrolls instead.
+    private func completionChips(compact: Bool) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(completions) { ingredient in
+                    Button {
+                        complete(with: ingredient)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(ingredient.name)
+                                .font(.callout)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            if !compact {
                                 Text(ingredient.category.title)
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
                         }
-                        .buttonStyle(.plain)
-                        .background(Color.sousField, in: .capsule)
+                        .frame(maxWidth: 200, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
                     }
+                    .buttonStyle(.plain)
+                    .background(Color.sousField, in: .capsule)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
             }
-            .scrollIndicators(.hidden)
-            .background(.bar)
+            .padding(.horizontal, 2)
         }
+        .scrollIndicators(.hidden)
     }
 
     private var completions: [CatalogIngredient] {
         guard isEditingIngredients, let range = currentIngredientLine else { return [] }
         return IngredientCompletion.suggestions(
             forLine: String(draft.ingredientsText[range]),
+            in: draft.ingredientsText,
             catalog: catalog.catalog
         )
     }
 
     /// The line the cursor is in, which is what gets completed.
+    ///
+    /// Deliberately does not require the editor to still be focused:
+    /// tapping a chip in the keyboard bar can hand first-responder status
+    /// over for a moment, and the completion must still land on the line
+    /// the cursor was left in. `completions` does the focus check, so
+    /// nothing is offered once the editor is genuinely done being edited.
     private var currentIngredientLine: Range<String.Index>? {
-        guard case .selection(let selected)? = ingredientsSelection?.indices else { return nil }
-        return IngredientCompletion.lineRange(in: draft.ingredientsText, at: selected.lowerBound)
+        guard let cursor = ingredientsCursor,
+              let index = draft.ingredientsText.index(
+                  draft.ingredientsText.startIndex, offsetBy: cursor, limitedBy: draft.ingredientsText.endIndex
+              )
+        else { return nil }
+        return IngredientCompletion.lineRange(in: draft.ingredientsText, at: index)
     }
 
     private func complete(with ingredient: CatalogIngredient) {
@@ -286,12 +422,7 @@ struct RecipeEditorView: View {
         ) + completed.count
 
         draft.ingredientsText.replaceSubrange(range, with: completed)
-        // Indices did not survive the edit; put the cursor back by offset.
-        let cursor = draft.ingredientsText.index(
-            draft.ingredientsText.startIndex,
-            offsetBy: min(offset, draft.ingredientsText.count)
-        )
-        ingredientsSelection = TextSelection(insertionPoint: cursor)
+        ingredientsCursor = min(offset, draft.ingredientsText.count)
     }
 
     /// Ingredients the catalog does not know yet, offered for adding.
@@ -335,15 +466,28 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var stepSection: some View {
         Section {
-            TextEditor(text: $draft.instructionsText, selection: $instructionsSelection)
-                .frame(minHeight: 220)
-            Button("Rezept verlinken", systemImage: "link") {
-                linkTarget = .instructions
+            HighlightedTextEditor(
+                text: $draft.instructionsText,
+                cursorOffset: $instructionsCursor,
+                isFocused: $isEditingInstructions,
+                restyle: RecipeTextEditorStyle.instructions
+            )
+            if !isCompactPhone {
+                instructionLinkButton
             }
         } header: {
             sectionHeader("Zubereitung")
         } footer: {
             Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
+        }
+    }
+
+    /// "Rezept verlinken" for the instructions editor — an ordinary `Form`
+    /// row below the editor on iPad/Mac, or its keyboard accessory bar on
+    /// iPhone. See `isCompactPhone`.
+    private var instructionLinkButton: some View {
+        Button("Rezept verlinken", systemImage: "link") {
+            linkTarget = .instructions
         }
     }
 
@@ -408,31 +552,30 @@ struct RecipeEditorView: View {
         dismiss()
     }
 
-    /// Inserts the link where the cursor is, replacing whatever is selected.
+    /// Inserts the link at the cursor.
     private func insert(link recipe: Recipe, at target: LinkTarget) {
         let markdown = RecipeLink.markdown(title: recipe.title, id: recipe.id)
         switch target {
         case .ingredients:
-            insert(markdown, into: &draft.ingredientsText, at: &ingredientsSelection)
+            insert(markdown, into: &draft.ingredientsText, at: &ingredientsCursor)
         case .instructions:
-            insert(markdown, into: &draft.instructionsText, at: &instructionsSelection)
+            insert(markdown, into: &draft.instructionsText, at: &instructionsCursor)
         }
     }
 
-    private func insert(_ snippet: String, into text: inout String, at selection: inout TextSelection?) {
-        guard case .selection(let range)? = selection?.indices else {
+    private func insert(_ snippet: String, into text: inout String, at cursor: inout Int?) {
+        guard let cursorOffset = cursor,
+              let index = text.index(text.startIndex, offsetBy: cursorOffset, limitedBy: text.endIndex)
+        else {
             // Nobody has put a cursor in the field yet, so the end is the only
             // sensible place — on its own line, since one line is one entry.
             text = text.isEmpty ? snippet : text + (text.hasSuffix("\n") ? "" : "\n") + snippet
-            selection = nil
+            cursor = nil
             return
         }
 
-        let offset = text.distance(from: text.startIndex, to: range.lowerBound) + snippet.count
-        text.replaceSubrange(range, with: snippet)
-        // Indices did not survive the edit; rebuild the cursor from the offset.
-        let cursor = text.index(text.startIndex, offsetBy: min(offset, text.count))
-        selection = TextSelection(insertionPoint: cursor)
+        text.insert(contentsOf: snippet, at: index)
+        cursor = min(cursorOffset + snippet.count, text.count)
     }
 
     private func save() {

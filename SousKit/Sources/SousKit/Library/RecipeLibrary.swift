@@ -33,6 +33,17 @@ public final class RecipeLibrary {
     private let imageStore: any RecipeImageStore
     private let enrichmentStore: any RecipeEnrichmentStore
     private let amountReviewStore: any RecipeAmountReviewStore
+    /// `nil` in tests that have no reason to care about the nutrition cache
+    /// — only `erase(_:)` ever touches it, to clean up after a deleted
+    /// recipe the way it already does for the enrichment and review caches.
+    private let nutritionStore: (any RecipeNutritionStore)?
+    /// `nil` where nothing cares whether a recipe's ingredients have been
+    /// checked against the catalog — `needsIngredientReview` then always
+    /// reads as "not reviewed" rather than tracking a dismissal.
+    private let ingredientReviewStore: (any RecipeIngredientReviewStore)?
+    /// `nil` falls back to the bundled catalog — matches how
+    /// `ShoppingLibrary` and `NutritionLibrary` treat the same dependency.
+    private let catalogLibrary: IngredientCatalogLibrary?
 
     public private(set) var recipes: [Recipe] = []
     public private(set) var categories: [String] = []
@@ -69,12 +80,22 @@ public final class RecipeLibrary {
         store: any RecipeStore,
         imageStore: any RecipeImageStore,
         enrichmentStore: any RecipeEnrichmentStore,
-        amountReviewStore: any RecipeAmountReviewStore
+        amountReviewStore: any RecipeAmountReviewStore,
+        nutritionStore: (any RecipeNutritionStore)? = nil,
+        ingredientReviewStore: (any RecipeIngredientReviewStore)? = nil,
+        catalogLibrary: IngredientCatalogLibrary? = nil
     ) {
         self.store = store
         self.imageStore = imageStore
         self.enrichmentStore = enrichmentStore
         self.amountReviewStore = amountReviewStore
+        self.nutritionStore = nutritionStore
+        self.ingredientReviewStore = ingredientReviewStore
+        self.catalogLibrary = catalogLibrary
+    }
+
+    private var catalog: IngredientCatalog {
+        catalogLibrary?.catalog ?? .bundled
     }
 
     // MARK: - Images
@@ -310,6 +331,34 @@ public final class RecipeLibrary {
         return updated
     }
 
+    // MARK: - Ingredient review
+
+    /// The ingredients in `recipe` the catalog does not know — the same
+    /// question `RecipeEditorView`'s "Noch unbekannt" row asks while typing,
+    /// asked again here so a recipe that skipped the editor (a bulk import)
+    /// or was written before an ingredient existed in the catalog still gets
+    /// noticed.
+    public func unknownIngredients(in recipe: Recipe) -> [String] {
+        catalog.unknownIngredients(in: recipe.ingredientsText)
+    }
+
+    /// Whether `recipe` has unrecognized ingredients nobody has answered yet
+    /// for its current text — the recipe list's marker and the detail view's
+    /// banner both ask this.
+    public func needsIngredientReview(_ recipe: Recipe) async -> Bool {
+        guard !unknownIngredients(in: recipe).isEmpty else { return false }
+        let reviewed = try? await ingredientReviewStore?.reviewedHash(for: recipe.id)
+        return reviewed != RecipeContentHash.hash(for: recipe)
+    }
+
+    /// Marks `recipe` reviewed against its current text — called whether the
+    /// cook added every unknown ingredient to the catalog or left the sheet
+    /// without changing anything; either way, nothing about this exact text
+    /// should be asked about again.
+    public func markIngredientsReviewed(_ recipe: Recipe) async {
+        try? await ingredientReviewStore?.markReviewed(recipe)
+    }
+
     public func delete(_ recipe: Recipe) async {
         do {
             try await store.delete(id: recipe.id)
@@ -455,6 +504,8 @@ public final class RecipeLibrary {
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
             try? await enrichmentStore.delete(recipeID: recipe.id)
             try? await amountReviewStore.delete(recipeID: recipe.id)
+            try? await nutritionStore?.delete(recipeID: recipe.id)
+            try? await ingredientReviewStore?.delete(recipeID: recipe.id)
             try await store.erase(id: recipe.id)
         } catch {
             report(error)

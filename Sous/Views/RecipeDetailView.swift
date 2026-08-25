@@ -6,6 +6,7 @@ struct RecipeDetailView: View {
     @Environment(ShoppingLibrary.self) private var shopping
     @Environment(CookSession.self) private var session
     @Environment(MealPlanLibrary.self) private var plan
+    @Environment(NutritionLibrary.self) private var nutritionLibrary
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
@@ -52,10 +53,14 @@ struct RecipeDetailView: View {
     /// again should still find them) but stops nagging about them.
     @State private var needsAmountReview = false
     @State private var isReviewingAmounts = false
+    @State private var nutrition: RecipeNutrition?
+    @State private var needsIngredientReview = false
+    @State private var isReviewingIngredients = false
 
     private let formatter = QuantityFormatter(locale: .sous)
 
     private var servings: Int { servingsOverride ?? recipe.servings }
+    private var unknownIngredientCount: Int { library.unknownIngredients(in: recipe).count }
 
     var body: some View {
         // The bar's own edge is what the title has to pass, and only a
@@ -95,6 +100,7 @@ struct RecipeDetailView: View {
                             steps
                         }
                         notes
+                        nutritionDetail
                         sourceFooter
                     }
                     .padding(24)
@@ -146,6 +152,7 @@ struct RecipeDetailView: View {
             didAddToShoppingList = false
             amountReviewResolution = nil
             needsAmountReview = false
+            needsIngredientReview = false
         }
         // A cache read, not a model call — whatever the last save's
         // background pass found, if anything. Fires again whenever the
@@ -154,6 +161,14 @@ struct RecipeDetailView: View {
             let (resolution, _) = await library.amountSuggestions(for: recipe)
             amountReviewResolution = resolution
             needsAmountReview = await library.needsAmountReview(recipe)
+        }
+        .task(id: recipe.id) {
+            needsIngredientReview = await library.needsIngredientReview(recipe)
+        }
+        // Keyed on servings too: nutrition is per portion, so scaling the
+        // recipe has to recompute it, not just re-scale what is on screen.
+        .task(id: "\(recipe.id)-\(servings)") {
+            nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
         }
         // The background pass `save(_:)` schedules can still be running
         // when this screen is already open — most often right after
@@ -195,6 +210,14 @@ struct RecipeDetailView: View {
                         self.amountReviewResolution = resolution
                         needsAmountReview = await library.needsAmountReview(updated)
                     }
+                }
+            }
+        }
+        .sheet(isPresented: $isReviewingIngredients) {
+            IngredientReviewSheet(ingredientsText: recipe.ingredientsText) {
+                Task {
+                    await library.markIngredientsReviewed(recipe)
+                    needsIngredientReview = await library.needsIngredientReview(recipe)
                 }
             }
         }
@@ -321,16 +344,33 @@ struct RecipeDetailView: View {
     private var metaRow: some View {
         VStack(alignment: .leading, spacing: 6) {
             if !recipe.categories.isEmpty {
-                Label(recipe.categories.joined(separator: ", "), systemImage: "tag")
-                    .metaLabel()
+                // Each category keeps its own colour, the same one
+                // `RecipeRow` gives it in the list — a reader who scanned
+                // the list for it recognizes the recipe by colour again
+                // here, before reading the word.
+                FlowLayout(spacing: 5, lineSpacing: 5) {
+                    ForEach(recipe.categories, id: \.self) { category in
+                        Text(category)
+                            .font(.footnote)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.sousCategory(category).opacity(SousStyle.chipTint), in: .capsule)
+                            .foregroundStyle(Color.sousCategory(category))
+                    }
+                }
             }
             // Not repeated here as a plain "recipe.servings" label: the
             // action row below is the one place that count is shown, since
             // it can differ from what the recipe is written for and a
             // second, unscaled number beside it would just read as a
             // mismatch.
-            if !timeItems.isEmpty {
+            if !timeItems.isEmpty || nutrition != nil {
                 HStack(spacing: 16) {
+                    // Leads the row: the rating is the one fact here worth
+                    // seeing before anything else, times included.
+                    if let nutrition {
+                        NRFBadge(level: nutrition.nrfLevel)
+                    }
                     ForEach(timeItems, id: \.label) { item in
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.value).font(.footnote.weight(.medium))
@@ -418,7 +458,35 @@ struct RecipeDetailView: View {
             if needsAmountReview, let amountReviewResolution {
                 amountReviewBanner(amountReviewResolution.allSuggestions.count, isWide: isWide)
             }
+            if needsIngredientReview {
+                ingredientReviewBanner(unknownIngredientCount, isWide: isWide)
+            }
         }
+    }
+
+    /// Offers to add whatever the catalog does not recognize yet — the same
+    /// check `RecipeEditorView`'s "Noch unbekannt" row runs while typing,
+    /// asked again here so a recipe that skipped the editor (a bulk import)
+    /// still gets noticed. Stays up until answered, same as the amount
+    /// review below it: opening the sheet and tapping "Fertig" without
+    /// adding anything still settles it for the text as it stands.
+    @ViewBuilder
+    private func ingredientReviewBanner(_ count: Int, isWide: Bool) -> some View {
+        HStack(spacing: 12) {
+            Label(
+                count == 1 ? "1 Zutat unbekannt" : "\(count) Zutaten unbekannt",
+                systemImage: "questionmark.circle"
+            )
+            .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Prüfen") {
+                isReviewingIngredients = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding(14)
+        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     /// Offers to check what the resolver could not write in on its own —
@@ -630,9 +698,84 @@ struct RecipeDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Notizen")
                     .font(SousStyle.sectionHeading)
-                Text(notes)
+                Text(markdown(notes))
             }
         }
+    }
+
+    /// The full breakdown behind the rating up top — kept at the very end of
+    /// the page rather than beside the rating itself: a cook glancing at the
+    /// recipe wants the letter grade, not a wall of numbers, and the numbers
+    /// are still one scroll away for whoever wants them.
+    @ViewBuilder
+    private var nutritionDetail: some View {
+        if let nutrition {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Nährwerte")
+                    .font(SousStyle.sectionHeading)
+                VStack(alignment: .leading, spacing: 5) {
+                    nutrientRow("Energie", "\(Int(nutrition.perPortion.kcal.rounded())) kcal", emphasized: true)
+                    nutrientRow("Fett", numberText(nutrition.perPortion.fatG, unit: "g"))
+                    nutrientRow(
+                        "davon gesättigte Fettsäuren", numberText(nutrition.perPortion.saturatedFatG, unit: "g"),
+                        indented: true
+                    )
+                    nutrientRow("Kohlenhydrate", numberText(nutrition.perPortion.carbsG, unit: "g"))
+                    nutrientRow("davon Zucker", numberText(nutrition.perPortion.sugarG, unit: "g"), indented: true)
+                    nutrientRow("Ballaststoffe", numberText(nutrition.perPortion.fiberG, unit: "g"))
+                    nutrientRow("Eiweiß", numberText(nutrition.perPortion.proteinG, unit: "g"))
+                    // BLS reports sodium; the standard EU label shows salt.
+                    nutrientRow("Salz", numberText(nutrition.perPortion.sodiumMg * 2.5 / 1000, unit: "g"))
+                }
+                let micronutrients = micronutrientRows(nutrition.perPortion)
+                if !micronutrients.isEmpty {
+                    Text("Vitamine & Mineralstoffe")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.top, 4)
+                    VStack(alignment: .leading, spacing: 5) {
+                        ForEach(micronutrients, id: \.label) { row in
+                            nutrientRow(row.label, row.value)
+                        }
+                    }
+                }
+                Text("Pro Portion, geschätzt aus den Zutaten.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.top, 2)
+            }
+        }
+    }
+
+    private func nutrientRow(_ label: String, _ value: String, indented: Bool = false, emphasized: Bool = false) -> some View {
+        HStack {
+            Text(label)
+                .padding(.leading, indented ? 14 : 0)
+                .foregroundStyle(indented ? .secondary : .primary)
+            Spacer()
+            Text(value)
+                .fontWeight(emphasized ? .semibold : .regular)
+        }
+        .font(.subheadline)
+    }
+
+    /// Only nutrients BLS actually had data for - a bundled zero and "wasn't
+    /// measured" are the same value here, and showing "Vitamin D: 0 µg" next
+    /// to real numbers would claim a precision the data doesn't have.
+    private func micronutrientRows(_ info: NutritionInfo) -> [(label: String, value: String)] {
+        var rows: [(String, String)] = []
+        if info.vitaminAMcg > 0 { rows.append(("Vitamin A", numberText(info.vitaminAMcg, unit: "µg"))) }
+        if info.vitaminCMg > 0 { rows.append(("Vitamin C", numberText(info.vitaminCMg, unit: "mg"))) }
+        if info.vitaminDMcg > 0 { rows.append(("Vitamin D", numberText(info.vitaminDMcg, unit: "µg"))) }
+        if info.vitaminEMg > 0 { rows.append(("Vitamin E", numberText(info.vitaminEMg, unit: "mg"))) }
+        if info.calciumMg > 0 { rows.append(("Calcium", numberText(info.calciumMg, unit: "mg"))) }
+        if info.ironMg > 0 { rows.append(("Eisen", numberText(info.ironMg, unit: "mg"))) }
+        if info.magnesiumMg > 0 { rows.append(("Magnesium", numberText(info.magnesiumMg, unit: "mg"))) }
+        if info.potassiumMg > 0 { rows.append(("Kalium", numberText(info.potassiumMg, unit: "mg"))) }
+        return rows
+    }
+
+    private func numberText(_ value: Double, unit: String) -> String {
+        "\(value.formatted(.number.locale(.sous).precision(.fractionLength(0...1)))) \(unit)"
     }
 
     @ViewBuilder
