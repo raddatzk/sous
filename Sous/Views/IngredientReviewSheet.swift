@@ -17,8 +17,6 @@ struct IngredientReviewSheet: View {
     let ingredientsText: String
     let onFinish: () -> Void
 
-    @State private var teaching: CatalogIngredient?
-
     private var unknown: [String] { catalog.unknownIngredients(in: ingredientsText) }
 
     var body: some View {
@@ -28,10 +26,10 @@ struct IngredientReviewSheet: View {
                     ContentUnavailableView("Alle Zutaten bekannt", systemImage: "checkmark.circle")
                 } else {
                     List(unknown, id: \.self) { name in
-                        Button {
-                            teaching = CatalogIngredient(name: name, category: .other)
-                        } label: {
+                        UnknownIngredientButton(name: name) {
                             Label(name, systemImage: "plus.circle")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(.rect)
                         }
                     }
                 }
@@ -47,9 +45,6 @@ struct IngredientReviewSheet: View {
                         dismiss()
                     }
                 }
-            }
-            .sheet(item: $teaching) { ingredient in
-                IngredientFormView(ingredient: ingredient)
             }
         }
         .sousSheetSizing(.form)

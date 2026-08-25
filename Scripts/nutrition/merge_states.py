@@ -215,6 +215,9 @@ def build_nutrition_json(final_groups: dict[str, dict]) -> list[dict]:
                 "perHundredGrams": per_hundred,
                 "unitWeightsGrams": {},
                 "densityGramsPerMl": None,
+                # Written out rather than left to the app's decode default, so
+                # the file says whose data it is once other sources join it.
+                "source": "BLS 4.0",
             }
         )
     return out

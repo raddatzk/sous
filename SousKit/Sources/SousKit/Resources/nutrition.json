@@ -777,7 +777,9 @@
     "potassiumMg": 109
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 150
+  },
   "densityGramsPerMl": null
  },
  {
@@ -1630,7 +1632,9 @@
     "potassiumMg": 234.4
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 300
+  },
   "densityGramsPerMl": null
  },
  {
@@ -2292,7 +2296,9 @@
     "potassiumMg": 334
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 120
+  },
   "densityGramsPerMl": null
  },
  {
@@ -6920,7 +6926,9 @@
     "potassiumMg": 330
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 20
+  },
   "densityGramsPerMl": null
  },
  {
@@ -9811,7 +9819,9 @@
     "potassiumMg": 150.75
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 55
+  },
   "densityGramsPerMl": null
  },
  {
@@ -14660,7 +14670,9 @@
     "potassiumMg": 289.5
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 15
+  },
   "densityGramsPerMl": null
  },
  {
@@ -19862,7 +19874,9 @@
     "potassiumMg": 205
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 400
+  },
   "densityGramsPerMl": null
  },
  {
@@ -30635,7 +30649,9 @@
     "potassiumMg": 402.825
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 80
+  },
   "densityGramsPerMl": null
  },
  {
@@ -31038,7 +31054,9 @@
     "potassiumMg": 482.7333
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 120
+  },
   "densityGramsPerMl": null
  },
  {
@@ -36443,7 +36461,9 @@
     "potassiumMg": 115
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 65
+  },
   "densityGramsPerMl": null
  },
  {
@@ -42773,7 +42793,9 @@
     "potassiumMg": 156
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 180
+  },
   "densityGramsPerMl": null
  },
  {
@@ -43262,7 +43284,9 @@
     "potassiumMg": 206.2
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 160
+  },
   "densityGramsPerMl": null
  },
  {
@@ -59067,7 +59091,9 @@
     "potassiumMg": 262.6667
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 25
+  },
   "densityGramsPerMl": null
  },
  {
@@ -68730,7 +68756,9 @@
     "potassiumMg": 207.6
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 110
+  },
   "densityGramsPerMl": null
  },
  {
@@ -72125,7 +72153,9 @@
     "potassiumMg": 277.2
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 90
+  },
   "densityGramsPerMl": null
  },
  {
@@ -77803,7 +77833,9 @@
     "potassiumMg": 128.89
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 100
+  },
   "densityGramsPerMl": null
  },
  {
@@ -77871,7 +77903,9 @@
     "potassiumMg": 363.782
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 250
+  },
   "densityGramsPerMl": null
  },
  {
@@ -78357,7 +78391,9 @@
     "potassiumMg": 207.6
    }
   },
-  "unitWeightsGrams": {},
+  "unitWeightsGrams": {
+   "Stk.": 110
+  },
   "densityGramsPerMl": null
  }
 ]

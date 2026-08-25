@@ -84,6 +84,7 @@ struct ShareRootView: View {
                 }
                 .environment(libraries.recipes)
                 .environment(libraries.catalog)
+                .environment(libraries.nutrition)
             }
             // Closing the editor — saved or not — ends the share. An
             // abandoned draft takes its downloaded pictures with it.
@@ -159,8 +160,13 @@ struct ShareRootView: View {
 final class Libraries {
     let recipes: RecipeLibrary
     let catalog: IngredientCatalogLibrary
+    /// Not for computing anything here — the editor's ingredient sheet shows
+    /// and takes nutrition, and a shared recipe is checked in that same
+    /// editor, so the extension has to be able to answer it too.
+    let nutrition: NutritionLibrary
 
     init(container: ModelContainer) {
+        let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
         recipes = RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
@@ -168,7 +174,15 @@ final class Libraries {
             amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
         )
         catalog = IngredientCatalogLibrary(
-            store: SwiftDataIngredientCatalogStore(modelContainer: container)
+            store: SwiftDataIngredientCatalogStore(modelContainer: container),
+            aliasStore: SwiftDataIngredientAliasOverrideStore(modelContainer: container),
+            nutritionCache: nutritionStore
+        )
+        nutrition = NutritionLibrary(
+            store: nutritionStore,
+            recipeStore: SwiftDataRecipeStore(modelContainer: container),
+            catalogLibrary: catalog,
+            nutritionStore: SwiftDataCatalogNutritionStore(modelContainer: container)
         )
     }
 }

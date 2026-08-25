@@ -10,14 +10,23 @@ public struct IngredientCatalog: Sendable {
     private var byKey: [String: CatalogIngredient]
     public private(set) var ingredients: [CatalogIngredient]
 
+    /// Both the index and the list are deduplicated by key, first occurrence
+    /// winning — the caller puts the entries that should win in front (the
+    /// cook's own before the bundled ones), and a name defined twice has to
+    /// resolve to one entry *and* show up once in a list of them.
     public init(ingredients: [CatalogIngredient]) {
-        self.ingredients = ingredients.sorted { $0.name < $1.name }
         byKey = [:]
+        var representatives: [CatalogIngredient] = []
+        var takenKeys = Set<String>()
         for ingredient in ingredients {
+            if takenKeys.insert(ingredient.key).inserted {
+                representatives.append(ingredient)
+            }
             for key in ingredient.keys where byKey[key] == nil {
                 byKey[key] = ingredient
             }
         }
+        self.ingredients = representatives.sorted { $0.name < $1.name }
     }
 
     /// The catalog shipped with the app.

@@ -714,18 +714,21 @@ struct RecipeDetailView: View {
                 Text("Nährwerte")
                     .font(SousStyle.sectionHeading)
                 VStack(alignment: .leading, spacing: 5) {
-                    nutrientRow("Energie", "\(Int(nutrition.perPortion.kcal.rounded())) kcal", emphasized: true)
-                    nutrientRow("Fett", numberText(nutrition.perPortion.fatG, unit: "g"))
                     nutrientRow(
-                        "davon gesättigte Fettsäuren", numberText(nutrition.perPortion.saturatedFatG, unit: "g"),
+                        "Energie", Self.nutrients.string(kilocalories: nutrition.perPortion.kcal), emphasized: true
+                    )
+                    nutrientRow("Fett", mass(nutrition.perPortion.fatG))
+                    nutrientRow(
+                        "davon gesättigte Fettsäuren", mass(nutrition.perPortion.saturatedFatG),
                         indented: true
                     )
-                    nutrientRow("Kohlenhydrate", numberText(nutrition.perPortion.carbsG, unit: "g"))
-                    nutrientRow("davon Zucker", numberText(nutrition.perPortion.sugarG, unit: "g"), indented: true)
-                    nutrientRow("Ballaststoffe", numberText(nutrition.perPortion.fiberG, unit: "g"))
-                    nutrientRow("Eiweiß", numberText(nutrition.perPortion.proteinG, unit: "g"))
-                    // BLS reports sodium; the standard EU label shows salt.
-                    nutrientRow("Salz", numberText(nutrition.perPortion.sodiumMg * 2.5 / 1000, unit: "g"))
+                    nutrientRow("Kohlenhydrate", mass(nutrition.perPortion.carbsG))
+                    nutrientRow("davon Zucker", mass(nutrition.perPortion.sugarG), indented: true)
+                    nutrientRow("Ballaststoffe", mass(nutrition.perPortion.fiberG))
+                    nutrientRow("Eiweiß", mass(nutrition.perPortion.proteinG))
+                    // BLS reports sodium; the standard EU label shows salt, in
+                    // grams — dropped to milligrams where a portion has traces.
+                    nutrientRow("Salz", mass(nutrition.perPortion.sodiumMg * 2.5 / 1000))
                 }
                 let micronutrients = micronutrientRows(nutrition.perPortion)
                 if !micronutrients.isEmpty {
@@ -762,20 +765,25 @@ struct RecipeDetailView: View {
     /// measured" are the same value here, and showing "Vitamin D: 0 µg" next
     /// to real numbers would claim a precision the data doesn't have.
     private func micronutrientRows(_ info: NutritionInfo) -> [(label: String, value: String)] {
-        var rows: [(String, String)] = []
-        if info.vitaminAMcg > 0 { rows.append(("Vitamin A", numberText(info.vitaminAMcg, unit: "µg"))) }
-        if info.vitaminCMg > 0 { rows.append(("Vitamin C", numberText(info.vitaminCMg, unit: "mg"))) }
-        if info.vitaminDMcg > 0 { rows.append(("Vitamin D", numberText(info.vitaminDMcg, unit: "µg"))) }
-        if info.vitaminEMg > 0 { rows.append(("Vitamin E", numberText(info.vitaminEMg, unit: "mg"))) }
-        if info.calciumMg > 0 { rows.append(("Calcium", numberText(info.calciumMg, unit: "mg"))) }
-        if info.ironMg > 0 { rows.append(("Eisen", numberText(info.ironMg, unit: "mg"))) }
-        if info.magnesiumMg > 0 { rows.append(("Magnesium", numberText(info.magnesiumMg, unit: "mg"))) }
-        if info.potassiumMg > 0 { rows.append(("Kalium", numberText(info.potassiumMg, unit: "mg"))) }
-        return rows
+        let candidates: [(String, Double, NutrientFormatter.MassUnit)] = [
+            ("Vitamin A", info.vitaminAMcg, .micrograms),
+            ("Vitamin C", info.vitaminCMg, .milligrams),
+            ("Vitamin D", info.vitaminDMcg, .micrograms),
+            ("Vitamin E", info.vitaminEMg, .milligrams),
+            ("Calcium", info.calciumMg, .milligrams),
+            ("Eisen", info.ironMg, .milligrams),
+            ("Magnesium", info.magnesiumMg, .milligrams),
+            ("Kalium", info.potassiumMg, .milligrams),
+        ]
+        return candidates
+            .filter { $0.1 > 0 }
+            .map { (label: $0.0, value: Self.nutrients.string($0.1, in: $0.2)) }
     }
 
-    private func numberText(_ value: Double, unit: String) -> String {
-        "\(value.formatted(.number.locale(.sous).precision(.fractionLength(0...1)))) \(unit)"
+    private static let nutrients = NutrientFormatter(locale: .sous)
+
+    private func mass(_ grams: Double) -> String {
+        Self.nutrients.string(grams, in: .grams)
     }
 
     @ViewBuilder

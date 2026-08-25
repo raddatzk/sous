@@ -20,6 +20,18 @@ struct IngredientCatalogTests {
         #expect(catalog.canonicalName(for: "Eier") == "Ei")
     }
 
+    @Test("A name defined twice appears once, and the first one wins")
+    func duplicateNamesAreFolded() {
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Olive", aliases: ["Oliven"], category: .canned),
+            CatalogIngredient(name: "olive", aliases: ["Olivchen"], category: .vegetables),
+        ])
+
+        // One entry, not two rows reading "Olive" in the catalog browser.
+        #expect(catalog.ingredients.count == 1)
+        #expect(catalog.category(for: "Olive") == .canned)
+    }
+
     @Test("A regular plural is understood even when not listed")
     func pluralFallback() {
         // "Pastinaken" is listed; "Artischocken" resolves through the stem.

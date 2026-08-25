@@ -6,6 +6,22 @@ public enum IngredientState: String, Codable, Hashable, Sendable {
     case unspecified
     case raw
     case cooked
+
+    /// How a nutrition table's variants read when there is more than one of
+    /// them and a person has to pick. "Unspecified" is only ever shown on its
+    /// own, where naming the state at all would be noise — hence the plain
+    /// "je 100 g" rather than something like "unbestimmt".
+    public var title: String {
+        switch self {
+        case .unspecified: "Allgemein"
+        case .raw: "Roh"
+        case .cooked: "Gegart"
+        }
+    }
+
+    /// Raw before cooked before unspecified — the order BLS's own merge step
+    /// writes them in, so a picker lists them the way the data reads.
+    public static let displayOrder: [IngredientState] = [.raw, .cooked, .unspecified]
 }
 
 /// One line of a recipe's ingredient list.

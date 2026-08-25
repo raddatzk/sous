@@ -13,4 +13,11 @@ public protocol RecipeNutritionStore: Sendable {
     /// stamped against `recipe`'s and its links' current content.
     func save(_ nutrition: RecipeNutrition, for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?) async throws
     func delete(recipeID: UUID) async throws
+    /// Drops every cached figure.
+    ///
+    /// The cache is keyed by a recipe's *text*, which says nothing about the
+    /// catalog the text was resolved against — so teaching the app a new
+    /// alias or a new nutrition entry would otherwise leave every recipe
+    /// already looked at showing the old, partial total forever.
+    func invalidateAll() async throws
 }

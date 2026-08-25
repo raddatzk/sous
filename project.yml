@@ -109,6 +109,10 @@ targets:
       - path: Sous/Views/SousAppearance.swift
       - path: Sous/Views/IngredientCatalogView.swift
       - path: Sous/Views/IngredientLineView.swift
+      - path: Sous/Views/HighlightedTextEditor.swift
+      - path: Sous/Views/RecipeTextEditorStyles.swift
+      - path: Sous/Views/UnknownIngredientButton.swift
+      - path: Sous/Views/IngredientAliasPickerView.swift
     entitlements:
       path: SousShare/SousShare.entitlements
       properties:
