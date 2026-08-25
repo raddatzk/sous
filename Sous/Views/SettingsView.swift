@@ -21,8 +21,29 @@ struct SettingsForm: View {
             } footer: {
                 Text("„System“ folgt der Einstellung des Geräts.")
             }
+
+            dataSources
         }
         .formStyle(.grouped)
+    }
+
+    /// Where the nutrition figures come from, and what was done to them.
+    ///
+    /// The central half of the attribution CC BY 4.0 asks for: naming the
+    /// source, saying that the data was changed, and linking the licence.
+    /// The local half is the „Quelle: …“ line under each ingredient's
+    /// nutrition, which is what makes this section legible once a second
+    /// source joins BLS.
+    private var dataSources: some View {
+        Section {
+            Text("Die Nährwerte stammen aus dem Bundeslebensmittelschlüssel (BLS) 4.0 des Max-Rubner-Instituts.")
+            Text("Die Daten wurden für diese App verändert: gefiltert, nach Zustand (roh/gegart) zusammengefasst und gemittelt. Eigene Angaben, die du zu einer Zutat einträgst, sind bei der Zutat als solche gekennzeichnet.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Link("Lizenz CC BY 4.0", destination: URL(string: "https://creativecommons.org/licenses/by/4.0/deed.de")!)
+        } header: {
+            Text("Datenquellen")
+        }
     }
 }
 

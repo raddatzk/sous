@@ -32,4 +32,12 @@ public struct NutritionCatalog: Sendable {
     public func nutrition(forCanonicalName name: String) -> CatalogNutrition? {
         byName[IngredientCatalog.normalize(name)]
     }
+
+    public var entries: [CatalogNutrition] { Array(byName.values) }
+
+    /// This catalog with the cook's own numbers laid over it — theirs win,
+    /// since `init` keeps the first entry for a name and they go in front.
+    public func merging(_ overrides: [CatalogNutrition]) -> NutritionCatalog {
+        NutritionCatalog(entries: overrides + entries)
+    }
 }

@@ -31,7 +31,11 @@ struct SousApp: App {
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
-                store: SwiftDataIngredientCatalogStore(modelContainer: container)
+                store: SwiftDataIngredientCatalogStore(modelContainer: container),
+                aliasStore: SwiftDataIngredientAliasOverrideStore(modelContainer: container),
+                // Teaching the app a spelling can change what a recipe's
+                // nutrition adds up to, which is cached per recipe text.
+                nutritionCache: nutritionStore
             )
             _catalog = State(initialValue: catalogLibrary)
             _library = State(initialValue: RecipeLibrary(
@@ -56,7 +60,8 @@ struct SousApp: App {
             _nutrition = State(initialValue: NutritionLibrary(
                 store: nutritionStore,
                 recipeStore: recipes,
-                catalogLibrary: catalogLibrary
+                catalogLibrary: catalogLibrary,
+                nutritionStore: SwiftDataCatalogNutritionStore(modelContainer: container)
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -80,6 +85,12 @@ struct SousApp: App {
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
+                    // Before anything asks what an ingredient is: the
+                    // catalog screens are not the only readers of it, and a
+                    // recipe resolved against the bundled list alone would
+                    // have its wrong total cached.
+                    await catalog.ensureLoaded()
+                    await nutrition.ensureLoaded()
                     timers.forgetStale()
                     session.forgetStale()
                     #if os(iOS)

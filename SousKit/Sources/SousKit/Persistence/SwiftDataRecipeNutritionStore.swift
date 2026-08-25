@@ -27,6 +27,11 @@ public actor SwiftDataRecipeNutritionStore: RecipeNutritionStore {
         try modelContext.save()
     }
 
+    public func invalidateAll() async throws {
+        try modelContext.delete(model: StoredRecipeNutrition.self)
+        try modelContext.save()
+    }
+
     private func stored(recipeID: UUID) throws -> StoredRecipeNutrition? {
         var descriptor = FetchDescriptor<StoredRecipeNutrition>(predicate: #Predicate { $0.recipeID == recipeID })
         descriptor.fetchLimit = 1

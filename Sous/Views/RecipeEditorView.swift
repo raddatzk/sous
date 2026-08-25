@@ -22,8 +22,6 @@ struct RecipeEditorView: View {
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
-    /// An unknown ingredient the cook is about to teach the app.
-    @State private var teaching: CatalogIngredient?
     /// Mirrors each `HighlightedTextEditor`'s own `@FocusState`, since a view
     /// cannot hand its focus state to a child to own directly.
     @State private var isEditingIngredients = false
@@ -78,9 +76,6 @@ struct RecipeEditorView: View {
                 RecipePickerView(excluding: draft.id) { picked in
                     insert(link: picked, at: target)
                 }
-            }
-            .sheet(item: $teaching) { ingredient in
-                IngredientFormView(ingredient: ingredient)
             }
             .task { await catalog.reload() }
         }
@@ -285,20 +280,7 @@ struct RecipeEditorView: View {
                 }
                 .font(.callout)
                 ForEach(unknown, id: \.self) { name in
-                    Button {
-                        teaching = CatalogIngredient(name: name, category: .other)
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text(name)
-                                .lineLimit(1)
-                            Image(systemName: "plus.circle.fill")
-                        }
-                        .font(.callout)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                    }
-                    .buttonStyle(.plain)
-                    .background(Color.sousField, in: .capsule)
+                    UnknownIngredientButton.chip(name: name)
                 }
             }
             // Keeps the capsules' own edges off the scroll view's bounds,
@@ -441,19 +423,7 @@ struct RecipeEditorView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(unknown, id: \.self) { name in
-                            Button {
-                                teaching = CatalogIngredient(name: name, category: .other)
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Text(name)
-                                    Image(systemName: "plus.circle.fill")
-                                }
-                                .font(.callout)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                            }
-                            .buttonStyle(.plain)
-                            .background(Color.sousField, in: .capsule)
+                            UnknownIngredientButton.chip(name: name)
                         }
                     }
                     .padding(.vertical, 2)

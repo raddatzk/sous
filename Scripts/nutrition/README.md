@@ -201,6 +201,19 @@ below. You do **not** need to re-run any of this to fix one entry.
     in `ingredients.json` with a slash in the name. Splitting the first
     segment out as the `name` and the rest into `aliases` would be a
     reasonable, easy follow-up PR.
+- **Piece weights are hand-made estimates, and there are only 18 of them.**
+  BLS gives nutrient values per 100 g and no portion sizes at all, so a line
+  like `1 Zwiebel` resolved to nothing until somebody wrote down what one
+  onion weighs. `unitWeightsGrams["Stk."]` was filled in by hand for the
+  common piece-counted foods - Zwiebel, Speisezwiebel, Schalotte,
+  Frühlingszwiebel, Ei, Kartoffel, Karotte, Tomate, Paprika, Zucchini,
+  Aubergine, Gurke, Champignon, Zitrone, Limette, Orange, Apfel, Banane -
+  as average edible-portion weights, **not** as sourced data. They are
+  deliberately rough: a medium onion, an M egg. Every other entry still has
+  an empty `unitWeightsGrams`, and `NutritionResolver` has no generic `Stk.`
+  fallback on purpose, so those lines keep resolving to nothing rather than
+  to a made-up number. Adding more is a good, easy follow-up - see "Fixing
+  data by hand" below.
 
 ### Filling the gaps a plain overlay missed
 
