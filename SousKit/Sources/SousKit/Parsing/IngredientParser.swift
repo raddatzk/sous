@@ -108,11 +108,60 @@ public enum IngredientParser {
             name = String(name[..<commaIndex]).trimmingCharacters(in: .whitespaces)
         }
 
+        // "nach Geschmack" is an amount written in words, not part of the
+        // name — left in place it would keep "Salz nach Geschmack" from ever
+        // matching the catalog. Split off, but remembered, so the line
+        // renders back exactly as typed.
+        var unquantifiedPhrase: UnquantifiedPhrase?
+        if let (stripped, phrase) = trailingUnquantifiedPhrase(in: name) {
+            name = stripped
+            unquantifiedPhrase = phrase
+        } else if quantity == nil, let (stripped, phrase) = leadingUnquantifiedWord(in: name) {
+            name = stripped
+            unquantifiedPhrase = phrase
+        }
+
         return RecipeIngredient(
             name: name,
             quantity: quantity,
+            unquantifiedPhrase: unquantifiedPhrase,
             preparation: preparation?.isEmpty == false ? preparation : nil
         )
+    }
+
+    /// The phrases that trail a name in place of a number. A closed list on
+    /// purpose: this is grammar, not open language, and every entry must
+    /// round-trip through `text(for:)` unchanged.
+    private static let trailingUnquantifiedPhrases = ["nach Geschmack", "nach Belieben"]
+    /// The words that lead a name in place of a number: "etwas Salz".
+    private static let leadingUnquantifiedWords = ["etwas", "einige"]
+
+    /// Splits a trailing "nach Geschmack" off `name`, keeping the phrase as
+    /// written. `nil` when no phrase trails it, or nothing would remain.
+    private static func trailingUnquantifiedPhrase(in name: String) -> (String, UnquantifiedPhrase)? {
+        for phrase in trailingUnquantifiedPhrases {
+            guard let range = name.range(of: " " + phrase, options: [.caseInsensitive, .anchored, .backwards])
+            else { continue }
+            let stripped = String(name[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
+            guard !stripped.isEmpty else { continue }
+            let written = String(name[range.lowerBound...]).trimmingCharacters(in: .whitespaces)
+            return (stripped, UnquantifiedPhrase(phrase: written, placement: .afterName))
+        }
+        return nil
+    }
+
+    /// Splits a leading "etwas" off `name`, keeping the word as written.
+    /// Only consulted when the line carries no number of its own.
+    private static func leadingUnquantifiedWord(in name: String) -> (String, UnquantifiedPhrase)? {
+        for word in leadingUnquantifiedWords {
+            guard let range = name.range(of: word + " ", options: [.caseInsensitive, .anchored])
+            else { continue }
+            let stripped = String(name[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            guard !stripped.isEmpty else { continue }
+            let written = String(name[..<range.upperBound]).trimmingCharacters(in: .whitespaces)
+            return (stripped, UnquantifiedPhrase(phrase: written, placement: .beforeName))
+        }
+        return nil
     }
 
     /// Whether the parenthesis at `index` opens a markdown link's target

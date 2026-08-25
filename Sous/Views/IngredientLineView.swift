@@ -16,12 +16,23 @@ struct IngredientLineView: View {
         // Interpolated rather than added together: `Text + Text` is
         // deprecated as of the 26 SDKs, and interpolation keeps each part's
         // own styling the way the sum did.
-        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(commentText)")
+        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(trailingPhraseText)\(commentText)")
     }
 
     /// The amount carries the accent, so it is its own styled run.
     private var amountText: Text {
         Text(amount)
+            .foregroundStyle(.tint)
+            .fontWeight(.medium)
+    }
+
+    /// "nach Geschmack" is the amount written in words, so it wears the
+    /// amount's accent — just after the name, where it was typed.
+    private var trailingPhraseText: Text {
+        guard let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName else {
+            return Text("")
+        }
+        return Text(" \(phrase.phrase)")
             .foregroundStyle(.tint)
             .fontWeight(.medium)
     }
@@ -32,7 +43,12 @@ struct IngredientLineView: View {
     }
 
     private var amount: String {
-        ingredient.quantity.map { formatter.string(for: $0) } ?? ""
+        if let quantity = ingredient.quantity { return formatter.string(for: quantity) }
+        // "etwas Salz" — the words sit where a number would, styled like one.
+        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
+            return phrase.phrase
+        }
+        return ""
     }
 
     private var name: AttributedString {

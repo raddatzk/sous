@@ -5,12 +5,15 @@ import Foundation
 /// fact, not part of what a person typed — but one that also goes stale when
 /// a linked sub-recipe changes, not only when the recipe's own text does.
 public protocol RecipeNutritionStore: Sendable {
-    /// The nutrition cached for `recipe` given `resolve`, or `nil` if
-    /// nothing is cached, or what is cached was computed against different
-    /// content than `recipe` (or one of its links) currently has.
-    func nutrition(for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?) async throws -> RecipeNutrition?
-    /// Replaces whatever was cached for this recipe with `nutrition`,
-    /// stamped against `recipe`'s and its links' current content.
+    /// The nutrition cached for `recipe` at `servings`, or `nil` if nothing
+    /// is cached for that count, or what is cached was computed against
+    /// different content than `recipe` (or one of its links) currently has.
+    /// Servings are part of the key: per-portion figures are not invariant
+    /// under scaling, since not every amount scales.
+    func nutrition(for recipe: Recipe, servings: Int, resolve: @Sendable (UUID) -> Recipe?) async throws -> RecipeNutrition?
+    /// Replaces whatever was cached for this recipe at `nutrition.servings`
+    /// with `nutrition`, stamped against `recipe`'s and its links' current
+    /// content.
     func save(_ nutrition: RecipeNutrition, for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?) async throws
     func delete(recipeID: UUID) async throws
     /// Drops every cached figure.
