@@ -20,6 +20,9 @@ struct RecipeRow: View {
     /// A cache read, same as `needsAmountReview` — cheap once nutrition has
     /// been computed for this recipe once.
     @State private var kcalPerPortion: Int?
+    /// Whether that figure covers every accountable ingredient — an
+    /// incomplete one is still shown, but never naked.
+    @State private var kcalIsComplete = false
     /// Whether the catalog is missing any of this recipe's ingredients —
     /// the list-wide view of the same check the detail page's banner runs.
     @State private var needsIngredientReview = false
@@ -47,7 +50,15 @@ struct RecipeRow: View {
         }
         .task(id: recipe.id) {
             let nutrition = await nutritionLibrary.nutrition(for: recipe)
-            kcalPerPortion = nutrition.map { Int($0.perPortion.kcal.rounded()) }
+            // A figure no ingredient contributed to is no figure — showing
+            // "0 kcal" for a recipe of unmatched lines would be the naked
+            // number this chip is not allowed to be.
+            if let nutrition, nutrition.coverage.includedCount > 0 {
+                kcalPerPortion = Int(nutrition.perPortion.kcal.rounded())
+                kcalIsComplete = nutrition.coverage.isComplete
+            } else {
+                kcalPerPortion = nil
+            }
         }
         .task(id: recipe.id) {
             needsIngredientReview = await library.needsIngredientReview(recipe)
@@ -114,8 +125,14 @@ struct RecipeRow: View {
                 if let minutes = totalMinutes {
                     chip("\(minutes) Min.", systemImage: "clock")
                 }
+                // Marked when coverage is incomplete: the "≈" and the dashed
+                // circle say "this is a floor, not the dish" without costing
+                // the row a second line.
                 if let kcalPerPortion {
-                    chip("\(kcalPerPortion) kcal")
+                    chip(
+                        kcalIsComplete ? "\(kcalPerPortion) kcal" : "≈ \(kcalPerPortion) kcal",
+                        systemImage: kcalIsComplete ? nil : "circle.dashed"
+                    )
                 }
                 // Each category keeps its own colour rather than sharing the
                 // app's one accent — with several shown at once, a reader

@@ -104,8 +104,14 @@ extension QuantityFormatter {
         var line = ""
         if let quantity = ingredient.quantity {
             line = string(for: quantity)
+        } else if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
+            // "etwas Salz" — the words sit where a number would.
+            line = phrase.phrase
         }
         line = line.isEmpty ? ingredient.name : "\(line) \(ingredient.name)"
+        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName {
+            line += " \(phrase.phrase)"
+        }
         if let preparation = ingredient.preparation, !preparation.isEmpty {
             line += " (\(preparation))"
         }

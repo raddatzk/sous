@@ -110,17 +110,18 @@ public final class NutritionLibrary {
         let resolved = known
         let resolve: @Sendable (UUID) -> Recipe? = { resolved[$0] }
 
-        if let cached = try? await store.nutrition(for: recipe, resolve: resolve), cached.servings == servings {
+        if let cached = try? await store.nutrition(for: recipe, servings: servings, resolve: resolve) {
             return cached
         }
 
-        let total = NutritionAggregator.aggregate(
+        let report = NutritionAggregator.aggregate(
             recipe: recipe, servings: servings, catalog: catalog,
             nutritionCatalog: nutritionCatalog, resolve: resolve
         )
-        let perPortion = total.scaled(by: 1 / Double(servings))
+        let perPortion = report.total.scaled(by: 1 / Double(servings))
         let result = RecipeNutrition(
-            perPortion: perPortion, servings: servings, nrf93Score: NRF93Score.score(for: perPortion)
+            perPortion: perPortion, servings: servings,
+            nrf93Score: NRF93Score.score(for: perPortion), coverage: report.coverage
         )
         try? await store.save(result, for: recipe, resolve: resolve)
         return result

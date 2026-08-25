@@ -12,12 +12,34 @@ enum RecipeContentHash {
     /// old parser derived. Raised to 2 when `IngredientParser` stopped
     /// splitting catalog names that carry a comma ("Sauerrahm/Schmand, mind.
     /// 20 % Fett"), which silently left those ingredients out of a recipe's
-    /// nutrition.
-    private static let readingVersion = 2
+    /// nutrition. Raised to 3 when the parser learned unquantified amounts
+    /// ("Salz nach Geschmack") and the aggregator began carrying coverage.
+    private static let readingVersion = 3
+
+    /// What the bundled catalog data currently is, hashed from the shipped
+    /// files themselves — an app update that ships new data has to invalidate
+    /// every cached figure on its own, not wait for someone to remember a
+    /// `readingVersion` bump.
+    static let bundledDataFingerprint: String = {
+        var hasher = SHA256()
+        for resource in ["ingredients", "nutrition"] {
+            guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
+                  let data = try? Data(contentsOf: url)
+            else { continue }
+            hasher.update(data: data)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }()
 
     static func hash(for recipe: Recipe) -> String {
+        hash(for: recipe, dataFingerprint: bundledDataFingerprint)
+    }
+
+    /// The fingerprint is injectable only so a test can prove new bundled
+    /// data changes the hash without re-bundling the app.
+    static func hash(for recipe: Recipe, dataFingerprint: String) -> String {
         let digest = SHA256.hash(
-            data: Data("v\(readingVersion)\n\(recipe.ingredientsText)\n\(recipe.instructionsText)".utf8)
+            data: Data("v\(readingVersion)|\(dataFingerprint)\n\(recipe.ingredientsText)\n\(recipe.instructionsText)".utf8)
         )
         return digest.map { String(format: "%02x", $0) }.joined()
     }

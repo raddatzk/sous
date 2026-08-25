@@ -24,7 +24,10 @@ struct NRFLevelTests {
 
     @Test("A recipe's level follows its score")
     func recipeLevel() {
-        let nutrition = RecipeNutrition(perPortion: .zero, servings: 2, nrf93Score: 51.1)
+        let nutrition = RecipeNutrition(
+            perPortion: .zero, servings: 2, nrf93Score: 51.1,
+            coverage: NutritionCoverage(includedCount: 1, gaps: [])
+        )
         #expect(nutrition.nrfLevel == .a)
     }
 }

@@ -219,3 +219,78 @@ extension IngredientParserTests {
         #expect(IngredientParser.leadingAmountAndUnitLength(in: "Salz") == nil)
     }
 }
+
+extension IngredientParserTests {
+    @Test("A trailing phrase in place of a number leaves the name clean")
+    func trailingUnquantifiedPhrase() {
+        let ingredient = IngredientParser.parseLine("Salz nach Geschmack")
+
+        #expect(ingredient.name == "Salz")
+        #expect(ingredient.quantity == nil)
+        #expect(ingredient.unquantifiedPhrase == UnquantifiedPhrase(phrase: "nach Geschmack", placement: .afterName))
+    }
+
+    @Test("\"nach Belieben\" reads the same way, case-insensitively")
+    func nachBeliebenIsUnquantified() {
+        let ingredient = IngredientParser.parseLine("Frische Kräuter NACH BELIEBEN")
+
+        #expect(ingredient.name == "Frische Kräuter")
+        #expect(ingredient.unquantifiedPhrase == UnquantifiedPhrase(phrase: "NACH BELIEBEN", placement: .afterName))
+    }
+
+    @Test("A leading \"etwas\" or \"einige\" is an amount in words, not part of the name")
+    func leadingUnquantifiedWords() {
+        let etwas = IngredientParser.parseLine("Etwas Mehl")
+        #expect(etwas.name == "Mehl")
+        #expect(etwas.quantity == nil)
+        #expect(etwas.unquantifiedPhrase == UnquantifiedPhrase(phrase: "Etwas", placement: .beforeName))
+
+        let einige = IngredientParser.parseLine("einige Basilikumblätter")
+        #expect(einige.name == "Basilikumblätter")
+        #expect(einige.unquantifiedPhrase == UnquantifiedPhrase(phrase: "einige", placement: .beforeName))
+    }
+
+    @Test("A trailing phrase also comes off a line that carries a number")
+    func trailingPhraseAfterAQuantity() {
+        let ingredient = IngredientParser.parseLine("1 TL Salz nach Geschmack")
+
+        #expect(ingredient.quantity == Quantity(1, .teaspoon))
+        #expect(ingredient.name == "Salz")
+        #expect(ingredient.unquantifiedPhrase == UnquantifiedPhrase(phrase: "nach Geschmack", placement: .afterName))
+    }
+
+    @Test("A phrase with nothing before it stays a name")
+    func phraseAloneStaysAName() {
+        let ingredient = IngredientParser.parseLine("nach Geschmack")
+
+        #expect(ingredient.name == "nach Geschmack")
+        #expect(ingredient.unquantifiedPhrase == nil)
+    }
+
+    @Test("Unquantified lines render back to the text they came from")
+    func unquantifiedRoundTrip() {
+        let source = """
+        Salz nach Geschmack
+        etwas Mehl
+        Pfeffer nach Belieben
+        einige Basilikumblätter
+        1 TL Zucker nach Geschmack
+        """
+
+        let rendered = IngredientParser.text(
+            for: IngredientParser.parse(source),
+            formatter: QuantityFormatter(locale: Locale(identifier: "de_DE"))
+        )
+        #expect(rendered == source)
+    }
+
+    @Test("A recognized phrase no longer makes the ingredient unknown")
+    func unquantifiedIsNotAnUnknownIngredient() {
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Salz", category: .spices),
+            CatalogIngredient(name: "Mehl", category: .baking),
+        ])
+
+        #expect(catalog.unknownIngredients(in: "Salz nach Geschmack\netwas Mehl").isEmpty)
+    }
+}

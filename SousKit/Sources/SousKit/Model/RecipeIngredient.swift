@@ -24,6 +24,28 @@ public enum IngredientState: String, Codable, Hashable, Sendable {
     public static let displayOrder: [IngredientState] = [.raw, .cooked, .unspecified]
 }
 
+/// Words that stand in for a number — "Salz nach Geschmack", "etwas Mehl".
+///
+/// The phrase is kept as written, and where it stood, so the line renders
+/// back exactly as typed; the *name* stays clean ("Salz"), which is what
+/// lets the catalog recognize the ingredient at all.
+public struct UnquantifiedPhrase: Codable, Hashable, Sendable {
+    public enum Placement: String, Codable, Hashable, Sendable {
+        /// "etwas Salz" — the phrase sits where a number would.
+        case beforeName
+        /// "Salz nach Geschmack" — the phrase trails the name.
+        case afterName
+    }
+
+    public var phrase: String
+    public var placement: Placement
+
+    public init(phrase: String, placement: Placement) {
+        self.phrase = phrase
+        self.placement = placement
+    }
+}
+
 /// One line of a recipe's ingredient list.
 ///
 /// The fields are kept separate on purpose: quantity, unit, name, and
@@ -36,6 +58,9 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
     public var name: String
     /// `nil` means an unquantified amount ("Salz nach Geschmack").
     public var quantity: Quantity?
+    /// The words that stood in for a number, when the line wrote its amount
+    /// that way — see ``UnquantifiedPhrase``.
+    public var unquantifiedPhrase: UnquantifiedPhrase?
     /// How it is prepared: "fein gehackt".
     public var preparation: String?
     /// Optional heading this line belongs to: "Für den Teig".
@@ -53,6 +78,7 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(),
         name: String,
         quantity: Quantity? = nil,
+        unquantifiedPhrase: UnquantifiedPhrase? = nil,
         preparation: String? = nil,
         group: String? = nil,
         state: IngredientState = .unspecified,
@@ -63,6 +89,7 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.quantity = quantity
+        self.unquantifiedPhrase = unquantifiedPhrase
         self.preparation = preparation
         self.group = group
         self.state = state

@@ -364,11 +364,14 @@ struct RecipeDetailView: View {
             // it can differ from what the recipe is written for and a
             // second, unscaled number beside it would just read as a
             // mismatch.
-            if !timeItems.isEmpty || nutrition != nil {
+            if !timeItems.isEmpty || nutrition?.coverage.isComplete == true {
                 HStack(spacing: 16) {
                     // Leads the row: the rating is the one fact here worth
-                    // seeing before anything else, times included.
-                    if let nutrition {
+                    // seeing before anything else, times included. Only with
+                    // full coverage — an A computed from a half-empty sum
+                    // would be doubly misleading, so an incomplete recipe
+                    // gets no letter at all rather than a wrong one.
+                    if let nutrition, nutrition.coverage.isComplete {
                         NRFBadge(level: nutrition.nrfLevel)
                     }
                     ForEach(timeItems, id: \.label) { item in
@@ -713,6 +716,7 @@ struct RecipeDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Nährwerte")
                     .font(SousStyle.sectionHeading)
+                coverageLine(for: nutrition)
                 VStack(alignment: .leading, spacing: 5) {
                     nutrientRow(
                         "Energie", Self.nutrients.string(kilocalories: nutrition.perPortion.kcal), emphasized: true
@@ -745,6 +749,42 @@ struct RecipeDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
+            }
+        }
+    }
+
+    /// The figure never appears naked: what the sum is based on, with the
+    /// left-out lines one tap away. "9 von 12 Zutaten" counts what should
+    /// have contributed; unquantified lines ("Salz nach Geschmack") stand
+    /// outside the count and only appear in the drill-down, neutrally.
+    @ViewBuilder
+    private func coverageLine(for nutrition: RecipeNutrition) -> some View {
+        let coverage = nutrition.coverage
+        let summary = "≈ \(Self.nutrients.string(kilocalories: nutrition.perPortion.kcal)) pro Portion"
+            + " — \(coverage.includedCount) von \(coverage.accountableCount) Zutaten"
+        if coverage.gaps.isEmpty {
+            Text(summary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        } else {
+            DisclosureGroup {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(coverage.gaps, id: \.self) { gap in
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(gap.sourceRecipeTitle.map { "aus \($0): \(gap.ingredientName)" } ?? gap.ingredientName)
+                            Spacer()
+                            Text(gap.reason.label)
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.trailing)
+                        }
+                        .font(.footnote)
+                    }
+                }
+                .padding(.top, 6)
+            } label: {
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
     }
