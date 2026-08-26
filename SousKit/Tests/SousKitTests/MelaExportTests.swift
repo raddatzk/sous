@@ -70,9 +70,9 @@ struct MelaExportTests {
 
     @Test("A library archive reads back as the library it was")
     func libraryRoundTrip() throws {
-        let recipes = [
-            (recipe: complete, images: [picture]),
-            (recipe: Recipe(title: "Rührei", servings: 2), images: []),
+        let recipes: [(recipe: Recipe, images: [Data], variantGroup: VariantGroup?)] = [
+            (recipe: complete, images: [picture], variantGroup: nil),
+            (recipe: Recipe(title: "Rührei", servings: 2), images: [], variantGroup: nil),
         ]
 
         let archive = try MelaExport.library(recipes)

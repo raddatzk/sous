@@ -70,4 +70,31 @@ public protocol RecipeStore: Sendable {
     func renameCategory(_ name: String, to newName: String) async throws
     /// Removes a category from every recipe that carries it.
     func deleteCategory(_ name: String) async throws
+
+    // MARK: - Variant groups
+
+    /// Every variant group, with how many of its members are not in the
+    /// trash.
+    ///
+    /// The count comes along because it decides whether a group is a group
+    /// at all: one left standing draws as an ordinary recipe. It cannot be
+    /// read off the list — a filter may have passed a single member of five,
+    /// and that hit still deserves its group's row as context around it.
+    func variantGroups() async throws -> [(group: VariantGroup, liveMembers: Int)]
+    func variantGroup(id: UUID) async throws -> VariantGroup?
+    /// A group's members that are not in the trash, in the order they were
+    /// created — which is the only order a symmetric group has.
+    func variantGroupMembers(id: UUID) async throws -> [Recipe]
+    /// Inserts or overwrites. Renaming a group rewrites its members'
+    /// denormalized `searchText`, which is why this is a store call rather
+    /// than a plain save.
+    @discardableResult
+    func saveVariantGroup(_ group: VariantGroup) async throws -> VariantGroup
+    /// Takes the group apart: every member's `variantGroupID` is cleared and
+    /// the group's own row goes.
+    ///
+    /// No tombstone. A group is not something the trash holds, and a member
+    /// left pointing at a row that is gone reads as ungrouped — the failure
+    /// heals itself rather than needing to sync.
+    func dissolveVariantGroup(id: UUID) async throws
 }

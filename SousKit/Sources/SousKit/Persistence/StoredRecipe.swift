@@ -32,12 +32,18 @@ public final class StoredRecipe {
     public var cookTimeSeconds: Int?
     public var totalTimeSeconds: Int?
     public var imageIDs: [UUID] = []
+    /// The ``StoredVariantGroup`` this recipe is one version of. A plain id
+    /// rather than a relationship: the group owns nothing, and a member that
+    /// outlives its group row reads as ungrouped rather than as a broken
+    /// object graph.
+    public var variantGroupID: UUID?
     public var createdBy: UUID?
     public var createdAt: Date = Date.nowInSyncPrecision
     public var updatedAt: Date = Date.nowInSyncPrecision
     public var deletedAt: Date?
 
-    /// Title, categories and ingredient names, lowercased.
+    /// Title, variant group title, categories and ingredient names,
+    /// lowercased.
     ///
     /// Denormalized so that searching by ingredient stays a single indexed
     /// comparison instead of parsing every recipe on every keystroke.
@@ -46,13 +52,27 @@ public final class StoredRecipe {
     /// that writes "Cocktailtomaten".
     public var ingredientKeys: [String] = []
 
-    public init(_ recipe: Recipe, catalog: IngredientCatalog = .bundled) {
+    public init(
+        _ recipe: Recipe,
+        catalog: IngredientCatalog = .bundled,
+        variantGroupTitle: String? = nil
+    ) {
         id = recipe.id
-        apply(recipe, catalog: catalog)
+        apply(recipe, catalog: catalog, variantGroupTitle: variantGroupTitle)
     }
 
     /// Overwrites every field from `recipe`, keeping the identity.
-    public func apply(_ recipe: Recipe, catalog: IngredientCatalog = .bundled) {
+    ///
+    /// `variantGroupTitle` is the one thing here the recipe cannot supply
+    /// itself: the group's name is folded into `searchText` so that "Chili"
+    /// finds the members and the group's row appears because they did — see
+    /// ``StoredVariantGroup``. The caller looks it up, because only the store
+    /// can.
+    public func apply(
+        _ recipe: Recipe,
+        catalog: IngredientCatalog = .bundled,
+        variantGroupTitle: String? = nil
+    ) {
         title = recipe.title
         summary = recipe.summary
         servings = recipe.servings
@@ -69,11 +89,12 @@ public final class StoredRecipe {
         cookTimeSeconds = recipe.cookTimeSeconds
         totalTimeSeconds = recipe.totalTimeSeconds
         imageIDs = recipe.imageIDs
+        variantGroupID = recipe.variantGroupID
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
         deletedAt = recipe.deletedAt
-        searchText = Self.searchText(for: recipe)
+        searchText = Self.searchText(for: recipe, variantGroupTitle: variantGroupTitle)
         ingredientKeys = Self.ingredientKeys(for: recipe, catalog: catalog)
     }
 
@@ -98,6 +119,7 @@ public final class StoredRecipe {
             cookTimeSeconds: cookTimeSeconds,
             totalTimeSeconds: totalTimeSeconds,
             imageIDs: imageIDs,
+            variantGroupID: variantGroupID,
             createdBy: createdBy,
             createdAt: createdAt,
             updatedAt: updatedAt,
@@ -128,8 +150,11 @@ public final class StoredRecipe {
         return keys
     }
 
-    static func searchText(for recipe: Recipe) -> String {
+    static func searchText(for recipe: Recipe, variantGroupTitle: String? = nil) -> String {
         var parts = [recipe.title]
+        if let variantGroupTitle, !variantGroupTitle.isEmpty {
+            parts.append(variantGroupTitle)
+        }
         parts.append(contentsOf: recipe.categories)
         parts.append(contentsOf: recipe.ingredients.map(\.name))
         return parts.joined(separator: " ").lowercased()

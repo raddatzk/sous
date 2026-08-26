@@ -7,6 +7,7 @@ struct RecipeDetailView: View {
     @Environment(CookSession.self) private var session
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(NutritionLibrary.self) private var nutritionLibrary
+    @Environment(RecipeSelection.self) private var selection
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
@@ -35,6 +36,7 @@ struct RecipeDetailView: View {
     private var plannedServings: Int? { plannedEntry?.servings }
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
+    @State private var isAddingVariant = false
     /// Whether the page's own title has scrolled up behind the navigation
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
@@ -246,6 +248,18 @@ struct RecipeDetailView: View {
                     }
             }
         }
+        .sheet(isPresented: $isAddingVariant) {
+            AddVariantSheet(recipe: recipe) { variant in
+                // Straight into the new one: it is a copy of what is on
+                // screen, and the reason to make it was to change it. Said
+                // through the selection rather than by presenting it here,
+                // because on the phone this page is itself the pushed one —
+                // the list swaps what it pushed, and a recipe shown in a
+                // sheet could not reach the editor.
+                selection.target = .recipe(variant)
+                selection.plannedEntryID = nil
+            }
+        }
         // A link to another recipe navigates inside the app; anything else
         // is left to the system.
         .environment(\.openURL, OpenURLAction { url in
@@ -324,9 +338,50 @@ struct RecipeDetailView: View {
     private static let narrowContent: CGFloat = 700
     private static let wideContent: CGFloat = 1100
 
+    /// The dish this recipe is one version of, when it is one of several.
+    ///
+    /// Read from the library rather than from `recipe.variantGroupID`: a
+    /// group whose only other member is in the trash is not a group at the
+    /// moment, and a link to a comparison of one would lead nowhere worth
+    /// going.
+    private var variantGroup: VariantGroup? {
+        recipe.variantGroupID.flatMap { library.variantGroups[$0] }
+    }
+
+    /// Without this the comparison is reachable only from the list, and a
+    /// cook who arrived here from the meal plan has no way to see that there
+    /// are four other versions of what they are reading.
+    @ViewBuilder
+    private var variantGroupLink: some View {
+        if let group = variantGroup {
+            Button {
+                // The same route the list takes: on the Mac the column
+                // changes, on the phone what the list pushed changes. Not a
+                // sheet, because the comparison is a place to work from —
+                // every column of it leads to a recipe.
+                selection.target = .group(group)
+            } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: "square.on.square")
+                        .imageScale(.small)
+                    Text("Variante von \(group.title)")
+                    let count = library.variantMemberCounts[group.id] ?? 0
+                    if count > 1 {
+                        Text("· \(count) Varianten")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .font(.footnote)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.tint)
+        }
+    }
+
     @ViewBuilder
     private func titleBlock(barEdge: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 12) {
+            variantGroupLink
             Text(recipe.title)
                 .font(SousStyle.recipeTitle)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1104,6 +1159,11 @@ struct RecipeDetailView: View {
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
                 Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                if !recipe.isDeleted {
+                    Button("Variante anlegen", systemImage: "square.on.square") {
+                        isAddingVariant = true
+                    }
+                }
                 Button("Exportieren", systemImage: "square.and.arrow.up") {
                     Task {
                         if let data = await library.exportedRecipe(recipe) {

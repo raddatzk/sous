@@ -10,20 +10,31 @@ import Foundation
 /// for no reader that does not already exist.
 public enum MelaExport {
     /// One recipe with its pictures, as the contents of a `.sousrecipe` file.
-    public static func recipe(_ recipe: Recipe, images: [Data]) throws -> Data {
+    ///
+    /// `variantGroup` is written into the file when the recipe is one version
+    /// of a dish, because there is nowhere else for it to go: an export that
+    /// dropped it would put five recipes back into a library as five
+    /// strangers, and silently.
+    public static func recipe(
+        _ recipe: Recipe,
+        images: [Data],
+        variantGroup: VariantGroup? = nil
+    ) throws -> Data {
         try JSONSerialization.data(
-            withJSONObject: object(for: recipe, images: images),
+            withJSONObject: object(for: recipe, images: images, variantGroup: variantGroup),
             options: [.prettyPrinted, .sortedKeys]
         )
     }
 
     /// A whole library as a `.sousrecipes` archive.
-    public static func library(_ recipes: [(recipe: Recipe, images: [Data])]) throws -> Data {
+    public static func library(
+        _ recipes: [(recipe: Recipe, images: [Data], variantGroup: VariantGroup?)]
+    ) throws -> Data {
         var used = Set<String>()
         let entries = try recipes.map { item in
             ZIPWriter.Entry(
                 name: fileName(for: item.recipe, avoiding: &used),
-                data: try recipe(item.recipe, images: item.images),
+                data: try recipe(item.recipe, images: item.images, variantGroup: item.variantGroup),
                 modified: item.recipe.updatedAt
             )
         }
@@ -49,7 +60,11 @@ public enum MelaExport {
         return "\(candidate).sousrecipe"
     }
 
-    private static func object(for recipe: Recipe, images: [Data]) -> [String: Any] {
+    private static func object(
+        for recipe: Recipe,
+        images: [Data],
+        variantGroup: VariantGroup? = nil
+    ) -> [String: Any] {
         var object: [String: Any] = [
             "id": recipe.id.uuidString,
             "title": recipe.title,
@@ -72,6 +87,14 @@ public enum MelaExport {
         if let cook = recipe.cookTimeSeconds { object["cookTime"] = duration(cook) }
         if let total = recipe.totalTimeSeconds { object["totalTime"] = duration(total) }
         if let url = recipe.source.url { object["link"] = url.absoluteString }
+        // Sous's own key. Mela ignores what it does not know, and so does
+        // every other reader of this format.
+        if let variantGroup {
+            object["sousVariantGroup"] = [
+                "id": variantGroup.id.uuidString,
+                "title": variantGroup.title,
+            ]
+        }
         return object
     }
 

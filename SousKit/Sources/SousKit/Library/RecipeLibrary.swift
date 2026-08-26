@@ -46,6 +46,16 @@ public final class RecipeLibrary {
     private let catalogLibrary: IngredientCatalogLibrary?
 
     public private(set) var recipes: [Recipe] = []
+    /// The variant groups that are currently groups at all, by id.
+    ///
+    /// A group with one member left is not in here: it draws as the ordinary
+    /// recipe it now looks like. Its row is kept in the store all the same,
+    /// so restoring the sibling from the trash puts the pair back together.
+    public private(set) var variantGroups: [UUID: VariantGroup] = [:]
+    /// How many members each group has that are not in the trash — which is
+    /// not what the list is showing. A filter may have passed one variant of
+    /// five, and the row above it should be able to say so.
+    public private(set) var variantMemberCounts: [UUID: Int] = [:]
     public private(set) var categories: [String] = []
     public private(set) var isLoading = false
     public var errorMessage: String?
@@ -188,9 +198,28 @@ public final class RecipeLibrary {
         do {
             recipes = try await store.recipes(matching: query)
             categories = try await store.categories()
+            // Two is what makes a group. Below that there is nothing to
+            // stand beside, and an indented list of one is a rule the reader
+            // has to learn for no gain.
+            let groups = try await store.variantGroups().filter { $0.liveMembers >= 2 }
+            variantGroups = Dictionary(uniqueKeysWithValues: groups.map { ($0.group.id, $0.group) })
+            variantMemberCounts = Dictionary(
+                uniqueKeysWithValues: groups.map { ($0.group.id, $0.liveMembers) }
+            )
         } catch {
             report(error)
         }
+    }
+
+    /// The list as it is drawn: recipes at the top level, with the members of
+    /// a group gathered under it.
+    ///
+    /// Derived on every read rather than held, because it is a view of
+    /// `recipes` and would otherwise be a second thing to keep in step. The
+    /// nesting is presentation — the store knows nothing about it, and a
+    /// filtered list shows a group with only the members that came back.
+    public var entries: [VariantGrouping.Entry] {
+        VariantGrouping.entries(for: recipes, groups: variantGroups)
     }
 
     /// Loads a single recipe regardless of the current filter — a link may
@@ -357,6 +386,98 @@ public final class RecipeLibrary {
     /// should be asked about again.
     public func markIngredientsReviewed(_ recipe: Recipe) async {
         try? await ingredientReviewStore?.markReviewed(recipe)
+    }
+
+    // MARK: - Variant groups
+
+    /// A group's members that are not in the trash, in creation order —
+    /// everything it has, not what the current filter left standing.
+    public func variantMembers(of groupID: UUID) async -> [Recipe] {
+        do {
+            return try await store.variantGroupMembers(id: groupID)
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
+    public func variantGroup(id: UUID) async -> VariantGroup? {
+        do {
+            return try await store.variantGroup(id: id)
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    /// Puts a second version of `recipe` beside it, creating the group the
+    /// two of them then belong to if there is not one yet.
+    ///
+    /// The group is born here rather than through a command of its own: a
+    /// group is what having two versions of a dish *is*, not an
+    /// administrative act somebody performs first. `groupTitle` is only
+    /// consulted while creating one — the second variant joins the group
+    /// that already has a name.
+    ///
+    /// Returns the new variant, whose pictures are its own to add: see
+    /// ``Recipe/variantCopy(title:in:id:now:)`` for what a copy carries.
+    @discardableResult
+    public func addVariant(
+        of recipe: Recipe,
+        title: String,
+        groupTitle: String
+    ) async -> Recipe? {
+        do {
+            let groupID: UUID
+            if let existing = recipe.variantGroupID,
+               try await store.variantGroup(id: existing) != nil {
+                groupID = existing
+            } else {
+                let group = try await store.saveVariantGroup(VariantGroup(title: groupTitle))
+                groupID = group.id
+                // The original joins its own group, which is the whole of
+                // what "symmetric" means here: it is a member like the new
+                // one, not a base the new one hangs off.
+                var original = recipe
+                original.variantGroupID = groupID
+                try await store.save(original)
+            }
+
+            let variant = recipe.variantCopy(title: title, in: groupID)
+            try await store.save(variant)
+            await reload()
+            // Saved separately from the copy above, because the enrichment
+            // pass keys off the text and the copy's text is the original's.
+            scheduleEnrichment(for: variant)
+            return variant
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    public func renameVariantGroup(_ group: VariantGroup, to title: String) async {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != group.title else { return }
+        do {
+            var updated = group
+            updated.title = trimmed
+            try await store.saveVariantGroup(updated)
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Takes a group apart, leaving its members behind as the ordinary
+    /// recipes they always were.
+    public func dissolveVariantGroup(_ groupID: UUID) async {
+        do {
+            try await store.dissolveVariantGroup(id: groupID)
+            await reload()
+        } catch {
+            report(error)
+        }
     }
 
     public func delete(_ recipe: Recipe) async {
@@ -577,6 +698,14 @@ public final class RecipeLibrary {
     /// onto the recipe. Re-importing the same file overwrites both, since the
     /// recipe keeps the id derived from its origin.
     private func save(imported item: ImportedRecipe) async throws {
+        // Before the recipe, because saving a member looks the group's title
+        // up to fold it into the search index. Every member of a group
+        // carries the same description of it, so this writes the same row as
+        // many times as the group has members — which is what makes an
+        // archive a bag of recipe files rather than an ordered format.
+        if let group = item.variantGroup {
+            try await store.saveVariantGroup(group)
+        }
         var recipe = item.recipe
         recipe.imageIDs = []
         try await store.save(recipe)
@@ -601,7 +730,11 @@ public final class RecipeLibrary {
     /// One recipe as a `.melarecipe` file, pictures included.
     public func exportedRecipe(_ recipe: Recipe) async -> Data? {
         do {
-            return try MelaExport.recipe(recipe, images: await images(of: recipe))
+            return try MelaExport.recipe(
+                recipe,
+                images: await images(of: recipe),
+                variantGroup: await exportedGroup(of: recipe)
+            )
         } catch {
             report(error)
             return nil
@@ -621,9 +754,15 @@ public final class RecipeLibrary {
             let recipes = try await store.recipes(matching: .all)
             exportProgress = RecipeImportProgress(done: 0, total: recipes.count)
 
-            var items: [(recipe: Recipe, images: [Data])] = []
+            var groups: [UUID: VariantGroup] = [:]
+            for (group, _) in try await store.variantGroups() {
+                groups[group.id] = group
+            }
+
+            var items: [(recipe: Recipe, images: [Data], variantGroup: VariantGroup?)] = []
             for recipe in recipes {
-                items.append((recipe, await images(of: recipe)))
+                let group = recipe.variantGroupID.flatMap { groups[$0] }
+                items.append((recipe, await images(of: recipe), group))
                 exportProgress = RecipeImportProgress(done: items.count, total: recipes.count)
             }
             // Writing the archive is pure computation over data already in
@@ -633,6 +772,14 @@ public final class RecipeLibrary {
             report(error)
             return nil
         }
+    }
+
+    /// The group a single exported recipe belongs to, so the file can name
+    /// it. Every group, not only the ones currently drawing as one: a member
+    /// whose sibling is in the trash still belongs where it belongs.
+    private func exportedGroup(of recipe: Recipe) async -> VariantGroup? {
+        guard let id = recipe.variantGroupID else { return nil }
+        return try? await store.variantGroup(id: id)
     }
 
     /// Full-size pictures in the order the recipe lists them.

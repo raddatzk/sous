@@ -48,10 +48,11 @@ public actor SwiftDataRecipeStore: RecipeStore {
         var updated = recipe
         updated.updatedAt = .nowInSyncPrecision
 
+        let groupTitle = try recipe.variantGroupID.flatMap { try storedGroup(id: $0) }?.title
         if let existing = try stored(id: recipe.id) {
-            existing.apply(updated)
+            existing.apply(updated, variantGroupTitle: groupTitle)
         } else {
-            modelContext.insert(StoredRecipe(updated))
+            modelContext.insert(StoredRecipe(updated, variantGroupTitle: groupTitle))
         }
         try modelContext.save()
         return updated
@@ -67,7 +68,9 @@ public actor SwiftDataRecipeStore: RecipeStore {
 
     public func erase(id: UUID) async throws {
         guard let existing = try stored(id: id) else { return }
+        let groupID = existing.variantGroupID
         modelContext.delete(existing)
+        if let groupID { try collectVariantGroup(id: groupID) }
         try modelContext.save()
     }
 
@@ -117,7 +120,10 @@ public actor SwiftDataRecipeStore: RecipeStore {
             // access to the cook's own catalog to do that faithfully.
             recipe.categories = updated.categories
             recipe.updatedAt = updated.updatedAt
-            recipe.searchText = StoredRecipe.searchText(for: updated)
+            recipe.searchText = try StoredRecipe.searchText(
+                for: updated,
+                variantGroupTitle: variantGroupTitle(of: recipe)
+            )
         }
         try modelContext.save()
     }
@@ -131,9 +137,116 @@ public actor SwiftDataRecipeStore: RecipeStore {
             updated.updatedAt = .nowInSyncPrecision
             recipe.categories = updated.categories
             recipe.updatedAt = updated.updatedAt
-            recipe.searchText = StoredRecipe.searchText(for: updated)
+            recipe.searchText = try StoredRecipe.searchText(
+                for: updated,
+                variantGroupTitle: variantGroupTitle(of: recipe)
+            )
         }
         try modelContext.save()
+    }
+
+    // MARK: - Variant groups
+
+    public func variantGroups() async throws -> [(group: VariantGroup, liveMembers: Int)] {
+        var counts: [UUID: Int] = [:]
+        for recipe in try liveRecipes() {
+            guard let groupID = recipe.variantGroupID else { continue }
+            counts[groupID, default: 0] += 1
+        }
+        return try modelContext.fetch(FetchDescriptor<StoredVariantGroup>())
+            .map { ($0.domainValue, counts[$0.id] ?? 0) }
+    }
+
+    public func variantGroup(id: UUID) async throws -> VariantGroup? {
+        try storedGroup(id: id)?.domainValue
+    }
+
+    public func variantGroupMembers(id: UUID) async throws -> [Recipe] {
+        try members(ofGroup: id)
+            .filter { $0.deletedAt == nil }
+            .map(\.domainValue)
+            .sorted { $0.createdAt < $1.createdAt }
+    }
+
+    @discardableResult
+    public func saveVariantGroup(_ group: VariantGroup) async throws -> VariantGroup {
+        var updated = group
+        updated.updatedAt = .nowInSyncPrecision
+
+        if let existing = try storedGroup(id: group.id) {
+            let wasRenamed = existing.title != updated.title
+            existing.apply(updated)
+            // The title lives in every member's search index too. Rewriting
+            // it here rather than asking the members to notice is the same
+            // bargain `renameCategory` makes.
+            if wasRenamed {
+                for member in try members(ofGroup: group.id) {
+                    member.searchText = StoredRecipe.searchText(
+                        for: member.domainValue,
+                        variantGroupTitle: updated.title
+                    )
+                }
+            }
+        } else {
+            modelContext.insert(StoredVariantGroup(updated))
+        }
+        try modelContext.save()
+        return updated
+    }
+
+    public func dissolveVariantGroup(id: UUID) async throws {
+        let now = Date.nowInSyncPrecision
+        for member in try members(ofGroup: id) {
+            member.variantGroupID = nil
+            member.updatedAt = now
+            member.searchText = StoredRecipe.searchText(for: member.domainValue)
+        }
+        if let group = try storedGroup(id: id) {
+            modelContext.delete(group)
+        }
+        try modelContext.save()
+    }
+
+    /// Drops a group nothing is left in.
+    ///
+    /// Only ever called from `erase`, because that is the only moment a
+    /// member stops existing rather than being marked. A group whose members
+    /// are merely in the trash keeps its row: restoring one of them puts the
+    /// pair back together, which clearing the survivor's field eagerly would
+    /// have made impossible.
+    ///
+    /// A group down to a single member is left alone here too — one member
+    /// simply does not draw as a group, and the row costs nothing while it
+    /// waits for a second variant.
+    private func collectVariantGroup(id: UUID) throws {
+        let remaining = try members(ofGroup: id)
+        guard remaining.count <= 1 else { return }
+        for member in remaining {
+            member.variantGroupID = nil
+            member.updatedAt = .nowInSyncPrecision
+            member.searchText = StoredRecipe.searchText(for: member.domainValue)
+        }
+        if let group = try storedGroup(id: id) {
+            modelContext.delete(group)
+        }
+    }
+
+    /// Every recipe in the group, tombstoned ones included — a deletion that
+    /// can still be undone is still a member.
+    private func members(ofGroup id: UUID) throws -> [StoredRecipe] {
+        try modelContext.fetch(
+            FetchDescriptor<StoredRecipe>(predicate: #Predicate { $0.variantGroupID == id })
+        )
+    }
+
+    private func storedGroup(id: UUID) throws -> StoredVariantGroup? {
+        var descriptor = FetchDescriptor<StoredVariantGroup>(predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
+    }
+
+    private func variantGroupTitle(of recipe: StoredRecipe) throws -> String? {
+        try recipe.variantGroupID.flatMap { try storedGroup(id: $0) }?.title
     }
 
     private func liveRecipes() throws -> [StoredRecipe] {
@@ -189,7 +302,7 @@ extension ModelContainer {
             for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self,
             StoredShoppingPlanEntry.self, StoredShoppingDemand.self, StoredPantryFlag.self,
             StoredCatalogIngredient.self, StoredRecipeEnrichment.self, StoredAmountReview.self,
-            StoredRecipeNutrition.self, StoredIngredientReview.self,
+            StoredRecipeNutrition.self, StoredIngredientReview.self, StoredVariantGroup.self,
             StoredIngredientAliasOverride.self, StoredCatalogNutrition.self,
             StoredIngredientVocabulary.self,
             configurations: configuration
