@@ -1,51 +1,61 @@
 import Foundation
 
-/// Turns planned recipes into a shopping list.
+/// Turns planned recipes into a shopping capture: one plan entry per recipe,
+/// one demand per ingredient line.
 public enum ShoppingListBuilder {
     /// How deep a chain of linked recipes is followed. A curry references its
     /// naan, which might reference a spice mix; beyond that it is a loop or a
     /// mistake.
     private static let maxLinkDepth = 3
 
-    /// Builds the list for a set of planned recipes.
+    /// Builds the capture for a set of planned recipes.
     ///
     /// - Parameter resolve: looks up a linked recipe by id. Linked recipes
     ///   contribute their own ingredients — "1 Portion Naan" means flour and
-    ///   yeast on the list, not a jar of naan.
+    ///   yeast on the list, not a jar of naan. Their demands hang on the
+    ///   *parent's* plan entry, so the portion stepper takes them along;
+    ///   the subrecipe's title stays on them as the origin they read as.
     public static func build(
         from planned: [(recipe: Recipe, servings: Int)],
         catalog: IngredientCatalog = .bundled,
         resolve: (UUID) -> Recipe?
-    ) -> [ShoppingItem] {
-        var accumulator: [String: ShoppingItem] = [:]
-        var order: [String] = []
+    ) -> ShoppingCapture {
+        var capture = ShoppingCapture()
 
         for entry in planned {
+            let planEntry = ShoppingPlanEntry(
+                recipeID: entry.recipe.id,
+                title: entry.recipe.title,
+                servingsCaptured: entry.servings
+            )
+            capture.planEntries.append(planEntry)
             collect(
                 recipe: entry.recipe,
                 servings: entry.servings,
                 origin: entry.recipe.title,
+                planEntryID: planEntry.id,
+                scales: true,
                 depth: 0,
                 visited: [],
                 catalog: catalog,
                 resolve: resolve,
-                into: &accumulator,
-                order: &order
+                into: &capture
             )
         }
-        return order.compactMap { accumulator[$0] }
+        return capture
     }
 
     private static func collect(
         recipe: Recipe,
         servings: Int,
         origin: String,
+        planEntryID: UUID,
+        scales: Bool,
         depth: Int,
         visited: Set<UUID>,
         catalog: IngredientCatalog,
         resolve: (UUID) -> Recipe?,
-        into accumulator: inout [String: ShoppingItem],
-        order: inout [String]
+        into capture: inout ShoppingCapture
     ) {
         var seen = visited
         seen.insert(recipe.id)
@@ -62,17 +72,28 @@ public enum ShoppingListBuilder {
                     // servings; without an amount, it is taken as written.
                     servings: portions(of: ingredient) ?? linked.servings,
                     origin: linked.title,
+                    planEntryID: planEntryID,
+                    // A naan wanted "as written" does not grow with the
+                    // curry, and neither does anything a non-scaling line
+                    // pulled in.
+                    scales: scales && portions(of: ingredient) != nil && ingredient.scalesWithServings,
                     depth: depth + 1,
                     visited: seen,
                     catalog: catalog,
                     resolve: resolve,
-                    into: &accumulator,
-                    order: &order
+                    into: &capture
                 )
                 continue
             }
 
-            add(ingredient, from: origin, catalog: catalog, into: &accumulator, order: &order)
+            add(
+                ingredient,
+                from: origin,
+                planEntryID: planEntryID,
+                scales: scales,
+                catalog: catalog,
+                into: &capture
+            )
         }
     }
 
@@ -84,40 +105,30 @@ public enum ShoppingListBuilder {
     private static func add(
         _ ingredient: RecipeIngredient,
         from origin: String,
+        planEntryID: UUID,
+        scales: Bool,
         catalog: IngredientCatalog,
-        into accumulator: inout [String: ShoppingItem],
-        order: inout [String]
+        into capture: inout ShoppingCapture
     ) {
         let written = ShoppingItem.displayName(for: ingredient.name)
         let key = ShoppingItem.key(for: ingredient.name, catalog: catalog)
         guard !key.isEmpty else { return }
 
-        if accumulator[key] == nil {
-            order.append(key)
-            let known = catalog.ingredient(for: written)
-            accumulator[key] = ShoppingItem(
-                key: key,
-                // A known ingredient is shown under its catalog name, so the
-                // list reads consistently however the recipes spell it.
-                name: known?.name ?? written,
-                category: known?.category
+        let known = catalog.ingredient(for: written)
+        capture.demands.append(CapturedShoppingDemand(
+            key: key,
+            // A known ingredient is shown under its catalog name, so the
+            // list reads consistently however the recipes spell it.
+            displayName: known?.name ?? written,
+            category: known?.category,
+            demand: ShoppingDemand(
+                planEntryID: planEntryID,
+                lineID: ingredient.id,
+                originTitle: origin,
+                quantity: ingredient.quantity,
+                state: ingredient.state,
+                scales: scales && ingredient.scalesWithServings && ingredient.quantity != nil
             )
-        }
-
-        guard var item = accumulator[key] else { return }
-
-        // Amounts are kept per recipe; the line's total follows from them.
-        if let index = item.sources.firstIndex(where: { $0.recipeTitle == origin }) {
-            if let quantity = ingredient.quantity {
-                item.sources[index].quantities = item.sources[index].quantities.adding(quantity)
-            }
-        } else {
-            item.sources.append(ShoppingSource(
-                recipeTitle: origin,
-                quantities: ingredient.quantity.map { [$0] } ?? []
-            ))
-        }
-        accumulator[key] = item
+        ))
     }
-
 }

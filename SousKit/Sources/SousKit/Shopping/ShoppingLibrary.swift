@@ -1,10 +1,43 @@
 import Foundation
 import Observation
 
+/// A place on the list as the aisle view walks it.
+public enum ShoppingSection: Hashable, Sendable {
+    /// Raw-text lines the app could not interpret — at the very top, so
+    /// they surface before the store, not in it.
+    case unassigned
+    case aisle(IngredientCategory)
+    /// Pantry staples, collapsed at the end: checked against the shelf,
+    /// not hunted through the store.
+    case pantry
+
+    public var title: String {
+        switch self {
+        case .unassigned: "Nicht zugeordnet"
+        case .aisle(let category): category.title
+        case .pantry: "Vorräte"
+        }
+    }
+}
+
+/// One section of the by-recipe view: a plan entry with its portion dial,
+/// a frozen origin without one, or the hand-typed rest.
+public struct ShoppingRecipeGroup: Identifiable, Sendable {
+    public var id: String
+    /// Set for recipes added since the list became a document — the portion
+    /// stepper only exists where this is present.
+    public var planEntry: ShoppingPlanEntry?
+    public var title: String
+    /// Each row carries only this group's share of its item, so an
+    /// ingredient two dishes need appears under both with its own amount.
+    public var items: [ShoppingItem]
+}
+
 /// The view-facing shopping list.
 ///
-/// The list is what it is; nothing changes it but adding, ticking, and
-/// clearing. Recipes and whole weeks are put on it deliberately.
+/// The list is a document; nothing changes it but adding, ticking, turning
+/// a plan entry's portion dial, and sweeping. Recipes and whole weeks are
+/// put on it deliberately.
 @MainActor
 @Observable
 public final class ShoppingLibrary {
@@ -12,8 +45,12 @@ public final class ShoppingLibrary {
     private let recipeStore: any RecipeStore
     /// Kept so that ingredients the cook added resolve like the bundled ones.
     private let catalogLibrary: IngredientCatalogLibrary?
+    private let pantryStore: (any PantryFlagStore)?
 
+    /// Every line still on the list, swept rows already left out.
     public private(set) var items: [ShoppingItem] = []
+    public private(set) var planEntries: [ShoppingPlanEntry] = []
+    public private(set) var pantryKeys: Set<String> = []
     public var errorMessage: String?
     /// Set after something was added, so the interface can say what happened.
     public var lastAddition: String?
@@ -21,11 +58,13 @@ public final class ShoppingLibrary {
     public init(
         store: any ShoppingListStore,
         recipeStore: any RecipeStore,
-        catalogLibrary: IngredientCatalogLibrary? = nil
+        catalogLibrary: IngredientCatalogLibrary? = nil,
+        pantryStore: (any PantryFlagStore)? = nil
     ) {
         self.store = store
         self.recipeStore = recipeStore
         self.catalogLibrary = catalogLibrary
+        self.pantryStore = pantryStore
     }
 
     private var catalog: IngredientCatalog {
@@ -34,7 +73,12 @@ public final class ShoppingLibrary {
 
     public func reload() async {
         do {
-            items = try await store.items()
+            let snapshot = try await store.snapshot()
+            items = snapshot.items.filter { !$0.isCleared }
+            planEntries = snapshot.planEntries
+            if let pantryStore {
+                pantryKeys = try await pantryStore.flaggedKeys()
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -59,12 +103,12 @@ public final class ShoppingLibrary {
                 try await resolveLinks(of: entry.0, into: &known)
             }
 
-            let built = ShoppingListBuilder.build(
+            let capture = ShoppingListBuilder.build(
                 from: planned.map { (recipe: $0.0, servings: $0.1) },
                 catalog: catalog
             ) { known[$0] }
 
-            try await store.add(built)
+            try await store.add(capture)
             await reload()
             lastAddition = description
         } catch {
@@ -90,14 +134,13 @@ public final class ShoppingLibrary {
         guard !name.isEmpty else { return }
 
         let known = catalog.ingredient(for: name)
-        let item = ShoppingItem(
-            key: ShoppingItem.key(for: ingredient.name, catalog: catalog),
-            name: known?.name ?? name,
-            category: known?.category,
-            manualQuantities: ingredient.quantity.map { [$0] } ?? []
-        )
         do {
-            try await store.add([item])
+            try await store.addManual(
+                key: ShoppingItem.key(for: ingredient.name, catalog: catalog),
+                name: known?.name ?? name,
+                category: known?.category,
+                quantities: ingredient.quantity.map { [$0] } ?? []
+            )
             await reload()
         } catch {
             errorMessage = error.localizedDescription
@@ -106,10 +149,10 @@ public final class ShoppingLibrary {
 
     public func toggle(_ item: ShoppingItem) async {
         do {
-            try await store.setChecked(!item.isChecked, key: item.key)
-            if let index = items.firstIndex(where: { $0.key == item.key }) {
-                items[index].isChecked.toggle()
-            }
+            try await store.setChecked(!item.isChecked, itemID: item.itemID)
+            // Checking freezes amounts and un-checking hands them back to
+            // the stepper, so the whole list is re-read rather than patched.
+            await reload()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -117,7 +160,30 @@ public final class ShoppingLibrary {
 
     public func remove(_ item: ShoppingItem) async {
         do {
-            try await store.remove(key: item.key)
+            try await store.remove(itemID: item.itemID)
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Turns a plan entry's portion dial. Everything open adjusts in place;
+    /// everything checked keeps its size, with differences appended and
+    /// lapses annotated.
+    public func setServings(_ servings: Int, for planEntry: ShoppingPlanEntry) async {
+        do {
+            try await store.setServings(servings, planEntryID: planEntry.id)
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Takes a recipe off the list. Open demand disappears; on checked
+    /// items it is annotated as lapsed rather than deleted.
+    public func remove(planEntry: ShoppingPlanEntry) async {
+        do {
+            try await store.removePlanEntry(planEntry.id)
             await reload()
         } catch {
             errorMessage = error.localizedDescription
@@ -133,63 +199,174 @@ public final class ShoppingLibrary {
         }
     }
 
+    // MARK: - Pantry
+
+    public func isPantry(_ item: ShoppingItem) -> Bool {
+        pantryKeys.contains(item.key)
+    }
+
+    /// Loads the pantry flags without touching the list — for screens that
+    /// only ask about the flag.
+    public func ensurePantryLoaded() async {
+        guard let pantryStore else { return }
+        do {
+            pantryKeys = try await pantryStore.flaggedKeys()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// The cook's call that an ingredient is a shelf staple — set from the
+    /// ingredient form or straight on the list item.
+    public func setPantry(_ flagged: Bool, key: String) async {
+        guard let pantryStore else { return }
+        do {
+            try await pantryStore.setFlagged(flagged, key: key)
+            if flagged {
+                pantryKeys.insert(key)
+            } else {
+                pantryKeys.remove(key)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    // MARK: - Readings
+
     public var openItems: [ShoppingItem] { items.filter { !$0.isChecked } }
     public var checkedItems: [ShoppingItem] { items.filter(\.isChecked) }
 
-    /// The open items grouped by the aisle they are found in, in the order a
-    /// shop is usually walked. Unknown ingredients come last.
-    public var byCategory: [(category: IngredientCategory, items: [ShoppingItem])] {
-        var grouped: [IngredientCategory: [ShoppingItem]] = [:]
+    /// Whether any line came from a recipe — what makes the by-recipe view
+    /// worth offering.
+    public var hasRecipeDemands: Bool {
+        !planEntries.isEmpty || items.contains { !$0.demands.isEmpty }
+    }
+
+    /// The list grouped for the walk through the store: raw-text lines
+    /// first, so they surface before the shop; then the aisles in walking
+    /// order; pantry staples collected at the end.
+    public var bySection: [(section: ShoppingSection, items: [ShoppingItem])] {
+        var unassigned: [ShoppingItem] = []
+        var pantry: [ShoppingItem] = []
+        var aisles: [IngredientCategory: [ShoppingItem]] = [:]
+
         for item in items {
-            grouped[item.category ?? .other, default: []].append(item)
+            if pantryKeys.contains(item.key) {
+                pantry.append(item)
+            } else if let category = item.category {
+                aisles[category, default: []].append(item)
+            } else {
+                unassigned.append(item)
+            }
         }
-        return grouped
-            .map { (category: $0.key, items: $0.value) }
-            .sorted { $0.category.aisleOrder < $1.category.aisleOrder }
+
+        var sections: [(section: ShoppingSection, items: [ShoppingItem])] = []
+        if !unassigned.isEmpty {
+            sections.append((.unassigned, unassigned))
+        }
+        sections.append(contentsOf: aisles
+            .map { (section: ShoppingSection.aisle($0.key), items: $0.value) }
+            .sorted { $0.section.aisleOrder < $1.section.aisleOrder })
+        if !pantry.isEmpty {
+            sections.append((.pantry, pantry))
+        }
+        return sections
     }
 
     /// The heading for items that belong to no recipe.
     public static let ungroupedTitle = "Sonstiges"
 
-    /// The open items grouped by the recipe that wants them, with the amount
-    /// that recipe asks for. An ingredient two dishes need appears under both.
-    public var byRecipe: [(recipe: String, items: [ShoppingItem])] {
-        var order: [String] = []
-        var grouped: [String: [ShoppingItem]] = [:]
+    /// The list grouped by the dish that wants it: plan entries first, each
+    /// with its portion dial; then frozen origins the migration carried
+    /// over; then what was typed by hand.
+    public var byRecipe: [ShoppingRecipeGroup] {
+        var groups: [ShoppingRecipeGroup] = []
 
+        for planEntry in planEntries {
+            let rows = share(of: planEntry.id)
+            guard !rows.isEmpty else { continue }
+            groups.append(ShoppingRecipeGroup(
+                id: planEntry.id.uuidString,
+                planEntry: planEntry,
+                title: planEntry.title,
+                items: rows
+            ))
+        }
+
+        // Demands without a plan entry — migrated rows and lapsed remains —
+        // still read as coming from their recipe, just without a dial.
+        var frozenOrder: [String] = []
+        var frozen: [String: [ShoppingItem]] = [:]
         for item in items {
-            for source in item.sources {
-                if grouped[source.recipeTitle] == nil {
-                    order.append(source.recipeTitle)
-                    grouped[source.recipeTitle] = []
+            let orphans = item.demands.filter { $0.planEntryID == nil }
+            for title in orderedTitles(of: orphans) {
+                if frozen[title] == nil {
+                    frozenOrder.append(title)
                 }
-                // Shown with this recipe's share, not the combined total.
-                let portion = ShoppingItem(
-                    key: item.key,
-                    name: item.name,
-                    category: item.category,
-                    manualQuantities: source.quantities,
-                    isChecked: item.isChecked
-                )
-                grouped[source.recipeTitle]?.append(portion)
-            }
-            if !item.manualQuantities.isEmpty || item.sources.isEmpty {
-                // Belongs to no dish, so it is grouped by that fact rather
-                // than by where it came from. A line that came from a recipe
-                // *and* was topped up by hand appears in both places.
-                if grouped[Self.ungroupedTitle] == nil {
-                    order.append(Self.ungroupedTitle)
-                    grouped[Self.ungroupedTitle] = []
-                }
-                grouped[Self.ungroupedTitle]?.append(ShoppingItem(
-                    key: item.key,
-                    name: item.name,
-                    category: item.category,
-                    manualQuantities: item.manualQuantities,
-                    isChecked: item.isChecked
-                ))
+                var row = item
+                row.demands = orphans.filter { $0.originTitle == title }
+                row.manualQuantities = []
+                frozen[title, default: []].append(row)
             }
         }
-        return order.map { ($0, grouped[$0] ?? []) }
+        for title in frozenOrder {
+            groups.append(ShoppingRecipeGroup(
+                id: "frozen:\(title)",
+                planEntry: nil,
+                title: title,
+                items: frozen[title] ?? []
+            ))
+        }
+
+        let manual = items.compactMap { item -> ShoppingItem? in
+            guard !item.manualQuantities.isEmpty || item.demands.isEmpty else { return nil }
+            // Belongs to no dish, so it is grouped by that fact rather than
+            // by where it came from. A line that came from a recipe *and*
+            // was topped up by hand appears in both places.
+            var row = item
+            row.demands = []
+            return row
+        }
+        if !manual.isEmpty {
+            groups.append(ShoppingRecipeGroup(
+                id: "manual",
+                planEntry: nil,
+                title: Self.ungroupedTitle,
+                items: manual
+            ))
+        }
+        return groups
+    }
+
+    /// Each item's share of one plan entry, one row per item in list order.
+    private func share(of planEntryID: UUID) -> [ShoppingItem] {
+        items.compactMap { item in
+            let share = item.demands.filter { $0.planEntryID == planEntryID }
+            guard !share.isEmpty else { return nil }
+            var row = item
+            row.demands = share
+            row.manualQuantities = []
+            return row
+        }
+    }
+
+    private func orderedTitles(of demands: [ShoppingDemand]) -> [String] {
+        var seen = Set<String>()
+        return demands.compactMap { demand in
+            guard seen.insert(demand.originTitle).inserted else { return nil }
+            return demand.originTitle
+        }
+    }
+}
+
+extension ShoppingSection {
+    /// Walking order of the aisle view; the special sections bracket it.
+    fileprivate var aisleOrder: Int {
+        switch self {
+        case .unassigned: -1
+        case .aisle(let category): category.aisleOrder
+        case .pantry: .max
+        }
     }
 }

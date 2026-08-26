@@ -145,6 +145,7 @@ struct IngredientCatalogView: View {
 struct IngredientFormView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(NutritionLibrary.self) private var nutrition
+    @Environment(ShoppingLibrary.self) private var shopping
     @Environment(\.dismiss) private var dismiss
 
     private let original: CatalogIngredient
@@ -156,6 +157,10 @@ struct IngredientFormView: View {
     /// The one further spelling being typed for a bundled entry.
     @State private var newAlias = ""
     @State private var nutritionDraft: NutritionDraft
+    /// The pantry flag as shown, and as it was when the form opened — only
+    /// a change is written back.
+    @State private var isPantry = false
+    @State private var storedPantry = false
 
     init(ingredient: CatalogIngredient) {
         original = ingredient
@@ -205,6 +210,7 @@ struct IngredientFormView: View {
                     bundledIdentitySection
                     bundledAliasSection
                 }
+                pantrySection
                 nutritionSection
             }
             .formStyle(.grouped)
@@ -226,6 +232,9 @@ struct IngredientFormView: View {
             .task {
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
+                await shopping.ensurePantryLoaded()
+                storedPantry = shopping.pantryKeys.contains(pantryKey)
+                isPantry = storedPantry
             }
         }
         .sousSheetSizing(.form)
@@ -254,6 +263,21 @@ struct IngredientFormView: View {
             Text("Andere Schreibweisen")
         } footer: {
             Text("Mit Komma getrennt. Rezepte, die eine davon nennen, zählen zur selben Zutat.")
+        }
+    }
+
+    // MARK: - Pantry
+
+    /// The key the shopping list files this ingredient under.
+    private var pantryKey: String {
+        ShoppingItem.key(for: trimmedName, catalog: catalog.catalog)
+    }
+
+    private var pantrySection: some View {
+        Section {
+            Toggle("Vorrat", isOn: $isPantry)
+        } footer: {
+            Text("Vorräte stehen auf der Einkaufsliste eingeklappt am Ende — zum Durchsehen am Regal statt zwischen den Besorgungen.")
         }
     }
 
@@ -537,6 +561,9 @@ struct IngredientFormView: View {
         let editable = isNutritionEditable
         let draft = nutritionDraft
         let entered = draft.catalogNutrition(named: trimmedName)
+        let pantryChanged = isPantry != storedPantry
+        let pantryFlagged = isPantry
+        let key = pantryKey
 
         Task {
             if isOwn {
@@ -549,6 +576,9 @@ struct IngredientFormView: View {
                     // Everything cleared out reads as taking the entry back.
                     await nutrition.deleteIngredientNutrition(name: trimmedName)
                 }
+            }
+            if pantryChanged {
+                await shopping.setPantry(pantryFlagged, key: key)
             }
             dismiss()
         }
