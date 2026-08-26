@@ -10,6 +10,12 @@ struct RecipePickerView: View {
     var title = "Rezept verlinken"
     /// The recipe being edited, so it cannot link to itself.
     let excluding: Recipe.ID
+    /// Why a recipe cannot be picked, for the pickers where some cannot.
+    ///
+    /// Shown beside the row rather than hidden from the list: a recipe the
+    /// cook is looking for and cannot find is a worse answer than one that
+    /// says what stands in the way.
+    var unavailable: ((Recipe) -> String?)?
     let onPick: (Recipe) -> Void
 
     @State private var searchText = ""
@@ -25,11 +31,19 @@ struct RecipePickerView: View {
                     onPick(recipe)
                     dismiss()
                 } label: {
-                    RecipeRow(recipe: recipe)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(.rect)
+                    VStack(alignment: .leading, spacing: 2) {
+                        RecipeRow(recipe: recipe)
+                        if let reason = unavailable?(recipe) {
+                            Text(reason)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .disabled(unavailable?(recipe) != nil)
             }
             .navigationTitle(title)
             .searchable(text: $searchText, prompt: "Rezept suchen")

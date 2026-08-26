@@ -90,6 +90,11 @@ public protocol RecipeStore: Sendable {
     /// than a plain save.
     @discardableResult
     func saveVariantGroup(_ group: VariantGroup) async throws -> VariantGroup
+    /// Takes one recipe out of its group, leaving the others in it.
+    ///
+    /// The counterpart to joining, and the reason joining is not a one-way
+    /// door. A group left with nothing to compare goes with it.
+    func removeFromVariantGroup(recipeID: UUID) async throws
     /// Takes the group apart: every member's `variantGroupID` is cleared and
     /// the group's own row goes.
     ///

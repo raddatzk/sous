@@ -194,6 +194,19 @@ public actor SwiftDataRecipeStore: RecipeStore {
         return updated
     }
 
+    public func removeFromVariantGroup(recipeID: UUID) async throws {
+        guard let recipe = try stored(id: recipeID), let groupID = recipe.variantGroupID else { return }
+        recipe.variantGroupID = nil
+        recipe.updatedAt = .nowInSyncPrecision
+        recipe.searchText = StoredRecipe.searchText(for: recipe.domainValue)
+        // Unlike a deletion, this one cannot be taken back from the trash:
+        // the recipe is still there and simply is not a version of that dish
+        // any more. So a group left with a single member is collected here
+        // rather than kept waiting for a sibling that is not coming.
+        try collectVariantGroup(id: groupID)
+        try modelContext.save()
+    }
+
     public func dissolveVariantGroup(id: UUID) async throws {
         let now = Date.nowInSyncPrecision
         for member in try members(ofGroup: id) {

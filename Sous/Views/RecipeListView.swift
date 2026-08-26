@@ -16,6 +16,9 @@ struct RecipeListView: View {
     /// The recipe a second version is being made of, while the sheet asking
     /// for its name is up.
     @State private var addingVariantTo: Recipe?
+    /// The recipe looking for the one it is a version of, while the picker
+    /// is up.
+    @State private var joiningVariantsOf: Recipe?
 
     var body: some View {
         @Bindable var library = library
@@ -47,6 +50,13 @@ struct RecipeListView: View {
                     // Straight to the new one: it is a copy of what was on
                     // screen a moment ago, and the point is to change it.
                     selected = .recipe(variant.id)
+                }
+            }
+            .sheet(item: $joiningVariantsOf) { recipe in
+                VariantJoinPicker(target: .recipe(recipe)) { group in
+                    // Onto the comparison, which is both the proof that it
+                    // worked and the place the name can be corrected.
+                    selected = .group(group.id)
                 }
             }
             // A draft the cook walked away from takes its pictures with it.
@@ -354,6 +364,15 @@ struct RecipeListView: View {
         }
         Button("Variante anlegen", systemImage: "square.on.square") {
             addingVariantTo = recipe
+        }
+        if let groupID = recipe.variantGroupID, library.variantGroups[groupID] != nil {
+            Button("Aus der Gruppe lösen", systemImage: "square.on.square.slash") {
+                Task { await library.removeFromVariantGroup(recipe) }
+            }
+        } else {
+            Button("Mit einem Rezept zusammenfassen", systemImage: "rectangle.stack.badge.plus") {
+                joiningVariantsOf = recipe
+            }
         }
         Divider()
         Button("Löschen", systemImage: "trash", role: .destructive) {

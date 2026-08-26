@@ -456,6 +456,100 @@ public final class RecipeLibrary {
         }
     }
 
+    /// Puts two recipes that were written separately into one group.
+    ///
+    /// The other half of the feature, and the one that has something to work
+    /// with today: a collection that has been grown by hand is full of pairs
+    /// like "Ajvar-Suppe" and "Ajvar-Suppe vegan" which are versions of one
+    /// dish and know nothing about each other. Nothing is copied here — both
+    /// recipes stay exactly as they are, which is what makes this safe enough
+    /// to offer on recipes somebody has been cooking for years.
+    ///
+    /// Neither may already belong to a group. Merging two groups would have
+    /// to throw one of the two titles away, and a name disappearing is not
+    /// something to do as a side effect of picking a recipe from a list.
+    @discardableResult
+    public func groupAsVariants(_ first: Recipe, _ second: Recipe) async -> VariantGroup? {
+        guard first.id != second.id else { return nil }
+        do {
+            for recipe in [first, second] where try await !isUngrouped(recipe) {
+                // Said out loud rather than swallowed. The picker greys these
+                // out, but a group whose second member is in the trash has
+                // stopped drawing as one and still owns its members.
+                errorMessage = refusal(for: recipe, group: await variantGroup(of: recipe))
+                return nil
+            }
+            let group = try await store.saveVariantGroup(
+                VariantGroup(title: VariantGroup.suggestedTitle(for: [first, second]))
+            )
+            for recipe in [first, second] {
+                var member = recipe
+                member.variantGroupID = group.id
+                try await store.save(member)
+            }
+            await reload()
+            return group
+        } catch {
+            report(error)
+            return nil
+        }
+    }
+
+    /// Takes an existing recipe into a group that is already there.
+    @discardableResult
+    public func addToVariantGroup(_ groupID: UUID, recipe: Recipe) async -> Bool {
+        do {
+            guard try await store.variantGroup(id: groupID) != nil else { return false }
+            guard try await isUngrouped(recipe) else {
+                errorMessage = refusal(for: recipe, group: await variantGroup(of: recipe))
+                return false
+            }
+            var member = recipe
+            member.variantGroupID = groupID
+            try await store.save(member)
+            await reload()
+            return true
+        } catch {
+            report(error)
+            return false
+        }
+    }
+
+    /// Takes one recipe back out, leaving its siblings grouped.
+    public func removeFromVariantGroup(_ recipe: Recipe) async {
+        do {
+            try await store.removeFromVariantGroup(recipeID: recipe.id)
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
+    /// Why a recipe cannot be taken into a group, in the words the picker
+    /// and the alert both use.
+    public func refusal(for recipe: Recipe, group: VariantGroup?) -> String {
+        guard let group else { return "„\(recipe.title)“ gehört schon zu einer anderen Gruppe." }
+        return "„\(recipe.title)“ gehört schon zur Gruppe „\(group.title)“. Löse sie erst auf."
+    }
+
+    /// Whether a recipe is free to join a group.
+    ///
+    /// Asked of the store rather than of `variantGroups`, which holds only
+    /// the groups currently drawing as groups: a recipe whose sibling is in
+    /// the trash still belongs somewhere, and taking it into a second group
+    /// would leave the first with a member it cannot get back.
+    private func isUngrouped(_ recipe: Recipe) async throws -> Bool {
+        guard let id = recipe.variantGroupID else { return true }
+        return try await store.variantGroup(id: id) == nil
+    }
+
+    /// The group a recipe belongs to, whether or not it currently draws as
+    /// one — for telling a picker why a recipe cannot be taken.
+    public func variantGroup(of recipe: Recipe) async -> VariantGroup? {
+        guard let id = recipe.variantGroupID else { return nil }
+        return await variantGroup(id: id)
+    }
+
     public func renameVariantGroup(_ group: VariantGroup, to title: String) async {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != group.title else { return }
