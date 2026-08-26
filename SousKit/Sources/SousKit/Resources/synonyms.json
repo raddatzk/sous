@@ -3817,7 +3817,8 @@
     }
    ],
    "candidates": [],
-   "origin": "curated"
+   "origin": "curated",
+   "parent": "Kürbis"
   },
   {
    "word": "Butterpilz",
@@ -4307,7 +4308,8 @@
     "K701502",
     "K701902"
    ],
-   "origin": "curated"
+   "origin": "curated",
+   "parent": "Pilze"
   },
   {
    "word": "Champignon gegrillt, in Öl, Konserve, abgetropft",
@@ -14274,7 +14276,10 @@
   },
   {
    "word": "Hokkaido",
-   "aliases": [],
+   "aliases": [
+    "Hokkaido-Kürbis",
+    "Hokkaidokürbis"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -14304,7 +14309,8 @@
     }
    ],
    "candidates": [],
-   "origin": "curated"
+   "origin": "curated",
+   "parent": "Kürbis"
   },
   {
    "word": "Holunderbeere",
@@ -26479,7 +26485,9 @@
   },
   {
    "word": "Penne",
-   "aliases": [],
+   "aliases": [
+    "Penne Rigate"
+   ],
    "category": "grains",
    "targets": [
     {
@@ -26866,7 +26874,8 @@
     }
    ],
    "candidates": [],
-   "origin": "bls"
+   "origin": "bls",
+   "parent": "Pilze"
   },
   {
    "word": "Pfifferling geschmort ohne Fett",
@@ -41374,6 +41383,18 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Sriracha",
+   "aliases": [
+    "Sriracha Sauce",
+    "Sriracha-Sauce",
+    "Srirachasauce"
+   ],
+   "category": "canned",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated"
   },
   {
    "word": "Stachelbeere",

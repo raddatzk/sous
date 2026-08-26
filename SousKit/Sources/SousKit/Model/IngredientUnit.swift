@@ -33,11 +33,25 @@ public enum IngredientUnit: Hashable, Sendable {
     /// 240 ml — what it holds depends on what is in it, so it converts through
     /// the measure table like a pinch does, not through a volume factor.
     case cup
+    /// The container words lists count things in — "1 Dose Kokosmilch",
+    /// "1 Glas getrocknete Tomaten", "2 Stangen Lauch". Left unrecognized,
+    /// the word glues itself onto the name and quietly breaks every later
+    /// match against it, the same failure "Blätter" had before it became a
+    /// unit. What one holds depends entirely on what is in it, so none of
+    /// them convert.
+    case can
+    case jar
+    case stalk
+    case sprig
+    case stem
+    /// A length of something — "2 cm Ingwer".
+    case centimeter
     case custom(String)
 
     public static let allKnown: [IngredientUnit] = [
         .gram, .kilogram, .milliliter, .liter, .teaspoon, .tablespoon,
         .piece, .pinch, .bunch, .clove, .package, .portion, .leaf, .cup,
+        .can, .jar, .stalk, .sprig, .stem, .centimeter,
     ]
 
     public var symbol: String {
@@ -56,6 +70,12 @@ public enum IngredientUnit: Hashable, Sendable {
         case .portion: "Portion"
         case .leaf: "Blatt"
         case .cup: "Tasse"
+        case .can: "Dose"
+        case .jar: "Glas"
+        case .stalk: "Stange"
+        case .sprig: "Zweig"
+        case .stem: "Stiel"
+        case .centimeter: "cm"
         case .custom(let symbol): symbol
         }
     }
@@ -81,11 +101,17 @@ public enum IngredientUnit: Hashable, Sendable {
         case .piece: ["stk", "stück", "st", "x"]
         case .pinch: ["prise", "prisen"]
         case .bunch: ["bund", "bünde"]
-        case .clove: ["zehe", "zehen"]
-        case .package: ["pck", "packung", "packungen", "päckchen"]
+        case .clove: ["zehe", "zehen", "zehe/n"]
+        case .package: ["pck", "packung", "packungen", "päckchen", "pack", "pkg", "pkt"]
         case .portion: ["portion", "portionen"]
         case .leaf: ["blatt", "blätter"]
         case .cup: ["tasse", "tassen"]
+        case .can: ["dose", "dosen", "dose/n"]
+        case .jar: ["glas", "gläser"]
+        case .stalk: ["stange", "stangen", "stange/n"]
+        case .sprig: ["zweig", "zweige", "zweig/e"]
+        case .stem: ["stiel", "stiele", "stiel/e"]
+        case .centimeter: ["cm", "zentimeter"]
         case .custom: []
         }
     }
@@ -113,6 +139,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .milliliter, .liter, .teaspoon, .tablespoon: .volume
         case .piece: .count
         case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: .imprecise
+        case .can, .jar, .stalk, .sprig, .stem, .centimeter: .imprecise
         }
     }
 
@@ -130,6 +157,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .tablespoon: 15
         case .piece: 1
         case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: nil
+        case .can, .jar, .stalk, .sprig, .stem, .centimeter: nil
         }
     }
 

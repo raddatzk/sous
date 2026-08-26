@@ -25,8 +25,12 @@ enum RecipeContentHash {
     /// went live: the same unchanged line now picks a different basis and a
     /// different number of grams. The bundled data moved with it, so the
     /// fingerprint would have caught most of this — but not all of it, since
-    /// the resolver's order changed in code alone.
-    private static let readingVersion = 6
+    /// the resolver's order changed in code alone. Raised to 7 when the
+    /// container words entered the unit vocabulary ("Dose", "Glas",
+    /// "Stange", "Zweig", "Stiel", "cm"): the same unchanged line now
+    /// parses to a different name — "Kokosmilch" instead of
+    /// "Dose Kokosmilch" — and everything keyed on the name moves with it.
+    private static let readingVersion = 7
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.

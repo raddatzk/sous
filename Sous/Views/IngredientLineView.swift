@@ -11,6 +11,11 @@ import SwiftUI
 struct IngredientLineView: View {
     let ingredient: RecipeIngredient
     var formatter = QuantityFormatter(locale: .sous)
+    /// A guessed line, not a stated one — the cook-mode chip that only
+    /// matched by name. The amount then steps out of the accent: the tint
+    /// is the color of resolved facts, and a name-match heuristic showing
+    /// the whole pot must not wear it.
+    var provisional = false
 
     var body: some View {
         // Interpolated rather than added together: `Text + Text` is
@@ -21,9 +26,9 @@ struct IngredientLineView: View {
 
     /// The amount carries the accent, so it is its own styled run.
     private var amountText: Text {
-        Text(amount)
-            .foregroundStyle(.tint)
-            .fontWeight(.medium)
+        provisional
+            ? Text(amount).foregroundStyle(.secondary).fontWeight(.medium)
+            : Text(amount).foregroundStyle(.tint).fontWeight(.medium)
     }
 
     /// "nach Geschmack" is the amount written in words, so it wears the
@@ -32,9 +37,9 @@ struct IngredientLineView: View {
         guard let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName else {
             return Text("")
         }
-        return Text(" \(phrase.phrase)")
-            .foregroundStyle(.tint)
-            .fontWeight(.medium)
+        return provisional
+            ? Text(" \(phrase.phrase)").foregroundStyle(.secondary).fontWeight(.medium)
+            : Text(" \(phrase.phrase)").foregroundStyle(.tint).fontWeight(.medium)
     }
 
     private var commentText: Text {

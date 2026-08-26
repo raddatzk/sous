@@ -26,6 +26,11 @@ struct RecipeEditorView: View {
     /// cannot hand its focus state to a child to own directly.
     @State private var isEditingIngredients = false
     @State private var isEditingInstructions = false
+    /// How many amounts the resolver could write into the draft's steps —
+    /// the editor's own copy of the detail view's review count, kept in
+    /// state so a keystroke re-renders without re-resolving inline.
+    @State private var amountSuggestionCount = 0
+    @State private var isReviewingAmounts = false
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -76,6 +81,21 @@ struct RecipeEditorView: View {
                 RecipePickerView(excluding: draft.id) { picked in
                     insert(link: picked, at: target)
                 }
+            }
+            .sheet(isPresented: $isReviewingAmounts) {
+                // Resolved fresh at presentation and captured, so the apply
+                // works against the exact text the sheet was showing.
+                let resolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                AmountReviewSheet(recipe: draft, resolution: resolution) { outcome in
+                    guard let outcome else { return }
+                    draft = resolution.applying(outcome.accepted, corrections: outcome.corrections, to: draft)
+                }
+            }
+            // Recounted off the render path whenever the text settles —
+            // the editor's version of the detail view's review banner.
+            .task(id: "\(draft.ingredientsText)|\(draft.instructionsText)|\(draft.servings)") {
+                amountSuggestionCount = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                    .allSuggestions.count
             }
             .task { await catalog.reload() }
         }
@@ -310,7 +330,15 @@ struct RecipeEditorView: View {
             if isEditingIngredients {
                 keyboardBarChrome { ingredientAccessoryBar }
             } else if isEditingInstructions {
-                keyboardBarChrome { instructionLinkButton }
+                keyboardBarChrome {
+                    HStack(spacing: 16) {
+                        instructionLinkButton
+                        if amountSuggestionCount > 0 {
+                            amountLintButton
+                        }
+                    }
+                    .font(.callout)
+                }
             }
         } else if !completions.isEmpty {
             keyboardBarChrome { completionChips(compact: false) }
@@ -444,6 +472,9 @@ struct RecipeEditorView: View {
             )
             if !isCompactPhone {
                 instructionLinkButton
+                if amountSuggestionCount > 0 {
+                    amountLintButton
+                }
             }
         } header: {
             sectionHeader("Zubereitung")
@@ -458,6 +489,20 @@ struct RecipeEditorView: View {
     private var instructionLinkButton: some View {
         Button("Rezept verlinken", systemImage: "link") {
             linkTarget = .instructions
+        }
+    }
+
+    /// The editor's amount lint — the same finding the detail view banners
+    /// after the fact, offered while the text is still being written: steps
+    /// that name an ingredient without giving it an amount.
+    private var amountLintButton: some View {
+        Button(
+            amountSuggestionCount == 1
+                ? "1 Menge könnte ergänzt werden"
+                : "\(amountSuggestionCount) Mengen könnten ergänzt werden",
+            systemImage: "text.badge.checkmark"
+        ) {
+            isReviewingAmounts = true
         }
     }
 

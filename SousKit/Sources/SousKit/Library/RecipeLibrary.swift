@@ -246,6 +246,19 @@ public final class RecipeLibrary {
         }
     }
 
+    /// Rebuilds the store's denormalized search index against the current
+    /// catalog — run when the shipped data changes, so "Kürbis" keeps
+    /// finding the recipe that says "Hokkaido" even though that relation
+    /// arrived after the recipe was last saved.
+    public func reindexSearch() async {
+        do {
+            try await store.reindexSearch(catalog: .bundled)
+            await reload()
+        } catch {
+            report(error)
+        }
+    }
+
     public func save(_ recipe: Recipe) async {
         do {
             try await store.save(recipe)

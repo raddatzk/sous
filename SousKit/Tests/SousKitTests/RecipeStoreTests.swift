@@ -44,6 +44,35 @@ struct RecipeStoreTests {
         #expect(loaded.categories == ["Schnell", "Vegetarisch"])
     }
 
+    @Test("Searching by the parent name finds the recipe that only says the variety")
+    func searchReachesThroughTheVarietyRelation() async throws {
+        let store = try makeStore()
+        try await store.save(Recipe(
+            title: "Ofenkürbis", servings: 2,
+            ingredientsText: "1 Hokkaido", instructionsText: "Backen."
+        ))
+        try await store.save(Recipe(
+            title: "Herbstsuppe", servings: 2,
+            ingredientsText: "1 Butternut", instructionsText: "Kochen."
+        ))
+        try await store.save(Recipe(
+            title: "Salat", servings: 2,
+            ingredientsText: "250 g Cocktailtomaten", instructionsText: "Halbieren."
+        ))
+
+        let pumpkins = try await store.recipes(matching: RecipeQuery(searchText: "Kürbis"))
+        #expect(Set(pumpkins.map(\.title)) == ["Ofenkürbis", "Herbstsuppe"])
+
+        let tomatoes = try await store.recipes(matching: RecipeQuery(searchText: "Tomate"))
+        #expect(tomatoes.map(\.title) == ["Salat"])
+
+        // The reindex rebuilds to the same reading it saves under — a
+        // smoke check that it runs and changes nothing it should not.
+        try await store.reindexSearch(catalog: .bundled)
+        let after = try await store.recipes(matching: RecipeQuery(searchText: "Kürbis"))
+        #expect(Set(after.map(\.title)) == ["Ofenkürbis", "Herbstsuppe"])
+    }
+
     @Test("The store stamps updatedAt, not the caller")
     func storeStampsUpdatedAt() async throws {
         let store = try makeStore()
