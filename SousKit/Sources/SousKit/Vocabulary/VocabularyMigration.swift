@@ -34,7 +34,9 @@ public enum VocabularyMigration {
 public actor SwiftDataVocabularyMigration {
     /// Idempotent by construction: the legacy rows are deleted in the same
     /// save that writes their content, so a second run finds nothing to fold.
-    public func run(catalog: IngredientCatalog = .bundled) throws -> VocabularyMigration.Report {
+    public func run(
+        catalog: IngredientCatalog = .bundled, bls: BLSCatalog = .bundled
+    ) throws -> VocabularyMigration.Report {
         var report = VocabularyMigration.Report()
         var touched: [String: StoredIngredientVocabulary] = [:]
 
@@ -98,8 +100,16 @@ public actor SwiftDataVocabularyMigration {
             // Only where nothing has been said yet: an entry the extension
             // already wrote a basis for was written *later* than this row.
             if bases[IngredientState.unspecified.rawValue] == nil {
+                // Stamped like a confirmation, so that a folded row is not
+                // the one kind of basis a later data update cannot name what
+                // it lost. The code was written by phase 3; what it was
+                // called and which release it resolved in are read here,
+                // which is the first moment the fold has the table to ask.
+                let blsRow = row.blsCode.flatMap { bls.entry(for: $0) }
                 bases[IngredientState.unspecified.rawValue] = BasisAssignment.ownValues(
-                    row.values, code: row.blsCode, source: row.source
+                    row.values, code: row.blsCode, catalogName: blsRow?.name,
+                    datasetVersion: blsRow == nil ? nil : bls.source.datasetVersion,
+                    source: row.source
                 )
             }
             target.bases = bases

@@ -58,6 +58,7 @@
 		B28BE3C030C0E9EE75A63AF1 /* IngredientReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687730697B4B18B2BA873B0B /* IngredientReviewSheet.swift */; };
 		B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E17F156912A3CDF5E6CA988B /* Assets.xcassets */; };
 		B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */; };
+		B984C5734F5D6DA69B42AEFA /* DataUpdateNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */; };
 		BB7EFD38EA70A0036C04AEE2 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
 		C08876653DCA69CB644ABD57 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
 		C34D8C291432A617C11A5D9A /* RecipeImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30F1C03B1F7A30595D32B1C /* RecipeImportView.swift */; };
@@ -124,6 +125,7 @@
 		368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerCenter.swift; sourceTree = "<group>"; };
 		3A4D64C09129B00714574B3E /* RecipeImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImageView.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
+		43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataUpdateNotice.swift; sourceTree = "<group>"; };
 		44F310A30BB44C83C489A40F /* SousKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SousKit; path = SousKit; sourceTree = SOURCE_ROOT; };
 		4712F12086F7ADC2088261B3 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4B6026111A4BDC9288A3121F /* CookSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookSession.swift; sourceTree = "<group>"; };
@@ -199,6 +201,7 @@
 				20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */,
 				CBAB32A5E9329993EB86EEB1 /* CookModeView.swift */,
 				35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */,
+				43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */,
 				B0A2F22E37BEADC21AB3C46C /* DecimalText.swift */,
 				6D629FB2F5517CF39B9396A2 /* FlowLayout.swift */,
 				8DD33E69332194FC5F92AFFD /* HighlightedTextEditor.swift */,
@@ -495,6 +498,7 @@
 				3A59E789915A6696873AE9FD /* CookTimer.swift in Sources */,
 				E7BDB939A6B8E83F497FB16F /* CookTimerCenter.swift in Sources */,
 				58D8BB1535653B31CCEE0F34 /* CookTimerMetadata.swift in Sources */,
+				B984C5734F5D6DA69B42AEFA /* DataUpdateNotice.swift in Sources */,
 				CF6E65C43C65A03C214144E4 /* DecimalText.swift in Sources */,
 				59034AA0F531D1FA42A6D33C /* FlowLayout.swift in Sources */,
 				02C800EF679D00C624095FE2 /* HighlightedTextEditor.swift in Sources */,

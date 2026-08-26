@@ -100,17 +100,46 @@ public final class NutritionLibrary {
         return entry.nutritionOverride(bls: bls, source: datasetVersion)
     }
 
+    /// Which state a decision about `name` has to be written under, for a
+    /// line that asked for `state`.
+    ///
+    /// Not simply the line's state, and that is the whole point. A basis is
+    /// stored per state and read with a fallback (`CatalogNutrition.basis`),
+    /// so the question a cook is looking at is not always filed where the
+    /// line stands: "Kartoffeln, gegart" whose entry has only an
+    /// `unspecified` basis is *answered* by that basis, and an answer written
+    /// under `cooked` would leave the one being repaired untouched — orphaned
+    /// mapping and all. Conversely a line whose own state does have a basis
+    /// must edit that one and not the general row.
+    ///
+    /// The fallback order here mirrors `CatalogNutrition.basis(for:)`
+    /// exactly; where nothing is stored at all, the line's own state stands,
+    /// because that is what the cook is looking at.
+    public func basisState(
+        forName name: String, asking state: IngredientState = .unspecified
+    ) -> IngredientState {
+        guard let entry = nutrition(forName: name) else { return state }
+        if entry.hasOwnBasis(for: state) { return state }
+        for fallback in IngredientState.displayOrder where entry.hasOwnBasis(for: fallback) {
+            return fallback
+        }
+        return state
+    }
+
     /// Whether anybody has answered the basis question for `name`.
     public func basisStatus(forName name: String) -> NutritionBasis.Status? {
         nutrition(forName: name)?.basis(for: .unspecified)?.status
     }
 
-    /// Whether the re-key onto SBLS codes never found a row for this name.
+    /// Whether a question about this word's basis is standing open.
     ///
-    /// The stamp phase 3 wrote and nobody read. It does not stop anything —
-    /// the cook's numbers work by name, which is the compatibility path — but
-    /// it is a question standing open, and the ingredient form is where it
-    /// gets asked.
+    /// Two things write this stamp, and the distinction matters to whoever
+    /// prints it: phase 3's re-key, when a name matched no row at all, and
+    /// phase 6's reconciliation, when the row a mapping *did* point at is
+    /// gone from a new release. Neither stops anything — the cook's numbers
+    /// work by name, which is the compatibility path — but both are questions,
+    /// and the ingredient form is where they get asked. Which of the two it
+    /// is, ``orphanedCatalogNames(forName:)`` answers.
     public func needsBasisReview(forName name: String) -> Bool {
         catalogLibrary.entry(for: name)?.needsBasisReview == true
     }
@@ -126,13 +155,24 @@ public final class NutritionLibrary {
         // numbers entered for "Tomaten" are numbers for the ingredient, and
         // an entry keyed by a spelling would be a second vocabulary word.
         let name = catalog.canonicalName(for: nutrition.name)
+        // The code the numbers stand in for, kept so a data update can still
+        // tell the cook if that row has gone — and since phase 6 with the
+        // same two stamps a confirmation carries, so that "gone" can name
+        // what it was and say which release it was last seen in. Own values
+        // never orphan; what they lose is the note, not the numbers.
+        let replaced = catalogLibrary.entry(for: name)?
+            .bases[IngredientState.unspecified.rawValue]
+        let code = replaced?.code
+        // A row that still resolves is stamped as of now; one that does not
+        // keeps whatever the last confirmation remembered, because that is
+        // the release the name it carries was true in.
+        let row = code.flatMap { bls.entry(for: $0) }
         await catalogLibrary.setBasis(
             .ownValues(
                 values,
-                // The code the numbers stand in for, kept so a data update
-                // can still tell the cook if that row has gone.
-                code: catalogLibrary.entry(for: name)?
-                    .bases[IngredientState.unspecified.rawValue]?.code,
+                code: code,
+                catalogName: row?.name ?? replaced?.catalogName,
+                datasetVersion: row == nil ? replaced?.datasetVersion : datasetVersion,
                 source: nutrition.source
             ),
             state: .unspecified,
@@ -242,7 +282,48 @@ public final class NutritionLibrary {
                 rows.append(row)
             }
         }
+        // The successor proposal of concept §7. A code that vanished took its
+        // row with it, but not the name that row had when the cook confirmed
+        // it — and that name is catalog language, which the kitchen word is
+        // not: "Schmelzkäse, mind. 45 % Fett i. Tr." finds its neighbours,
+        // "Schmelzkäse" alone finds fewer of them. No reverse index is needed
+        // for this; the mapping sits in a vocabulary entry whose own name is
+        // the kitchen word, and the remembered name sits beside it.
+        if rows.count < limit {
+            for remembered in orphanedCatalogNames(forName: canonical) {
+                for row in bls.search(remembered, limit: limit)
+                where seen.insert(row.code).inserted {
+                    rows.append(row)
+                }
+            }
+        }
         return Array(rows.prefix(limit))
+    }
+
+    /// Every mapping in the vocabulary that points at a row the shipped data
+    /// no longer has, with the state it is filed under — the whole of what
+    /// decision D allows the app to report after a data change, and nothing
+    /// besides. Changed values are not in here because they are not looked
+    /// for: they flow into the sums silently, which is the decision.
+    ///
+    /// Computed off the loaded vocabulary rather than off the reconciliation
+    /// pass's report, so it shortens as the cook answers and empties itself
+    /// entirely if a later release brings a row back.
+    public var orphanedIngredients: [NutritionCoverage.OpenIngredient] {
+        catalogLibrary.entries.flatMap { entry in
+            IngredientState.displayOrder.compactMap { state in
+                guard entry.bases[state.rawValue]?.isOrphaned(in: bls) == true else { return nil }
+                return NutritionCoverage.OpenIngredient(name: entry.name, state: state)
+            }
+        }
+    }
+
+    /// What the vanished rows behind `name` were called — the "beruhte auf:
+    /// …" of an orphaned mapping, read live off the vocabulary rather than
+    /// out of a cached coverage, so it disappears by itself the moment the
+    /// mapping is repaired or the row comes back.
+    public func orphanedCatalogNames(forName name: String) -> [String] {
+        catalogLibrary.entry(for: name)?.orphanedCatalogNames(in: bls) ?? []
     }
 
     public func row(forCode code: String) -> BLSEntry? { bls.entry(for: code) }

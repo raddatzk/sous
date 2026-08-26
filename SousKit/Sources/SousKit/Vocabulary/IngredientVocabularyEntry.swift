@@ -82,6 +82,24 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
             && !needsBasisReview
     }
 
+    /// What the vanished rows were called, in state display order.
+    ///
+    /// The concept's "beruhte auf: Kartoffel geschält, gekocht — in der
+    /// aktualisierten Quelle nicht mehr enthalten", and the search term a
+    /// successor is most likely found under: the cook's word is rarely the
+    /// catalog's, so the remembered name reaches rows the kitchen word never
+    /// would.
+    public func orphanedCatalogNames(in bls: BLSCatalog) -> [String] {
+        var names: [String] = []
+        for state in IngredientState.displayOrder {
+            guard let assignment = bases[state.rawValue], assignment.isOrphaned(in: bls),
+                  let name = assignment.catalogName, !names.contains(name)
+            else { continue }
+            names.append(name)
+        }
+        return names
+    }
+
     /// The identity half, for `IngredientCatalog`.
     public func catalogIngredient(fallback: CatalogIngredient?) -> CatalogIngredient {
         CatalogIngredient(
@@ -172,11 +190,43 @@ public struct BasisAssignment: Codable, Hashable, Sendable {
         self.decidedAt = decidedAt
     }
 
+    /// Decoded leniently, and for a sharper reason than the other lenient
+    /// decodes in this app: the blob these live in is read with
+    /// `(try? …) ?? [:]` (``StoredIngredientVocabulary/bases``), so a decode
+    /// that fails does not surface as an error — it silently empties every
+    /// basis decision the cook ever made for that word. `status` is the one
+    /// non-optional field, and the one that would take the whole dictionary
+    /// down with it; absent, it means a blob written before there was a
+    /// status to record, and everything written then was the cook's own word.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            status: try container.decodeIfPresent(
+                NutritionBasis.Status.self, forKey: .status
+            ) ?? .confirmed,
+            code: try container.decodeIfPresent(String.self, forKey: .code),
+            catalogName: try container.decodeIfPresent(String.self, forKey: .catalogName),
+            datasetVersion: try container.decodeIfPresent(String.self, forKey: .datasetVersion),
+            values: try container.decodeIfPresent(NutritionInfo.self, forKey: .values),
+            source: try container.decodeIfPresent(String.self, forKey: .source),
+            decidedAt: try container.decodeIfPresent(Date.self, forKey: .decidedAt)
+        )
+    }
+
     /// The cook's own numbers as a basis — confirmed by the act of typing.
+    ///
+    /// The row they stand in for is remembered the same way a confirmation
+    /// remembers it: own values never orphan (see ``basis(bls:source:)``),
+    /// but "these numbers replaced Kartoffel geschält, gekocht, and that row
+    /// is gone" is still something the cook may want to be told.
     public static func ownValues(
-        _ values: NutritionInfo, code: String? = nil, source: String = CatalogNutrition.ownSource
+        _ values: NutritionInfo, code: String? = nil, catalogName: String? = nil,
+        datasetVersion: String? = nil, source: String = CatalogNutrition.ownSource
     ) -> BasisAssignment {
-        BasisAssignment(status: .confirmed, code: code, values: values, source: source)
+        BasisAssignment(
+            status: .confirmed, code: code, catalogName: catalogName,
+            datasetVersion: datasetVersion, values: values, source: source
+        )
     }
 
     /// A BLS row the cook picked.
@@ -189,6 +239,22 @@ public struct BasisAssignment: Codable, Hashable, Sendable {
 
     /// The confirmed opt-out: no numbers, on purpose, and no more asking.
     public static let deliberatelyWithout = BasisAssignment(status: .deliberatelyWithout)
+
+    /// Whether what this says points at nothing: a code-backed mapping whose
+    /// row the shipped data no longer has.
+    ///
+    /// Three things are deliberately *not* orphaned. A mapping nobody ever
+    /// made has nothing to lose. The deliberate opt-out is an answer about
+    /// the ingredient, not about a row. And **own values never orphan**: the
+    /// cook's numbers do not hang on the BLS, so a release that drops the row
+    /// they once stood in for takes the note, not the numbers.
+    ///
+    /// This is the same test ``basis(bls:source:)`` makes at read time, named
+    /// once so the reconciliation pass and the read cannot drift apart.
+    public func isOrphaned(in bls: BLSCatalog) -> Bool {
+        guard status != .deliberatelyWithout, values == nil, let code else { return false }
+        return bls.entry(for: code) == nil
+    }
 
     /// This assignment as a basis a sum can use.
     ///
