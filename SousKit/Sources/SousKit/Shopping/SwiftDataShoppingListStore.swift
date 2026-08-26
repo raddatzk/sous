@@ -49,6 +49,7 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
         }
 
         var itemPosition = try nextSortOrder()
+        var demandPosition = try nextDemandSortOrder()
         for captured in capture.demands {
             guard !captured.key.isEmpty else { continue }
             var demand = captured.demand
@@ -61,7 +62,10 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
                 category: captured.category,
                 position: &itemPosition
             )
-            modelContext.insert(StoredShoppingDemand(demand, itemID: target.itemID))
+            modelContext.insert(StoredShoppingDemand(
+                demand, itemID: target.itemID, sortOrder: demandPosition
+            ))
+            demandPosition += 1
             target.updatedAt = .nowInSyncPrecision
         }
         try modelContext.save()
@@ -231,7 +235,8 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
                             isLate: true,
                             isScaleDiff: true
                         ),
-                        itemID: target.itemID
+                        itemID: target.itemID,
+                        sortOrder: try nextDemandSortOrder()
                     ))
                 }
             } else {
@@ -291,6 +296,9 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
     /// visible, checkable, not re-scalable. Checked stays checked.
     private func migrateLegacyRowsIfNeeded() throws {
         var migrated = false
+        // The whole migration runs inside one millisecond, so the order the
+        // old rows named their recipes in only survives if it is written down.
+        var position = try nextDemandSortOrder()
         for entry in try allEntries() {
             if entry.itemID == nil {
                 entry.itemID = UUID()
@@ -307,8 +315,10 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
                             quantity: quantity,
                             scales: false
                         ),
-                        itemID: entry.itemID
+                        itemID: entry.itemID,
+                        sortOrder: position
                     ))
+                    position += 1
                 }
             }
             entry.sourceData = Data()
@@ -342,7 +352,10 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
 
     private func allDemands() throws -> [StoredShoppingDemand] {
         var descriptor = FetchDescriptor<StoredShoppingDemand>()
-        descriptor.sortBy = [SortDescriptor(\.addedAt)]
+        // Both keys, in this order: `addedAt` keeps later captures after
+        // earlier ones, `sortOrder` settles everything captured together —
+        // which `addedAt` cannot, being tied across a whole pass.
+        descriptor.sortBy = [SortDescriptor(\.addedAt), SortDescriptor(\.sortOrder)]
         return try modelContext.fetch(descriptor)
     }
 
@@ -377,6 +390,13 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
 
     private func nextSortOrder() throws -> Int {
         var descriptor = FetchDescriptor<StoredShoppingEntry>()
+        descriptor.sortBy = [SortDescriptor(\.sortOrder, order: .reverse)]
+        descriptor.fetchLimit = 1
+        return (try modelContext.fetch(descriptor).first?.sortOrder ?? -1) + 1
+    }
+
+    private func nextDemandSortOrder() throws -> Int {
+        var descriptor = FetchDescriptor<StoredShoppingDemand>()
         descriptor.sortBy = [SortDescriptor(\.sortOrder, order: .reverse)]
         descriptor.fetchLimit = 1
         return (try modelContext.fetch(descriptor).first?.sortOrder ?? -1) + 1
