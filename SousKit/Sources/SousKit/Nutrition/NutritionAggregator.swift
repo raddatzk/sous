@@ -84,7 +84,7 @@ public enum NutritionAggregator {
 
             let canonicalName = catalog.canonicalName(for: ingredient.name)
             let entry = nutritionCatalog.nutrition(forCanonicalName: canonicalName)
-            guard let perHundredGrams = entry?.nutrition(for: ingredient.state) else {
+            guard let basis = entry?.basis(for: ingredient.state) else {
                 // A name nothing knows wants a catalog entry first; a known
                 // name without numbers wants the numbers — different fixes,
                 // different reasons.
@@ -102,8 +102,16 @@ public enum NutritionAggregator {
                 continue
             }
 
-            let contribution = perHundredGrams.scaled(byGrams: grams)
-            lines.append(NutritionLineReport(ingredientName: displayName, outcome: .contributed(contribution)))
+            let contribution = basis.values.scaled(byGrams: grams)
+            // The basis and the alternatives ride along with the number, so
+            // whatever shows it can say what it rests on — and so phase 4's
+            // picker has the candidate list without recomputing anything.
+            lines.append(NutritionLineReport(
+                ingredientName: displayName,
+                outcome: .contributed(contribution),
+                basis: basis,
+                candidateCodes: entry?.candidateCodes ?? []
+            ))
             total = total + contribution
         }
         return total

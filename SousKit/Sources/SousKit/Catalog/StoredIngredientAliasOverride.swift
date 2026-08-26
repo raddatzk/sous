@@ -17,6 +17,11 @@ public final class StoredIngredientAliasOverride {
     public var canonicalKey: String = ""
     /// The spelling as the cook wrote it — shown as-is, matched normalized.
     public var alias: String = ""
+    /// The SBLS code behind `canonicalKey`, once it has been resolved to one.
+    /// See `StoredCatalogNutrition.blsCode` — same join, same reason.
+    public var blsCode: String?
+    /// Set where the name maps to nothing; the alias keeps working by name.
+    public var needsBasisReview: Bool = false
     public var createdAt: Date = Date.nowInSyncPrecision
 
     public init(canonicalKey: String, alias: String) {

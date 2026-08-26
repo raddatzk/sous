@@ -14,20 +14,53 @@ enum RecipeContentHash {
     /// 20 % Fett"), which silently left those ingredients out of a recipe's
     /// nutrition. Raised to 3 when the parser learned unquantified amounts
     /// ("Salz nach Geschmack") and the aggregator began carrying coverage.
-    private static let readingVersion = 3
+    /// Raised to 4 when nutrition began resolving through SBLS codes instead
+    /// of curated names, "Tasse" entered the unit vocabulary, and the set of
+    /// known names moved from `ingredients.json` into `synonyms.json` — that
+    /// set decides which lines the parser leaves whole at a comma.
+    private static let readingVersion = 4
+
+    /// The bundled data files. Everything the catalogs and the resolver read
+    /// belongs in this list.
+    static let bundledDataResources = ["bls", "synonyms", "measures", "aisles"]
+
+    /// How many bytes each listed file contributed — internal so a test can
+    /// tell "hashed four files" from "found none and hashed the void", which
+    /// produce a perfectly ordinary-looking hash either way.
+    static var bundledDataSizes: [(name: String, bytes: Int)] {
+        bundledDataResources.map { resource in
+            guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
+                  let data = try? Data(contentsOf: url)
+            else { return (resource, 0) }
+            return (resource, data.count)
+        }
+    }
 
     /// What the bundled catalog data currently is, hashed from the shipped
     /// files themselves — an app update that ships new data has to invalidate
     /// every cached figure on its own, not wait for someone to remember a
     /// `readingVersion` bump.
+    ///
+    /// A file that cannot be read trips an assertion instead of being skipped
+    /// over. Skipping was the quiet failure: rename the files and the loop
+    /// finds nothing, the fingerprint collapses to the constant hash of no
+    /// input, and from then on no data change ever invalidates a cached
+    /// figure again — with nothing anywhere saying so.
     static let bundledDataFingerprint: String = {
         var hasher = SHA256()
-        for resource in ["ingredients", "nutrition"] {
+        var found = 0
+        for resource in bundledDataResources {
             guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
                   let data = try? Data(contentsOf: url)
             else { continue }
+            found += 1
             hasher.update(data: data)
         }
+        assert(
+            found == bundledDataResources.count,
+            "Only \(found) of \(bundledDataResources.count) bundled data files "
+                + "(\(bundledDataResources)) could be read for the fingerprint"
+        )
         return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }()
 

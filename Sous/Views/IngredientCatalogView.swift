@@ -416,10 +416,20 @@ struct IngredientFormView: View {
         } header: {
             Text("Nährwerte je 100 g")
         } footer: {
-            // The entry's own string, never a label hardcoded here — the day
-            // a second source joins BLS, this line has to keep telling the
-            // truth without anyone remembering to come back for it.
-            Text("Quelle: \(entry.source)")
+            // What the numbers rest on, in two lines that answer different
+            // questions: which row of the catalog these values are, and whose
+            // catalog it is. The kitchen word is almost never the source's
+            // word — "Kartoffel" is "Kartoffel geschält, gekocht" there — and
+            // until now the app showed the values without ever saying so.
+            VStack(alignment: .leading, spacing: 2) {
+                if let basis = entry.basis(for: selectedState.wrappedValue)?.catalogName {
+                    Text("beruht auf: \(basis)")
+                }
+                // The entry's own string, never a label hardcoded here — the
+                // day a second source joins BLS, this line has to keep
+                // telling the truth without anyone remembering to come back.
+                Text("Quelle: \(entry.source)")
+            }
         }
     }
 

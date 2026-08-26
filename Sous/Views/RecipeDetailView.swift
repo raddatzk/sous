@@ -762,7 +762,7 @@ struct RecipeDetailView: View {
         let coverage = nutrition.coverage
         let summary = "≈ \(Self.nutrients.string(kilocalories: nutrition.perPortion.kcal)) pro Portion"
             + " — \(coverage.includedCount) von \(coverage.accountableCount) Zutaten"
-        if coverage.gaps.isEmpty {
+        if coverage.gaps.isEmpty && coverage.contributions.isEmpty {
             Text(summary)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -778,6 +778,22 @@ struct RecipeDetailView: View {
                                 .multilineTextAlignment(.trailing)
                         }
                         .font(.footnote)
+                    }
+                    // The lines that *did* count, each naming the catalog row
+                    // it was read from. The drill-down used to explain only
+                    // the failures; a figure that worked out is just as much
+                    // an interpretation, and this is where it says which one.
+                    ForEach(coverage.contributions, id: \.self) { line in
+                        if let basis = line.basisName {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(line.sourceRecipeTitle.map { "aus \($0): \(line.ingredientName)" } ?? line.ingredientName)
+                                Spacer()
+                                Text("beruht auf: \(basis)")
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            .font(.footnote)
+                        }
                     }
                 }
                 .padding(.top, 6)

@@ -180,8 +180,18 @@ def _broth_override_category(letter: str, german_name: str) -> str | None:
     return None
 
 
-def extract_rows(xlsx_path: Path, group_codes: dict) -> tuple[list[dict], dict]:
-    """Returns (rows, stats). stats has counts useful for the final report."""
+def extract_rows(
+    xlsx_path: Path, group_codes: dict, force_codes: dict[str, str] | None = None
+) -> tuple[list[dict], dict]:
+    """Returns (rows, stats). stats has counts useful for the final report.
+
+    `force_codes` maps a BLS code to the category it should carry, for rows the
+    group filter drops but the curation explicitly asks for. This is how `Brot`
+    and `Brötchen` keep real values although BLS's whole bread group is out of
+    scope: the curation naming a code *is* the decision to include that row,
+    so there is no way to name one and silently not get it.
+    """
+    force_codes = force_codes or {}
     wb = openpyxl.load_workbook(xlsx_path, read_only=True, data_only=True)
     ws = wb[SHEET_NAME]
     row_iter = ws.iter_rows(values_only=True)
@@ -199,6 +209,7 @@ def extract_rows(xlsx_path: Path, group_codes: dict) -> tuple[list[dict], dict]:
         "skipped_by_group_filter": 0,
         "skipped_all_nutrients_blank": 0,
         "included_by_letter": {},
+        "forced_in": [],
     }
 
     for raw_row in row_iter:
@@ -212,6 +223,9 @@ def extract_rows(xlsx_path: Path, group_codes: dict) -> tuple[list[dict], dict]:
         german_name = str(german_name).strip()
 
         category = classifier.classify(bls_code, german_name)
+        if category is None and bls_code in force_codes:
+            category = force_codes[bls_code]
+            stats["forced_in"].append((bls_code, german_name))
         if category is None:
             stats["skipped_by_group_filter"] += 1
             continue

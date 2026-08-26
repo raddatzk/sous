@@ -1,0 +1,125 @@
+{
+ "note": "Default-Ladenbereich je BLS-Lebensmittelgruppe. Greift, wo eine Zeile oder ein Synonym keine eigene Kategorie mitbringt; die feinere Zuordnung je Zeile steht in bls.json.",
+ "groups": [
+  {
+   "group": "B",
+   "category": "bakery",
+   "included": false,
+   "note": "186 rows, finished bread (Roggenvollkornbrot, Weizenbrot, ...). Some recipes do call for '2 Scheiben Toastbrot', but per the brief we default to excluding finished bread for this v1 pass; revisit later."
+  },
+  {
+   "group": "C",
+   "category": "grains",
+   "included": true,
+   "note": "231 rows: raw/processed grains, flours, flakes, müsli/cornflakes (including sweetened/fortified branded variants like 'Knuspermüslimischung ... angereichert mit Vitaminen'). Kept wholesale - müsli and cornflakes are still recognizable pantry ingredients, not finished dishes."
+  },
+  {
+   "group": "D",
+   "category": "bakery",
+   "included": false,
+   "note": "466 rows, finished pastries/cookies (Zwieback, Salzbrezeln, Butterkekse). Finished baked goods, same reasoning as B."
+  },
+  {
+   "group": "E",
+   "category": "grains",
+   "included": true,
+   "note": "104 rows. Sampling the full group revealed it is NOT just pasta (as the brief's one example suggested) - it also contains every egg row (Hühnerei, Wachtelei, Gänseei, Entenei, Putenei, plus Eigelb/Eiklar). Default 'grains' covers the pasta/noodle/dumpling rows (Teigwaren, Eierteigwaren, Schupfnudeln, Semmelknödel, Grießklößchen, Böhmische Knödel, Ravioli/Tortellini); an override recategorizes egg rows to 'dairy' to match the existing curated entry ('Ei', category dairy, aliases include 'Hühnerei') so they merge/overlay cleanly instead of landing in the wrong category."
+  },
+  {
+   "group": "F",
+   "category": "fruit",
+   "included": true,
+   "note": "275 rows, raw/prepared fruit. Homogeneous, kept wholesale."
+  },
+  {
+   "group": "G",
+   "category": "vegetables",
+   "included": true,
+   "note": "560 rows, raw/prepared vegetables including some canned convenience mixes and vegetable juice. Kept wholesale; the couple of instant-powder/prepared rows fall out via global_exclude_keywords."
+  },
+  {
+   "group": "H",
+   "category": "legumes",
+   "included": true,
+   "note": "142 rows. The brief's 'Hülsenfrüchte/Sprossen/Soja' label undersells it: this group actually mixes legumes/sprouts/soy with tree nuts and seeds (Erdnuss, Haselnuss, Mandel, Walnuss, Cashewkern, Pistazie, Pinienkern, Macadamianuss, Paranuss, Pekannuss, Kürbiskern, Sonnenblumenkern, Mohn, Sesam, Leinsamen, Chia-Samen, Edelkastanie/Marone), olives, coconut, plant-milk drinks, plant-based dairy alternatives, and composed vegetarian/vegan meat-substitute products (Bratwurst, Schnitzel, Aufschnitt, Würstchen, Bratlinge). A single category does not fit, so 'legumes' is only the fallback default (beans/lentils/peas/soy/tofu/sprouts) and everything else is reassigned via keyword overrides below, checked in order top to bottom."
+  },
+  {
+   "group": "K",
+   "category": "vegetables",
+   "included": true,
+   "note": "157 rows. Despite the brief's 'Kartoffel/Stärkeprodukte' label, this group is really potatoes AND edible mushrooms AND tubers AND starches/flours AND gnocchi AND a tail of frozen/instant processed potato products. No single category fits, so this letter's default ('vegetables', used as a safety-net fallback - none of the 157 rows actually fell through to it, every one matched an override) is overridden per keyword, checked in order top to bottom. Ultra-processed frozen/snack potato products are excluded outright since they're finished convenience foods, not base ingredients, mirroring the B/D/N/S exclusions."
+  },
+  {
+   "group": "M",
+   "category": "dairy",
+   "included": true,
+   "note": "279 rows, milk/yogurt/cheese/cream in many fat-content and processing variants. Homogeneous, kept wholesale."
+  },
+  {
+   "group": "N",
+   "category": "drinks",
+   "included": false,
+   "note": "114 rows, sampled in full: entirely finished ready-to-drink beverages (coffee, tea, soda, juice drinks, flavored/mineral water). None read as a cooking ingredient, so the whole group is excluded (unlike P, no cherry-picking was warranted here)."
+  },
+  {
+   "group": "P",
+   "category": "drinks",
+   "included": true,
+   "note": "119 rows, mostly finished drinks (beer styles, cocktails, alkopops, dessert liqueurs) that aren't recipe ingredients. Sampled the full group and hand-picked ~35 codes that ARE commonly used AS a cooking ingredient (wine by dryness/color for deglazing and sauces, fortified wines, brandies/spirits used in flambe or baking, dessert liqueurs used in tiramisu-style desserts) via special_include_codes below; everything else in P stays excluded."
+  },
+  {
+   "group": "Q",
+   "category": "oils",
+   "included": true,
+   "note": "65 rows, oils and fats. Mostly homogeneous; a handful of dairy-butter items (Süßrahmbutter, Sauerrahmbutter, Joghurtbutter, salted/mild-soured butter, compound butters, mostly-milkfat blends) are recategorized to 'dairy' to match the existing curated 'Butter' entry, and vegan cheese alternatives to 'dairy' as well. The 4 '(Fertigprodukt)' rows (bottled mayonnaise/remoulade/salad cream) fall out via global_exclude_keywords."
+  },
+  {
+   "group": "R",
+   "category": "spices",
+   "included": true,
+   "note": "97 rows. The brief's 'Salz/Gewürze' label is only part of the story: R also holds condiments/sauces, vinegar, baking aids (leavening agents, gelatin, pectin, food acids, candied peel), and - the largest chunk (34 rows) - prepared pastry fillings/glazes/buttercreams 'für Gebäck/Torten', which are excluded globally as prepared cake components. After that, true salt/pepper/dried-herb/seasoning rows keep the 'spices' default; sauces/condiments/bouillon cubes/spreads are recategorized to 'canned' (matching the existing curated catalog, which already files Senf, Sojasauce, Tomatenmark, Ketchup, Gemüsebrühe and Hühnerbrühe under 'canned'); vinegar is recategorized to 'oils' (matching the existing 'Essig' entry); baking aids to 'baking' (matching the existing 'Backpulver'/'Hefe' entries); and fresh ginger root to 'vegetables' (matching the existing 'Ingwer' entry)."
+  },
+  {
+   "group": "S",
+   "category": "baking",
+   "included": true,
+   "note": "253 rows. The brief's 'Süßungsmittel' (sweeteners) label describes only a minority: full sampling showed ~90% is finished confectionery and ice cream (Pralinen, Schokoladen-Riegel, Speiseeis in dozens of flavor combinations, Fondant, Krokant, Bonbons, Marshmallow) - finished sweets, excluded wholesale like B/D/N. A curated whitelist of ~40 codes covers the genuine sweetener/baking-ingredient subset (honey, sugars in their forms, syrups/dicksaft, cocoa powder/mass, jams/fruit spreads/fruit butters, marzipan and nougat raw mass, plain baking chocolate grades, sugar alcohols, table sweeteners) via special_include_codes."
+  },
+  {
+   "group": "T",
+   "category": "fish",
+   "included": true,
+   "note": "520 rows, fish and seafood (fin fish, shellfish, crustaceans). Homogeneous, kept wholesale."
+  },
+  {
+   "group": "U",
+   "category": "meat",
+   "included": true,
+   "note": "685 rows, raw meat cuts across species. Homogeneous, kept wholesale."
+  },
+  {
+   "group": "V",
+   "category": "meat",
+   "included": true,
+   "note": "462 rows, poultry/game/offal meat cuts. Homogeneous, kept wholesale."
+  },
+  {
+   "group": "W",
+   "category": "meat",
+   "included": true,
+   "note": "375 rows, sausages/cured meats/deli products (Salami, Schinken, Speck, Wurst, and a few composed items like galantines/terrines). Kept wholesale - cured meats and sausages are everyday recipe ingredients, and even the composed deli items are things people actually buy and cook with."
+  },
+  {
+   "group": "X",
+   "category": "other",
+   "included": false,
+   "note": "1165 rows. Despite being labelled 'Brühen' (broths), full sampling shows this is overwhelmingly composed dishes: gratins, stews, pancakes, sauces, soups, salads. Plain stock/broth rows are force-included via a name-pattern rule in extract_bls.py (BROTH_NAME_RE): an optional single leading qualifier word (e.g. 'Doppelte'), a compound word ending in 'brühe'/'bouillon', and an optional single trailing one-word parenthetical (e.g. '(Huhn)') - nothing else. This correctly keeps 'Hühnerbrühe', 'Gemüsebrühe', 'Fischbrühe', 'Rinderkraftbrühe', 'Wildbrühe', 'Kalbsbrühe', 'Geflügelkraftbrühe (Huhn)', 'Fischkraftbrühe', 'Doppelte Rinderkraftbrühe', 'Wildkraftbrühe' (10 rows) while correctly rejecting composed soups that merely mention a broth, e.g. 'Tomatensuppe aus frischen Tomaten und Gemüsebrühe' or 'Maultaschen Schwäbische Art (mit Hackfleisch) gegart in Fleischbrühe', because those don't match the pattern. Category 'canned' for the surviving broths, matching the existing curated 'Gemüsebrühe'/'Hühnerbrühe' entries (category canned)."
+  },
+  {
+   "group": "Y",
+   "category": "other",
+   "included": false,
+   "note": "885 rows. Full sampling (not just a handful) shows this is entirely composed prepared dishes and desserts (Sauerbraten, Kaiserschmarrn, Frikadellen, puddings, creams, fruit desserts) - no base ingredients at all. The same BROTH_NAME_RE pattern rule as X applies here too and happens to force-include exactly one row: 'Y183013 Fleischbrühe (Rind)'."
+  }
+ ]
+}
