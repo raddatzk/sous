@@ -4,9 +4,24 @@ Companion to [INGREDIENTS-CONCEPT.md](INGREDIENTS-CONCEPT.md) (the target) and
 [INGREDIENTS-DIFF.md](INGREDIENTS-DIFF.md) (the gap). This plan turns the diff into
 a sequence of shippable phases.
 
-- **Status: decided** — all reconciliations in §2 are resolved (O1/O2 decided by
-  the cook on 2026-08-25, following the recommendations).
+- **Status: shipped** — all six phases have landed on `main`; the eleven concept
+  test cases pass as a suite (§6). All reconciliations in §2 are resolved (O1/O2
+  decided by the cook on 2026-08-25, following the recommendations).
 - Baseline: `main` @ `fa66627`, 2026-08-25.
+
+| Phase | Commit | |
+|---|---|---|
+| 1 — Honest numbers on today's data | `35078dd` | landed |
+| 2 — The shopping list becomes a document | `3ad1bea` | landed |
+| 3 — BLS identity | `2cb4ab3` | landed |
+| 4 — Vocabulary and the status model | `56dee53` | landed |
+| 5 — States and the gram bridge | `177035e` | landed |
+| 6 — Update reconciliation | `d8ad583` | landed |
+
+Each phase kept its decisions in the code's doc comments rather than here; this
+plan is the road, not the record. Where a phase deliberately departed from the
+concept, the departure is named at the place that implements it — and, for the
+test cases, in `ConceptScorecardTests`.
 
 ---
 
@@ -228,9 +243,18 @@ phases name, no parser rewrite.
 ## 6 · Verification
 
 - Each phase extends `SousKitTests` with concept-derived cases; the eleven test
-  cases from the concept become a permanent scorecard suite (today: 4 pass, 3
-  partial, 4 fail — see diff §6; target: 11 pass by end of phase 6, with the
-  potato/oil cases turning green in phase 5).
+  cases from the concept became a permanent scorecard suite — `ConceptScorecardTests`,
+  **11 of 11 passing** against the shipped data, up from 4 pass / 3 partial / 4 fail
+  at the baseline (diff §6). Every case is also covered by the suite that owns its
+  mechanism; the scorecard exists so that the eleven are named *as* the eleven and a
+  case cannot fall out of a later refactor unnoticed.
+- Two cases pass by a different route than §9 sketched, and the suite says so where
+  it asserts them: the oil case computes 2 EL ≈ 27.6 g from a curated density rather
+  than ≈ 20 g from a per-unit gram table (phase 5 — a gram table cannot answer `ml`
+  or `l` at all), and the Cocktailtomaten relation ships curated in `synonyms.json`
+  rather than being proposed and confirmed, which is a stronger outcome than the case
+  asked for. The proposal mechanism it describes is exercised by the Ochsenherztomaten
+  case, where the name genuinely is new.
 - Store migrations get round-trip tests on fixture stores (checked lists, own
   values, alias overrides).
 - The sparring bench (`SOUS_SPARRING=1`) stays as is; pipeline v2 gets a
