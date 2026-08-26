@@ -19,7 +19,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// nutrition values under that name.
         case noCatalogMatch
         /// The catalog knows the ingredient, but nobody has values for it —
-        /// the case the old "N Zutaten unbekannt" banner never saw.
+        /// the case the catalog banner above it never sees.
         case noNutritionValues
         /// Values exist, but the amount cannot be turned into grams: a
         /// counted or imprecise unit with no weight on record.
@@ -45,7 +45,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         }
 
         /// Whether picking a basis is what would close this gap — what makes
-        /// a line worth listing in "N Zutaten zu klären".
+        /// a line worth listing in "N Zutaten ohne bestätigte Nährwerte".
         public var wantsBasis: Bool {
             self == .noCatalogMatch || self == .noNutritionValues || self == .orphanedBasis
         }
@@ -256,9 +256,9 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
     /// Whether any part of the sum rests on an unconfirmed guess.
     public var isProvisional: Bool { unconfirmedCount > 0 }
 
-    /// The lines a "N Zutaten zu klären" flow would walk: everything a basis
-    /// would settle, unconfirmed contributions first — they are the ones
-    /// already moving a number.
+    /// The lines a "N Zutaten ohne bestätigte Nährwerte" flow would walk:
+    /// everything a basis would settle, unconfirmed contributions first —
+    /// they are the ones already moving a number.
     public var openIngredientNames: [String] {
         var seen = Set<String>()
         return openIngredients.map(\.name).filter {
@@ -284,9 +284,10 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         }
     }
 
-    /// The lines a "N Zutaten zu klären" flow would walk, one entry per open
-    /// question rather than per name: the same word can be settled raw and
-    /// open cooked, and folding the two together would hide the second.
+    /// The lines a "N Zutaten ohne bestätigte Nährwerte" flow would walk,
+    /// one entry per open question rather than per name: the same word can be
+    /// settled raw and open cooked, and folding the two together would hide
+    /// the second.
     public var openIngredients: [OpenIngredient] {
         var seen = Set<String>()
         let provisional = contributions.filter(\.isProvisional)
@@ -294,6 +295,27 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         let missing = gaps.filter { $0.reason.wantsBasis }
             .map { OpenIngredient(name: $0.ingredientName, state: $0.state) }
         return (provisional + missing).filter { seen.insert($0.id).inserted }
+    }
+
+    /// The same list without the lines whose name the catalog does not know
+    /// yet — what the detail view asks for while its "N Zutaten fehlen im
+    /// Katalog" banner is still up.
+    ///
+    /// The two banners were counting one ingredient twice: a name nothing
+    /// knows is a `noCatalogMatch` gap *and* an unknown catalog entry, so it
+    /// stood in both numbers and neither of them said which one to answer
+    /// first. It is answered first in the catalog — an entry can carry a
+    /// synonym or a canonical name that resolves the nutrition question
+    /// outright, and a basis picked before that would be filed under a word
+    /// nothing else uses. Nothing is dropped: once the catalog banner is
+    /// settled the caller passes `openIngredients` again, so a name the cook
+    /// declined to add comes back here as a question of its own.
+    public var openIngredientsWithKnownName: [OpenIngredient] {
+        let unknownNames = Set(
+            gaps.filter { $0.reason == .noCatalogMatch }
+                .map { OpenIngredient(name: $0.ingredientName, state: $0.state).id }
+        )
+        return openIngredients.filter { !unknownNames.contains($0.id) }
     }
 
     /// Whether the sum covers everything it claims to.

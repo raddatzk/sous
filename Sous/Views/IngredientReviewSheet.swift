@@ -23,7 +23,7 @@ struct IngredientReviewSheet: View {
         NavigationStack {
             Group {
                 if unknown.isEmpty {
-                    ContentUnavailableView("Alle Zutaten bekannt", systemImage: "checkmark.circle")
+                    ContentUnavailableView("Alle Zutaten im Katalog", systemImage: "checkmark.circle")
                 } else {
                     List(unknown, id: \.self) { name in
                         UnknownIngredientButton(name: name) {
@@ -34,7 +34,7 @@ struct IngredientReviewSheet: View {
                     }
                 }
             }
-            .navigationTitle("Zutaten prüfen")
+            .navigationTitle("Zutaten anlegen")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif

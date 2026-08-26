@@ -208,4 +208,25 @@ struct NutritionAggregatorTests {
             NutritionCoverage.Gap(ingredientName: "Naan", reason: .unresolvedLink)
         ])
     }
+
+    @Test("An unknown name is left to the catalog question, not asked twice")
+    func openIngredientsCanSkipUnknownNames() {
+        let recipe = Recipe(
+            title: "Sternenpaste", servings: 2,
+            ingredientsText: """
+            200 g Einhornstaub
+            1 Prise Safran
+            300 g Zucchini
+            """
+        )
+
+        let coverage = aggregate(recipe).coverage
+
+        // Both want a basis, but only one of them can be answered with one:
+        // "Einhornstaub" has no catalog entry, and the detail view's catalog
+        // banner is already asking for that. "Safran" the catalog knows —
+        // it is missing nothing but numbers.
+        #expect(coverage.openIngredients.map(\.name) == ["Einhornstaub", "Safran"])
+        #expect(coverage.openIngredientsWithKnownName.map(\.name) == ["Safran"])
+    }
 }

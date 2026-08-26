@@ -16,8 +16,9 @@ import SwiftData
 ///   down is exactly what would break it.
 /// - **A vanished code already reads as orphaned.**
 ///   ``BasisAssignment/basis(bls:source:)`` answers with `.orphaned` when its
-///   row is gone, so the drill-down, the "N Zutaten zu klären" banner and the
-///   basis picker have shown the state since phase 4 — before any pass ran.
+///   row is gone, so the drill-down, the "N Zutaten ohne bestätigte
+///   Nährwerte" banner and the basis picker have shown the state since
+///   phase 4 — before any pass ran.
 /// - **A code that comes back heals itself.** Both branches of that read map
 ///   a stored `.orphaned` to `.confirmed` the moment the row resolves again.
 ///
