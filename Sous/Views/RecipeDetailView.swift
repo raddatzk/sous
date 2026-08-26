@@ -251,7 +251,9 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isJoiningVariants) {
             VariantJoinPicker(target: .recipe(recipe)) { group in
-                selection.target = .group(group)
+                // Onto the comparison, because the two recipes have just
+                // been put side by side and that is the thing to look at.
+                selection.target = .group(group, mode: .comparison)
             }
         }
         .sheet(isPresented: $isAddingVariant) {
@@ -363,9 +365,13 @@ struct RecipeDetailView: View {
             Button {
                 // The same route the list takes: on the Mac the column
                 // changes, on the phone what the list pushed changes. Not a
-                // sheet, because the comparison is a place to work from —
-                // every column of it leads to a recipe.
-                selection.target = .group(group)
+                // sheet, because the group page is a place to work from —
+                // everything on it leads to a recipe.
+                //
+                // As an overview, not as the table: someone reading a recipe
+                // who follows this link is asking which other versions there
+                // are, not which of them to cook tonight.
+                selection.target = .group(group, mode: .overview)
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "square.on.square")

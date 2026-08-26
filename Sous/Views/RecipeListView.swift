@@ -56,6 +56,7 @@ struct RecipeListView: View {
                 VariantJoinPicker(target: .recipe(recipe)) { group in
                     // Onto the comparison, which is both the proof that it
                     // worked and the place the name can be corrected.
+                    selection.target = .group(group, mode: .comparison)
                     selected = .group(group.id)
                 }
             }
@@ -95,7 +96,7 @@ struct RecipeListView: View {
                         }
                     case .group(let id):
                         if let group = library.variantGroups[id] {
-                            VariantGroupView(group: group)
+                            VariantGroupView(group: group, initialMode: mode(forGroup: id))
                         }
                     }
                 }
@@ -197,7 +198,7 @@ struct RecipeListView: View {
         .onChange(of: selection.target) { _, newValue in
             let row: RecipeListSelection? = switch newValue {
             case .recipe(let recipe): .recipe(recipe.id)
-            case .group(let group): .group(group.id)
+            case .group(let group, _): .group(group.id)
             case nil: nil
             }
             if selected != row { selected = row }
@@ -211,6 +212,19 @@ struct RecipeListView: View {
             .contextMenu { contextActions(for: recipe) }
     }
 
+    /// What the group page should open as.
+    ///
+    /// Whatever the last thing to set the selection asked for, and the
+    /// comparison otherwise — which is what a row picked in this list means:
+    /// someone looking at the collection who opens a group is weighing its
+    /// versions against each other. Read back from the selection rather than
+    /// assumed, or the recipe page's smaller question would be overwritten
+    /// the moment the list noticed the row.
+    private func mode(forGroup id: UUID) -> VariantGroupMode {
+        if case .group(let group, let mode) = selection.target, group.id == id { return mode }
+        return .comparison
+    }
+
     /// What the selected row stands for, resolved against what the list
     /// currently holds.
     private var selectedTarget: RecipeSelection.Target? {
@@ -218,7 +232,7 @@ struct RecipeListView: View {
         case .recipe(let id):
             library.recipes.first { $0.id == id }.map(RecipeSelection.Target.recipe)
         case .group(let id):
-            library.variantGroups[id].map(RecipeSelection.Target.group)
+            library.variantGroups[id].map { .group($0, mode: mode(forGroup: id)) }
         case nil:
             nil
         }

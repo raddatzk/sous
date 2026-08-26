@@ -25,7 +25,11 @@ final class RecipeSelection {
     /// entries and shopping lists always reach a variant, never the group.
     enum Target: Hashable {
         case recipe(Recipe)
-        case group(VariantGroup)
+        /// A group, and what the reader is there for. The mode rides along
+        /// rather than being stored on the group: it is a property of the
+        /// door that was used, and the same group opened from a recipe and
+        /// from the list is two different questions.
+        case group(VariantGroup, mode: VariantGroupMode)
     }
 
     var target: Target?
@@ -44,7 +48,7 @@ final class RecipeSelection {
     }
 
     var group: VariantGroup? {
-        guard case .group(let group) = target else { return nil }
+        guard case .group(let group, _) = target else { return nil }
         return group
     }
 

@@ -21,21 +21,33 @@ struct VariantGroupRow: View {
             Image(systemName: "square.on.square")
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
-            Text(group.title)
-                .font(SousStyle.recipeName)
-                .lineLimit(1)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(group.title)
+                    .font(SousStyle.recipeName)
+                    .lineLimit(1)
+                // Only when it is news. The versions are drawn underneath
+                // this row, so counting them is something the reader can do
+                // by looking — except where a filter kept some of them out,
+                // and then saying so is the whole point of the row.
+                if let hidden {
+                    Text(hidden)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 0)
-            Text(count)
+            // What the row does, rather than what the group has. Tapping it
+            // opens the comparison, and that is worth saying once here —
+            // otherwise the row is a heading nobody would think to press.
+            Text("Vergleichen")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 4)
     }
 
-    private var count: String {
-        guard shown < total else {
-            return total == 1 ? "1 Variante" : "\(total) Varianten"
-        }
+    private var hidden: String? {
+        guard shown < total else { return nil }
         return "\(shown) von \(total) Varianten"
     }
 }

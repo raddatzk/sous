@@ -13,8 +13,32 @@ import SwiftUI
 /// Nothing here plans, buys or cooks. Those all need a recipe, and a group is
 /// not one; the way to them is through a member, which is exactly one tap
 /// away in every column.
+/// The two things a reader can want from a group.
+///
+/// Not stored anywhere, and not a property of the group: which one is right
+/// depends on the door you came through, not on the dish. Storing it would
+/// make the group a place with settings, and the whole arrangement rests on
+/// the group being a title and nothing else.
+enum VariantGroupMode: String, CaseIterable, Hashable {
+    /// The versions as ordinary recipe rows — picture, name, categories,
+    /// calories. What "which versions of this are there?" wants.
+    case overview
+    /// The table. What "which of these do I cook tonight?" wants.
+    case comparison
+
+    var title: String {
+        switch self {
+        case .overview: "Übersicht"
+        case .comparison: "Vergleich"
+        }
+    }
+}
+
 struct VariantGroupView: View {
     let group: VariantGroup
+    /// Which mode the page opens in, decided by whoever opened it: the list
+    /// means "compare these", a recipe means "show me the others".
+    var initialMode: VariantGroupMode = .comparison
 
     @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
@@ -30,6 +54,13 @@ struct VariantGroupView: View {
     @State private var newTitle = ""
     @State private var isConfirmingDissolve = false
     @State private var isAddingMember = false
+    /// What the reader switched to, if they switched. `nil` means the page
+    /// is still showing what it was opened for — a switch belongs to this
+    /// visit and is not carried to the next one, or the door the reader came
+    /// through would stop deciding anything.
+    @State private var chosenMode: VariantGroupMode?
+
+    private var mode: VariantGroupMode { chosenMode ?? initialMode }
 
     /// The width of one column. Wide enough for "Chili vegetarisch" on two
     /// lines and an amount beside a unit, narrow enough that two of them and
@@ -59,8 +90,14 @@ struct VariantGroupView: View {
                         description: Text("Diese Gruppe hat nichts mehr, was sie vergleichen könnte.")
                     )
                 } else {
-                    table
-                    footer
+                    modePicker
+                    switch mode {
+                    case .overview:
+                        overview
+                    case .comparison:
+                        table
+                        footer
+                    }
                 }
             }
             .padding(20)
@@ -75,6 +112,9 @@ struct VariantGroupView: View {
             VariantJoinPicker(target: .group(group))
         }
         .task(id: group.id) { await load() }
+        // Opened again from somewhere else, with a different intent: that
+        // intent wins over whatever was switched to last time.
+        .onChange(of: initialMode) { chosenMode = nil }
         // The members are recipes like any other and can be edited, deleted
         // or restored from anywhere else in the app while this page is up.
         .onChange(of: library.recipes) { Task { await load() } }
@@ -115,6 +155,45 @@ struct VariantGroupView: View {
             Text(members.count == 1 ? "1 Variante" : "\(members.count) Varianten")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+        }
+    }
+
+    private var modePicker: some View {
+        Picker("Ansicht", selection: Binding(get: { mode }, set: { chosenMode = $0 })) {
+            ForEach(VariantGroupMode.allCases, id: \.self) { mode in
+                Text(mode.title).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        // The full width, unlike the recipe list's own switch: that one sits
+        // above a list it filters and reads as a control over it, while this
+        // one *is* the page's two states and has nothing to sit beside.
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - The versions, as recipes
+
+    /// The members as the list draws them anywhere else.
+    ///
+    /// Deliberately the same `RecipeRow`: someone who came here from a recipe
+    /// is asking which other versions exist, and the answer should look like
+    /// the rest of the collection rather than like a table about it.
+    private var overview: some View {
+        VStack(spacing: 0) {
+            ForEach(members) { member in
+                Button {
+                    open(member)
+                } label: {
+                    RecipeRow(recipe: member)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                if member.id != members.last?.id {
+                    Divider()
+                }
+            }
         }
     }
 

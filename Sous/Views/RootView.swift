@@ -165,9 +165,9 @@ struct RootView: View {
                 RecipeDetailView(recipe: recipe, plannedEntryID: selection.plannedEntryID)
             // The one thing in this column that is not a recipe. It cannot be
             // planned, bought or cooked from here — all three need a version
-            // of the dish, and the comparison is where one is picked.
-            case .group(let group):
-                VariantGroupView(group: group)
+            // of the dish, and this page is where one is picked.
+            case .group(let group, let mode):
+                VariantGroupView(group: group, initialMode: mode)
             case nil:
                 ContentUnavailableView(
                     "Kein Rezept ausgewählt",
