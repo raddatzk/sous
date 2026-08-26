@@ -62,14 +62,67 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         }
     }
 
+    /// One line that did contribute, and what its numbers rest on.
+    ///
+    /// The concept's rule that a figure never appears naked applies to the
+    /// figures that *worked* too: "Tomate — beruht auf: Tomate roh (BLS 4.0)".
+    /// Until now only the gaps had an explanation.
+    public struct Contribution: Codable, Hashable, Sendable {
+        public var ingredientName: String
+        /// The linked recipe this line came from, `nil` for the recipe's own.
+        public var sourceRecipeTitle: String?
+        /// The BLS catalog name the numbers were read from — the source's
+        /// word for the food, which is rarely the kitchen's.
+        public var basisName: String?
+        /// The SBLS code behind it, so a later phase can go back to the row
+        /// itself rather than to a name that may have moved.
+        public var basisCode: String?
+        /// Every row this ingredient could have been based on, best first.
+        /// Carried through the result from phase 3 on and deliberately not
+        /// shown yet — phase 4 builds the candidate picker on it.
+        public var candidateCodes: [String]
+
+        public init(
+            ingredientName: String, sourceRecipeTitle: String? = nil,
+            basisName: String? = nil, basisCode: String? = nil,
+            candidateCodes: [String] = []
+        ) {
+            self.ingredientName = ingredientName
+            self.sourceRecipeTitle = sourceRecipeTitle
+            self.basisName = basisName
+            self.basisCode = basisCode
+            self.candidateCodes = candidateCodes
+        }
+
+        /// How the app says it: "Tomate roh (BLS 4.0)".
+        public func provenance(source: String = CatalogNutrition.blsSource) -> String? {
+            basisName.map { "\($0) (\(source))" }
+        }
+    }
+
     /// Lines whose nutrition made it into the sum.
     public var includedCount: Int
     /// Every line that did not contribute, unquantified ones included.
     public var gaps: [Gap]
+    /// Every line that did, with what it rests on. Defaulted on decode: a
+    /// figure cached before provenance existed is still a valid figure.
+    public var contributions: [Contribution]
 
-    public init(includedCount: Int, gaps: [Gap]) {
+    public init(includedCount: Int, gaps: [Gap], contributions: [Contribution] = []) {
         self.includedCount = includedCount
         self.gaps = gaps
+        self.contributions = contributions
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            includedCount: try container.decode(Int.self, forKey: .includedCount),
+            gaps: try container.decode([Gap].self, forKey: .gaps),
+            contributions: try container.decodeIfPresent(
+                [Contribution].self, forKey: .contributions
+            ) ?? []
+        )
     }
 
     /// The gaps that make the sum incomplete — everything but unquantified.
@@ -99,11 +152,20 @@ public struct NutritionLineReport: Hashable, Sendable {
     /// The linked recipe the line belongs to, `nil` for the recipe's own.
     public var sourceRecipeTitle: String?
     public var outcome: Outcome
+    /// The BLS row the numbers came from, where there were numbers.
+    public var basis: NutritionBasis?
+    /// Every row this ingredient could have been based on, best first.
+    public var candidateCodes: [String]
 
-    public init(ingredientName: String, sourceRecipeTitle: String? = nil, outcome: Outcome) {
+    public init(
+        ingredientName: String, sourceRecipeTitle: String? = nil, outcome: Outcome,
+        basis: NutritionBasis? = nil, candidateCodes: [String] = []
+    ) {
         self.ingredientName = ingredientName
         self.sourceRecipeTitle = sourceRecipeTitle
         self.outcome = outcome
+        self.basis = basis
+        self.candidateCodes = candidateCodes
     }
 }
 
@@ -124,10 +186,18 @@ public struct NutritionReport: Hashable, Sendable {
     public var coverage: NutritionCoverage {
         var included = 0
         var gaps: [NutritionCoverage.Gap] = []
+        var contributions: [NutritionCoverage.Contribution] = []
         for line in lines {
             switch line.outcome {
             case .contributed:
                 included += 1
+                contributions.append(NutritionCoverage.Contribution(
+                    ingredientName: line.ingredientName,
+                    sourceRecipeTitle: line.sourceRecipeTitle,
+                    basisName: line.basis?.catalogName,
+                    basisCode: line.basis?.code,
+                    candidateCodes: line.candidateCodes
+                ))
             case .gap(let reason):
                 gaps.append(NutritionCoverage.Gap(
                     ingredientName: line.ingredientName,
@@ -136,6 +206,6 @@ public struct NutritionReport: Hashable, Sendable {
                 ))
             }
         }
-        return NutritionCoverage(includedCount: included, gaps: gaps)
+        return NutritionCoverage(includedCount: included, gaps: gaps, contributions: contributions)
     }
 }

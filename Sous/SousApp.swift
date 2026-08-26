@@ -24,10 +24,14 @@ struct SousApp: App {
     /// than in the recipe list, because a command in the scene cannot see a
     /// view's state.
     @State private var commands = LibraryCommands()
+    /// Held so the once-per-launch re-key can reach the store without opening
+    /// a second container.
+    private let migration: SwiftDataBundledDataMigration
 
     init() {
         do {
             let container = try ModelContainer.sousContainer()
+            migration = SwiftDataBundledDataMigration(modelContainer: container)
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
@@ -71,6 +75,14 @@ struct SousApp: App {
         }
     }
 
+    /// Stamps the cook's name-keyed rows with their SBLS code once, and says
+    /// nothing when there is nothing to do — which is every launch after the
+    /// first. A failure here is not worth stopping for: every row keeps
+    /// joining by name, which is exactly the compatibility path.
+    private func migrateBundledData() async {
+        _ = try? await migration.run()
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -86,6 +98,10 @@ struct SousApp: App {
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
+                    // Before the catalogs are read: the cook's own rows have
+                    // to carry their SBLS code, or the first thing that looks
+                    // one up joins by name and caches the answer.
+                    await migrateBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a
                     // recipe resolved against the bundled list alone would

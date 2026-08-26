@@ -1,0 +1,473 @@
+{
+ "note": "Die Maßtabelle: (Einheit, Bezug) → Gramm, plus Dichten für Volumenangaben. Handgepflegt, nicht aus dem BLS abgeleitet — der BLS rechnet je 100 g und kennt weder Stückgewichte noch Dichten. Diese Datei ist Eingabe der Pipeline, nicht Ausgabe: ein Neulauf kopiert sie unverändert nach Resources/measures.json und kann sie nicht überschreiben.",
+ "assumptionNote": "Jeder Eintrag ist eine Annahme, keine gemessene Größe — eine mittelgroße Zwiebel, ein Ei der Größe M. Die App zeigt daraus abgeleitete Gramm mit ≈ und lässt sie korrigieren.",
+ "units": [
+  {
+   "unit": "Prise",
+   "grams": 0.3,
+   "assumption": true,
+   "note": "Was zwischen zwei Finger passt."
+  },
+  {
+   "unit": "Zehe",
+   "grams": 5,
+   "assumption": true,
+   "note": "Eine Knoblauchzehe, geschält."
+  },
+  {
+   "unit": "Blatt",
+   "grams": 1,
+   "assumption": true,
+   "note": "Ein Basilikum- oder Lorbeerblatt."
+  },
+  {
+   "unit": "Bund",
+   "grams": 75,
+   "assumption": true,
+   "note": "Ein Bund Kräuter oder Suppengrün."
+  },
+  {
+   "unit": "Pck.",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine Packung, wie sie im Handel meistens steht."
+  },
+  {
+   "unit": "Portion",
+   "grams": 100,
+   "assumption": true,
+   "note": "Nur als letzte Rettung; eine Portion ist keine Menge."
+  },
+  {
+   "unit": "Tasse",
+   "grams": 150,
+   "assumption": true,
+   "note": "Die deutsche Rezept-Tasse, nicht der US-Cup (240 ml)."
+  }
+ ],
+ "byGroup": [
+  {
+   "group": "Q",
+   "unit": "EL",
+   "grams": 10,
+   "assumption": true,
+   "note": "Ein Esslöffel Öl wiegt weniger als 15 g Wasser."
+  },
+  {
+   "group": "Q",
+   "unit": "TL",
+   "grams": 4.5,
+   "assumption": true
+  },
+  {
+   "group": "R",
+   "unit": "TL",
+   "grams": 4,
+   "assumption": true,
+   "note": "Gemahlene Gewürze und Salz."
+  },
+  {
+   "group": "R",
+   "unit": "Prise",
+   "grams": 0.4,
+   "assumption": true
+  },
+  {
+   "group": "S",
+   "unit": "EL",
+   "grams": 20,
+   "assumption": true,
+   "note": "Honig, Sirup, Zucker."
+  },
+  {
+   "group": "C",
+   "unit": "Tasse",
+   "grams": 120,
+   "assumption": true,
+   "note": "Mehl und Getreide, locker eingefüllt."
+  }
+ ],
+ "byIngredient": [
+  {
+   "name": "Apfel",
+   "unit": "Stk.",
+   "grams": 150,
+   "assumption": true
+  },
+  {
+   "name": "Aubergine",
+   "unit": "Stk.",
+   "grams": 300,
+   "assumption": true
+  },
+  {
+   "name": "Banane",
+   "unit": "Stk.",
+   "grams": 120,
+   "assumption": true
+  },
+  {
+   "name": "Champignon",
+   "unit": "Stk.",
+   "grams": 20,
+   "assumption": true
+  },
+  {
+   "name": "Ei",
+   "unit": "Stk.",
+   "grams": 55,
+   "assumption": true,
+   "note": "Größe M, ohne Schale."
+  },
+  {
+   "name": "Frühlingszwiebel",
+   "unit": "Stk.",
+   "grams": 15,
+   "assumption": true
+  },
+  {
+   "name": "Gurke",
+   "unit": "Stk.",
+   "grams": 400,
+   "assumption": true
+  },
+  {
+   "name": "Karotte",
+   "unit": "Stk.",
+   "grams": 80,
+   "assumption": true
+  },
+  {
+   "name": "Kartoffel",
+   "unit": "Stk.",
+   "grams": 120,
+   "assumption": true
+  },
+  {
+   "name": "Limette",
+   "unit": "Stk.",
+   "grams": 65,
+   "assumption": true
+  },
+  {
+   "name": "Orange",
+   "unit": "Stk.",
+   "grams": 180,
+   "assumption": true
+  },
+  {
+   "name": "Paprika",
+   "unit": "Stk.",
+   "grams": 160,
+   "assumption": true
+  },
+  {
+   "name": "Schalotte",
+   "unit": "Stk.",
+   "grams": 25,
+   "assumption": true
+  },
+  {
+   "name": "Speisezwiebel",
+   "unit": "Stk.",
+   "grams": 110,
+   "assumption": true
+  },
+  {
+   "name": "Tomate",
+   "unit": "Stk.",
+   "grams": 90,
+   "assumption": true
+  },
+  {
+   "name": "Zitrone",
+   "unit": "Stk.",
+   "grams": 100,
+   "assumption": true
+  },
+  {
+   "name": "Zucchini",
+   "unit": "Stk.",
+   "grams": 250,
+   "assumption": true
+  },
+  {
+   "name": "Zwiebel",
+   "unit": "Stk.",
+   "grams": 110,
+   "assumption": true
+  },
+  {
+   "name": "Knoblauch",
+   "unit": "Zehe",
+   "grams": 3,
+   "assumption": true,
+   "note": "Kleiner als die generische Zehe."
+  },
+  {
+   "name": "Petersilie",
+   "unit": "Bund",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Basilikum",
+   "unit": "Bund",
+   "grams": 20,
+   "assumption": true
+  },
+  {
+   "name": "Schnittlauch",
+   "unit": "Bund",
+   "grams": 25,
+   "assumption": true
+  },
+  {
+   "name": "Koriander",
+   "unit": "Bund",
+   "grams": 25,
+   "assumption": true
+  },
+  {
+   "name": "Dill",
+   "unit": "Bund",
+   "grams": 25,
+   "assumption": true
+  },
+  {
+   "name": "Minze",
+   "unit": "Bund",
+   "grams": 20,
+   "assumption": true
+  },
+  {
+   "name": "Suppengrün",
+   "unit": "Bund",
+   "grams": 300,
+   "assumption": true
+  },
+  {
+   "name": "Butter",
+   "unit": "Pck.",
+   "grams": 250,
+   "assumption": true
+  },
+  {
+   "name": "Hefe",
+   "unit": "Pck.",
+   "grams": 7,
+   "assumption": true,
+   "note": "Ein Päckchen Trockenhefe."
+  },
+  {
+   "name": "Backpulver",
+   "unit": "Pck.",
+   "grams": 16,
+   "assumption": true
+  },
+  {
+   "name": "Vanillezucker",
+   "unit": "Pck.",
+   "grams": 8,
+   "assumption": true
+  },
+  {
+   "name": "Mehl",
+   "unit": "Tasse",
+   "grams": 120,
+   "assumption": true
+  },
+  {
+   "name": "Zucker",
+   "unit": "Tasse",
+   "grams": 200,
+   "assumption": true
+  },
+  {
+   "name": "Reis",
+   "unit": "Tasse",
+   "grams": 180,
+   "assumption": true
+  },
+  {
+   "name": "Haferflocken",
+   "unit": "Tasse",
+   "grams": 90,
+   "assumption": true
+  }
+ ],
+ "densities": [
+  {
+   "group": "Q",
+   "gramsPerMl": 0.92,
+   "assumption": true,
+   "note": "Speiseöle und flüssige Fette."
+  },
+  {
+   "name": "Olivenöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
+   "name": "Rapsöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
+   "name": "Sonnenblumenöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
+   "name": "Sesamöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
+   "name": "Kokosöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
+   "name": "Essig",
+   "gramsPerMl": 1.01,
+   "assumption": true
+  },
+  {
+   "name": "Balsamico",
+   "gramsPerMl": 1.06,
+   "assumption": true
+  },
+  {
+   "name": "Honig",
+   "gramsPerMl": 1.42,
+   "assumption": true
+  },
+  {
+   "name": "Ahornsirup",
+   "gramsPerMl": 1.33,
+   "assumption": true
+  },
+  {
+   "name": "Agavendicksaft",
+   "gramsPerMl": 1.35,
+   "assumption": true
+  },
+  {
+   "name": "Melasse",
+   "gramsPerMl": 1.4,
+   "assumption": true
+  },
+  {
+   "name": "Sojasauce",
+   "gramsPerMl": 1.2,
+   "assumption": true
+  },
+  {
+   "name": "Mehl",
+   "gramsPerMl": 0.55,
+   "assumption": true,
+   "note": "Locker eingefüllt, nicht gepresst."
+  },
+  {
+   "name": "Vollkornmehl",
+   "gramsPerMl": 0.6,
+   "assumption": true
+  },
+  {
+   "name": "Speisestärke",
+   "gramsPerMl": 0.6,
+   "assumption": true
+  },
+  {
+   "name": "Zucker",
+   "gramsPerMl": 0.85,
+   "assumption": true
+  },
+  {
+   "name": "Puderzucker",
+   "gramsPerMl": 0.55,
+   "assumption": true
+  },
+  {
+   "name": "Salz",
+   "gramsPerMl": 1.2,
+   "assumption": true
+  },
+  {
+   "name": "Haferflocken",
+   "gramsPerMl": 0.4,
+   "assumption": true
+  },
+  {
+   "name": "Semmelbrösel",
+   "gramsPerMl": 0.35,
+   "assumption": true
+  },
+  {
+   "name": "Kakao",
+   "gramsPerMl": 0.5,
+   "assumption": true
+  },
+  {
+   "name": "Reis",
+   "gramsPerMl": 0.85,
+   "assumption": true
+  },
+  {
+   "name": "Milch",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Sahne",
+   "gramsPerMl": 0.99,
+   "assumption": true
+  },
+  {
+   "name": "Schlagsahne",
+   "gramsPerMl": 0.99,
+   "assumption": true
+  },
+  {
+   "name": "Joghurt",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Buttermilch",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Kokosmilch",
+   "gramsPerMl": 0.98,
+   "assumption": true
+  },
+  {
+   "name": "Tomatenmark",
+   "gramsPerMl": 1.1,
+   "assumption": true
+  },
+  {
+   "name": "Ketchup",
+   "gramsPerMl": 1.14,
+   "assumption": true
+  },
+  {
+   "name": "Wein",
+   "gramsPerMl": 0.99,
+   "assumption": true
+  },
+  {
+   "name": "Weißwein",
+   "gramsPerMl": 0.99,
+   "assumption": true
+  },
+  {
+   "name": "Rotwein",
+   "gramsPerMl": 0.99,
+   "assumption": true
+  }
+ ]
+}

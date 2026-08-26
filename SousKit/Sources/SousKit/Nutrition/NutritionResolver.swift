@@ -6,16 +6,11 @@ public enum NutritionResolver {
     /// Generic per-unit-type weights for imprecise units, used only when the
     /// specific ingredient has no `unitWeightsGrams` entry of its own — always
     /// shows *something* rather than nothing, at the cost of precision.
-    /// Deliberately excludes `.piece`: a "1 Stück" default that applies
-    /// across every food is not defensible the way "1 Blatt ≈ 1g" is.
-    static let genericImpreciseGrams: [String: Double] = [
-        IngredientUnit.leaf.symbol: 1,
-        IngredientUnit.pinch.symbol: 0.3,
-        IngredientUnit.clove.symbol: 5,
-        IngredientUnit.bunch.symbol: 75,
-        IngredientUnit.portion.symbol: 100,
-        IngredientUnit.package.symbol: 250,
-    ]
+    ///
+    /// These used to be six literals here. They are the same six numbers, read
+    /// from `measures.json` now: a value a cook is meant to be able to correct
+    /// has no business being a compiled constant.
+    static let measures: MeasureTable = .bundled
 
     /// Water's density, used as the fallback for a volume amount whose
     /// ingredient has no density on record. Most kitchen liquids — stock,
@@ -65,7 +60,7 @@ public enum NutritionResolver {
         if let specific = nutritionCatalog.nutrition(forCanonicalName: canonicalName)?.unitWeightsGrams[symbol] {
             return quantity.amount * specific
         }
-        if let generic = genericImpreciseGrams[symbol] {
+        if let generic = measures.genericGrams(forUnit: symbol) {
             return quantity.amount * generic
         }
         return nil

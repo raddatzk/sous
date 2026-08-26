@@ -2,10 +2,10 @@ import Foundation
 
 /// Nutrition values for the ingredients `IngredientCatalog` knows by name.
 ///
-/// Kept as a separate table rather than a field on `CatalogIngredient`: the
-/// two are curated independently (one from hand-picked spellings, the other
-/// from a bulk BLS import) and a missing nutrition entry should not stand in
-/// the way of an ingredient being recognized at all.
+/// The chain a written name walks is: name → aliases → synonym table → SBLS
+/// code → BLS row. This type is where the last three steps happen; the first
+/// belongs to `IngredientCatalog`, so that exactly one place decides what a
+/// written ingredient means.
 public struct NutritionCatalog: Sendable {
     private var byName: [String: CatalogNutrition]
 
@@ -13,17 +13,51 @@ public struct NutritionCatalog: Sendable {
         byName = Dictionary(entries.map { (IngredientCatalog.normalize($0.name), $0) }, uniquingKeysWith: { first, _ in first })
     }
 
-    /// The catalog shipped with the app.
+    /// The catalog shipped with the app, assembled rather than read: the
+    /// synonym table says which codes a kitchen word means, the BLS table
+    /// holds the values, and the measure table holds what a piece of it
+    /// weighs. Three files that each say one thing, joined by value.
+    ///
+    /// A word with no target gets no entry at all, on purpose: the aggregator
+    /// tells "the catalog does not know this" and "the catalog knows it and
+    /// has no values for it" apart by asking both catalogs, and the second
+    /// reason is the one the 28 spice entries have to produce.
     public static let bundled: NutritionCatalog = {
-        guard let url = Bundle.module.url(forResource: "nutrition", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let entries = try? JSONDecoder().decode([CatalogNutrition].self, from: data)
-        else {
-            assertionFailure("The bundled nutrition catalog is missing or unreadable")
-            return NutritionCatalog(entries: [])
+        make(synonyms: .bundled, bls: .bundled, measures: .bundled)
+    }()
+
+    /// Injectable so a test can assemble the same thing from fixture data.
+    public static func make(
+        synonyms: SynonymTable, bls: BLSCatalog, measures: MeasureTable
+    ) -> NutritionCatalog {
+        var entries: [CatalogNutrition] = []
+        entries.reserveCapacity(synonyms.entries.count)
+        for word in synonyms.entries {
+            var bases: [String: NutritionBasis] = [:]
+            for state in IngredientState.displayOrder {
+                guard let target = word.target(for: state),
+                      let row = bls.entry(for: target.code)
+                else { continue }
+                bases[state.rawValue] = NutritionBasis(
+                    values: row.perHundredGrams, code: row.code, catalogName: row.name
+                )
+            }
+            let unitWeights = measures.grams(forIngredient: word.word)
+            guard !bases.isEmpty || !unitWeights.isEmpty else { continue }
+            entries.append(CatalogNutrition(
+                name: word.word,
+                bases: bases,
+                unitWeightsGrams: unitWeights,
+                // Curated in measures.json, deliberately not read yet — see
+                // `MeasureTable`. Phase 5 puts it here.
+                densityGramsPerMl: nil,
+                source: bls.source.datasetVersion.isEmpty
+                    ? CatalogNutrition.blsSource : bls.source.datasetVersion,
+                candidateCodes: word.candidateCodes
+            ))
         }
         return NutritionCatalog(entries: entries)
-    }()
+    }
 
     /// Looked up only by a name already resolved to its canonical form via
     /// `IngredientCatalog.canonicalName(for:)` — this catalog does no alias

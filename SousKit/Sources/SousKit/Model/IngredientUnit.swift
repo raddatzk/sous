@@ -29,11 +29,15 @@ public enum IngredientUnit: Hashable, Sendable {
     case portion
     /// A leaf, counted rather than weighed: "10 Blätter Basilikum".
     case leaf
+    /// The German recipe cup, which is a rough measure and not the US cup's
+    /// 240 ml — what it holds depends on what is in it, so it converts through
+    /// the measure table like a pinch does, not through a volume factor.
+    case cup
     case custom(String)
 
     public static let allKnown: [IngredientUnit] = [
         .gram, .kilogram, .milliliter, .liter, .teaspoon, .tablespoon,
-        .piece, .pinch, .bunch, .clove, .package, .portion, .leaf,
+        .piece, .pinch, .bunch, .clove, .package, .portion, .leaf, .cup,
     ]
 
     public var symbol: String {
@@ -51,6 +55,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .package: "Pck."
         case .portion: "Portion"
         case .leaf: "Blatt"
+        case .cup: "Tasse"
         case .custom(let symbol): symbol
         }
     }
@@ -80,6 +85,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .package: ["pck", "packung", "packungen", "päckchen"]
         case .portion: ["portion", "portionen"]
         case .leaf: ["blatt", "blätter"]
+        case .cup: ["tasse", "tassen"]
         case .custom: []
         }
     }
@@ -106,7 +112,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .gram, .kilogram: .mass
         case .milliliter, .liter, .teaspoon, .tablespoon: .volume
         case .piece: .count
-        case .pinch, .bunch, .clove, .package, .portion, .leaf, .custom: .imprecise
+        case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: .imprecise
         }
     }
 
@@ -123,7 +129,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .teaspoon: 5
         case .tablespoon: 15
         case .piece: 1
-        case .pinch, .bunch, .clove, .package, .portion, .leaf, .custom: nil
+        case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: nil
         }
     }
 

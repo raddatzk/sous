@@ -29,16 +29,11 @@ public struct IngredientCatalog: Sendable {
         self.ingredients = representatives.sorted { $0.name < $1.name }
     }
 
-    /// The catalog shipped with the app.
+    /// The catalog shipped with the app — the identity half of the synonym
+    /// table, which is where the names and their spellings now live. One file
+    /// for one thing: a word, what it answers to, what it means.
     public static let bundled: IngredientCatalog = {
-        guard let url = Bundle.module.url(forResource: "ingredients", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let entries = try? JSONDecoder().decode([CatalogIngredient].self, from: data)
-        else {
-            assertionFailure("The bundled ingredient catalog is missing or unreadable")
-            return IngredientCatalog(ingredients: [])
-        }
-        return IngredientCatalog(ingredients: entries)
+        IngredientCatalog(ingredients: SynonymTable.bundled.catalogIngredients)
     }()
 
     /// Looks up an ingredient by any of its spellings.

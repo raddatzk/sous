@@ -18,6 +18,14 @@ public final class StoredCatalogNutrition {
     /// catalog resolved to, never by what a recipe wrote.
     public var key: String = ""
     public var name: String = ""
+    /// The SBLS code this entry belongs to, once the name has been resolved to
+    /// one — the value join into the shipped world that survives a data swap.
+    /// `nil` until `BundledDataMigration` has run, and permanently `nil` for a
+    /// name that maps to no BLS row, which keeps joining by name.
+    public var blsCode: String?
+    /// Set where the name maps to nothing: the compatibility path still works,
+    /// and phase 4's review UI has a list of what to ask about.
+    public var needsBasisReview: Bool = false
     public var kcal: Double = 0
     public var proteinG: Double = 0
     public var fatG: Double = 0
