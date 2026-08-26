@@ -365,12 +365,23 @@ struct CookModeView: View {
                     .font(.title3)
             }
 
-            let used = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
+            // A fully claimed recipe answers every amount in its own
+            // sentences — the guessed list would only repeat what the text
+            // already says, so it stands down entirely.
+            let used = resolution.isFullyClaimed
+                ? []
+                : recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
             if !used.isEmpty {
-                // What this step needs, so the cook does not swipe away mid-task.
+                // What this step appears to need, so the cook does not swipe
+                // away mid-task — a name-match guess, and labeled as one:
+                // the word up front, the amounts outside the accent that
+                // marks resolved facts.
                 VStack(alignment: .leading, spacing: 4) {
+                    Text("Vermutlich dabei")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     ForEach(used) { ingredient in
-                        IngredientLineView(ingredient: ingredient, formatter: formatter)
+                        IngredientLineView(ingredient: ingredient, formatter: formatter, provisional: true)
                             .font(.callout)
                     }
                 }

@@ -94,7 +94,7 @@ public final class StoredRecipe {
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
         deletedAt = recipe.deletedAt
-        searchText = Self.searchText(for: recipe, variantGroupTitle: variantGroupTitle)
+        searchText = Self.searchText(for: recipe, variantGroupTitle: variantGroupTitle, catalog: catalog)
         ingredientKeys = Self.ingredientKeys(for: recipe, catalog: catalog)
     }
 
@@ -150,13 +150,18 @@ public final class StoredRecipe {
         return keys
     }
 
-    static func searchText(for recipe: Recipe, variantGroupTitle: String? = nil) -> String {
+    static func searchText(for recipe: Recipe, variantGroupTitle: String? = nil, catalog: IngredientCatalog = .bundled) -> String {
         var parts = [recipe.title]
         if let variantGroupTitle, !variantGroupTitle.isEmpty {
             parts.append(variantGroupTitle)
         }
         parts.append(contentsOf: recipe.categories)
         parts.append(contentsOf: recipe.ingredients.map(\.name))
+        // The canonical keys as well, parents included — typing "Kürbis"
+        // into the search field must find the recipe whose list only ever
+        // says "Hokkaido", the same reach the ingredient filter has always
+        // had through `ingredientKeys`.
+        parts.append(contentsOf: ingredientKeys(for: recipe, catalog: catalog))
         return parts.joined(separator: " ").lowercased()
     }
 }

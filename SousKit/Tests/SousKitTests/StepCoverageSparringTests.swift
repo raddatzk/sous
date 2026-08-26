@@ -170,6 +170,13 @@ struct StepCoverageSparringTests {
             for chip in recipe.ingredients(mentionedIn: step, resolution: resolution) {
                 reached.insert(potKey(group: chip.group, name: chip.name, catalog: catalog))
             }
+            // A name already followed by an accepted "(Menge)" parenthetical
+            // is answered, not unreached — the chip and suggestion paths
+            // stay silent about it on purpose, so the bench must not read
+            // their silence as a miss.
+            for line in lines where isAnsweredInText(line.name, in: step.text) {
+                reached.insert(potKey(group: line.group, name: line.name, catalog: catalog))
+            }
         }
         // A suggestion carries no group, so its key was built without one.
         // Let it stand for any pot of the same canonical name rather than
@@ -200,6 +207,29 @@ struct StepCoverageSparringTests {
             print("🧾 Verdacht: „\(suspect.word)\" (Schritt \(suspect.stepNumber)) passt zu keiner Zutatenzeile")
         }
         tally.suspects += suspects.count
+    }
+
+    /// Whether the step writes `name` (or the head noun it answers to)
+    /// immediately followed by a parenthetical that is not an exclusion —
+    /// the shape an accepted amount suggestion leaves behind.
+    private func isAnsweredInText(_ name: String, in text: String) -> Bool {
+        let negations = ["abgesehen", "außer", "ausgenommen", "bis auf", "ohne"]
+        var needles = [name]
+        if let head = StepAmountResolver.headWord(of: name) { needles.append(head) }
+        for needle in needles {
+            var searchStart = text.startIndex
+            while searchStart < text.endIndex,
+                  let found = text.range(of: needle, options: [.caseInsensitive], range: searchStart..<text.endIndex) {
+                var cursor = found.upperBound
+                while cursor < text.endIndex, text[cursor] == " " { cursor = text.index(after: cursor) }
+                if cursor < text.endIndex, text[cursor] == "(" {
+                    let inside = text[text.index(after: cursor)...].lowercased()
+                    if !negations.contains(where: { inside.hasPrefix($0) }) { return true }
+                }
+                searchStart = found.upperBound
+            }
+        }
+        return false
     }
 
     private func potKey(group: String?, name: String, catalog: IngredientCatalog) -> String {

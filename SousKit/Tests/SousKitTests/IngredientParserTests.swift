@@ -167,6 +167,38 @@ struct IngredientParserTests {
         #expect(ingredient.name == "Handvoll Spinat")
     }
 
+    @Test("Container words are units, not the front half of a name")
+    func containerWordsAreUnits() {
+        let can = IngredientParser.parseLine("1 Dose Kokosmilch")
+        #expect(can.quantity == Quantity(1, .can))
+        #expect(can.name == "Kokosmilch")
+
+        let stalks = IngredientParser.parseLine("2 Stangen Lauch")
+        #expect(stalks.quantity == Quantity(2, .stalk))
+        #expect(stalks.name == "Lauch")
+
+        let jar = IngredientParser.parseLine("1 Glas getrocknete Tomaten")
+        #expect(jar.quantity == Quantity(1, .jar))
+        #expect(jar.name == "getrocknete Tomaten")
+
+        let package = IngredientParser.parseLine("1 Pkg Blätterteig")
+        #expect(package.quantity == Quantity(1, .package))
+        #expect(package.name == "Blätterteig")
+
+        let length = IngredientParser.parseLine("2 cm Ingwer")
+        #expect(length.quantity == Quantity(2, .centimeter))
+        #expect(length.name == "Ingwer")
+
+        let sprigs = IngredientParser.parseLine("2 Zweig/e Rosmarin")
+        #expect(sprigs.quantity == Quantity(2, .sprig))
+        #expect(sprigs.name == "Rosmarin")
+
+        // The Chefkoch export writes its plural markers with a slash.
+        let cloves = IngredientParser.parseLine("4 Zehe/n Knoblauch")
+        #expect(cloves.quantity == Quantity(4, .clove))
+        #expect(cloves.name == "Knoblauch")
+    }
+
     @Test("A line without an amount keeps its whole text")
     func noAmount() {
         let ingredient = IngredientParser.parseLine("Salz")

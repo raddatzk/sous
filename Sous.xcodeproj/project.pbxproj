@@ -46,6 +46,7 @@
 		6C5FA0AB80DD4FE2DDB088EF /* VariantGroupRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */; };
 		7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
 		7498D7DCB5309FD2CF3FD819 /* UnknownIngredientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 973AC4B5EEA5A0B69F7D77B6 /* UnknownIngredientButton.swift */; };
+		7CA93220F39B649A2D0550AC /* AmountReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6664D684C6558699AFE1C5B1 /* AmountReviewSheet.swift */; };
 		7FE551E7D5F216F63382DB37 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
 		878E08450A4FD9165E9F4569 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
 		8C15C16B4CC9DDD990279C44 /* RecipeImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4D64C09129B00714574B3E /* RecipeImageView.swift */; };
@@ -467,6 +468,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7CA93220F39B649A2D0550AC /* AmountReviewSheet.swift in Sources */,
 				145C1058A88492DACB05360E /* DecimalText.swift in Sources */,
 				36FCF10A373EFD7E0EB59A5B /* FlowLayout.swift in Sources */,
 				45172002B4442D3DD01976BC /* HighlightedTextEditor.swift in Sources */,

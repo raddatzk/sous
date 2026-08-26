@@ -84,6 +84,15 @@ public enum StepAmountResolver {
         fileprivate let potIndexByLineID: [UUID: Int]
         fileprivate let suggestionsByStep: [UUID: [AmountSuggestion]]
 
+        /// Whether the steps between them account for every pot's whole
+        /// amount — the recipe's text answers every "how much of it here?"
+        /// on its own, and the guessed fallback chips have nothing left to
+        /// add. Lines without a quantity ("Salz nach Geschmack") never
+        /// form a pot, so they can neither block this state nor be blocked
+        /// by it; a recipe with no pots at all is not "fully claimed", it
+        /// is unquantified.
+        public let isFullyClaimed: Bool
+
         /// `step`'s text, split into plain text and resolved amounts.
         public func segments(for step: RecipeStep) -> [StepAmountSegment] {
             segmentsByStep[step.id] ?? [.text(step.text)]
@@ -179,7 +188,8 @@ public enum StepAmountResolver {
                 segmentsByStep: Dictionary(uniqueKeysWithValues: steps.map { ($0.id, [.text($0.text)]) }),
                 boundIngredientIDsByStep: [:],
                 potIndexByLineID: [:],
-                suggestionsByStep: [:]
+                suggestionsByStep: [:],
+                isFullyClaimed: false
             )
         }
 
@@ -250,6 +260,10 @@ public enum StepAmountResolver {
             let offset = fixedShareMentions.count + index
             boundPot[offset] = potIndex
             boundFraction[offset] = share
+            // "Restliche" takes everything the fixed shares left, so the
+            // pot is spoken for — which is exactly what `isFullyClaimed`
+            // wants to know below.
+            remainingCapacity[potIndex] = 0
         }
 
         let allMentions = fixedShareMentions + remainingMentions
@@ -383,7 +397,8 @@ public enum StepAmountResolver {
             segmentsByStep: segmentsByStep,
             boundIngredientIDsByStep: boundIngredientIDsByStep,
             potIndexByLineID: potIndexByLineID,
-            suggestionsByStep: suggestionsByStep
+            suggestionsByStep: suggestionsByStep,
+            isFullyClaimed: !pots.isEmpty && remainingCapacity.allSatisfy { $0 <= 0.001 }
         )
     }
 

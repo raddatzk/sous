@@ -116,6 +116,10 @@ struct SousApp: App {
         let stamp = BundledDataMarker.current()
         guard marker.hasChanged(from: stamp) else { return }
         guard let report = try? await orphanReconciliation.run() else { return }
+        // New data can also mean new relations — a variety gaining its
+        // parent — and the denormalized search index only learns those on
+        // a save. Same trigger, same idempotence.
+        await library.reindexSearch()
         marker.record(stamp)
         dataUpdate.didFindOrphans = !report.orphanedNames.isEmpty
     }

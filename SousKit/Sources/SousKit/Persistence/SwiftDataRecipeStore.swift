@@ -252,6 +252,22 @@ public actor SwiftDataRecipeStore: RecipeStore {
         )
     }
 
+    public func reindexSearch(catalog: IngredientCatalog = .bundled) async throws {
+        // Every row, tombstoned ones included: a recipe restored from the
+        // trash must come back searchable by today's reading, not by the
+        // one it happened to be deleted under.
+        for recipe in try modelContext.fetch(FetchDescriptor<StoredRecipe>()) {
+            let domain = recipe.domainValue
+            recipe.searchText = try StoredRecipe.searchText(
+                for: domain,
+                variantGroupTitle: variantGroupTitle(of: recipe),
+                catalog: catalog
+            )
+            recipe.ingredientKeys = StoredRecipe.ingredientKeys(for: domain, catalog: catalog)
+        }
+        try modelContext.save()
+    }
+
     private func storedGroup(id: UUID) throws -> StoredVariantGroup? {
         var descriptor = FetchDescriptor<StoredVariantGroup>(predicate: #Predicate { $0.id == id })
         descriptor.fetchLimit = 1

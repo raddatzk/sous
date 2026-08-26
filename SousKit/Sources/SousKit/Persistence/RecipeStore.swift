@@ -63,6 +63,15 @@ public protocol RecipeStore: Sendable {
     /// disappearing a row another device still expects to hear about.
     func erase(id: UUID) async throws
     func categories() async throws -> [String]
+    /// Rebuilds every row's denormalized `searchText` and `ingredientKeys`
+    /// from its stored content.
+    ///
+    /// Both are written at save time and then never revisited, so they go
+    /// stale the moment the *reading* of unchanged text changes — a new
+    /// unit word, a variety gaining a parent in the shipped catalog. Run
+    /// when the bundled data changes hands, the same trigger the orphan
+    /// reconciliation answers to.
+    func reindexSearch(catalog: IngredientCatalog) async throws
     /// Categories with how many recipes use each — for managing them.
     func categoryCounts() async throws -> [(name: String, count: Int)]
     /// Renames a category across every recipe. Renaming onto an existing

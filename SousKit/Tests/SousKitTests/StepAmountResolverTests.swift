@@ -1142,6 +1142,60 @@ struct AmountAIProposalTests {
         #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Pinienkerne"])
     }
 
+    // MARK: - Fully claimed
+
+    @Test("A recipe whose steps account for every pot is fully claimed")
+    func fullyClaimedWhenEveryPotIsSpokenFor() {
+        let recipe = Recipe(
+            title: "Kartoffelpfanne",
+            servings: 4,
+            ingredientsText: """
+            1 kg Kartoffeln
+            2 Zwiebeln
+            Salz
+            """,
+            instructionsText: """
+            300 g Kartoffeln kochen und die Hälfte der Zwiebeln würfeln.
+            Restliche Kartoffeln und die restlichen Zwiebeln zugeben.
+            Mit Salz abschmecken.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        // "Salz" has no quantity, so it forms no pot — it neither blocks
+        // the state nor loses its own mention to it.
+        #expect(resolution.isFullyClaimed)
+    }
+
+    @Test("An unclaimed share keeps the recipe out of the fully-claimed state")
+    func notFullyClaimedWhileAShareIsOpen() {
+        let recipe = Recipe(
+            title: "Kartoffelpfanne",
+            servings: 4,
+            ingredientsText: """
+            1 kg Kartoffeln
+            2 Zwiebeln
+            """,
+            instructionsText: "300 g Kartoffeln kochen und die Zwiebeln würfeln."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(!resolution.isFullyClaimed)
+    }
+
+    @Test("A recipe with no quantified line at all is unquantified, not fully claimed")
+    func noPotsIsNotFullyClaimed() {
+        let recipe = Recipe(
+            title: "Würzmischung",
+            servings: 4,
+            ingredientsText: """
+            Salz
+            Pfeffer
+            """,
+            instructionsText: "Alles vermengen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(!resolution.isFullyClaimed)
+    }
+
     // MARK: - Compound stems
 
     @Test("A step calling the seeds by their plant reaches the line — chip, suggestion, and amount")
