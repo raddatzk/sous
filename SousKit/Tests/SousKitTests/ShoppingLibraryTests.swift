@@ -377,6 +377,39 @@ extension ShoppingLibraryTests {
 // MARK: - Migration
 
 extension ShoppingLibraryTests {
+    @Test("Migrated sources keep the order they were written in")
+    func migrationKeepsSourceOrder() async throws {
+        let (shopping, _, container) = try makeLibrary()
+
+        // Six sources, migrated in one pass. They are all stamped within the
+        // same millisecond, so ordering them by time alone leaves the fetch
+        // to decide — which it did, differently from run to run, and with two
+        // sources a coin flip still passed half the time. Six make the
+        // difference between "ordered" and "happened to come back right"
+        // impossible to miss.
+        let order = ["Salat", "Sauce", "Suppe", "Auflauf", "Eintopf", "Brot"]
+        let context = ModelContext(container)
+        let entry = StoredShoppingEntry(key: "tomate", name: "Tomate", category: .vegetables)
+        entry.itemID = nil
+        entry.sortOrder = 0
+        entry.sourceData = try SousCoding.encoder.encode(
+            order.map { ShoppingSource(recipeTitle: $0, quantities: [Quantity(100, .gram)]) }
+        )
+        context.insert(entry)
+        try context.save()
+
+        await shopping.reload()
+
+        #expect(shopping.items.count == 1)
+        #expect(shopping.items[0].originTitles == order)
+        #expect(shopping.byRecipe.map(\.title) == order)
+
+        // And a second read of the same store gives the same answer — the
+        // order is written down, not re-guessed.
+        await shopping.reload()
+        #expect(shopping.items[0].originTitles == order)
+    }
+
     @Test("Pre-document rows carry over: checked stays checked, sources become frozen demand")
     func migrationRoundtrip() async throws {
         let (shopping, _, container) = try makeLibrary()

@@ -32,10 +32,21 @@ public final class StoredShoppingDemand {
     public var lapsedQuantityData: Data = Data()
     public var isLapsed: Bool = false
     public var addedAt: Date = Date.nowInSyncPrecision
+    /// Where this demand sits among the others, the way ``StoredShoppingEntry``
+    /// and ``StoredShoppingPlanEntry`` carry their position.
+    ///
+    /// `addedAt` alone could not order them: it is stored at millisecond
+    /// precision, and everything captured in one pass — every line of one
+    /// recipe, every source of one migrated row — lands in the same
+    /// millisecond. Tied rows then came back in whatever order the fetch
+    /// happened to produce, so a list read twice could name its recipes in
+    /// two different orders.
+    public var sortOrder: Int = 0
     public var updatedAt: Date = Date.nowInSyncPrecision
 
-    public init(_ demand: ShoppingDemand, itemID: UUID?) {
+    public init(_ demand: ShoppingDemand, itemID: UUID?, sortOrder: Int = 0) {
         id = demand.id
+        self.sortOrder = sortOrder
         self.itemID = itemID
         planEntryID = demand.planEntryID
         lineID = demand.lineID
