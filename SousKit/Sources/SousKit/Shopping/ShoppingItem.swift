@@ -1,6 +1,8 @@
 import Foundation
 
-/// What one recipe contributes to a line on the list.
+/// What one recipe contributed to a line, in the shape the list stored
+/// before it became a document. Kept only to read old stores — new
+/// contributions are ``ShoppingDemand`` rows.
 public struct ShoppingSource: Hashable, Sendable, Codable {
     public var recipeTitle: String
     public var quantities: [Quantity]
@@ -11,53 +13,91 @@ public struct ShoppingSource: Hashable, Sendable, Codable {
     }
 }
 
-/// One line on the shopping list.
+/// One checkable line on the shopping list.
 ///
-/// Only the contributions are stored — per recipe, and whatever was typed in
-/// by hand. The total is derived from them, so the two readings of the list
-/// cannot drift apart: adding something by hand to a line that already came
-/// from a recipe used to raise the total without appearing under any dish.
+/// An ingredient usually has one item — but never only one forever: demand
+/// that arrives after the cook checked something off lands on a fresh, open
+/// item under the same ingredient, because the check-off is the cook's work
+/// and is not reset. Display groups the items of an ingredient back into one
+/// place on the list.
 public struct ShoppingItem: Identifiable, Hashable, Sendable {
-    /// Stable across rebuilds of the list, so ticking something off survives
-    /// a change to the plan.
-    public let key: String
-    public var id: String { key }
+    public let itemID: UUID
+    public var id: UUID { itemID }
 
+    /// The normalized ingredient name the item bundles under — or, for a
+    /// line the app could not interpret, the normalized raw text itself.
+    public var key: String
     public var name: String
     /// The aisle it is found in, when the catalog knows the ingredient.
+    /// `nil` is what makes a raw-text item "unassigned".
     public var category: IngredientCategory?
-    /// Which recipes asked for it, and how much each of them wants.
-    public var sources: [ShoppingSource]
+    /// Every captured contribution, one row per recipe line. Summing happens
+    /// at display, never in here.
+    public var demands: [ShoppingDemand]
     /// What was added straight to the list, belonging to no recipe.
     public var manualQuantities: [Quantity]
     public var isChecked: Bool
-
-    /// Everything wanted of it, however it got onto the list.
-    public var quantities: [Quantity] {
-        sources
-            .reduce(into: [Quantity]()) { $0 = $0.adding($1.quantities) }
-            .adding(manualQuantities)
-    }
-
-    /// Came from no recipe at all.
-    public var isManual: Bool { sources.isEmpty }
-
-    public var recipeTitles: [String] { sources.map(\.recipeTitle) }
+    /// Appeared after the same ingredient was already checked off — shown so
+    /// the list honestly tells what changed since then.
+    public var isLateAddition: Bool
+    /// Swept off the list after shopping. The row stays as the document's
+    /// memory; the views leave it out.
+    public var isCleared: Bool
 
     public init(
+        itemID: UUID = UUID(),
         key: String,
         name: String,
         category: IngredientCategory? = nil,
-        sources: [ShoppingSource] = [],
+        demands: [ShoppingDemand] = [],
         manualQuantities: [Quantity] = [],
-        isChecked: Bool = false
+        isChecked: Bool = false,
+        isLateAddition: Bool = false,
+        isCleared: Bool = false
     ) {
+        self.itemID = itemID
         self.key = key
         self.name = name
         self.category = category
-        self.sources = sources
+        self.demands = demands
         self.manualQuantities = manualQuantities
         self.isChecked = isChecked
+        self.isLateAddition = isLateAddition
+        self.isCleared = isCleared
+    }
+
+    /// Everything still wanted of it, bundled unit by unit for display.
+    /// Lapsed demand stays out — it is annotation, not appetite.
+    public var quantities: [Quantity] {
+        demands
+            .filter { !$0.isLapsed }
+            .compactMap(\.effectiveQuantity)
+            .reduce(into: [Quantity]()) { $0 = $0.adding($1) }
+            .adding(manualQuantities)
+    }
+
+    /// What is no longer wanted of a checked item — scaled-down remains and
+    /// demand whose recipe left the plan. Rendered struck through.
+    public var lapsedQuantities: [Quantity] {
+        demands.reduce(into: [Quantity]()) { result, demand in
+            if demand.isLapsed, let quantity = demand.effectiveQuantity {
+                result = result.adding(quantity)
+            } else if let lapsed = demand.lapsedQuantity {
+                result = result.adding(lapsed)
+            }
+        }
+    }
+
+    /// Came from no recipe at all.
+    public var isManual: Bool { demands.isEmpty }
+
+    /// Where it reads as coming from, each origin named once.
+    public var originTitles: [String] {
+        var seen = Set<String>()
+        return demands.compactMap { demand in
+            guard !demand.originTitle.isEmpty, seen.insert(demand.originTitle).inserted else { return nil }
+            return demand.originTitle
+        }
     }
 
     /// The key an ingredient name reduces to: stripped of markdown link

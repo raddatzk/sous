@@ -55,7 +55,8 @@ struct SousApp: App {
             _shopping = State(initialValue: ShoppingLibrary(
                 store: SwiftDataShoppingListStore(modelContainer: container),
                 recipeStore: recipes,
-                catalogLibrary: catalogLibrary
+                catalogLibrary: catalogLibrary,
+                pantryStore: SwiftDataPantryFlagStore(modelContainer: container)
             ))
             _nutrition = State(initialValue: NutritionLibrary(
                 store: nutritionStore,
