@@ -15,9 +15,13 @@ import SwiftUI
 struct IngredientClarificationSheet: View {
     @Environment(\.dismiss) private var dismiss
 
-    /// The names still open, newest reading first — the caller owns the
+    /// The questions still open, newest reading first — the caller owns the
     /// coverage and re-reads it after every answer.
-    let names: [String]
+    ///
+    /// One entry per open *question*, not per name: a basis is stored per
+    /// preparation state, so the same word can be settled raw and open
+    /// cooked, and an answer given here has to know which of the two it is.
+    let open: [NutritionCoverage.OpenIngredient]
     let onDecision: () async -> Void
 
     @State private var expanded: String?
@@ -25,27 +29,31 @@ struct IngredientClarificationSheet: View {
     var body: some View {
         NavigationStack {
             Group {
-                if names.isEmpty {
+                if open.isEmpty {
                     ContentUnavailableView("Alles geklärt", systemImage: "checkmark.circle")
                 } else {
-                    List(names, id: \.self) { name in
+                    List(open) { question in
                         VStack(alignment: .leading, spacing: 0) {
                             Button {
-                                withAnimation { expanded = expanded == name ? nil : name }
+                                withAnimation {
+                                    expanded = expanded == question.id ? nil : question.id
+                                }
                             } label: {
                                 HStack {
-                                    Text(name)
+                                    Text(title(of: question))
                                     Spacer()
                                     Image(systemName: "chevron.right")
                                         .font(.caption.weight(.semibold))
                                         .foregroundStyle(.secondary)
-                                        .rotationEffect(.degrees(expanded == name ? 90 : 0))
+                                        .rotationEffect(.degrees(expanded == question.id ? 90 : 0))
                                 }
                                 .contentShape(.rect)
                             }
                             .buttonStyle(.plain)
-                            if expanded == name {
-                                IngredientBasisPicker(name: name) {
+                            if expanded == question.id {
+                                IngredientBasisPicker(
+                                    name: question.name, state: question.state
+                                ) {
                                     await onDecision()
                                 }
                             }
@@ -64,5 +72,12 @@ struct IngredientClarificationSheet: View {
             }
         }
         .sousSheetSizing(.form)
+    }
+
+    /// "Kartoffeln (gegart)" where the state is what tells two open questions
+    /// about one word apart, and the bare name where it says nothing.
+    private func title(of question: NutritionCoverage.OpenIngredient) -> String {
+        guard question.state != .unspecified else { return question.name }
+        return "\(question.name) (\(question.state.title.lowercased()))"
     }
 }

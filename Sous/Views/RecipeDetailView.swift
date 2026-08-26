@@ -230,7 +230,7 @@ struct RecipeDetailView: View {
             }
         }
         .sheet(isPresented: $isClarifyingAll) {
-            IngredientClarificationSheet(names: openIngredientNames) {
+            IngredientClarificationSheet(open: openIngredients) {
                 await recomputeNutrition()
             }
         }
@@ -484,8 +484,8 @@ struct RecipeDetailView: View {
             if needsIngredientReview {
                 ingredientReviewBanner(unknownIngredientCount, isWide: isWide)
             }
-            if !openIngredientNames.isEmpty {
-                basisReviewBanner(openIngredientNames.count, isWide: isWide)
+            if !openIngredients.isEmpty {
+                basisReviewBanner(openIngredients.count, isWide: isWide)
             }
         }
     }
@@ -516,9 +516,10 @@ struct RecipeDetailView: View {
     }
 
     /// The ingredients whose numbers rest on a guess or on nothing — what
-    /// the collected "Zutaten klären" view walks through.
-    private var openIngredientNames: [String] {
-        nutrition?.coverage.openIngredientNames ?? []
+    /// the collected "Zutaten klären" view walks through, each with the
+    /// preparation state its answer has to be filed under.
+    private var openIngredients: [NutritionCoverage.OpenIngredient] {
+        nutrition?.coverage.openIngredients ?? []
     }
 
     /// The batch flow of decision A: one place that names how much of this
@@ -850,8 +851,9 @@ struct RecipeDetailView: View {
                     ForEach(coverage.gaps, id: \.self) { gap in
                         coverageRow(
                             name: gap.ingredientName,
+                            state: gap.state,
                             source: gap.sourceRecipeTitle,
-                            detail: gap.reason.label,
+                            detail: gapDetail(for: gap),
                             isOpen: gap.reason.wantsBasis
                         )
                     }
@@ -863,6 +865,7 @@ struct RecipeDetailView: View {
                         if let basis = line.basisName {
                             coverageRow(
                                 name: line.ingredientName,
+                                state: line.state,
                                 source: line.sourceRecipeTitle,
                                 detail: basisDetail(for: line, basis: basis),
                                 isOpen: line.isProvisional
@@ -878,6 +881,20 @@ struct RecipeDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// Why a line contributed nothing — and, where the answer is "the row it
+    /// was mapped to is gone", which row that was.
+    ///
+    /// Read live off the vocabulary rather than out of the cached coverage:
+    /// the remembered name is what the *mapping* carries, so it corrects
+    /// itself the moment the mapping is repaired, and a coverage cached
+    /// before the update cannot serve a stale one.
+    private func gapDetail(for gap: NutritionCoverage.Gap) -> String {
+        guard gap.reason == .orphanedBasis,
+              let was = nutritionLibrary.orphanedCatalogNames(forName: gap.ingredientName).first
+        else { return gap.reason.label }
+        return "\(gap.reason.label) — beruhte auf: \(was)"
     }
 
     /// What a counting line rests on, and — where the two differ — the state
@@ -959,13 +976,17 @@ struct RecipeDetailView: View {
     /// picker underneath; settled ones are just text.
     @ViewBuilder
     private func coverageRow(
-        name: String, source: String?, detail: String, isOpen: Bool
+        name: String, state: IngredientState, source: String?, detail: String, isOpen: Bool
     ) -> some View {
         let title = source.map { "aus \($0): \(name)" } ?? name
+        // Keyed by name *and* state: one word can appear twice in a recipe,
+        // raw once and cooked once, and those are two separate questions with
+        // two separate answers.
+        let key = NutritionCoverage.OpenIngredient(name: name, state: state).id
         VStack(alignment: .leading, spacing: 0) {
             if isOpen {
                 Button {
-                    withAnimation { clarifying = clarifying == name ? nil : name }
+                    withAnimation { clarifying = clarifying == key ? nil : key }
                 } label: {
                     HStack(alignment: .firstTextBaseline) {
                         Text(title)
@@ -979,8 +1000,8 @@ struct RecipeDetailView: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                if clarifying == name {
-                    IngredientBasisPicker(name: name) {
+                if clarifying == key {
+                    IngredientBasisPicker(name: name, state: state) {
                         await recomputeNutrition()
                     }
                     .padding(.leading, 12)

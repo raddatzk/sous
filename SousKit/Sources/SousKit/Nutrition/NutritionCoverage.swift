@@ -79,15 +79,22 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// basis is precisely the one the picker exists for, and until now it
         /// was the only one that arrived without anything to offer.
         public var candidateCodes: [String]
+        /// The state the line asked for — carried for the same reason a
+        /// contribution carries it, one step further: a basis is stored *per
+        /// state*, so a repair that does not know which state it is repairing
+        /// writes its answer under the wrong key. An orphaned "gegart"
+        /// mapping was unfixable until this was here.
+        public var state: IngredientState
 
         public init(
             ingredientName: String, reason: GapReason, sourceRecipeTitle: String? = nil,
-            candidateCodes: [String] = []
+            candidateCodes: [String] = [], state: IngredientState = .unspecified
         ) {
             self.ingredientName = ingredientName
             self.reason = reason
             self.sourceRecipeTitle = sourceRecipeTitle
             self.candidateCodes = candidateCodes
+            self.state = state
         }
 
         /// Decoded leniently — the whole coverage travels as JSON inside
@@ -104,7 +111,10 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
                 ),
                 candidateCodes: try container.decodeIfPresent(
                     [String].self, forKey: .candidateCodes
-                ) ?? []
+                ) ?? [],
+                state: try container.decodeIfPresent(
+                    IngredientState.self, forKey: .state
+                ) ?? .unspecified
             )
         }
     }
@@ -251,11 +261,39 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
     /// already moving a number.
     public var openIngredientNames: [String] {
         var seen = Set<String>()
-        let provisional = contributions.filter(\.isProvisional).map(\.ingredientName)
-        let missing = gaps.filter { $0.reason.wantsBasis }.map(\.ingredientName)
-        return (provisional + missing).filter {
+        return openIngredients.map(\.name).filter {
             seen.insert(IngredientCatalog.normalize($0)).inserted
         }
+    }
+
+    /// One open question, with the state it has to be answered in.
+    ///
+    /// The state rides along because a basis is stored per state: "Kartoffeln,
+    /// gegart" whose mapping went orphaned is repaired by writing a *cooked*
+    /// basis, and an answer filed under `unspecified` would leave the line
+    /// exactly as broken as it was.
+    public struct OpenIngredient: Hashable, Sendable, Identifiable {
+        public var name: String
+        public var state: IngredientState
+
+        public var id: String { "\(IngredientCatalog.normalize(name))|\(state.rawValue)" }
+
+        public init(name: String, state: IngredientState) {
+            self.name = name
+            self.state = state
+        }
+    }
+
+    /// The lines a "N Zutaten zu klären" flow would walk, one entry per open
+    /// question rather than per name: the same word can be settled raw and
+    /// open cooked, and folding the two together would hide the second.
+    public var openIngredients: [OpenIngredient] {
+        var seen = Set<String>()
+        let provisional = contributions.filter(\.isProvisional)
+            .map { OpenIngredient(name: $0.ingredientName, state: $0.state) }
+        let missing = gaps.filter { $0.reason.wantsBasis }
+            .map { OpenIngredient(name: $0.ingredientName, state: $0.state) }
+        return (provisional + missing).filter { seen.insert($0.id).inserted }
     }
 
     /// Whether the sum covers everything it claims to.
@@ -371,7 +409,8 @@ public struct NutritionReport: Hashable, Sendable {
                     ingredientName: line.ingredientName,
                     reason: reason,
                     sourceRecipeTitle: line.sourceRecipeTitle,
-                    candidateCodes: line.candidateCodes
+                    candidateCodes: line.candidateCodes,
+                    state: line.state
                 ))
             }
         }

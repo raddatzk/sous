@@ -205,6 +205,14 @@ struct IngredientFormView: View {
         return nutrition.nutritionCatalog.nutrition(forCanonicalName: trimmedName)
     }
 
+    /// What a mapping of this ingredient used to rest on, where a data update
+    /// has taken that row away — the name the mapping remembered, which is
+    /// the only thing left to identify what has to be decided again.
+    private var orphanedBasisName: String? {
+        guard !trimmedName.isEmpty else { return nil }
+        return nutrition.orphanedCatalogNames(forName: trimmedName).first
+    }
+
     /// The cook's own numbers for it, which are the editable ones.
     private var ownNutrition: CatalogNutrition? {
         guard !trimmedName.isEmpty else { return nil }
@@ -702,11 +710,16 @@ struct IngredientFormView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Ohne Nährwerte zählt diese Zutat in keinem Rezept mit. Energie und die vier Hauptwerte reichen — alles Weitere ist freiwillig. Oder mach die Zutat zur Schreibweise einer Zutat, die die App schon kennt.")
-                // The stamp the re-key left behind: these numbers hang on a
-                // name that matches no row of the food catalog, so a data
-                // update cannot follow them. Nothing is broken — it is a
-                // question, and this is where it gets asked.
-                if nutrition.needsBasisReview(forName: trimmedName) {
+                // Two questions wear the same stamp, and they are not the
+                // same question. The re-key's: these numbers hang on a name
+                // that matches no row, so a data update cannot follow them.
+                // Phase 6's: the row they *did* hang on is gone from the
+                // shipped data. Only the second one can name what was lost,
+                // and telling a cook their word "was never in the catalog"
+                // when it was there until the last update would be false.
+                if let was = orphanedBasisName {
+                    Text("Die zugeordnete Zeile „\(was)“ ist in den aktuellen Daten nicht mehr enthalten. Bitte neu zuordnen — in einem Rezept mit dieser Zutat lässt sich das direkt erledigen.")
+                } else if nutrition.needsBasisReview(forName: trimmedName) {
                     Text("Zu diesem Namen kennt der Lebensmittelkatalog keine Zeile. Die eigenen Werte gelten weiter; eine Zuordnung würde sie bei Datenaktualisierungen mitführen.")
                 }
             }

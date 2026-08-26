@@ -24,16 +24,24 @@ struct SousApp: App {
     /// than in the recipe list, because a command in the scene cannot see a
     /// view's state.
     @State private var commands = LibraryCommands()
+    /// Whether the shipped data changed under the cook's vocabulary, and
+    /// something was orphaned by it.
+    @State private var dataUpdate = DataUpdateNotice()
     /// Held so the once-per-launch migrations can reach the store without
     /// opening a second container.
     private let migration: SwiftDataBundledDataMigration
     private let vocabularyMigration: SwiftDataVocabularyMigration
+    private let orphanReconciliation: SwiftDataOrphanReconciliation
+    /// What data this device last ran against. Device state, not user
+    /// content — see `BundledDataMarker`.
+    private let marker = BundledDataMarker()
 
     init() {
         do {
             let container = try ModelContainer.sousContainer()
             migration = SwiftDataBundledDataMigration(modelContainer: container)
             vocabularyMigration = SwiftDataVocabularyMigration(modelContainer: container)
+            orphanReconciliation = SwiftDataOrphanReconciliation(modelContainer: container)
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
@@ -86,6 +94,30 @@ struct SousApp: App {
     private func migrateBundledData() async {
         _ = try? await migration.run()
         _ = try? await vocabularyMigration.run()
+        await reconcileBundledData()
+    }
+
+    /// Phase 6's reconciliation, and only when there is something to
+    /// reconcile: the marker says which data this device last ran against,
+    /// and an unchanged bundle means no mapping can have been orphaned since
+    /// the last launch.
+    ///
+    /// Everything else concept §7 asks for needs no run at all. Changed
+    /// values reach the cook because a basis stores a code and reads its
+    /// numbers through the shipped table on every read — silently, per
+    /// decision D. A vanished code already reads as orphaned. What the pass
+    /// adds is the list, so the cook is told rather than left to find out one
+    /// recipe at a time.
+    ///
+    /// The marker is written only after the pass returns, so a crash in
+    /// between costs a repeated run rather than a skipped one — and the pass
+    /// is idempotent, which is what makes that the cheap failure.
+    private func reconcileBundledData() async {
+        let stamp = BundledDataMarker.current()
+        guard marker.hasChanged(from: stamp) else { return }
+        guard let report = try? await orphanReconciliation.run() else { return }
+        marker.record(stamp)
+        dataUpdate.didFindOrphans = !report.orphanedNames.isEmpty
     }
 
     var body: some Scene {
@@ -100,6 +132,7 @@ struct SousApp: App {
                 .environment(session)
                 .environment(selection)
                 .environment(commands)
+                .environment(dataUpdate)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {

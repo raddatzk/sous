@@ -1,5 +1,4 @@
 import SousKit
-import SwiftData
 import SwiftUI
 
 /// Whether the app follows the system, or is pinned to one scheme.
@@ -38,15 +37,6 @@ enum SousAppearance: String, CaseIterable, Identifiable {
         case .dark: .dark
         }
     }
-}
-
-extension UserDefaults {
-    /// Settings the app and its share extension share, so a recipe checked in
-    /// the share sheet looks like the app the cook just came from.
-    /// `UserDefaults` is thread-safe by contract, which the type system does
-    /// not know; the suite is opened once and never replaced.
-    nonisolated(unsafe) public static let sous =
-        UserDefaults(suiteName: ModelContainer.appGroup) ?? .standard
 }
 
 /// The keys behind the settings, in one place so the app, the extension and

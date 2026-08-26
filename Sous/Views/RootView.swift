@@ -6,6 +6,8 @@ import SwiftUI
 struct RootView: View {
     @Environment(CookSession.self) private var session
     @Environment(RecipeSelection.self) private var selection
+    @Environment(NutritionLibrary.self) private var nutrition
+    @Environment(DataUpdateNotice.self) private var dataUpdate
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -14,6 +16,8 @@ struct RootView: View {
     /// Which of the three the Mac is showing. The phone and iPad keep a tab
     /// view, which holds this itself.
     @State private var section: SousSection = .recipes
+    /// Whether the collected "was ist verwaist" sheet is up.
+    @State private var isClarifyingOrphans = false
 
     /// Whether the way back to the hob is offered.
     ///
@@ -36,6 +40,41 @@ struct RootView: View {
         #endif
     }
 
+    /// The mappings a data update took the ground out from under, read live
+    /// so the band shortens as they are answered and goes away entirely once
+    /// they are.
+    ///
+    /// Empty unless *this* launch found them: the notice belongs to the
+    /// moment the data changed. Afterwards the questions stay exactly where
+    /// they were already visible — in the recipes that use them — rather than
+    /// becoming a permanent band at the top of the app.
+    private var orphaned: [NutritionCoverage.OpenIngredient] {
+        dataUpdate.isShowing ? nutrition.orphanedIngredients : []
+    }
+
+    /// What decision D allows the app to say after a data update, and the
+    /// only thing: which mappings lost their row. Changed numbers are never
+    /// mentioned — they flowed into the sums silently, which is the decision.
+    private var orphanBand: some View {
+        HStack(spacing: 12) {
+            Label(
+                orphaned.count == 1
+                    ? "1 Zuordnung ist nach der Datenaktualisierung verwaist"
+                    : "\(orphaned.count) Zuordnungen sind nach der Datenaktualisierung verwaist",
+                systemImage: "exclamationmark.arrow.triangle.2.circlepath"
+            )
+            .font(.subheadline.weight(.medium))
+            Spacer(minLength: 0)
+            Button("Klären") { isClarifyingOrphans = true }
+                .buttonStyle(.borderedProminent)
+            Button("Später") { dataUpdate.isDismissed = true }
+                .buttonStyle(.bordered)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.sousSurface)
+    }
+
     var body: some View {
         @Bindable var session = session
 
@@ -44,9 +83,22 @@ struct RootView: View {
                 ContinueCookingBanner()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
+            if !orphaned.isEmpty {
+                orphanBand
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
             sections
         }
         .animation(.easeInOut(duration: 0.2), value: showsBanner)
+        .animation(.easeInOut(duration: 0.2), value: orphaned.count)
+        .sheet(isPresented: $isClarifyingOrphans) {
+            IngredientClarificationSheet(open: orphaned) {
+                // Nothing to recompute: unlike the recipe page, this sheet
+                // shows no figures of its own, and the list it does show is
+                // read live off the vocabulary that every answer has just
+                // rewritten. It shortens by itself.
+            }
+        }
         // Cooking is presented from the root, so it survives leaving the
         // recipe it was started from. On the Mac it is a window of its own
         // instead — see `SousApp`.
