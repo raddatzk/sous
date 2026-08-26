@@ -361,6 +361,14 @@
    },
    "via": "BLS-Gruppe \"Backhefe frisch (Frischbackhefe)\""
   },
+  "Hefeflocken": {
+   "targets": {
+    "unspecified": [
+     "Z000001"
+    ]
+   },
+   "via": "Der BLS führt keine Nährhefe — nur Backhefe, ein anderes Erzeugnis. Z000001 ist die Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Resources/community.json."
+  },
   "Hokkaido": {
    "targets": {
     "raw": [
@@ -1098,6 +1106,17 @@
     ]
    },
    "via": "BLS-Gruppe \"Senf mittelscharf\""
+  },
+  "Sojahack": {
+   "targets": {
+    "unspecified": [
+     "H765000"
+    ],
+    "cooked": [
+     "H765082"
+    ]
+   },
+   "via": "BLS nennt es \"Sojaschnetzel/Sojagranulat, texturiert\". Trocken ist, was ein Rezept abwiegt (351 kcal); eingeweicht und gebraten ist der gekochte Zustand (99 kcal) — ein Faktor 3,5, deshalb müssen beide Zustände benannt sein."
   },
   "Sojasauce": {
    "targets": {

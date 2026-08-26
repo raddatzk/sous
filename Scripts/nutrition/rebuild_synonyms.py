@@ -13,8 +13,13 @@ one that runs less often would be the one that is wrong. A full re-run with the
 workbook must produce the same file - `bls.json` is `build_data.py`'s own
 output, not a second source.
 
-It cannot and does not touch `bls.json`, `measures.json` or `aisles.json`; for
-anything that changes the rows themselves, use `build_data.py`.
+`community.json` is read the same way and for the same reason - the curation
+may name a code in it - but it is nobody's output: it is hand-kept, and the
+only file of shipped rows that a person edits directly.
+
+It cannot and does not touch `bls.json`, `community.json`, `measures.json` or
+`aisles.json`; for anything that changes the BLS rows themselves, use
+`build_data.py`.
 
 Usage:
     python3 rebuild_synonyms.py [--dry-run]
@@ -25,7 +30,9 @@ import argparse
 import json
 from pathlib import Path
 
-from build_data import HERE, RESOURCES, SynonymBuilder, dump_json, load
+from build_data import (
+    HERE, RESOURCES, SynonymBuilder, dump_json, load, rows_from_supplements,
+)
 
 
 def rows_from_bls(bls: dict) -> list[dict]:
@@ -50,11 +57,13 @@ def main():
     args = parser.parse_args()
 
     rows = rows_from_bls(load(args.resources / "bls.json"))
+    supplements = rows_from_supplements(args.resources)
     builder = SynonymBuilder(load(args.kitchen_words), load(args.curation))
-    synonyms = builder.build(rows)
+    synonyms = builder.build(rows, supplements=supplements)
     stats = builder.stats
 
     print(f"BLS rows read: {len(rows)}")
+    print(f"Supplement rows read (community.json): {len(supplements)}")
     print(f"Words total: {len(synonyms)}")
     print(f"  curated (kitchen_words.json): {stats['curated_words']}")
     print(f"  from BLS names: {stats['bls_words']}")
@@ -63,6 +72,24 @@ def main():
           f"{len(stats['curated_without_targets'])}")
     print(f"  {stats['curated_without_targets']}")
     print(f"Prefix candidates attached: {stats['prefix_candidates']}")
+    print(f"Slashed names split: {stats['slash_split_words']} "
+          f"(+{stats['slash_split_spellings']} spellings)")
+    if stats["slash_split_absorbed"]:
+        print(f"  absorbed into the word that already meant the row: "
+              f"{len(stats['slash_split_absorbed'])}")
+        for base, owner in stats["slash_split_absorbed"][:6]:
+            print(f"    {base}  ->  spelling of {owner}")
+    if stats["slash_split_refused"]:
+        print(f"  refused, name already taken: {len(stats['slash_split_refused'])} "
+              f"{stats['slash_split_refused'][:5]}")
+    print(f"Overlay conflicts (heavier claim wins, loser kept as candidate): "
+          f"{len(stats['overlay_conflicts'])}")
+    for owner, base, state, code in stats["overlay_conflicts"][:8]:
+        print(f"  {owner}: BLS '{base}' [{state}] {code} -> candidate")
+    if stats["unreachable_base_names"]:
+        print(f"!! base names no spelling reaches any more: "
+              f"{len(stats['unreachable_base_names'])} "
+              f"{stats['unreachable_base_names'][:5]}")
     if stats["unknown_parents"]:
         print(f"!! varieties naming a parent that is not a word: {stats['unknown_parents']}")
     if stats["curation_unknown_codes"]:

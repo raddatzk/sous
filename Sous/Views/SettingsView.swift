@@ -10,6 +10,9 @@ struct SettingsForm: View {
     /// environment — which this form does not get on the Mac, where it is the
     /// `Settings` scene's root and nothing injects anything into it.
     private let source = BLSCatalog.bundled.source
+    /// The supplements file, where the app ships one — the second source the
+    /// section below was written to expect.
+    private let supplements = BLSCatalog.bundled.supplementSource
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen
@@ -51,6 +54,7 @@ struct SettingsForm: View {
     /// gemittelt", which is exactly the averaging decision O2 abolished in
     /// phase 3. A licence notice that describes changes the data no longer
     /// carries is not a detail; CC BY 4.0 asks for it to be accurate.
+    @ViewBuilder
     private var dataSources: some View {
         Section {
             Text(source.attribution)
@@ -74,6 +78,36 @@ struct SettingsForm: View {
             )
         } header: {
             Text("Datenquellen")
+        }
+
+        if let supplements {
+            supplementSources(supplements)
+        }
+    }
+
+    /// The foods the BLS does not list, and who measured them instead.
+    ///
+    /// Its own section rather than a line in the one above, because the
+    /// attribution it carries is somebody else's: CC BY asks for the source
+    /// to be named, and naming it inside a block headed by the BLS's own
+    /// attribution would credit the wrong institute. The per-row half of the
+    /// same duty is the „Quelle: …“ line under each ingredient.
+    @ViewBuilder
+    private func supplementSources(_ supplements: BLSCatalog.Source) -> some View {
+        Section {
+            Text(supplements.attribution)
+            LabeledContent("Datenstand") {
+                Text("\(supplements.datasetVersion), Stand \(supplements.release)")
+            }
+            Text(supplements.changeNote)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Link(
+                "Lizenz \(supplements.license)",
+                destination: URL(string: "https://creativecommons.org/licenses/by/4.0/deed.de")!
+            )
+        } header: {
+            Text("Ergänzungen")
         }
     }
 }

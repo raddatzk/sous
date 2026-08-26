@@ -60,7 +60,11 @@ public struct NutritionCatalog: Sendable {
                     catalogName: row.name,
                     status: word.isCatalogsOwnName(for: target) ? .confirmed : .proposed,
                     weight: target.weight,
-                    source: source
+                    // The row's own source where it has one — a supplement
+                    // names the body that measured it, and "BLS 4.0" under a
+                    // figure the BLS never published would be a false claim,
+                    // not a rounding of the truth.
+                    source: row.source ?? source
                 )
             }
             let candidates = word.candidateCodes
@@ -84,12 +88,17 @@ public struct NutritionCatalog: Sendable {
             guard !bases.isEmpty || !unitWeights.isEmpty || !candidates.isEmpty
                     || density != nil || word.parent != nil
             else { continue }
+            // The word's own line of attribution follows its basis: a word
+            // resting on a supplement is shown as resting on that supplement,
+            // not on the catalog it is not in.
+            let wordSource = bases.values
+                .max { $0.weight < $1.weight }?.source ?? source
             entries.append(CatalogNutrition(
                 name: word.word,
                 bases: bases,
                 unitWeightsGrams: unitWeights,
                 densityGramsPerMl: density,
-                source: source,
+                source: wordSource,
                 candidateCodes: candidates,
                 parentName: word.parent
             ))
