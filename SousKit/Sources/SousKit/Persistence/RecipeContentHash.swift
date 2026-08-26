@@ -30,7 +30,11 @@ enum RecipeContentHash {
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.
-    static let bundledDataResources = ["bls", "synonyms", "measures", "aisles"]
+    ///
+    /// `community` earns its place for the same reason `bls` does, and the
+    /// day it is added is the day every cached figure has to be recomputed:
+    /// a word that resolved to nothing yesterday may have a basis today.
+    static let bundledDataResources = ["bls", "community", "synonyms", "measures", "aisles"]
 
     /// How many bytes each listed file contributed — internal so a test can
     /// tell "hashed four files" from "found none and hashed the void", which

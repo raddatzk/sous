@@ -41,6 +41,7 @@ Everything here is checked in except the workbook.
 | `kitchen_words.json` | **yes** | the 259 curated kitchen words, their aliases, categories and the variety relation — the words people cook with, which the BLS does not have |
 | `curation.json` | **yes** | kitchen word → SBLS codes, where a plain name match cannot find them |
 | `measures.json` | **yes** | piece weights, generic unit weights, densities |
+| `../../SousKit/Sources/SousKit/Resources/community.json` | **yes** | foods the BLS does not list at all — see "Foods the BLS does not have" |
 
 **All four curated files are inputs and never outputs.** That is the whole
 point of the split, and the fix for v1's worst property - see the warning
@@ -363,11 +364,39 @@ values, the entry is the bridge.**
   hurts, it hurts on both sides. `BundledDataTests` checks that no two words
   collide under that normalization, which is the failure mode that would
   otherwise make one of them unreachable forever and silently.
-- **BLS often joins synonyms with a slash** (`"Weinbrand/Brandy"`,
-  `"Alaska-Pollack/Alaska-Seelachs"`). These are kept as-is rather than split
-  into name + aliases. Splitting the first segment out as the `word` and the
-  rest into `aliases` would be a reasonable, easy follow-up PR - and now that
-  the codes are the key, it would be a pure naming change.
+- ~~**BLS often joins synonyms with a slash.**~~ **Done.**
+  `split_slash_synonyms` turns `"Batate/Süßkartoffel"` into the word `Batate`
+  with the spelling `Süßkartoffel`: 168 names split, 372 spellings gained, and
+  329 names that resolved to nothing now resolve. Three shapes are refused,
+  each because a wrong split invents a word rather than finding one - brackets
+  (`"Agavenbrand (Mezcal/Tequila)"`, `"Klippfisch 1/1 trocken"`), a first
+  segment of more than one word (`"Hammel Bug/Schulter"` means Hammel*schulter*,
+  and `"Kalb Bug/Schulter"` proves it), and a suspended hyphen
+  (`"Zartbitter-/Halbbitterschokolade"`). A trailing qualifier is *not* refused
+  but carried onto every segment.
+
+  **Ownership is still decided by the whole name, never by a segment.** Letting
+  a segment claim the row looked like a bonus - `"Batate/Süßkartoffel"` joining
+  the curated `Süßkartoffel` - and was a trap: `"Kabanossi/Peperoni"` then
+  handed a sausage's values to `Chili`, whose alias `Peperoni` is a different
+  food. A slash separates spellings, and a spelling of one food can be the name
+  of another. `BundledDataTests` holds that case.
+
+  The original slashed name stays a spelling of whatever it became, so recipes
+  and stored mappings that wrote it go on resolving; the builder reports any
+  base name no spelling reaches (`unreachable_base_names`), which is the failure
+  this would otherwise cause silently.
+
+  **A taken head is absorbed, not duplicated.** Where the split cannot claim
+  its head because a word already holds it, the builder asks what that word
+  means: if it already carries *every* code this base has, the two are one food
+  under two names and the whole string becomes a spelling of it. That is how
+  `"Karotte/Möhre"` stopped being a second word beside the curated `Karotte` —
+  same codes, own category, and which shelf a cook got depended on how they had
+  typed it. 13 of the 19 refusals resolved this way. The subset test is the
+  guard: `"Schwein/Rind, Hackfleisch gemischt"` also has a taken head, but
+  `Schwein` means entirely different rows, so it stays a word of its own. Six
+  cases still refuse, all of them for that reason.
 - **The measure table is thin and always will be.** 7 generic unit weights, 6
   per-group, 34 per-ingredient, 34 densities. Every value is an assumption and
   flagged as one; a unit with no entry becomes its own named gap reason in the
@@ -380,6 +409,60 @@ values, the entry is the bridge.**
   weighing what a spoonful of water weighs.
 - **A human should still eyeball `group_codes.json`'s categories**, especially
   the keyword-override letters (E, H, K, Q, R).
+
+## Foods the BLS does not have
+
+The BLS is a catalog of analysed foods, and some things people cook with are
+not in it — nutritional yeast, for one. `SousKit/Sources/SousKit/Resources/community.json`
+holds those rows. It is shipped data like `bls.json`, read by the same
+`BLSCatalog` and reachable by the same code lookup, and it is the **only file
+of shipped food rows a person edits directly**: no pipeline writes it and no
+spreadsheet backs it.
+
+Four rules, each with a test in `BundledSupplementTests`:
+
+1. **Codes start with `Z` and are never reissued.** The BLS has only ever
+   used B–Y — that is documented for 3.0 (handbook §3.6) and unchanged in 4.0
+   — so `Z` cannot collide, now or after an update. Number them in sequence
+   and let a deleted row's number lapse: a reused code would silently move a
+   cook's confirmed basis onto a different food.
+2. **The name is the source's name, verbatim** — `"Nutritional yeast"`, not
+   `"Hefeflocken"`. It is the same rule `bls.json` follows and for the same
+   reason: a translated name exists in no database, so nobody could check it
+   and no update could find it again. The German word is a kitchen word and
+   belongs in `kitchen_words.json`, bridged to the code by `curation.json`,
+   exactly like every other word the catalog spells differently.
+3. **Every row names its own source.** `bls.json` has one attribution for all
+   3,983 rows; a supplements file has none, because its rows come from
+   wherever the food happened to be documented. The `source` string is what
+   the app prints under the ingredient as „Quelle: …", and it is the per-row
+   half of what CC BY asks for. The file-level `attribution` names the bodies
+   involved, for the sources screen.
+4. **Only use sources whose licence allows it.** Ciqual (Anses) is published
+   under the Licence Ouverte and is a good fit; a commercial nutrition site
+   with no licence statement is not, however plausible its numbers look.
+5. **A row nothing points at does not belong here.** Add a supplement only
+   because a kitchen word needs it, and add that word in the same edit. This
+   is not tidiness: `BLSCatalog.search` matches on the row's own name, so a
+   row called `"Nutritional yeast"` cannot be found by anyone typing German —
+   searching "Hefeflocken" in the basis picker returns nothing whatsoever.
+   The kitchen word is the only way in, which is exactly the arrangement rule
+   2 buys: the name stays checkable against its source, and the cook never
+   has to see it. It is the same rule `measures.json` rows are held to.
+
+This is also the reason not to bulk-import a table, however good its licence.
+The 3,185 Ciqual rows would each need a German word before a cook could reach
+any of them, and curating 3,185 words to close a handful of gaps is the whole
+cost of the bridge for none of its benefit. Take the rows you have a gap for.
+
+A row here is reachable as a *target* and nothing else. The builder is handed
+these rows separately (`build(rows, supplements=…)`) so step 4 cannot turn
+their names into kitchen words — which is what would otherwise put an English
+word into a German catalog.
+
+Missing values follow the BLS rule: leave the field out rather than writing a
+zero. Ciqual marks unknowns with `–` and traces with `<`, and its own
+documentation says not to read either as zero.
 
 ## Fixing data by hand
 
@@ -407,9 +490,11 @@ values, the entry is the bridge.**
 - **Wrong nutrition value** → that is a BLS value. Do not patch it here; if BLS
   is genuinely wrong, the right fix is a different `curation.json` target, or
   the cook's own values in the app.
-- **Adding a food BLS does not have** → add it to `kitchen_words.json` with no entry
-  in `curation.json`. It becomes a known ingredient whose nutrition gap has a
-  name, like the 28 spices.
+- **Adding a food BLS does not have** → add it to `kitchen_words.json`. With no
+  entry in `curation.json` it becomes a known ingredient whose nutrition gap
+  has a name, like the 28 spices. If you have values for it from a source that
+  allows it, add the row to `community.json` instead and point the curation at
+  its code — see below.
 
 You only need to re-run the whole pipeline to pull in a newer BLS release or to
 change one of the filtering/mapping rules.

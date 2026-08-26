@@ -133,22 +133,27 @@
    "origin": "bls"
   },
   {
-   "word": "Ajvar Konserve",
-   "aliases": [],
-   "category": "vegetables",
+   "word": "Ajvar",
+   "aliases": [
+    "Ajvar Konserve"
+   ],
+   "category": "canned",
    "targets": [
     {
      "code": "G898400",
      "state": "unspecified",
-     "weight": 1.0
+     "weight": 0.9
     }
    ],
    "candidates": [],
-   "origin": "bls"
+   "origin": "curated"
   },
   {
-   "word": "Alaska-Pollack/Alaska-Seelachs",
-   "aliases": [],
+   "word": "Alaska-Pollack",
+   "aliases": [
+    "Alaska-Pollack/Alaska-Seelachs",
+    "Alaska-Seelachs"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -186,8 +191,11 @@
    "origin": "bls"
   },
   {
-   "word": "Alaska-Pollack/Alaska-Seelachs, in Öl, Präserve, abgetropft",
-   "aliases": [],
+   "word": "Alaska-Pollack, in Öl, Präserve, abgetropft",
+   "aliases": [
+    "Alaska-Pollack/Alaska-Seelachs, in Öl, Präserve, abgetropft",
+    "Alaska-Seelachs, in Öl, Präserve, abgetropft"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -200,8 +208,11 @@
    "origin": "bls"
   },
   {
-   "word": "Alaska-Pollack/Alaska-Seelachs, tiefgefroren",
-   "aliases": [],
+   "word": "Alaska-Pollack, tiefgefroren",
+   "aliases": [
+    "Alaska-Pollack/Alaska-Seelachs, tiefgefroren",
+    "Alaska-Seelachs, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -297,8 +308,11 @@
    "origin": "bls"
   },
   {
-   "word": "Alfalfasprossen/Alfalfakeimlinge",
-   "aliases": [],
+   "word": "Alfalfasprossen",
+   "aliases": [
+    "Alfalfasprossen/Alfalfakeimlinge",
+    "Alfalfakeimlinge"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -578,22 +592,11 @@
    "parent": "Essig"
   },
   {
-   "word": "Apfelkompott/Apfelmark, ungesüßt, Konserve",
-   "aliases": [],
-   "category": "fruit",
-   "targets": [
-    {
-     "code": "F923900",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Apfelkompott, gezuckert, Konserve",
+   "aliases": [
+    "Apfelkompott/Apfelmus, gezuckert, Konserve",
+    "Apfelmus, gezuckert, Konserve"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Apfelkompott/Apfelmus, gezuckert, Konserve",
-   "aliases": [],
    "category": "fruit",
    "targets": [
     {
@@ -606,12 +609,32 @@
    "origin": "bls"
   },
   {
-   "word": "Apfelkompott/Apfelmus, mit Süßungsmitteln, Konserve",
-   "aliases": [],
+   "word": "Apfelkompott, mit Süßungsmitteln, Konserve",
+   "aliases": [
+    "Apfelkompott/Apfelmus, mit Süßungsmitteln, Konserve",
+    "Apfelmus, mit Süßungsmitteln, Konserve"
+   ],
    "category": "fruit",
    "targets": [
     {
      "code": "F928900",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
+   "word": "Apfelkompott, ungesüßt, Konserve",
+   "aliases": [
+    "Apfelkompott/Apfelmark, ungesüßt, Konserve",
+    "Apfelmark, ungesüßt, Konserve"
+   ],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F923900",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -1435,8 +1458,11 @@
    "origin": "bls"
   },
   {
-   "word": "Barsch/Flussbarsch",
-   "aliases": [],
+   "word": "Barsch",
+   "aliases": [
+    "Barsch/Flussbarsch",
+    "Flussbarsch"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -1469,8 +1495,11 @@
    "origin": "bls"
   },
   {
-   "word": "Barsch/Flussbarsch, geräuchert",
-   "aliases": [],
+   "word": "Barsch, geräuchert",
+   "aliases": [
+    "Barsch/Flussbarsch, geräuchert",
+    "Flussbarsch, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -1483,8 +1512,11 @@
    "origin": "bls"
   },
   {
-   "word": "Barsch/Flussbarsch, gesalzen",
-   "aliases": [],
+   "word": "Barsch, gesalzen",
+   "aliases": [
+    "Barsch/Flussbarsch, gesalzen",
+    "Flussbarsch, gesalzen"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -1497,8 +1529,11 @@
    "origin": "bls"
   },
   {
-   "word": "Barsch/Flussbarsch, tiefgefroren",
-   "aliases": [],
+   "word": "Barsch, tiefgefroren",
+   "aliases": [
+    "Barsch/Flussbarsch, tiefgefroren",
+    "Flussbarsch, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -1580,8 +1615,10 @@
    "origin": "curated"
   },
   {
-   "word": "Batate/Süßkartoffel",
-   "aliases": [],
+   "word": "Batate",
+   "aliases": [
+    "Batate/Süßkartoffel"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -1609,8 +1646,11 @@
    "origin": "bls"
   },
   {
-   "word": "Batate/Süßkartoffel, frittiert, gesalzen",
-   "aliases": [],
+   "word": "Batate, frittiert, gesalzen",
+   "aliases": [
+    "Batate/Süßkartoffel, frittiert, gesalzen",
+    "Süßkartoffel, frittiert, gesalzen"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -1623,8 +1663,11 @@
    "origin": "bls"
   },
   {
-   "word": "Bauernbratwurst/Westfälinger",
-   "aliases": [],
+   "word": "Bauernbratwurst",
+   "aliases": [
+    "Bauernbratwurst/Westfälinger",
+    "Westfälinger"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -1869,8 +1912,11 @@
    "origin": "bls"
   },
   {
-   "word": "Bierwurst/Blasenwurst",
-   "aliases": [],
+   "word": "Bierwurst",
+   "aliases": [
+    "Bierwurst/Blasenwurst",
+    "Blasenwurst"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -1883,8 +1929,11 @@
    "origin": "bls"
   },
   {
-   "word": "Bierwurst/Blasenwurst, Konserve",
-   "aliases": [],
+   "word": "Bierwurst, Konserve",
+   "aliases": [
+    "Bierwurst/Blasenwurst, Konserve",
+    "Blasenwurst, Konserve"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -2143,8 +2192,12 @@
    "origin": "curated"
   },
   {
-   "word": "Blei/Brachsen/Brasse",
-   "aliases": [],
+   "word": "Blei",
+   "aliases": [
+    "Blei/Brachsen/Brasse",
+    "Brachsen",
+    "Brasse"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -2167,8 +2220,12 @@
    "origin": "bls"
   },
   {
-   "word": "Blei/Brachsen/Brasse, geräuchert",
-   "aliases": [],
+   "word": "Blei, geräuchert",
+   "aliases": [
+    "Blei/Brachsen/Brasse, geräuchert",
+    "Brachsen, geräuchert",
+    "Brasse, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -2181,8 +2238,12 @@
    "origin": "bls"
   },
   {
-   "word": "Blei/Brachsen/Brasse, gesalzen",
-   "aliases": [],
+   "word": "Blei, gesalzen",
+   "aliases": [
+    "Blei/Brachsen/Brasse, gesalzen",
+    "Brachsen, gesalzen",
+    "Brasse, gesalzen"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -2195,8 +2256,12 @@
    "origin": "bls"
   },
   {
-   "word": "Blei/Brachsen/Brasse, tiefgefroren",
-   "aliases": [],
+   "word": "Blei, tiefgefroren",
+   "aliases": [
+    "Blei/Brachsen/Brasse, tiefgefroren",
+    "Brachsen, tiefgefroren",
+    "Brasse, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -2857,8 +2922,11 @@
    "origin": "bls"
   },
   {
-   "word": "Bratöl/Frittieröl, pflanzlich",
-   "aliases": [],
+   "word": "Bratöl, pflanzlich",
+   "aliases": [
+    "Bratöl/Frittieröl, pflanzlich",
+    "Frittieröl, pflanzlich"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -3179,8 +3247,11 @@
    "origin": "bls"
   },
   {
-   "word": "Brosme/Lumb",
-   "aliases": [],
+   "word": "Brosme",
+   "aliases": [
+    "Brosme/Lumb",
+    "Lumb"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -4591,6 +4662,20 @@
    "origin": "bls"
   },
   {
+   "word": "Clementine",
+   "aliases": [],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F607100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
    "word": "Clementinensaft",
    "aliases": [],
    "category": "fruit",
@@ -5064,8 +5149,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dessert/Puddingalternative, pflanzlich",
-   "aliases": [],
+   "word": "Dessert, pflanzlich",
+   "aliases": [
+    "Dessert/Puddingalternative, pflanzlich",
+    "Puddingalternative, pflanzlich"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -5078,8 +5166,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dessert/Puddingalternative, pflanzlich, angereichert mit Vitaminen und Calcium",
-   "aliases": [],
+   "word": "Dessert, pflanzlich, angereichert mit Vitaminen und Calcium",
+   "aliases": [
+    "Dessert/Puddingalternative, pflanzlich, angereichert mit Vitaminen und Calcium",
+    "Puddingalternative, pflanzlich, angereichert mit Vitaminen und Calcium"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -5177,8 +5268,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dickmilch/Sauermilch, entrahmt, max. 0,5 % Fett",
-   "aliases": [],
+   "word": "Dickmilch, entrahmt, max. 0,5 % Fett",
+   "aliases": [
+    "Dickmilch/Sauermilch, entrahmt, max. 0,5 % Fett",
+    "Sauermilch, entrahmt, max. 0,5 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -5191,8 +5285,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dickmilch/Sauermilch, fettarm, mind. 1,5 % bis max. 1,8 % Fett",
-   "aliases": [],
+   "word": "Dickmilch, fettarm, mind. 1,5 % bis max. 1,8 % Fett",
+   "aliases": [
+    "Dickmilch/Sauermilch, fettarm, mind. 1,5 % bis max. 1,8 % Fett",
+    "Sauermilch, fettarm, mind. 1,5 % bis max. 1,8 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -5205,8 +5302,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dickmilch/Sauermilch, mind. 3,5 % Fett",
-   "aliases": [],
+   "word": "Dickmilch, mind. 3,5 % Fett",
+   "aliases": [
+    "Dickmilch/Sauermilch, mind. 3,5 % Fett",
+    "Sauermilch, mind. 3,5 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -5462,8 +5562,11 @@
    "origin": "bls"
   },
   {
-   "word": "Distelöl/Safloröl",
-   "aliases": [],
+   "word": "Distelöl",
+   "aliases": [
+    "Distelöl/Safloröl",
+    "Safloröl"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -5528,47 +5631,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dorsch/Kabeljau",
-   "aliases": [],
-   "category": "fish",
-   "targets": [
-    {
-     "code": "T204152",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "T204132",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "T204162",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "T204172",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "T204182",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "T204100",
-     "state": "raw",
-     "weight": 1.0
-    }
+   "word": "Dorsch, paniert",
+   "aliases": [
+    "Dorsch/Kabeljau, paniert",
+    "Kabeljau, paniert"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Dorsch/Kabeljau, paniert",
-   "aliases": [],
    "category": "fish",
    "targets": [
     {
@@ -5581,8 +5648,11 @@
    "origin": "bls"
   },
   {
-   "word": "Dorsch/Kabeljau, tiefgefroren",
-   "aliases": [],
+   "word": "Dorsch, tiefgefroren",
+   "aliases": [
+    "Dorsch/Kabeljau, tiefgefroren",
+    "Kabeljau, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5747,8 +5817,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkastanie/Marone",
-   "aliases": [],
+   "word": "Edelkastanie",
+   "aliases": [
+    "Edelkastanie/Marone",
+    "Marone"
+   ],
    "category": "nuts",
    "targets": [
     {
@@ -5781,8 +5854,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs",
-   "aliases": [],
+   "word": "Edelkrebs",
+   "aliases": [
+    "Edelkrebs/Flusskrebs",
+    "Flusskrebs"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5800,8 +5876,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs, gekocht",
-   "aliases": [],
+   "word": "Edelkrebs, gekocht",
+   "aliases": [
+    "Edelkrebs/Flusskrebs, gekocht",
+    "Flusskrebs, gekocht"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5819,8 +5898,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs, gesalzen",
-   "aliases": [],
+   "word": "Edelkrebs, gesalzen",
+   "aliases": [
+    "Edelkrebs/Flusskrebs, gesalzen",
+    "Flusskrebs, gesalzen"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5833,8 +5915,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Edelkrebs, Konserve, abgetropft",
+   "aliases": [
+    "Edelkrebs/Flusskrebs, Konserve, abgetropft",
+    "Flusskrebs, Konserve, abgetropft"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5847,8 +5932,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs, Präserve",
-   "aliases": [],
+   "word": "Edelkrebs, Präserve",
+   "aliases": [
+    "Edelkrebs/Flusskrebs, Präserve",
+    "Flusskrebs, Präserve"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -5861,8 +5949,11 @@
    "origin": "bls"
   },
   {
-   "word": "Edelkrebs/Flusskrebs, tiefgefroren",
-   "aliases": [],
+   "word": "Edelkrebs, tiefgefroren",
+   "aliases": [
+    "Edelkrebs/Flusskrebs, tiefgefroren",
+    "Flusskrebs, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -6369,8 +6460,11 @@
    "origin": "bls"
   },
   {
-   "word": "Endivie/Escariol",
-   "aliases": [],
+   "word": "Endivie",
+   "aliases": [
+    "Endivie/Escariol",
+    "Escariol"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -7141,7 +7235,9 @@
   },
   {
    "word": "Erdnussbutter/Erdnusscreme",
-   "aliases": [],
+   "aliases": [
+    "Erdnusscreme"
+   ],
    "category": "nuts",
    "targets": [
     {
@@ -7427,8 +7523,11 @@
    "origin": "bls"
   },
   {
-   "word": "Feijoa/Ananas-Guave",
-   "aliases": [],
+   "word": "Feijoa",
+   "aliases": [
+    "Feijoa/Ananas-Guave",
+    "Ananas-Guave"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -7455,8 +7554,11 @@
    "origin": "bls"
   },
   {
-   "word": "Feinkostsauce/Grillsauce, Mayonnaise-Basis",
-   "aliases": [],
+   "word": "Feinkostsauce, Mayonnaise-Basis",
+   "aliases": [
+    "Feinkostsauce/Grillsauce, Mayonnaise-Basis",
+    "Grillsauce, Mayonnaise-Basis"
+   ],
    "category": "canned",
    "targets": [
     {
@@ -7469,8 +7571,11 @@
    "origin": "bls"
   },
   {
-   "word": "Feinkostsauce/Grillsauce, Tomaten-Basis",
-   "aliases": [],
+   "word": "Feinkostsauce, Tomaten-Basis",
+   "aliases": [
+    "Feinkostsauce/Grillsauce, Tomaten-Basis",
+    "Grillsauce, Tomaten-Basis"
+   ],
    "category": "canned",
    "targets": [
     {
@@ -7483,8 +7588,13 @@
    "origin": "bls"
   },
   {
-   "word": "Felchen/Maräne/Renke/Schnäpel",
-   "aliases": [],
+   "word": "Felchen",
+   "aliases": [
+    "Felchen/Maräne/Renke/Schnäpel",
+    "Maräne",
+    "Renke",
+    "Schnäpel"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -7507,8 +7617,13 @@
    "origin": "bls"
   },
   {
-   "word": "Felchen/Maräne/Renke/Schnäpel, geräuchert",
-   "aliases": [],
+   "word": "Felchen, geräuchert",
+   "aliases": [
+    "Felchen/Maräne/Renke/Schnäpel, geräuchert",
+    "Maräne, geräuchert",
+    "Renke, geräuchert",
+    "Schnäpel, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -7521,8 +7636,13 @@
    "origin": "bls"
   },
   {
-   "word": "Felchen/Maräne/Renke/Schnäpel, tiefgefroren",
-   "aliases": [],
+   "word": "Felchen, tiefgefroren",
+   "aliases": [
+    "Felchen/Maräne/Renke/Schnäpel, tiefgefroren",
+    "Maräne, tiefgefroren",
+    "Renke, tiefgefroren",
+    "Schnäpel, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -7546,7 +7666,10 @@
   },
   {
    "word": "Feldsalat",
-   "aliases": [],
+   "aliases": [
+    "Feldsalat/Rapunzel",
+    "Rapunzel"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -7557,20 +7680,6 @@
    ],
    "candidates": [],
    "origin": "curated"
-  },
-  {
-   "word": "Feldsalat/Rapunzel",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "G104100",
-     "state": "raw",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
   },
   {
    "word": "Fenchel",
@@ -7607,8 +7716,11 @@
    "origin": "curated"
   },
   {
-   "word": "Fenchelblatt/Bologneser Fenchel",
-   "aliases": [],
+   "word": "Fenchelblatt",
+   "aliases": [
+    "Fenchelblatt/Bologneser Fenchel",
+    "Bologneser Fenchel"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -7750,8 +7862,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fischleberöl/Lebertran",
-   "aliases": [],
+   "word": "Fischleberöl",
+   "aliases": [
+    "Fischleberöl/Lebertran",
+    "Lebertran"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -8257,7 +8372,9 @@
   },
   {
    "word": "Forelle/Regenbogenforellen-Filet mit Haut",
-   "aliases": [],
+   "aliases": [
+    "Regenbogenforellen-Filet mit Haut"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -8354,8 +8471,11 @@
    "origin": "bls"
   },
   {
-   "word": "Frischecreme/Streichcreme, Basis Mandeln, vegan",
-   "aliases": [],
+   "word": "Frischecreme, Basis Mandeln, vegan",
+   "aliases": [
+    "Frischecreme/Streichcreme, Basis Mandeln, vegan",
+    "Streichcreme, Basis Mandeln, vegan"
+   ],
    "category": "other",
    "targets": [
     {
@@ -8721,8 +8841,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fruchtmischung/Fruchtcocktail, gezuckert, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Fruchtmischung, gezuckert, Konserve, abgetropft",
+   "aliases": [
+    "Fruchtmischung/Fruchtcocktail, gezuckert, Konserve, abgetropft",
+    "Fruchtcocktail, gezuckert, Konserve, abgetropft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -8735,8 +8858,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fruchtmischung/Fruchtcocktail, in Fruchtsaft, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Fruchtmischung, in Fruchtsaft, Konserve, abgetropft",
+   "aliases": [
+    "Fruchtmischung/Fruchtcocktail, in Fruchtsaft, Konserve, abgetropft",
+    "Fruchtcocktail, in Fruchtsaft, Konserve, abgetropft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -8749,8 +8875,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fruchtmischung/Fruchtcocktail, mit Süßungsmitteln, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Fruchtmischung, mit Süßungsmitteln, Konserve, abgetropft",
+   "aliases": [
+    "Fruchtmischung/Fruchtcocktail, mit Süßungsmitteln, Konserve, abgetropft",
+    "Fruchtcocktail, mit Süßungsmitteln, Konserve, abgetropft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -8763,8 +8892,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fruchtmischung/Fruchtcocktail, ungesüßt, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Fruchtmischung, ungesüßt, Konserve, abgetropft",
+   "aliases": [
+    "Fruchtmischung/Fruchtcocktail, ungesüßt, Konserve, abgetropft",
+    "Fruchtcocktail, ungesüßt, Konserve, abgetropft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -8777,8 +8909,11 @@
    "origin": "bls"
   },
   {
-   "word": "Fruchtschnitte/Fruchtriegel",
-   "aliases": [],
+   "word": "Fruchtschnitte",
+   "aliases": [
+    "Fruchtschnitte/Fruchtriegel",
+    "Fruchtriegel"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -8865,7 +9000,8 @@
    "aliases": [
     "Frühlingszwiebeln",
     "Lauchzwiebel",
-    "Lauchzwiebeln"
+    "Lauchzwiebeln",
+    "Frühlingszwiebel/Lauchzwiebel"
    ],
    "category": "vegetables",
    "targets": [
@@ -8907,33 +9043,16 @@
    "origin": "curated"
   },
   {
-   "word": "Frühlingszwiebel/Lauchzwiebel",
-   "aliases": [],
+   "word": "Frühlingszwiebel, geschmort ohne Fett",
+   "aliases": [
+    "Frühlingszwiebel/Lauchzwiebel, geschmort ohne Fett",
+    "Lauchzwiebel, geschmort ohne Fett"
+   ],
    "category": "vegetables",
    "targets": [
     {
-     "code": "G482132",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "G482152",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G482162",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G482182",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G482100",
-     "state": "raw",
+     "code": "G482142",
+     "state": "unspecified",
      "weight": 1.0
     }
    ],
@@ -8981,20 +9100,6 @@
    "targets": [
     {
      "code": "G486142",
-     "state": "unspecified",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Frühlingszwiebel/Lauchzwiebel, geschmort ohne Fett",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "G482142",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -9348,7 +9453,10 @@
    "aliases": [
     "Garnelen",
     "Shrimps",
-    "Scampi"
+    "Scampi",
+    "Garnele/Granat/Krabbe",
+    "Granat",
+    "Krabbe"
    ],
    "category": "fish",
    "targets": [
@@ -9397,27 +9505,12 @@
    "origin": "bls"
   },
   {
-   "word": "Garnele/Granat/Krabbe",
-   "aliases": [],
-   "category": "fish",
-   "targets": [
-    {
-     "code": "T753132",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "T753100",
-     "state": "raw",
-     "weight": 1.0
-    }
+   "word": "Garnele, gekocht",
+   "aliases": [
+    "Garnele/Granat/Krabbe, gekocht",
+    "Granat, gekocht",
+    "Krabbe, gekocht"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Garnele/Granat/Krabbe, gekocht",
-   "aliases": [],
    "category": "fish",
    "targets": [
     {
@@ -9435,8 +9528,12 @@
    "origin": "bls"
   },
   {
-   "word": "Garnele/Granat/Krabbe, Präserve",
-   "aliases": [],
+   "word": "Garnele, Präserve",
+   "aliases": [
+    "Garnele/Granat/Krabbe, Präserve",
+    "Granat, Präserve",
+    "Krabbe, Präserve"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -9449,8 +9546,12 @@
    "origin": "bls"
   },
   {
-   "word": "Garnele/Granat/Krabbe, tiefgefroren",
-   "aliases": [],
+   "word": "Garnele, tiefgefroren",
+   "aliases": [
+    "Garnele/Granat/Krabbe, tiefgefroren",
+    "Granat, tiefgefroren",
+    "Krabbe, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -9853,8 +9954,11 @@
    "origin": "bls"
   },
   {
-   "word": "Gelatine/Speisegelatine",
-   "aliases": [],
+   "word": "Gelatine",
+   "aliases": [
+    "Gelatine/Speisegelatine",
+    "Speisegelatine"
+   ],
    "category": "baking",
    "targets": [
     {
@@ -10013,8 +10117,11 @@
    "origin": "bls"
   },
   {
-   "word": "Gemüseartischocke/Kardone",
-   "aliases": [],
+   "word": "Gemüseartischocke",
+   "aliases": [
+    "Gemüseartischocke/Kardone",
+    "Kardone"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -10865,8 +10972,11 @@
    "origin": "bls"
   },
   {
-   "word": "Gemüsesülze/Gemüse-Mix in Aspik",
-   "aliases": [],
+   "word": "Gemüsesülze",
+   "aliases": [
+    "Gemüsesülze/Gemüse-Mix in Aspik",
+    "Gemüse-Mix in Aspik"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -11223,8 +11333,11 @@
    "origin": "bls"
   },
   {
-   "word": "Gewürzsalz/Kräutersalz",
-   "aliases": [],
+   "word": "Gewürzsalz",
+   "aliases": [
+    "Gewürzsalz/Kräutersalz",
+    "Kräutersalz"
+   ],
    "category": "spices",
    "targets": [
     {
@@ -11284,8 +11397,12 @@
    "origin": "bls"
   },
   {
-   "word": "Glutamat/Mononatriumglutamat/Natriumglutamat",
-   "aliases": [],
+   "word": "Glutamat",
+   "aliases": [
+    "Glutamat/Mononatriumglutamat/Natriumglutamat",
+    "Mononatriumglutamat",
+    "Natriumglutamat"
+   ],
    "category": "spices",
    "targets": [
     {
@@ -11374,8 +11491,11 @@
    "origin": "bls"
   },
   {
-   "word": "Goldbutt/Scholle",
-   "aliases": [],
+   "word": "Goldbutt",
+   "aliases": [
+    "Goldbutt/Scholle",
+    "Scholle"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -11413,8 +11533,11 @@
    "origin": "bls"
   },
   {
-   "word": "Goldbutt/Scholle, tiefgefroren",
-   "aliases": [],
+   "word": "Goldbutt, tiefgefroren",
+   "aliases": [
+    "Goldbutt/Scholle, tiefgefroren",
+    "Scholle, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -12115,8 +12238,11 @@
    "origin": "bls"
   },
   {
-   "word": "Gänsefett/Gänseschmalz",
-   "aliases": [],
+   "word": "Gänsefett",
+   "aliases": [
+    "Gänsefett/Gänseschmalz",
+    "Gänseschmalz"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -13018,8 +13144,11 @@
    "origin": "bls"
   },
   {
-   "word": "Hammelfett/Hammeltalg",
-   "aliases": [],
+   "word": "Hammelfett",
+   "aliases": [
+    "Hammelfett/Hammeltalg",
+    "Hammeltalg"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -13464,6 +13593,23 @@
    "origin": "curated"
   },
   {
+   "word": "Hefeflocken",
+   "aliases": [
+    "Nährhefe",
+    "Edelhefeflocken"
+   ],
+   "category": "spices",
+   "targets": [
+    {
+     "code": "Z000001",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated"
+  },
+  {
    "word": "Heidelbeere gezuckert, Konserve, abgetropft",
    "aliases": [],
    "category": "fruit",
@@ -13520,8 +13666,11 @@
    "origin": "bls"
   },
   {
-   "word": "Heilbutt/Weißer Heilbutt",
-   "aliases": [],
+   "word": "Heilbutt",
+   "aliases": [
+    "Heilbutt/Weißer Heilbutt",
+    "Weißer Heilbutt"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -13549,8 +13698,11 @@
    "origin": "bls"
   },
   {
-   "word": "Heilbutt/Weißer Heilbutt, tiefgefroren",
-   "aliases": [],
+   "word": "Heilbutt, tiefgefroren",
+   "aliases": [
+    "Heilbutt/Weißer Heilbutt, tiefgefroren",
+    "Weißer Heilbutt, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -14254,8 +14406,11 @@
    "origin": "bls"
   },
   {
-   "word": "Hornfisch/Hornhecht",
-   "aliases": [],
+   "word": "Hornfisch",
+   "aliases": [
+    "Hornfisch/Hornhecht",
+    "Hornhecht"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -14345,8 +14500,11 @@
    "origin": "bls"
   },
   {
-   "word": "Hummus/Kichererbsenmus",
-   "aliases": [],
+   "word": "Hummus",
+   "aliases": [
+    "Hummus/Kichererbsenmus",
+    "Kichererbsenmus"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -15374,7 +15532,10 @@
   },
   {
    "word": "Ingwer",
-   "aliases": [],
+   "aliases": [
+    "Ingwer/Ingwerwurzel",
+    "Ingwerwurzel"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -15385,20 +15546,6 @@
    ],
    "candidates": [],
    "origin": "curated"
-  },
-  {
-   "word": "Ingwer/Ingwerwurzel",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "R211200",
-     "state": "raw",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
   },
   {
    "word": "Invertzuckercreme",
@@ -15429,22 +15576,11 @@
    "origin": "bls"
   },
   {
-   "word": "Jagdwurst fettreduziert",
-   "aliases": [],
-   "category": "meat",
-   "targets": [
-    {
-     "code": "W203000",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Jagdwurst",
+   "aliases": [
+    "Jagdwurst/Schinkenwurst grob",
+    "Schinkenwurst grob"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Jagdwurst/Schinkenwurst grob",
-   "aliases": [],
    "category": "meat",
    "targets": [
     {
@@ -15472,8 +15608,25 @@
    "origin": "bls"
   },
   {
-   "word": "Jagdwurst/Schinkenwurst grob, geschmort ohne Fett",
+   "word": "Jagdwurst fettreduziert",
    "aliases": [],
+   "category": "meat",
+   "targets": [
+    {
+     "code": "W203000",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
+   "word": "Jagdwurst, geschmort ohne Fett",
+   "aliases": [
+    "Jagdwurst/Schinkenwurst grob, geschmort ohne Fett",
+    "Schinkenwurst grob, geschmort ohne Fett"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -15486,8 +15639,11 @@
    "origin": "bls"
   },
   {
-   "word": "Jagdwurst/Schinkenwurst grob, Konserve",
-   "aliases": [],
+   "word": "Jagdwurst, Konserve",
+   "aliases": [
+    "Jagdwurst/Schinkenwurst grob, Konserve",
+    "Schinkenwurst grob, Konserve"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -16187,8 +16343,10 @@
    "origin": "bls"
   },
   {
-   "word": "Kabanossi/Peperoni",
-   "aliases": [],
+   "word": "Kabanossi",
+   "aliases": [
+    "Kabanossi/Peperoni"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -16203,7 +16361,8 @@
   {
    "word": "Kabeljau",
    "aliases": [
-    "Dorsch"
+    "Dorsch",
+    "Dorsch/Kabeljau"
    ],
    "category": "fish",
    "targets": [
@@ -16314,8 +16473,11 @@
    "origin": "bls"
   },
   {
-   "word": "Kaffeelikör/Kakaolikör, klar",
-   "aliases": [],
+   "word": "Kaffeelikör, klar",
+   "aliases": [
+    "Kaffeelikör/Kakaolikör, klar",
+    "Kakaolikör, klar"
+   ],
    "category": "drinks",
    "targets": [
     {
@@ -18092,8 +18254,11 @@
    "origin": "bls"
   },
   {
-   "word": "Kapstachelbeere/Physalis",
-   "aliases": [],
+   "word": "Kapstachelbeere",
+   "aliases": [
+    "Kapstachelbeere/Physalis",
+    "Physalis"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -18106,8 +18271,11 @@
    "origin": "bls"
   },
   {
-   "word": "Kapstachelbeersaft/Physalissaft",
-   "aliases": [],
+   "word": "Kapstachelbeersaft",
+   "aliases": [
+    "Kapstachelbeersaft/Physalissaft",
+    "Physalissaft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -18120,8 +18288,11 @@
    "origin": "bls"
   },
   {
-   "word": "Karambole/Sternfrucht",
-   "aliases": [],
+   "word": "Karambole",
+   "aliases": [
+    "Karambole/Sternfrucht",
+    "Sternfrucht"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -18148,7 +18319,8 @@
     "Möhre",
     "Möhren",
     "Mohrrübe",
-    "Mohrrüben"
+    "Mohrrüben",
+    "Karotte/Möhre"
    ],
    "category": "vegetables",
    "targets": [
@@ -18192,42 +18364,11 @@
    "origin": "curated"
   },
   {
-   "word": "Karotte/Möhre",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "G620132",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "G620152",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G620162",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G620182",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G620100",
-     "state": "raw",
-     "weight": 1.0
-    }
+   "word": "Karotte, geschmort ohne Fett",
+   "aliases": [
+    "Karotte/Möhre, geschmort ohne Fett",
+    "Möhre, geschmort ohne Fett"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Karotte/Möhre, geschmort ohne Fett",
-   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
@@ -18240,8 +18381,11 @@
    "origin": "bls"
   },
   {
-   "word": "Karotte/Möhre, gesäuert, abgetropft",
-   "aliases": [],
+   "word": "Karotte, gesäuert, abgetropft",
+   "aliases": [
+    "Karotte/Möhre, gesäuert, abgetropft",
+    "Möhre, gesäuert, abgetropft"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -18254,8 +18398,11 @@
    "origin": "bls"
   },
   {
-   "word": "Karotte/Möhre, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Karotte, Konserve, abgetropft",
+   "aliases": [
+    "Karotte/Möhre, Konserve, abgetropft",
+    "Möhre, Konserve, abgetropft"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -18268,8 +18415,11 @@
    "origin": "bls"
   },
   {
-   "word": "Karotte/Möhre, tiefgefroren",
-   "aliases": [],
+   "word": "Karotte, tiefgefroren",
+   "aliases": [
+    "Karotte/Möhre, tiefgefroren",
+    "Möhre, tiefgefroren"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -18302,8 +18452,11 @@
    "origin": "bls"
   },
   {
-   "word": "Karotte/Möhre, tiefgefroren, geschmort ohne Fett",
-   "aliases": [],
+   "word": "Karotte, tiefgefroren, geschmort ohne Fett",
+   "aliases": [
+    "Karotte/Möhre, tiefgefroren, geschmort ohne Fett",
+    "Möhre, tiefgefroren, geschmort ohne Fett"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -18790,8 +18943,11 @@
    "origin": "bls"
   },
   {
-   "word": "Katfisch/Steinbeißer",
-   "aliases": [],
+   "word": "Katfisch",
+   "aliases": [
+    "Katfisch/Steinbeißer",
+    "Steinbeißer"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -18814,8 +18970,11 @@
    "origin": "bls"
   },
   {
-   "word": "Katfisch/Steinbeißer, geräuchert",
-   "aliases": [],
+   "word": "Katfisch, geräuchert",
+   "aliases": [
+    "Katfisch/Steinbeißer, geräuchert",
+    "Steinbeißer, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -18828,8 +18987,11 @@
    "origin": "bls"
   },
   {
-   "word": "Katfisch/Steinbeißer, tiefgefroren",
-   "aliases": [],
+   "word": "Katfisch, tiefgefroren",
+   "aliases": [
+    "Katfisch/Steinbeißer, tiefgefroren",
+    "Steinbeißer, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -18866,8 +19028,11 @@
    "origin": "bls"
   },
   {
-   "word": "Kaviarcreme/Kaviarpaste",
-   "aliases": [],
+   "word": "Kaviarcreme",
+   "aliases": [
+    "Kaviarcreme/Kaviarpaste",
+    "Kaviarpaste"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -19179,8 +19344,12 @@
    "origin": "bls"
   },
   {
-   "word": "Knackwurst/Servela/Würstchen",
-   "aliases": [],
+   "word": "Knackwurst",
+   "aliases": [
+    "Knackwurst/Servela/Würstchen",
+    "Servela",
+    "Würstchen"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -19374,8 +19543,11 @@
    "origin": "bls"
   },
   {
-   "word": "Knoblauchbutter/Kräuterbutter",
-   "aliases": [],
+   "word": "Knoblauchbutter",
+   "aliases": [
+    "Knoblauchbutter/Kräuterbutter",
+    "Kräuterbutter"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -19740,8 +19912,11 @@
    "origin": "bls"
   },
   {
-   "word": "Kohlrübe/Steckrübe",
-   "aliases": [],
+   "word": "Kohlrübe",
+   "aliases": [
+    "Kohlrübe/Steckrübe",
+    "Steckrübe"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -19807,7 +19982,10 @@
   },
   {
    "word": "Kokosmilch",
-   "aliases": [],
+   "aliases": [
+    "Kokosmilch/Kokosnussmilch",
+    "Kokosnussmilch"
+   ],
    "category": "canned",
    "targets": [
     {
@@ -19818,20 +19996,6 @@
    ],
    "candidates": [],
    "origin": "curated"
-  },
-  {
-   "word": "Kokosmilch/Kokosnussmilch",
-   "aliases": [],
-   "category": "fruit",
-   "targets": [
-    {
-     "code": "H154000",
-     "state": "unspecified",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
   },
   {
    "word": "Kokosraspeln",
@@ -20120,12 +20284,15 @@
    "origin": "bls"
   },
   {
-   "word": "Krakauer/Kochpolnische",
-   "aliases": [],
+   "word": "Krakauer, Konserve",
+   "aliases": [
+    "Krakauer/Kochpolnische, Konserve",
+    "Kochpolnische, Konserve"
+   ],
    "category": "meat",
    "targets": [
     {
-     "code": "W252100",
+     "code": "W871800",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -20134,12 +20301,14 @@
    "origin": "bls"
   },
   {
-   "word": "Krakauer/Kochpolnische, Konserve",
-   "aliases": [],
+   "word": "Krakauer/Kochpolnische",
+   "aliases": [
+    "Kochpolnische"
+   ],
    "category": "meat",
    "targets": [
     {
-     "code": "W871800",
+     "code": "W252100",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -20279,8 +20448,11 @@
    "origin": "bls"
   },
   {
-   "word": "Käsekrainer/Käsewürstchen",
-   "aliases": [],
+   "word": "Käsekrainer",
+   "aliases": [
+    "Käsekrainer/Käsewürstchen",
+    "Käsewürstchen"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -20345,8 +20517,11 @@
    "origin": "bls"
   },
   {
-   "word": "Köhler/Seelachs",
-   "aliases": [],
+   "word": "Köhler",
+   "aliases": [
+    "Köhler/Seelachs",
+    "Seelachs"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -20384,8 +20559,11 @@
    "origin": "bls"
   },
   {
-   "word": "Köhler/Seelachs, geräuchert",
-   "aliases": [],
+   "word": "Köhler, geräuchert",
+   "aliases": [
+    "Köhler/Seelachs, geräuchert",
+    "Seelachs, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -20398,8 +20576,11 @@
    "origin": "bls"
   },
   {
-   "word": "Köhler/Seelachs, tiefgefroren",
-   "aliases": [],
+   "word": "Köhler, tiefgefroren",
+   "aliases": [
+    "Köhler/Seelachs, tiefgefroren",
+    "Seelachs, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -21435,7 +21616,8 @@
    "word": "Lauch",
    "aliases": [
     "Porree",
-    "Stangenlauch"
+    "Stangenlauch",
+    "Porree/Lauch"
    ],
    "category": "vegetables",
    "targets": [
@@ -21670,8 +21852,12 @@
    "origin": "bls"
   },
   {
-   "word": "Leiterchen/Rippchen/Schälrippchen, Kochpökelware",
-   "aliases": [],
+   "word": "Leiterchen, Kochpökelware",
+   "aliases": [
+    "Leiterchen/Rippchen/Schälrippchen, Kochpökelware",
+    "Rippchen, Kochpökelware",
+    "Schälrippchen, Kochpökelware"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -21908,8 +22094,11 @@
    "origin": "bls"
   },
   {
-   "word": "Linsensprossen/Linsenkeimlinge",
-   "aliases": [],
+   "word": "Linsensprossen",
+   "aliases": [
+    "Linsensprossen/Linsenkeimlinge",
+    "Linsenkeimlinge"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -21989,8 +22178,11 @@
    "origin": "curated"
   },
   {
-   "word": "Lulo/Naranjilla",
-   "aliases": [],
+   "word": "Lulo",
+   "aliases": [
+    "Lulo/Naranjilla",
+    "Naranjilla"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -22009,6 +22201,23 @@
    "targets": [
     {
      "code": "H731400",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
+   "word": "Lyoner",
+   "aliases": [
+    "Lyoner/Lyoner Wurst",
+    "Lyoner Wurst"
+   ],
+   "category": "meat",
+   "targets": [
+    {
+     "code": "W231100",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -22045,22 +22254,11 @@
    "origin": "bls"
   },
   {
-   "word": "Lyoner/Lyoner Wurst",
-   "aliases": [],
-   "category": "meat",
-   "targets": [
-    {
-     "code": "W231100",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Lyoner, Konserve",
+   "aliases": [
+    "Lyoner/Lyoner Wurst, Konserve",
+    "Lyoner Wurst, Konserve"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Lyoner/Lyoner Wurst, Konserve",
-   "aliases": [],
    "category": "meat",
    "targets": [
     {
@@ -22399,9 +22597,7 @@
   {
    "word": "Mandarine",
    "aliases": [
-    "Mandarinen",
-    "Clementine",
-    "Clementinen"
+    "Mandarinen"
    ],
    "category": "fruit",
    "targets": [
@@ -22413,7 +22609,6 @@
    ],
    "candidates": [
     "F606902",
-    "F607100",
     "F640902",
     "F6A6902",
     "F6B6902"
@@ -22869,8 +23064,11 @@
    "origin": "bls"
   },
   {
-   "word": "Maniok/Cassava",
-   "aliases": [],
+   "word": "Maniok",
+   "aliases": [
+    "Maniok/Cassava",
+    "Cassava"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -22912,8 +23110,11 @@
    "origin": "bls"
   },
   {
-   "word": "Maracuja/Passionsfrucht",
-   "aliases": [],
+   "word": "Maracuja",
+   "aliases": [
+    "Maracuja/Passionsfrucht",
+    "Passionsfrucht"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -22926,8 +23127,11 @@
    "origin": "bls"
   },
   {
-   "word": "Maracujanektar/Passionsfruchtnektar",
-   "aliases": [],
+   "word": "Maracujanektar",
+   "aliases": [
+    "Maracujanektar/Passionsfruchtnektar",
+    "Passionsfruchtnektar"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -22940,8 +23144,11 @@
    "origin": "bls"
   },
   {
-   "word": "Maracujasaft/Passionsfruchtsaft",
-   "aliases": [],
+   "word": "Maracujasaft",
+   "aliases": [
+    "Maracujasaft/Passionsfruchtsaft",
+    "Passionsfruchtsaft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -23659,8 +23866,11 @@
    "origin": "curated"
   },
   {
-   "word": "Merlan/Wittling",
-   "aliases": [],
+   "word": "Merlan",
+   "aliases": [
+    "Merlan/Wittling",
+    "Wittling"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -24510,8 +24720,11 @@
    "origin": "bls"
   },
   {
-   "word": "Miso/Sojabohnenpaste",
-   "aliases": [],
+   "word": "Miso",
+   "aliases": [
+    "Miso/Sojabohnenpaste",
+    "Sojabohnenpaste"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -24702,6 +24915,23 @@
    "origin": "bls"
   },
   {
+   "word": "Mortadella",
+   "aliases": [
+    "Mortadella/Schinkenwurst fein zerkleinert",
+    "Schinkenwurst fein zerkleinert"
+   ],
+   "category": "meat",
+   "targets": [
+    {
+     "code": "W231200",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
    "word": "Mortadella fettreduziert",
    "aliases": [],
    "category": "meat",
@@ -24730,22 +24960,11 @@
    "origin": "bls"
   },
   {
-   "word": "Mortadella/Schinkenwurst fein zerkleinert",
-   "aliases": [],
-   "category": "meat",
-   "targets": [
-    {
-     "code": "W231200",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Mortadella, Konserve",
+   "aliases": [
+    "Mortadella/Schinkenwurst fein zerkleinert, Konserve",
+    "Schinkenwurst fein zerkleinert, Konserve"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Mortadella/Schinkenwurst fein zerkleinert, Konserve",
-   "aliases": [],
    "category": "meat",
    "targets": [
     {
@@ -24877,8 +25096,11 @@
    "origin": "bls"
   },
   {
-   "word": "Mungbohnensprossen/Mungbohnenkeimlinge",
-   "aliases": [],
+   "word": "Mungbohnensprossen",
+   "aliases": [
+    "Mungbohnensprossen/Mungbohnenkeimlinge",
+    "Mungbohnenkeimlinge"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -24891,8 +25113,11 @@
    "origin": "bls"
   },
   {
-   "word": "Mungbohnensprossen/Mungbohnenkeimlinge, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Mungbohnensprossen, Konserve, abgetropft",
+   "aliases": [
+    "Mungbohnensprossen/Mungbohnenkeimlinge, Konserve, abgetropft",
+    "Mungbohnenkeimlinge, Konserve, abgetropft"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -25149,6 +25374,25 @@
    "parent": "Joghurt"
   },
   {
+   "word": "Nektarine",
+   "aliases": [],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F202152",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "F202100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
    "word": "Nelke",
    "aliases": [
     "Nelken",
@@ -25160,8 +25404,11 @@
    "origin": "curated"
   },
   {
-   "word": "Netzmelone/Cantaloupmelone",
-   "aliases": [],
+   "word": "Netzmelone",
+   "aliases": [
+    "Netzmelone/Cantaloupmelone",
+    "Cantaloupmelone"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -25280,8 +25527,12 @@
    "origin": "curated"
   },
   {
-   "word": "Nugat/Nougat/Noisette",
-   "aliases": [],
+   "word": "Nugat",
+   "aliases": [
+    "Nugat/Nougat/Noisette",
+    "Nougat",
+    "Noisette"
+   ],
    "category": "baking",
    "targets": [
     {
@@ -25322,8 +25573,11 @@
    "origin": "bls"
   },
   {
-   "word": "Obatzter/Obazda, Käsezubereitung 60 % Fett i. Tr.",
-   "aliases": [],
+   "word": "Obatzter, Käsezubereitung 60 % Fett i. Tr.",
+   "aliases": [
+    "Obatzter/Obazda, Käsezubereitung 60 % Fett i. Tr.",
+    "Obazda, Käsezubereitung 60 % Fett i. Tr."
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -25336,8 +25590,11 @@
    "origin": "bls"
   },
   {
-   "word": "Obstbrand/Obstwasser",
-   "aliases": [],
+   "word": "Obstbrand",
+   "aliases": [
+    "Obstbrand/Obstwasser",
+    "Obstwasser"
+   ],
    "category": "drinks",
    "targets": [
     {
@@ -25709,8 +25966,11 @@
    "origin": "bls"
   },
   {
-   "word": "Palmfett/Palmöl, raffiniert",
-   "aliases": [],
+   "word": "Palmfett, raffiniert",
+   "aliases": [
+    "Palmfett/Palmöl, raffiniert",
+    "Palmöl, raffiniert"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -25723,8 +25983,11 @@
    "origin": "bls"
   },
   {
-   "word": "Palmkernfett/Palmkernöl",
-   "aliases": [],
+   "word": "Palmkernfett",
+   "aliases": [
+    "Palmkernfett/Palmkernöl",
+    "Palmkernöl"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -25737,8 +26000,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pampelmuse/Pomelo",
-   "aliases": [],
+   "word": "Pampelmuse",
+   "aliases": [
+    "Pampelmuse/Pomelo",
+    "Pomelo"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -25751,8 +26017,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pampelmusensaft/Pomelosaft",
-   "aliases": [],
+   "word": "Pampelmusensaft",
+   "aliases": [
+    "Pampelmusensaft/Pomelosaft",
+    "Pomelosaft"
+   ],
    "category": "fruit",
    "targets": [
     {
@@ -25765,8 +26034,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pangasius/Schlankwels",
-   "aliases": [],
+   "word": "Pangasius",
+   "aliases": [
+    "Pangasius/Schlankwels",
+    "Schlankwels"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -25782,20 +26054,6 @@
     {
      "code": "T507100",
      "state": "raw",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Paniermehl/Semmelbrösel/Semmelmehl",
-   "aliases": [],
-   "category": "bakery",
-   "targets": [
-    {
-     "code": "B821000",
-     "state": "unspecified",
      "weight": 1.0
     }
    ],
@@ -26499,8 +26757,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pfeilwurzelmehl/Marantastärke",
-   "aliases": [],
+   "word": "Pfeilwurzelmehl",
+   "aliases": [
+    "Pfeilwurzelmehl/Marantastärke",
+    "Marantastärke"
+   ],
    "category": "grains",
    "targets": [
     {
@@ -26657,9 +26918,7 @@
   {
    "word": "Pfirsich",
    "aliases": [
-    "Pfirsiche",
-    "Nektarine",
-    "Nektarinen"
+    "Pfirsiche"
    ],
    "category": "fruit",
    "targets": [
@@ -26675,8 +26934,6 @@
     }
    ],
    "candidates": [
-    "F202100",
-    "F202152",
     "F203400",
     "F203902",
     "F206902",
@@ -26784,8 +27041,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pflanzenfett/Frittierfett, pflanzlich",
-   "aliases": [],
+   "word": "Pflanzenfett, pflanzlich",
+   "aliases": [
+    "Pflanzenfett/Frittierfett, pflanzlich",
+    "Frittierfett, pflanzlich"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -26884,9 +27144,7 @@
   {
    "word": "Pflaume",
    "aliases": [
-    "Pflaumen",
-    "Zwetschge",
-    "Zwetschgen"
+    "Pflaumen"
    ],
    "category": "fruit",
    "targets": [
@@ -26904,8 +27162,6 @@
    "candidates": [
     "F220400",
     "F220902",
-    "F223100",
-    "F223152",
     "F227902",
     "F22A902"
    ],
@@ -27010,8 +27266,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pilgermuschel/Jakobsmuschel",
-   "aliases": [],
+   "word": "Pilgermuschel",
+   "aliases": [
+    "Pilgermuschel/Jakobsmuschel",
+    "Jakobsmuschel"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -27034,22 +27293,11 @@
    "origin": "bls"
   },
   {
-   "word": "Pilgermuschel/Jakobsmuschel, gratiniert ohne Fett (Ofen)",
-   "aliases": [],
-   "category": "fish",
-   "targets": [
-    {
-     "code": "T793162",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Pilgermuschel, tiefgefroren",
+   "aliases": [
+    "Pilgermuschel/Jakobsmuschel, tiefgefroren",
+    "Jakobsmuschel, tiefgefroren"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Pilgermuschel/Jakobsmuschel, tiefgefroren",
-   "aliases": [],
    "category": "fish",
    "targets": [
     {
@@ -27064,6 +27312,20 @@
     },
     {
      "code": "T793200",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
+   "word": "Pilgermuschel/Jakobsmuschel, gratiniert ohne Fett (Ofen)",
+   "aliases": [],
+   "category": "fish",
+   "targets": [
+    {
+     "code": "T793162",
      "state": "unspecified",
      "weight": 1.0
     }
@@ -27403,42 +27665,11 @@
    "origin": "bls"
   },
   {
-   "word": "Porree/Lauch",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "G470132",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "G470152",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G470162",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G470182",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G470100",
-     "state": "raw",
-     "weight": 1.0
-    }
+   "word": "Porree, geschmort ohne Fett",
+   "aliases": [
+    "Porree/Lauch, geschmort ohne Fett",
+    "Lauch, geschmort ohne Fett"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Porree/Lauch, geschmort ohne Fett",
-   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
@@ -27451,8 +27682,11 @@
    "origin": "bls"
   },
   {
-   "word": "Porree/Lauch, tiefgefroren",
-   "aliases": [],
+   "word": "Porree, tiefgefroren",
+   "aliases": [
+    "Porree/Lauch, tiefgefroren",
+    "Lauch, tiefgefroren"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -27485,8 +27719,11 @@
    "origin": "bls"
   },
   {
-   "word": "Porree/Lauch, tiefgefroren, geschmort ohne Fett",
-   "aliases": [],
+   "word": "Porree, tiefgefroren, geschmort ohne Fett",
+   "aliases": [
+    "Porree/Lauch, tiefgefroren, geschmort ohne Fett",
+    "Lauch, tiefgefroren, geschmort ohne Fett"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -28494,7 +28731,9 @@
   {
    "word": "Rapsöl",
    "aliases": [
-    "Rapsoel"
+    "Rapsoel",
+    "Rapsöl/Rüböl",
+    "Rüböl"
    ],
    "category": "oils",
    "targets": [
@@ -28506,20 +28745,6 @@
    ],
    "candidates": [],
    "origin": "curated"
-  },
-  {
-   "word": "Rapsöl/Rüböl",
-   "aliases": [],
-   "category": "oils",
-   "targets": [
-    {
-     "code": "Q180000",
-     "state": "unspecified",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
   },
   {
    "word": "Rapsölmargarine Vollfett, angereichert mit Vitaminen",
@@ -30917,8 +31142,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Frikadelle",
-   "aliases": [],
+   "word": "Rind, Frikadelle",
+   "aliases": [
+    "Rind/Schwein, Frikadelle",
+    "Schwein, Frikadelle"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -30946,8 +31174,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Hackfleisch gemischt",
-   "aliases": [],
+   "word": "Rind, Hackfleisch gemischt",
+   "aliases": [
+    "Rind/Schwein, Hackfleisch gemischt",
+    "Schwein, Hackfleisch gemischt"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -30975,8 +31206,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Hackfleisch gemischt, tiefgefroren",
-   "aliases": [],
+   "word": "Rind, Hackfleisch gemischt, tiefgefroren",
+   "aliases": [
+    "Rind/Schwein, Hackfleisch gemischt, tiefgefroren",
+    "Schwein, Hackfleisch gemischt, tiefgefroren"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -30994,8 +31228,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Hackfleisch gemischt, tiefgefroren, geschmort ohne Fett",
-   "aliases": [],
+   "word": "Rind, Hackfleisch gemischt, tiefgefroren, geschmort ohne Fett",
+   "aliases": [
+    "Rind/Schwein, Hackfleisch gemischt, tiefgefroren, geschmort ohne Fett",
+    "Schwein, Hackfleisch gemischt, tiefgefroren, geschmort ohne Fett"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -31008,8 +31245,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Hacksteak",
-   "aliases": [],
+   "word": "Rind, Hacksteak",
+   "aliases": [
+    "Rind/Schwein, Hacksteak",
+    "Schwein, Hacksteak"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -31037,8 +31277,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rind/Schwein, Hacksteak, tiefgefroren",
-   "aliases": [],
+   "word": "Rind, Hacksteak, tiefgefroren",
+   "aliases": [
+    "Rind/Schwein, Hacksteak, tiefgefroren",
+    "Schwein, Hacksteak, tiefgefroren"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -31108,8 +31351,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rinderfett/Rindertalg",
-   "aliases": [],
+   "word": "Rinderfett",
+   "aliases": [
+    "Rinderfett/Rindertalg",
+    "Rindertalg"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -31494,8 +31740,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rohmilch/Vorzugsmilch, mind. 3,5 % Fett",
-   "aliases": [],
+   "word": "Rohmilch, mind. 3,5 % Fett",
+   "aliases": [
+    "Rohmilch/Vorzugsmilch, mind. 3,5 % Fett",
+    "Vorzugsmilch, mind. 3,5 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -31808,8 +32057,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rotbarsch/Goldbarsch",
-   "aliases": [],
+   "word": "Rotbarsch",
+   "aliases": [
+    "Rotbarsch/Goldbarsch",
+    "Goldbarsch"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -31847,8 +32099,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rotbarsch/Goldbarsch, geräuchert",
-   "aliases": [],
+   "word": "Rotbarsch, geräuchert",
+   "aliases": [
+    "Rotbarsch/Goldbarsch, geräuchert",
+    "Goldbarsch, geräuchert"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -31861,8 +32116,11 @@
    "origin": "bls"
   },
   {
-   "word": "Rotbarsch/Goldbarsch, tiefgefroren",
-   "aliases": [],
+   "word": "Rotbarsch, tiefgefroren",
+   "aliases": [
+    "Rotbarsch/Goldbarsch, tiefgefroren",
+    "Goldbarsch, tiefgefroren"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -32430,8 +32688,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sahnedickmilch/Sahnesauermilch, mind. 10 % Fett",
-   "aliases": [],
+   "word": "Sahnedickmilch, mind. 10 % Fett",
+   "aliases": [
+    "Sahnedickmilch/Sahnesauermilch, mind. 10 % Fett",
+    "Sahnesauermilch, mind. 10 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -32746,7 +33007,9 @@
    "word": "Salz",
    "aliases": [
     "Speisesalz",
-    "Tafelsalz"
+    "Tafelsalz",
+    "Speisesalz/Siedesalz/Tafelsalz",
+    "Siedesalz"
    ],
    "category": "spices",
    "targets": [
@@ -32765,8 +33028,11 @@
    "origin": "curated"
   },
   {
-   "word": "Salzgurke/Salzdillgurke, milchsauer fermentiert, abgetropft",
-   "aliases": [],
+   "word": "Salzgurke, milchsauer fermentiert, abgetropft",
+   "aliases": [
+    "Salzgurke/Salzdillgurke, milchsauer fermentiert, abgetropft",
+    "Salzdillgurke, milchsauer fermentiert, abgetropft"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -33265,8 +33531,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sauerrahm/Creme fraiche, 30 % Fett",
-   "aliases": [],
+   "word": "Sauerrahm, 30 % Fett",
+   "aliases": [
+    "Sauerrahm/Creme fraiche, 30 % Fett",
+    "Creme fraiche, 30 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -33279,8 +33548,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sauerrahm/Creme fraiche, 40 % Fett",
-   "aliases": [],
+   "word": "Sauerrahm, 40 % Fett",
+   "aliases": [
+    "Sauerrahm/Creme fraiche, 40 % Fett",
+    "Creme fraiche, 40 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -33293,8 +33565,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sauerrahm/Saure Sahne, mind. 10 % Fett",
-   "aliases": [],
+   "word": "Sauerrahm, mind. 10 % Fett",
+   "aliases": [
+    "Sauerrahm/Saure Sahne, mind. 10 % Fett",
+    "Saure Sahne, mind. 10 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -33307,8 +33582,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sauerrahm/Schmand, mind. 20 % Fett",
-   "aliases": [],
+   "word": "Sauerrahm, mind. 20 % Fett",
+   "aliases": [
+    "Sauerrahm/Schmand, mind. 20 % Fett",
+    "Schmand, mind. 20 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -35256,8 +35534,11 @@
    "origin": "bls"
   },
   {
-   "word": "Schildmakrele/Stöcker",
-   "aliases": [],
+   "word": "Schildmakrele",
+   "aliases": [
+    "Schildmakrele/Stöcker",
+    "Stöcker"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -35372,8 +35653,11 @@
    "origin": "bls"
   },
   {
-   "word": "Schinkenplockwurst/Schinkenplockwurst luftgetrocknet",
-   "aliases": [],
+   "word": "Schinkenplockwurst",
+   "aliases": [
+    "Schinkenplockwurst/Schinkenplockwurst luftgetrocknet",
+    "Schinkenplockwurst luftgetrocknet"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -35646,8 +35930,11 @@
    "origin": "bls"
   },
   {
-   "word": "Schmalz/Schmelz, Basis Pflanzenfett, vegan",
-   "aliases": [],
+   "word": "Schmalz, Basis Pflanzenfett, vegan",
+   "aliases": [
+    "Schmalz/Schmelz, Basis Pflanzenfett, vegan",
+    "Schmelz, Basis Pflanzenfett, vegan"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -36137,8 +36424,11 @@
    "origin": "bls"
   },
   {
-   "word": "Schnittsalat/Pflücksalat",
-   "aliases": [],
+   "word": "Schnittsalat",
+   "aliases": [
+    "Schnittsalat/Pflücksalat",
+    "Pflücksalat"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -38813,6 +39103,23 @@
    "origin": "bls"
   },
   {
+   "word": "Schwein, Hackfleisch gemischt, geschmort ohne Fett",
+   "aliases": [
+    "Schwein/Rind, Hackfleisch gemischt, geschmort ohne Fett",
+    "Rind, Hackfleisch gemischt, geschmort ohne Fett"
+   ],
+   "category": "meat",
+   "targets": [
+    {
+     "code": "U040142",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
    "word": "Schwein/Rind, Hackfleisch gemischt",
    "aliases": [],
    "category": "meat",
@@ -38840,20 +39147,6 @@
     {
      "code": "U040100",
      "state": "raw",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Schwein/Rind, Hackfleisch gemischt, geschmort ohne Fett",
-   "aliases": [],
-   "category": "meat",
-   "targets": [
-    {
-     "code": "U040142",
-     "state": "unspecified",
      "weight": 1.0
     }
    ],
@@ -38932,8 +39225,11 @@
    "origin": "bls"
   },
   {
-   "word": "Schweinefett/Schweineschmalz",
-   "aliases": [],
+   "word": "Schweinefett",
+   "aliases": [
+    "Schweinefett/Schweineschmalz",
+    "Schweineschmalz"
+   ],
    "category": "oils",
    "targets": [
     {
@@ -39387,7 +39683,9 @@
   {
    "word": "Semmelbrösel",
    "aliases": [
-    "Paniermehl"
+    "Paniermehl",
+    "Paniermehl/Semmelbrösel/Semmelmehl",
+    "Semmelmehl"
    ],
    "category": "bakery",
    "targets": [
@@ -39999,8 +40297,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sojabohnensprossen/Sojabohnenkeimlinge",
-   "aliases": [],
+   "word": "Sojabohnensprossen",
+   "aliases": [
+    "Sojabohnensprossen/Sojabohnenkeimlinge",
+    "Sojabohnenkeimlinge"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -40013,8 +40314,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sojabohnensprossen/Sojabohnenkeimlinge, Konserve, abgetropft",
-   "aliases": [],
+   "word": "Sojabohnensprossen, Konserve, abgetropft",
+   "aliases": [
+    "Sojabohnensprossen/Sojabohnenkeimlinge, Konserve, abgetropft",
+    "Sojabohnenkeimlinge, Konserve, abgetropft"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -40083,6 +40387,30 @@
    "origin": "bls"
   },
   {
+   "word": "Sojahack",
+   "aliases": [
+    "Sojaschnetzel",
+    "Sojagranulat",
+    "Sojahackfleisch",
+    "Soja-Hack"
+   ],
+   "category": "legumes",
+   "targets": [
+    {
+     "code": "H765082",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "H765000",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated"
+  },
+  {
    "word": "Sojakochcreme",
    "aliases": [],
    "category": "dairy",
@@ -40142,7 +40470,8 @@
    "word": "Sojasauce",
    "aliases": [
     "Sojasoße",
-    "Soja Sauce"
+    "Soja Sauce",
+    "Sojasauce/Sojasoße"
    ],
    "category": "canned",
    "targets": [
@@ -40156,22 +40485,11 @@
    "origin": "curated"
   },
   {
-   "word": "Sojasauce/Sojasoße",
-   "aliases": [],
-   "category": "canned",
-   "targets": [
-    {
-     "code": "R143000",
-     "state": "unspecified",
-     "weight": 1.0
-    }
+   "word": "Sojaschnetzel, texturiert, eingeweicht",
+   "aliases": [
+    "Sojaschnetzel/Sojagranulat, texturiert, eingeweicht",
+    "Sojagranulat, texturiert, eingeweicht"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Sojaschnetzel/Sojagranulat, texturiert, eingeweicht",
-   "aliases": [],
    "category": "legumes",
    "targets": [
     {
@@ -40184,8 +40502,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sojaschnetzel/Sojagranulat, texturiert, trocken",
-   "aliases": [],
+   "word": "Sojaschnetzel, texturiert, trocken",
+   "aliases": [
+    "Sojaschnetzel/Sojagranulat, texturiert, trocken",
+    "Sojagranulat, texturiert, trocken"
+   ],
    "category": "legumes",
    "targets": [
     {
@@ -40708,20 +41029,6 @@
    "origin": "bls"
   },
   {
-   "word": "Speisesalz/Siedesalz/Tafelsalz",
-   "aliases": [],
-   "category": "spices",
-   "targets": [
-    {
-     "code": "R111000",
-     "state": "unspecified",
-     "weight": 1.0
-    }
-   ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
    "word": "Speisestärke",
    "aliases": [
     "Maisstärke"
@@ -41052,8 +41359,11 @@
    "origin": "bls"
   },
   {
-   "word": "Sprühsahne/Schlagsahne, gesüßt, mind. 30 % Fett",
-   "aliases": [],
+   "word": "Sprühsahne, gesüßt, mind. 30 % Fett",
+   "aliases": [
+    "Sprühsahne/Schlagsahne, gesüßt, mind. 30 % Fett",
+    "Schlagsahne, gesüßt, mind. 30 % Fett"
+   ],
    "category": "dairy",
    "targets": [
     {
@@ -41344,8 +41654,11 @@
    "origin": "bls"
   },
   {
-   "word": "Stielmus/Rübstiel",
-   "aliases": [],
+   "word": "Stielmus",
+   "aliases": [
+    "Stielmus/Rübstiel",
+    "Rübstiel"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -41435,8 +41748,11 @@
    "origin": "bls"
   },
   {
-   "word": "Stockwurst/Münchner Stockwurst",
-   "aliases": [],
+   "word": "Stockwurst",
+   "aliases": [
+    "Stockwurst/Münchner Stockwurst",
+    "Münchner Stockwurst"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -41474,8 +41790,11 @@
    "origin": "bls"
   },
   {
-   "word": "Streichmettwurst/Streichmettwurst mit Zwiebeln",
-   "aliases": [],
+   "word": "Streichmettwurst",
+   "aliases": [
+    "Streichmettwurst/Streichmettwurst mit Zwiebeln",
+    "Streichmettwurst mit Zwiebeln"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -41518,7 +41837,8 @@
   {
    "word": "Suppengrün",
    "aliases": [
-    "Suppenkraut"
+    "Suppenkraut",
+    "Suppengrün/Suppenkraut"
    ],
    "category": "vegetables",
    "targets": [
@@ -41542,27 +41862,11 @@
    "origin": "curated"
   },
   {
-   "word": "Suppengrün/Suppenkraut",
-   "aliases": [],
-   "category": "vegetables",
-   "targets": [
-    {
-     "code": "G093132",
-     "state": "cooked",
-     "weight": 1.0
-    },
-    {
-     "code": "G093100",
-     "state": "raw",
-     "weight": 1.0
-    }
+   "word": "Suppengrün, getrocknet",
+   "aliases": [
+    "Suppengrün/Suppenkraut, getrocknet",
+    "Suppenkraut, getrocknet"
    ],
-   "candidates": [],
-   "origin": "bls"
-  },
-  {
-   "word": "Suppengrün/Suppenkraut, getrocknet",
-   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
@@ -41580,8 +41884,11 @@
    "origin": "bls"
   },
   {
-   "word": "Suppengrün/Suppenkraut, tiefgefroren",
-   "aliases": [],
+   "word": "Suppengrün, tiefgefroren",
+   "aliases": [
+    "Suppengrün/Suppenkraut, tiefgefroren",
+    "Suppenkraut, tiefgefroren"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -42100,8 +42407,11 @@
    "origin": "bls"
   },
   {
-   "word": "Tapioka/Tapiokastärke",
-   "aliases": [],
+   "word": "Tapioka",
+   "aliases": [
+    "Tapioka/Tapiokastärke",
+    "Tapiokastärke"
+   ],
    "category": "grains",
    "targets": [
     {
@@ -42678,8 +42988,11 @@
    "origin": "bls"
   },
   {
-   "word": "Tiroler/Tiroler Schinkenwurst",
-   "aliases": [],
+   "word": "Tiroler",
+   "aliases": [
+    "Tiroler/Tiroler Schinkenwurst",
+    "Tiroler Schinkenwurst"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -42978,8 +43291,11 @@
    "origin": "bls"
   },
   {
-   "word": "Topinambur/Erdartischocke",
-   "aliases": [],
+   "word": "Topinambur",
+   "aliases": [
+    "Topinambur/Erdartischocke",
+    "Erdartischocke"
+   ],
    "category": "vegetables",
    "targets": [
     {
@@ -44293,8 +44609,11 @@
    "origin": "bls"
   },
   {
-   "word": "Weinbrand/Brandy",
-   "aliases": [],
+   "word": "Weinbrand",
+   "aliases": [
+    "Weinbrand/Brandy",
+    "Brandy"
+   ],
    "category": "drinks",
    "targets": [
     {
@@ -44753,8 +45072,11 @@
    "origin": "bls"
   },
   {
-   "word": "Weizenkleber/Weizengluten",
-   "aliases": [],
+   "word": "Weizenkleber",
+   "aliases": [
+    "Weizenkleber/Weizengluten",
+    "Weizengluten"
+   ],
    "category": "grains",
    "targets": [
     {
@@ -44776,8 +45098,11 @@
    "parent": "Mehl"
   },
   {
-   "word": "Weizenpops/Weizen gepufft, gesüßt",
-   "aliases": [],
+   "word": "Weizenpops, gesüßt",
+   "aliases": [
+    "Weizenpops/Weizen gepufft, gesüßt",
+    "Weizen gepufft, gesüßt"
+   ],
    "category": "grains",
    "targets": [
     {
@@ -44790,8 +45115,11 @@
    "origin": "bls"
   },
   {
-   "word": "Weizentoastbrot/Buttertoastbrot",
-   "aliases": [],
+   "word": "Weizentoastbrot",
+   "aliases": [
+    "Weizentoastbrot/Buttertoastbrot",
+    "Buttertoastbrot"
+   ],
    "category": "bakery",
    "targets": [
     {
@@ -45269,8 +45597,11 @@
    "origin": "bls"
   },
   {
-   "word": "Whisky/Whiskey",
-   "aliases": [],
+   "word": "Whisky",
+   "aliases": [
+    "Whisky/Whiskey",
+    "Whiskey"
+   ],
    "category": "drinks",
    "targets": [
     {
@@ -45827,8 +46158,11 @@
    "origin": "bls"
   },
   {
-   "word": "Wollwurst/Geschwollene",
-   "aliases": [],
+   "word": "Wollwurst",
+   "aliases": [
+    "Wollwurst/Geschwollene",
+    "Geschwollene"
+   ],
    "category": "meat",
    "targets": [
     {
@@ -46254,8 +46588,11 @@
    "origin": "curated"
   },
   {
-   "word": "Zitronat/Sukkade",
-   "aliases": [],
+   "word": "Zitronat",
+   "aliases": [
+    "Zitronat/Sukkade",
+    "Sukkade"
+   ],
    "category": "baking",
    "targets": [
     {
@@ -46612,6 +46949,25 @@
     {
      "code": "W364400",
      "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "bls"
+  },
+  {
+   "word": "Zwetschge",
+   "aliases": [],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F223152",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "F223100",
+     "state": "raw",
      "weight": 1.0
     }
    ],

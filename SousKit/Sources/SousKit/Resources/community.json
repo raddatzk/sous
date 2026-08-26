@@ -1,0 +1,31 @@
+{
+ "datasetVersion": "sous Ergänzungen 1",
+ "release": "2026-08-26",
+ "license": "CC BY 4.0",
+ "attribution": "Ergänzungen zum Bundeslebensmittelschlüssel. Enthaltene Quellen: Table de composition nutritionnelle Ciqual 2020, Anses (Frankreich). Welche Zeile woher stammt, steht bei jeder Zutat unter „Quelle“.",
+ "changeNote": "Lebensmittel, die der BLS 4.0 nicht führt. Jede Zeile nennt ihre eigene Quelle und ist von Hand übernommen, nicht importiert. Die Namen stehen so da, wie die Quelle sie schreibt — auch wenn das eine andere Sprache ist: ein übersetzter Name wäre in keiner Datenbank wiederzufinden. Codes beginnen mit Z, einem Buchstaben, den der BLS in keiner Version vergibt (er kennt nur B–Y), und werden fortlaufend und nie erneut vergeben — eine gelöschte Zeile lässt ihre Nummer verfallen, damit gespeicherte Zuordnungen nicht auf ein anderes Lebensmittel umspringen.",
+ "entries": [
+  {
+   "code": "Z000001",
+   "name": "Nutritional yeast",
+   "group": "Z",
+   "category": "spices",
+   "source": "Ciqual 2020 (Anses), Nr. 11009 „Nutritional yeast“, Licence Ouverte / CC BY 4.0",
+   "perHundredGrams": {
+    "kcal": 334,
+    "proteinG": 40.4,
+    "fatG": 4.5,
+    "saturatedFatG": 0.7,
+    "carbsG": 21.8,
+    "sugarG": 2.5,
+    "fiberG": 22.5,
+    "sodiumMg": 141,
+    "vitaminEMg": 0.098,
+    "calciumMg": 130,
+    "ironMg": 4.1,
+    "magnesiumMg": 150,
+    "potassiumMg": 1700
+   }
+  }
+ ]
+}

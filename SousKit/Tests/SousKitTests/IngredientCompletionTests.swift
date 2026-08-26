@@ -65,16 +65,21 @@ struct IngredientCompletionTests {
 
     @Test("A suggestion whose name carries a comma survives being read back")
     func acceptedCommaNameStaysKnown() throws {
-        let schmand = try #require(catalog.ingredient(for: "Sauerrahm/Schmand, mind. 20 % Fett"))
+        // "Schmand" is a spelling of this row rather than its name since the
+        // slashed BLS names were split — the word is "Sauerrahm, mind. 20 %
+        // Fett" and "Sauerrahm/Schmand, mind. 20 % Fett" still reaches it.
+        // What this test is about is the comma in the middle of it.
+        let schmand = try #require(catalog.ingredient(for: "Schmand, mind. 20 % Fett"))
+        #expect(schmand.name.contains(","))
         let completed = IngredientCompletion.completed(line: "schmand", with: schmand)
 
         // What the editor writes into the text …
-        #expect(completed == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(completed == "Sauerrahm, mind. 20 % Fett")
         // … has to read back as that same ingredient, not as a truncated
         // name plus a "preparation", or it re-reports as unknown and drops
         // out of the recipe's nutrition.
         let parsed = IngredientParser.parseLine(completed, catalog: catalog)
-        #expect(parsed.name == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(parsed.name == "Sauerrahm, mind. 20 % Fett")
         #expect(parsed.preparation == nil)
         #expect(catalog.unknownIngredients(in: completed).isEmpty)
     }

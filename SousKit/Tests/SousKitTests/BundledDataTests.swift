@@ -15,7 +15,7 @@ struct BundledDataTests {
     private let synonyms = SynonymTable.bundled
     private let measures = MeasureTable.bundled
 
-    @Test("The four bundled files load")
+    @Test("The five bundled files load")
     func filesLoad() {
         #expect(bls.entries.count > 3000)
         #expect(synonyms.entries.count > 2000)
@@ -31,6 +31,26 @@ struct BundledDataTests {
         #expect(bls.source.license == "CC BY 4.0")
         #expect(bls.source.attribution.contains("Max Rubner-Institut"))
         #expect(!bls.source.changeNote.isEmpty)
+    }
+
+    @Test("A different fruit is not a spelling of its neighbour")
+    func lookalikeFruitsStayApart() throws {
+        // Clementine, Nektarine and Zwetschge used to sit in the alias lists
+        // of Mandarine, Pfirsich and Pflaume — so "Clementinen" quietly got
+        // mandarin values although BLS carries the clementine as its own row.
+        // They were also the only source of overlay conflicts: a word and its
+        // own spelling fighting over one state. Both wrongs undo together.
+        for (variety, neighbour) in [
+            ("Clementine", "Mandarine"),
+            ("Nektarine", "Pfirsich"),
+            ("Zwetschge", "Pflaume"),
+        ] {
+            let word = try #require(synonyms.entry(for: variety))
+            #expect(word.word == variety, "\(variety) resolves into \(word.word)")
+            let own = try #require(word.target(for: .raw) ?? word.target(for: .unspecified))
+            let other = try #require(synonyms.entry(for: neighbour))
+            #expect(!other.targets.map(\.code).contains(own.code))
+        }
     }
 
     @Test("Raw and cooked potato are two codes, not one averaged row")
@@ -263,7 +283,9 @@ struct BundledDataFingerprintTests {
         // it to the SHA of nothing at all — after which no data change would
         // ever invalidate a cached figure again.
         let sizes = RecipeContentHash.bundledDataSizes
-        #expect(sizes.count == 4)
+        // Spelled out rather than read off `bundledDataResources`: comparing
+        // the list against itself would pass however short it got.
+        #expect(sizes.count == 5)
         for file in sizes {
             #expect(file.bytes > 0, "\(file.name).json contributed nothing to the fingerprint")
         }
@@ -282,5 +304,217 @@ struct BundledDataFingerprintTests {
         #expect(!SynonymTable.bundled.entries.isEmpty)
         #expect(!MeasureTable.bundled.units.isEmpty)
         #expect(!AisleDefaults.bundled.groups.isEmpty)
+        // `community.json` hides inside `BLSCatalog.entries`, so the check
+        // above would pass on an app that never opened it. Its own source
+        // block is the thing only that file can produce.
+        #expect(BLSCatalog.bundled.supplementSource != nil)
+    }
+}
+
+/// The rows that are not BLS.
+///
+/// `community.json` is the one file of shipped food rows a person edits
+/// directly — no pipeline writes it, no spreadsheet backs it. That makes it
+/// both the easiest file to contribute to and the easiest to get wrong, and
+/// these are the four ways it can be wrong that nothing else would catch.
+@Suite("Bundled supplements")
+struct BundledSupplementTests {
+    private let bls = BLSCatalog.bundled
+    private let synonyms = SynonymTable.bundled
+
+    private var supplements: [BLSEntry] { bls.entries.filter { $0.group == "Z" } }
+
+    @Test("Every supplement names the body that measured it")
+    func everySupplementCitesItsSource() throws {
+        #expect(!supplements.isEmpty)
+        for entry in supplements {
+            // The per-row half of CC BY. A supplements file has no single
+            // attribution to fall back on — that is the whole difference
+            // between it and `bls.json`.
+            let source = try #require(entry.source, "\(entry.code) \(entry.name) has no source")
+            #expect(!source.isEmpty)
+        }
+        let stated = try #require(bls.supplementSource)
+        #expect(stated.license == "CC BY 4.0")
+        #expect(stated.attribution.contains("Ciqual"))
+    }
+
+    @Test("A supplement can never take a code the catalog already uses")
+    func codesCannotCollide() {
+        // Z is a letter the BLS has never issued: 3.0 and 4.0 both run B–Y.
+        // That is what makes the space safe to allocate in, and it is worth a
+        // test because the day it stops being true is the day a cook's
+        // confirmed basis silently starts meaning a different food.
+        for entry in supplements {
+            #expect(entry.code.hasPrefix("Z"))
+        }
+        let blsCodes = Set(bls.entries.filter { $0.group != "Z" }.map(\.code))
+        for entry in supplements {
+            #expect(!blsCodes.contains(entry.code))
+        }
+    }
+
+    @Test("A supplement's name never becomes a kitchen word of its own")
+    func supplementNamesStayOutOfTheCatalog() {
+        // They are named in whatever language their source publishes in, so
+        // letting the builder turn one into a word would put "Nutritional
+        // yeast" into a German catalog. The bridge is curated, like every
+        // other one across the two languages.
+        let words = Set(synonyms.entries.map { IngredientCatalog.normalize($0.word) })
+        for entry in supplements {
+            #expect(!words.contains(IngredientCatalog.normalize(entry.name)))
+        }
+    }
+
+    @Test("Hefeflocken rest on the supplement, not on the baker's yeast")
+    func yeastFlakesRestOnTheSupplement() throws {
+        // The case the file was created for, and a case worth stating
+        // precisely: Trockenbackhefe agrees with nutritional yeast on energy
+        // and protein to the decimal (334 kcal, 40.4 g) and parts company on
+        // the minerals — 150 vs 54 mg magnesium, 1700 vs 955 mg potassium,
+        // 4.1 vs 9.1 mg iron. Close enough that resolving to it would look
+        // right on the figure a recipe shows, and wrong everywhere the app
+        // computes a verdict from it.
+        let word = try #require(synonyms.entry(for: "Hefeflocken"))
+        let target = try #require(word.target(for: .unspecified))
+        let row = try #require(bls.entry(for: target.code))
+        #expect(row.group == "Z")
+        #expect(row.name == "Nutritional yeast")
+        #expect(try #require(row.source).contains("Ciqual"))
+        // Reachable by the word a cook writes, which is the only reason the
+        // row is in the app at all.
+        #expect(synonyms.entry(for: "Nährhefe")?.word == "Hefeflocken")
+        // And still told apart from the yeast you bake with.
+        #expect(synonyms.entry(for: "Trockenhefe")?.word != "Hefeflocken")
+    }
+
+    @Test("No supplement sits in the catalog that no kitchen word can reach")
+    func everySupplementIsReachable() {
+        // The rule that makes the language question moot. `BLSCatalog.search`
+        // matches on the row's own name, so a row called "Nutritional yeast"
+        // is invisible to anyone typing German — searching for "Hefeflocken"
+        // returns nothing at all. A supplement is therefore only ever added
+        // *because* a kitchen word needs it, and the word is what a cook
+        // actually reaches it by; a row nothing points at would be curation
+        // that silently does nothing, the same failure `measures.json` rows
+        // are held to.
+        let reachable = Set(
+            synonyms.entries
+                .flatMap { $0.targets.map(\.code) + $0.candidates }
+        )
+        for entry in supplements {
+            #expect(
+                reachable.contains(entry.code),
+                "\(entry.code) \(entry.name) is in community.json but no kitchen word names it"
+            )
+        }
+    }
+
+    @Test("The citation reaches the ingredient, not just the file")
+    func sourceReachesTheIngredient() throws {
+        // „Quelle: …" under the ingredient is where CC BY is actually
+        // discharged for a supplement — the sources screen names the bodies,
+        // this names the row. A word resting on a supplement must not be
+        // shown as resting on the BLS.
+        let catalog = NutritionCatalog.make(
+            synonyms: synonyms, bls: bls, measures: MeasureTable.bundled
+        )
+        let flakes = try #require(catalog.nutrition(forCanonicalName: "Hefeflocken"))
+        #expect(flakes.source.contains("Ciqual"))
+        #expect(try #require(flakes.basis(for: IngredientState.unspecified)).source.contains("Ciqual"))
+        // The other 2,737 words are unaffected and still say what they said.
+        let onion = try #require(catalog.nutrition(forCanonicalName: "Zwiebel"))
+        #expect(onion.source == bls.source.datasetVersion)
+    }
+}
+
+/// The slash in a BLS name.
+///
+/// BLS writes synonyms as `"Batate/Süßkartoffel"`, and the whole string used
+/// to be one word — so 329 perfectly ordinary names resolved to nothing at
+/// all while sitting in the table. Splitting them is worth these five checks
+/// because a wrong split does not fail loudly: it invents a word, or hands
+/// one food's numbers to another.
+@Suite("Slashed catalog names")
+struct SlashedNameTests {
+    private let synonyms = SynonymTable.bundled
+    private let bls = BLSCatalog.bundled
+
+    @Test("Both halves of a slashed name reach the row")
+    func bothHalvesResolve() throws {
+        for spelling in ["Topinambur", "Erdartischocke"] {
+            let entry = try #require(synonyms.entry(for: spelling), "\(spelling) resolves to nothing")
+            #expect(entry.word == "Topinambur")
+            #expect(!entry.targets.isEmpty)
+        }
+        #expect(synonyms.entry(for: "Batate")?.word == "Batate")
+        #expect(synonyms.entry(for: "Alaska-Seelachs")?.word == "Alaska-Pollack")
+    }
+
+    @Test("The name BLS actually wrote still resolves")
+    func theFullNameSurvives() {
+        // Recipes and stored mappings may have written the slashed name. A
+        // split that dropped the original would orphan them silently — so it
+        // is kept as a spelling of the word it became.
+        for name in [
+            "Batate/Süßkartoffel",
+            "Topinambur/Erdartischocke",
+            "Alaska-Pollack/Alaska-Seelachs",
+            "Sauerrahm/Schmand, mind. 20 % Fett",
+            "Sojaschnetzel/Sojagranulat, texturiert, trocken",
+        ] {
+            #expect(synonyms.entry(for: name) != nil, "\(name) no longer resolves")
+        }
+    }
+
+    @Test("A slash inside brackets is not a synonym boundary")
+    func bracketsAreLeftAlone() {
+        // "Agavenbrand (Mezcal/Tequila)" and "Klippfisch 1/1 trocken" —
+        // one is a bracketed pair, the other a fraction. Neither splits.
+        #expect(synonyms.entry(for: "Mezcal") == nil)
+        #expect(synonyms.entry(for: "Tequila)") == nil)
+        #expect(!synonyms.entries.contains { $0.word.hasPrefix("Klippfisch 1") && $0.word.count < 14 })
+    }
+
+    @Test("A suspended hyphen is not a synonym boundary")
+    func suspendedHyphensAreLeftAlone() {
+        // "Zartbitter-/Halbbitterschokolade" means Zartbitter*schokolade*.
+        // The stem alone is not a word, and shipping it as one put a dangling
+        // hyphen in the catalog.
+        #expect(!synonyms.entries.contains { $0.word.hasSuffix("-") })
+        #expect(synonyms.entry(for: "Zartbitter-") == nil)
+    }
+
+    @Test("No second word stands beside the one that already means the row")
+    func aTakenHeadIsAbsorbedNotDuplicated() throws {
+        // "Karotte/Möhre" used to be a word of its own beside the curated
+        // "Karotte" — same codes, own category, and which shelf a cook got
+        // depended on how they had typed it. Where the word holding the head
+        // already carries every code the row has, the whole string is a
+        // spelling of it.
+        #expect(synonyms.entry(for: "Karotte/Möhre")?.word == "Karotte")
+        #expect(synonyms.entry(for: "Dorsch/Kabeljau")?.word == "Kabeljau")
+        #expect(synonyms.entry(for: "Feldsalat/Rapunzel")?.word == "Feldsalat")
+        #expect(!synonyms.entries.contains { $0.word == "Karotte/Möhre" })
+
+        // And the guard that keeps it from swallowing a different food:
+        // "Schwein" is taken, but it means entirely different rows, so the
+        // mixed mince stays a word of its own.
+        let mince = try #require(
+            synonyms.entry(for: "Schwein/Rind, Hackfleisch gemischt")
+        )
+        #expect(mince.word == "Schwein/Rind, Hackfleisch gemischt")
+    }
+
+    @Test("A spelling of one food is not allowed to name another")
+    func aSegmentNeverClaimsAnotherWord() throws {
+        // The bug this caught: letting a *segment* decide ownership sent
+        // "Kabanossi/Peperoni" to the curated word "Chili", whose alias
+        // "Peperoni" is a chilli and not a sausage — and Chili is one of the
+        // words that deliberately carries no values at all.
+        let chili = try #require(synonyms.entry(for: "Chili"))
+        #expect(chili.targets.isEmpty)
+        #expect(synonyms.entry(for: "Peperoni")?.word == "Chili")
+        #expect(synonyms.entry(for: "Kabanossi")?.word == "Kabanossi")
     }
 }

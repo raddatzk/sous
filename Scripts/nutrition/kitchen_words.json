@@ -1,5 +1,12 @@
 [
  {
+  "name": "Ajvar",
+  "aliases": [
+   "Ajvar Konserve"
+  ],
+  "category": "canned"
+ },
+ {
   "name": "Apfel",
   "aliases": [
    "Äpfel"
@@ -522,6 +529,14 @@
   "category": "baking"
  },
  {
+  "name": "Hefeflocken",
+  "aliases": [
+   "Nährhefe",
+   "Edelhefeflocken"
+  ],
+  "category": "spices"
+ },
+ {
   "name": "Frischhefe",
   "aliases": [],
   "category": "baking",
@@ -813,9 +828,7 @@
  {
   "name": "Mandarine",
   "aliases": [
-   "Mandarinen",
-   "Clementine",
-   "Clementinen"
+   "Mandarinen"
   ],
   "category": "fruit"
  },
@@ -1102,18 +1115,14 @@
  {
   "name": "Pfirsich",
   "aliases": [
-   "Pfirsiche",
-   "Nektarine",
-   "Nektarinen"
+   "Pfirsiche"
   ],
   "category": "fruit"
  },
  {
   "name": "Pflaume",
   "aliases": [
-   "Pflaumen",
-   "Zwetschge",
-   "Zwetschgen"
+   "Pflaumen"
   ],
   "category": "fruit"
  },
@@ -1453,6 +1462,16 @@
    "Tahini"
   ],
   "category": "nuts"
+ },
+ {
+  "name": "Sojahack",
+  "aliases": [
+   "Sojaschnetzel",
+   "Sojagranulat",
+   "Sojahackfleisch",
+   "Soja-Hack"
+  ],
+  "category": "legumes"
  },
  {
   "name": "Sojasauce",
