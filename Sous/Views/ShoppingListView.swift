@@ -132,11 +132,39 @@ struct ShoppingListView: View {
     private func groupHeadline(_ group: ShoppingGroup) -> some View {
         let amounts = group.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
         let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
-        return HStack(alignment: .firstTextBaseline, spacing: 12) {
-            amounts.isEmpty ? Text(group.name) : Text("\(amount) \(group.name)")
-            Spacer(minLength: 0)
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                amounts.isEmpty ? Text(group.name) : Text("\(amount) \(group.name)")
+                Spacer(minLength: 0)
+            }
+            // The heading shows the total, so the heading is where the total
+            // has to admit what part of it was weighed in another state.
+            if let states = stateAnnotation(group.statedQuantities) {
+                Text(states)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
         .opacity(group.isChecked ? 0.5 : 1)
+    }
+
+    /// "300 g gegart gewogen" — what an amount says about itself beyond the
+    /// number.
+    ///
+    /// The list bundles across states on purpose: a shop sells one potato,
+    /// and 500 g raw plus 300 g cooked is one errand. What it must not do is
+    /// swallow the difference, because how much raw yields 300 g cooked is
+    /// something nobody here knows — so the fact is handed over and left
+    /// there (no yield factor, concept §11).
+    private func stateAnnotation(
+        _ stated: [(state: IngredientState, quantities: [Quantity])]
+    ) -> String? {
+        let parts = stated.compactMap { entry -> String? in
+            guard let annotation = entry.state.shoppingAnnotation else { return nil }
+            let amounts = entry.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
+            return amounts.isEmpty ? nil : "\(amounts) \(annotation)"
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// The open items of every section but the pantry, which keeps its own
@@ -307,10 +335,13 @@ struct ShoppingListView: View {
         }
     }
 
-    /// What changed under the cook's hands since the check-off: demand that
-    /// arrived late, and demand that lapsed.
+    /// What the line says about itself beyond its amount: which part of it a
+    /// recipe weighed in a named state, what arrived late, and what lapsed.
     private func annotation(for item: ShoppingItem) -> String? {
         var parts: [String] = []
+        if let states = stateAnnotation(item.statedQuantities) {
+            parts.append(states)
+        }
         if item.isLateAddition {
             parts.append("Nachträglich")
         }

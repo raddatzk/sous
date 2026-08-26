@@ -1678,5 +1678,33 @@
   ],
   "category": "vegetables",
   "parent": "Zwiebel"
+ },
+ {
+  "name": "Suppengrün",
+  "aliases": [
+   "Suppenkraut"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Vollkornmehl",
+  "aliases": [
+   "Weizenvollkornmehl"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Speisestärke",
+  "aliases": [
+   "Maisstärke"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Agavendicksaft",
+  "aliases": [
+   "Agavensirup"
+  ],
+  "category": "baking"
  }
 ]

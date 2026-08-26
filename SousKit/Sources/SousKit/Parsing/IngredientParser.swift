@@ -121,11 +121,33 @@ public enum IngredientParser {
             unquantifiedPhrase = phrase
         }
 
+        // A state word may stand after the comma, where the two branches
+        // above already put it, or bare at the end of the name — "500 g
+        // Kartoffeln gegart". The second writing is moved into the
+        // preparation so that both arrive in one shape, and so that the name
+        // is a name again and can be found in the catalog at all.
+        //
+        // Never for a name the catalog knows whole: 649 of the shipped names
+        // end in a word from this vocabulary ("Erbse grün, tiefgefroren"),
+        // and taking those apart is the very thing the comma rule above
+        // exists to prevent.
+        if catalog.ingredient(for: name) == nil,
+           let (stem, word) = IngredientStateVocabulary.trailingWord(in: name) {
+            name = stem
+            preparation = [word, preparation].compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: ", ")
+        }
+
         return RecipeIngredient(
             name: name,
             quantity: quantity,
             unquantifiedPhrase: unquantifiedPhrase,
-            preparation: preparation?.isEmpty == false ? preparation : nil
+            preparation: preparation?.isEmpty == false ? preparation : nil,
+            // Read, not consumed: the words stay where they were written, so
+            // the line still renders as it was typed. What the state adds is
+            // which of an ingredient's bases the numbers come from.
+            state: IngredientStateVocabulary.state(in: preparation)
         )
     }
 

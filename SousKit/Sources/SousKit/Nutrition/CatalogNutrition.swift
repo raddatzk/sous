@@ -133,7 +133,9 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     public var unitWeightsGrams: [String: Double]
     /// Needed to turn a volume amount into grams — a teaspoon of oil and a
     /// teaspoon of honey do not weigh the same. Curated in `measures.json`
-    /// but not yet consulted; phase 5 switches it on.
+    /// — the named row where there is one, the food group's otherwise. A
+    /// weight authored for the very unit on the line still beats it: see
+    /// `NutritionResolver.resolve`.
     public var densityGramsPerMl: Double?
     /// Where these numbers came from, for the entry as a whole. Kept beside
     /// the per-basis `source` for the catalog screen, which shows one line
@@ -220,12 +222,27 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// The last fallback walks `IngredientState.displayOrder` rather than
     /// taking whatever a dictionary hands out first: which row a figure is
     /// based on must not depend on hash order.
+    ///
+    /// **A state the line asked for and the entry does not have falls back
+    /// too**, and that stays so on purpose. "300 g Zucchini, gegart" with
+    /// only a raw row is better counted as raw zucchini than as a gap: the
+    /// error is a few percent of water, the alternative drops the line out of
+    /// the sum entirely, and the concept's own answer to an imperfect number
+    /// is to show it and say what it rests on rather than to hide it. What
+    /// says so is ``hasOwnBasis(for:)``, which the drill-down reads to print
+    /// the row's real state next to the line's.
     public func basis(for state: IngredientState) -> NutritionBasis? {
         if let exact = bases[state.rawValue] { return exact }
         for fallback in IngredientState.displayOrder {
             if let match = bases[fallback.rawValue] { return match }
         }
         return nil
+    }
+
+    /// Whether ``basis(for:)`` answers `state` from a row filed under exactly
+    /// that state, rather than from the fallback.
+    public func hasOwnBasis(for state: IngredientState) -> Bool {
+        bases[state.rawValue] != nil
     }
 
     /// The values for `state`, or `nil` where the basis is a decision rather

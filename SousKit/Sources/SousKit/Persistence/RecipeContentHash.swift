@@ -20,8 +20,13 @@ enum RecipeContentHash {
     /// set decides which lines the parser leaves whole at a comma. Raised to
     /// 5 when a basis gained a status: the same line now reads as counted,
     /// counted-but-unconfirmed, or deliberately without, and a figure cached
-    /// before that says nothing about which.
-    private static let readingVersion = 5
+    /// before that says nothing about which. Raised to 6 when the parser
+    /// began reading preparation states and the measure table's densities
+    /// went live: the same unchanged line now picks a different basis and a
+    /// different number of grams. The bundled data moved with it, so the
+    /// fingerprint would have caught most of this — but not all of it, since
+    /// the resolver's order changed in code alone.
+    private static let readingVersion = 6
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.

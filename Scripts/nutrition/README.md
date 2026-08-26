@@ -388,7 +388,22 @@ values, the entry is the bridge.**
   re-run preserves them by construction.
 - **Wrong piece weight or density** → edit `measures.json` here. It is copied
   verbatim, so this needs no re-run at all if you also copy it to `Resources/`;
-  re-running is cleaner.
+  re-running is cleaner. Two rules the app enforces with tests, so a new row
+  either works or fails loudly:
+  - **A unit that converts to millilitres is answered by a density, never by a
+    weight row.** `ml`, `l`, `TL` (5 ml) and `EL` (15 ml) go through
+    `densities`; `units` and `byGroup` are only for the units that convert to
+    nothing — `Prise`, `Tasse`, `Bund`, `Zehe`, `Blatt`, `Pck.`, `Stk.`. A
+    `byGroup` row naming a spoon is a second, contradicting answer, which is
+    what four rows here were until phase 5 turned the densities on. If a spoon
+    of one specific food really is not what its density says (an Esslöffel is
+    not filled to the brim), write that as a **`byIngredient` row with that
+    unit** — those beat the density, for that one unit.
+  - **Every `byIngredient` and named `densities` row has to name a word the
+    vocabulary knows** — the word itself or one of its spellings in
+    `synonyms.json`. A row for a name nothing resolves to is curation that
+    silently does nothing. If the food has no word yet, add it to
+    `kitchen_words.json` (see below) rather than leaving the row dangling.
 - **Wrong nutrition value** → that is a BLS value. Do not patch it here; if BLS
   is genuinely wrong, the right fix is a different `curation.json` target, or
   the cook's own values in the app.

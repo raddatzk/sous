@@ -48,10 +48,12 @@ public struct NutritionCatalog: Sendable {
         entries.reserveCapacity(synonyms.entries.count)
         for word in synonyms.entries {
             var bases: [String: NutritionBasis] = [:]
+            var group: String?
             for state in IngredientState.displayOrder {
                 guard let target = word.target(for: state),
                       let row = bls.entry(for: target.code)
                 else { continue }
+                group = group ?? row.group
                 bases[state.rawValue] = NutritionBasis(
                     values: row.perHundredGrams,
                     code: row.code,
@@ -61,8 +63,17 @@ public struct NutritionCatalog: Sendable {
                     source: source
                 )
             }
-            let unitWeights = measures.grams(forIngredient: word.word)
             let candidates = word.candidateCodes
+            // A word with no basis still sits in a food group, and the group
+            // is what a cup of it or a milliliter of it is answered from.
+            if group == nil, let code = candidates.first { group = bls.entry(for: code)?.group }
+            // Most specific wins: what was authored for this ingredient beats
+            // what was authored for its whole group.
+            let spellings = [word.word] + word.aliases
+            let unitWeights = (group.map(measures.grams(forGroup:)) ?? [:])
+                .merging(measures.grams(forAnyOf: spellings), uniquingKeysWith: { _, specific in specific })
+            let density = measures.density(forAnyOf: spellings)
+                ?? group.flatMap(measures.density(forGroup:))
             // An entry is worth having as soon as the word carries *anything*
             // a later step can use. It used to take values: the 28 spices got
             // no entry at all, so the one line the picker exists for — a known
@@ -71,15 +82,13 @@ public struct NutritionCatalog: Sendable {
             // knows this and has no values", which is what the gap reason
             // reads off it.
             guard !bases.isEmpty || !unitWeights.isEmpty || !candidates.isEmpty
-                    || word.parent != nil
+                    || density != nil || word.parent != nil
             else { continue }
             entries.append(CatalogNutrition(
                 name: word.word,
                 bases: bases,
                 unitWeightsGrams: unitWeights,
-                // Curated in measures.json, deliberately not read yet — see
-                // `MeasureTable`. Phase 5 puts it here.
-                densityGramsPerMl: nil,
+                densityGramsPerMl: density,
                 source: source,
                 candidateCodes: candidates,
                 parentName: word.parent

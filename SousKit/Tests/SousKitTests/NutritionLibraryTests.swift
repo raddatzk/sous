@@ -119,6 +119,62 @@ struct NutritionLibraryTests {
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 200)
     }
 
+    @Test("A correction to a spoon beats the shipped density, for that unit alone")
+    func ownUnitWeightBeatsTheGenericValue() async throws {
+        // The concept's "the cook can override any value on their
+        // ingredient", past the single `Stk.` weight that used to be the only
+        // one anybody could write. The storage was always a dictionary keyed
+        // by unit — only the callers and the form were piece-only.
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Dressing", servings: 1, ingredientsText: "2 EL Olivenöl")
+
+        let byDensity = try #require(await nutrition.nutrition(for: recipe))
+        // 30 ml × 0.92 g/ml, against olive oil's ~900 kcal/100 g.
+        #expect(byDensity.perPortion.kcal > 200)
+
+        await nutrition.setUnitWeight(5, unit: .tablespoon, forName: "Olivenöl")
+        let corrected = try #require(await nutrition.nutrition(for: recipe))
+
+        // 10 g instead of 27.6 g — and the figure moved, which means the
+        // cache noticed a write that never touched a recipe's text.
+        #expect(corrected.perPortion.kcal < byDensity.perPortion.kcal / 2)
+        #expect(nutrition.unitWeight(.tablespoon, forName: "Olivenöl") == 5)
+        #expect(nutrition.hasOwnUnitWeight(.tablespoon, forName: "Olivenöl"))
+
+        // …and only for the spoon: a millilitre still pours as oil pours.
+        let byVolume = Recipe(title: "Marinade", servings: 1, ingredientsText: "100 ml Olivenöl")
+        let volume = try #require(await nutrition.nutrition(for: byVolume))
+        #expect(volume.perPortion.kcal > 700)
+    }
+
+    @Test("Taking a measure correction back leaves the shipped one standing")
+    func clearingAUnitWeightRestoresTheShippedOne() async throws {
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.ensureLoaded()
+        let shipped = nutrition.unitWeight(.piece, forName: "Zwiebel")
+        #expect(shipped == 110)
+
+        await nutrition.setUnitWeight(200, unit: .piece, forName: "Zwiebel")
+        #expect(nutrition.unitWeight(.piece, forName: "Zwiebel") == 200)
+
+        await nutrition.setUnitWeight(nil, unit: .piece, forName: "Zwiebel")
+        #expect(nutrition.unitWeight(.piece, forName: "Zwiebel") == 110)
+        #expect(!nutrition.hasOwnUnitWeight(.piece, forName: "Zwiebel"))
+    }
+
+    @Test("Withdrawing own values leaves the measure the cook corrected")
+    func deletingNutritionKeepsMeasures() async throws {
+        // These used to go together, which made no sense in either
+        // direction: what an onion weighs is not a claim about its calories.
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.saveIngredientNutrition(ownEntry("Sojaküchlein", kcal: 200))
+        await nutrition.setUnitWeight(50, unit: .piece, forName: "Sojaküchlein")
+
+        await nutrition.deleteIngredientNutrition(name: "Sojaküchlein")
+
+        #expect(nutrition.unitWeight(.piece, forName: "Sojaküchlein") == 50)
+    }
+
     @Test("A shipped mapping counts, provisionally, until the cook confirms it")
     func confirmingSettlesTheFigure() async throws {
         let (nutrition, _) = try makeLibrary()

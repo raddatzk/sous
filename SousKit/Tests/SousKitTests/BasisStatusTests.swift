@@ -188,4 +188,50 @@ struct BasisStatusTests {
         #expect(coverage.contributions.first?.isProvisional == false)
         #expect(coverage.unconfirmedCount == 0)
     }
+
+    @Test("A coverage cached before states and grams were carried still decodes")
+    func oldCoverageDecodesWithoutTheGramBridge() throws {
+        // Phase 5's additions travel in the same blob, and the share
+        // extension can have written an older one — it runs no migration and
+        // builds its own stack, so it may well be the last writer.
+        let json = Data("""
+        {"includedCount":1,
+         "gaps":[],
+         "contributions":[{"ingredientName":"Olivenöl","basisName":"Olivenöl"}]}
+        """.utf8)
+
+        let coverage = try JSONDecoder().decode(NutritionCoverage.self, from: json)
+        let line = try #require(coverage.contributions.first)
+
+        #expect(line.grams == nil)
+        #expect(line.quantity == nil)
+        #expect(line.isAssumedGrams == false)
+        #expect(line.state == .unspecified)
+        // "Nothing ever said otherwise" is exactly what a figure cached
+        // before states were read is claiming, so it must not read as a
+        // mismatch and put a state on screen that nobody wrote.
+        #expect(line.matchesState)
+    }
+
+    @Test("A coverage carrying the gram bridge round-trips")
+    func gramBridgeRoundTrips() throws {
+        let coverage = NutritionCoverage(includedCount: 1, gaps: [], contributions: [
+            NutritionCoverage.Contribution(
+                ingredientName: "Olivenöl", basisName: "Olivenöl",
+                quantity: Quantity(2, .tablespoon), grams: 27.6, isAssumedGrams: true,
+                state: .cooked, matchesState: false
+            ),
+        ])
+
+        let decoded = try JSONDecoder().decode(
+            NutritionCoverage.self, from: JSONEncoder().encode(coverage)
+        )
+        let line = try #require(decoded.contributions.first)
+
+        #expect(line.quantity == Quantity(2, .tablespoon))
+        #expect(line.grams == 27.6)
+        #expect(line.isAssumedGrams)
+        #expect(line.state == .cooked)
+        #expect(line.matchesState == false)
+    }
 }

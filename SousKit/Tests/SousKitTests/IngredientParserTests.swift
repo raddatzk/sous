@@ -43,6 +43,114 @@ struct IngredientParserTests {
         #expect(ingredient.preparation == "rot")
     }
 
+    @Test("A state after the comma is read, and left where it was written")
+    func stateAfterComma() {
+        let ingredient = IngredientParser.parseLine("500 g Kartoffeln, gegart")
+
+        #expect(ingredient.name == "Kartoffeln")
+        #expect(ingredient.state == .cooked)
+        // The word stays in the preparation: the line has to render back as
+        // it was typed, and the state is read from it, not taken out of it.
+        #expect(ingredient.preparation == "gegart")
+    }
+
+    @Test("A state written bare after the name is read the same way")
+    func stateAfterNameWithoutComma() {
+        let ingredient = IngredientParser.parseLine("500 g Kartoffeln gegart")
+
+        // Moved into the preparation so both writings arrive in one shape —
+        // and so the name is a name again and can be found in the catalog.
+        #expect(ingredient.name == "Kartoffeln")
+        #expect(ingredient.state == .cooked)
+        #expect(ingredient.preparation == "gegart")
+    }
+
+    @Test("A state in parentheses is read too")
+    func stateInParentheses() {
+        let ingredient = IngredientParser.parseLine("300 g Linsen (gekocht)")
+
+        #expect(ingredient.name == "Linsen")
+        #expect(ingredient.state == .cooked)
+    }
+
+    @Test("\"roh\" is its own state, not the same as saying nothing")
+    func rawIsItsOwnState() {
+        #expect(IngredientParser.parseLine("200 g Spinat, roh").state == .raw)
+        #expect(IngredientParser.parseLine("200 g Spinat").state == .unspecified)
+    }
+
+    @Test("A preparation that only mentions a state word in passing is not one")
+    func stateOnlyCountsAsTheFirstWord() {
+        // "in Streifen gebraten" is a way of cutting something, not the claim
+        // that the amount was weighed after frying — reading it as one would
+        // silently move the numbers of every line written that way.
+        let ingredient = IngredientParser.parseLine("300 g Hähnchenbrust, in Streifen gebraten")
+
+        #expect(ingredient.state == .unspecified)
+        #expect(ingredient.name == "Hähnchenbrust")
+    }
+
+    @Test("A catalog name that ends in a state word is not taken apart")
+    func catalogNameEndingInAStateWord() {
+        // 649 of the shipped names end in one of these words. Splitting them
+        // is the very thing the comma rule exists to prevent, so the trailing
+        // rule asks the catalog first, exactly as the comma rule does.
+        for name in [
+            "Erbse grün, tiefgefroren", "Apfel getrocknet",
+            "Kartoffel geschält, gekocht, Konserve, abgetropft",
+        ] {
+            let ingredient = IngredientParser.parseLine("100 g \(name)")
+            #expect(ingredient.name == name, "\(name) was split")
+            #expect(ingredient.preparation == nil)
+        }
+    }
+
+    @Test("A catalog name plus a state word splits into exactly that")
+    func catalogNamePlusAState() {
+        // "Kartoffel geschält" is a word; "Kartoffel geschält, gekocht" is
+        // not — the shipped word carries both its states as bases. So the
+        // comma rule splits here, which is right: the name resolves and the
+        // state picks the cooked one of the two rows behind it.
+        let ingredient = IngredientParser.parseLine("500 g Kartoffel geschält, gekocht")
+
+        #expect(ingredient.name == "Kartoffel geschält")
+        #expect(ingredient.state == .cooked)
+        let entry = NutritionCatalog.bundled.nutrition(forCanonicalName: "Kartoffel geschält")
+        #expect(entry?.basis(for: .cooked)?.catalogName == "Kartoffel geschält, gekocht")
+    }
+
+    @Test("A qualifier is not a state — it picks a different food")
+    func qualifiersAreNotStates() {
+        // Decision E1: `IngredientState` is the raw/cooked axis, because that
+        // is the axis the shipped bases are filed along. Canned tomatoes are
+        // their own word in the catalog, so the qualifier resolves a *name*.
+        let ingredient = IngredientParser.parseLine("400 g Tomaten, Konserve")
+
+        #expect(ingredient.name == "Tomaten")
+        #expect(ingredient.state == .unspecified)
+        #expect(IngredientCatalog.bundled.nutritionName(for: ingredient) == "Tomate Konserve")
+    }
+
+    @Test("A qualifier the catalog has no word for falls back to the plain food")
+    func unknownQualifiedNameFallsBack() {
+        // "Erbse tiefgefroren" is not a word — the catalog writes "Erbse
+        // grün, tiefgefroren". Counting the line as peas is closer than
+        // counting it as nothing.
+        let ingredient = IngredientParser.parseLine("300 g Erbsen, TK")
+
+        #expect(IngredientCatalog.bundled.nutritionName(for: ingredient) == "Erbse")
+    }
+
+    @Test("A line that is only a state word keeps it as its name")
+    func aBareStateWordIsNotASplit() {
+        // "roh" alone is a line that says nothing; splitting it would leave
+        // an ingredient with no name at all.
+        let ingredient = IngredientParser.parseLine("roh")
+
+        #expect(ingredient.name == "roh")
+        #expect(ingredient.preparation == nil)
+    }
+
     @Test("A count without a unit is a piece")
     func bareCount() {
         let ingredient = IngredientParser.parseLine("2 Zwiebeln")

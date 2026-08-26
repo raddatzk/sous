@@ -106,6 +106,27 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
         }
     }
 
+    /// What was wanted in a named state, and how much of it — the concept's
+    /// "Kartoffeln — 500 g + 300 g (gegart gewogen)".
+    ///
+    /// States are ignored in bundling and annotated instead: 500 g raw and
+    /// 300 g cooked are one errand, because a shop sells one potato. They are
+    /// two different numbers for nutrition, which is where they are told
+    /// apart; here they are one line that says what it is made of.
+    ///
+    /// Lapsed demand stays out, exactly as it does in `quantities`: this
+    /// annotates what is still wanted, not what once was.
+    public var statedQuantities: [(state: IngredientState, quantities: [Quantity])] {
+        IngredientState.displayOrder.compactMap { state in
+            guard state != .unspecified else { return nil }
+            let quantities = demands
+                .filter { !$0.isLapsed && $0.state == state }
+                .compactMap(\.effectiveQuantity)
+                .reduce(into: [Quantity]()) { $0 = $0.adding($1) }
+            return quantities.isEmpty ? nil : (state, quantities)
+        }
+    }
+
     /// Where it reads as coming from, each origin named once.
     public var originTitles: [String] {
         var seen = Set<String>()

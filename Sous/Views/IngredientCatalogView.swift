@@ -174,6 +174,11 @@ struct IngredientFormView: View {
     /// remembered for as long as the form is open. Decision B: asked once,
     /// in passing, at the moment the ingredient comes into being.
     @State private var variantProposal: CatalogIngredient?
+    /// The measure fields the cook has touched, by unit symbol. Only what is
+    /// in here is written back on save — an untouched field shows what the
+    /// app currently believes and must not turn that into a correction just
+    /// because the form was opened.
+    @State private var measureDraft: [String: String] = [:]
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
@@ -232,6 +237,7 @@ struct IngredientFormView: View {
                 variantSection
                 pantrySection
                 nutritionSection
+                measuresSection
             }
             .formStyle(.grouped)
             .navigationTitle(isNew ? "Neue Zutat" : name)
@@ -457,6 +463,90 @@ struct IngredientFormView: View {
         }
     }
 
+    // MARK: - Measures
+
+    /// What a piece, a spoon or a cup of this ingredient weighs — the gram
+    /// bridge, per ingredient, and editable no matter where the nutrition
+    /// numbers come from.
+    ///
+    /// It used to sit inside the own-values form, which meant a bundled
+    /// ingredient had no piece weight to correct until the cook typed a whole
+    /// nutrition label over it. That is two unrelated decisions welded
+    /// together: what an onion weighs is not a claim about its calories, and
+    /// the concept asks for exactly this one on its own ("the cook can
+    /// override any value on their ingredient — 'my onions are bigger'").
+    ///
+    /// Any unit, not only `Stk.`: the storage was always keyed by unit
+    /// symbol. Mass and the litre stay out — a gram weighs a gram, and a
+    /// millilitre is what the density answers.
+    private static let measurableUnits: [IngredientUnit] = [
+        .piece, .clove, .bunch, .leaf, .package, .pinch, .cup, .teaspoon, .tablespoon,
+    ]
+
+    /// The units worth showing: everything anybody has a weight for, plus
+    /// whatever the cook is in the middle of typing one for.
+    private var shownMeasureUnits: [IngredientUnit] {
+        let known = resolvedNutrition?.unitWeightsGrams ?? [:]
+        return Self.measurableUnits.filter {
+            known[$0.symbol] != nil || measureDraft[$0.symbol] != nil
+        }
+    }
+
+    private var addableMeasureUnits: [IngredientUnit] {
+        let shown = Set(shownMeasureUnits.map(\.symbol))
+        return Self.measurableUnits.filter { !shown.contains($0.symbol) }
+    }
+
+    @ViewBuilder
+    private var measuresSection: some View {
+        if !trimmedName.isEmpty {
+            Section {
+                ForEach(shownMeasureUnits, id: \.symbol) { unit in
+                    measureField(for: unit)
+                }
+                if !addableMeasureUnits.isEmpty {
+                    Menu("Maß hinzufügen") {
+                        ForEach(addableMeasureUnits, id: \.symbol) { unit in
+                            Button(unit.symbol) { measureDraft[unit.symbol] = "" }
+                        }
+                    }
+                }
+                if let density = resolvedNutrition?.densityGramsPerMl {
+                    LabeledContent("1 ml wiegt", value: mass(density))
+                }
+            } header: {
+                Text("Maße")
+            } footer: {
+                Text("Angenommene Werte, keine gemessenen. Was du hier änderst, gilt für jedes Rezept mit dieser Zutat — und schlägt für diese Einheit auch die Dichte.")
+            }
+        }
+    }
+
+    private func measureField(for unit: IngredientUnit) -> some View {
+        HStack {
+            Text("1 \(unit.symbol) wiegt")
+            Spacer(minLength: 8)
+            TextField(
+                "g",
+                text: Binding(
+                    get: { measureDraft[unit.symbol] ?? initialMeasureText(for: unit) },
+                    set: { measureDraft[unit.symbol] = $0 }
+                )
+            )
+            .frame(maxWidth: 70)
+            .multilineTextAlignment(.trailing)
+            #if os(iOS)
+            .keyboardType(.decimalPad)
+            #endif
+            Text("g").foregroundStyle(.secondary)
+        }
+    }
+
+    private func initialMeasureText(for unit: IngredientUnit) -> String {
+        guard let grams = resolvedNutrition?.unitWeightsGrams[unit.symbol] else { return "" }
+        return DecimalText.text(grams)
+    }
+
     /// The label a packet would carry, in the order it carries it.
     ///
     /// Every secondary figure is shown only when it is above zero: in a table
@@ -487,9 +577,6 @@ struct IngredientFormView: View {
             // BLS reports sodium; the standard EU label shows salt, in grams
             // — which the formatter drops to milligrams where it has to.
             measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
-            if let perPiece = entry.unitWeightsGrams[IngredientUnit.piece.symbol] {
-                nutrientRow("Ein Stück wiegt", mass(perPiece))
-            }
             Button("Eigene Werte eintragen") { isEnteringOwnValues = true }
         } header: {
             Text("Nährwerte je 100 g")
@@ -591,11 +678,6 @@ struct IngredientFormView: View {
             numberField("Eiweiß (g)", text: $nutritionDraft.protein)
             numberField("Salz (g)", text: $nutritionDraft.salt)
 
-            Toggle("Hat eine typische Stückgröße", isOn: $nutritionDraft.hasUnitWeight)
-            if nutritionDraft.hasUnitWeight {
-                numberField("Ein Stück wiegt (g)", text: $nutritionDraft.unitWeight)
-            }
-
             HStack {
                 Text("Quelle")
                 Spacer(minLength: 8)
@@ -670,6 +752,14 @@ struct IngredientFormView: View {
         let editable = isNutritionEditable
         let draft = nutritionDraft
         let entered = draft.catalogNutrition(named: trimmedName)
+        let measures = measureDraft.compactMapValues { text -> Double?? in
+            let trimmed = text.trimmingCharacters(in: .whitespaces)
+            // An emptied field takes the correction back; a field with
+            // something unreadable in it is left alone.
+            if trimmed.isEmpty { return .some(nil) }
+            return DecimalText.number(trimmed).map { .some($0) }
+        }
+        let measureTarget = pantryName
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
         let pantryTarget = pantryName
@@ -691,6 +781,11 @@ struct IngredientFormView: View {
                     // Everything cleared out reads as taking the entry back.
                     await nutrition.deleteIngredientNutrition(name: trimmedName)
                 }
+            }
+            for (symbol, grams) in measures {
+                await nutrition.setUnitWeight(
+                    grams, unit: IngredientUnit(symbol: symbol), forName: measureTarget
+                )
             }
             if pantryChanged {
                 await shopping.setPantry(pantryFlagged, name: pantryTarget)
@@ -716,8 +811,6 @@ private struct NutritionDraft {
     /// Salt, not sodium: it is what a packet prints, and what the read-only
     /// view shows. Converted on the way in and out — BLS stores sodium.
     var salt = ""
-    var hasUnitWeight = false
-    var unitWeight = ""
     var source = CatalogNutrition.ownSource
 
     /// Milligrams of sodium per gram of salt.
@@ -738,10 +831,6 @@ private struct NutritionDraft {
         sugar = Self.optionalText(values.sugarG)
         fiber = Self.optionalText(values.fiberG)
         salt = Self.optionalText(values.sodiumMg / Self.sodiumMgPerSaltGram)
-        if let perPiece = existing.unitWeightsGrams[IngredientUnit.piece.symbol] {
-            hasUnitWeight = true
-            unitWeight = Self.text(perPiece)
-        }
         source = existing.source
     }
 
@@ -753,7 +842,6 @@ private struct NutritionDraft {
         let entered = [kcal, protein, fat, saturatedFat, carbs, sugar, fiber, salt].map(Self.number)
         guard entered.contains(where: { $0 != nil }) else { return nil }
 
-        let perPiece = hasUnitWeight ? Self.number(unitWeight) : nil
         let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
         return CatalogNutrition(
             name: name,
@@ -769,26 +857,13 @@ private struct NutritionDraft {
                 vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0, vitaminEMg: 0,
                 calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
             )],
-            unitWeightsGrams: perPiece.map { [IngredientUnit.piece.symbol: $0] } ?? [:],
             densityGramsPerMl: nil,
             source: trimmedSource.isEmpty ? CatalogNutrition.ownSource : trimmedSource
         )
     }
 
-    /// A German keyboard offers a comma; `Double` only reads a point.
-    private static func number(_ text: String) -> Double? {
-        let normalized = text
-            .replacingOccurrences(of: ",", with: ".")
-            .trimmingCharacters(in: .whitespaces)
-        return normalized.isEmpty ? nil : Double(normalized)
-    }
-
-    private static func text(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(value)
-    }
-
+    private static func number(_ text: String) -> Double? { DecimalText.number(text) }
+    private static func text(_ value: Double) -> String { DecimalText.text(value) }
     /// Blank for zero — see the note in `init(_:)`.
-    private static func optionalText(_ value: Double) -> String {
-        value > 0 ? text(value) : ""
-    }
+    private static func optionalText(_ value: Double) -> String { DecimalText.optionalText(value) }
 }
