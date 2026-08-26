@@ -302,14 +302,15 @@ struct StepAmountResolverTests {
         #expect(step1.contains("amount(300 g)"))
 
         // Binding the pot binds both lines — no chip repeats the butter
-        // beneath either step.
+        // beneath either step. The egg, named with no amount anywhere in
+        // the step, is the one honest chip left.
         let butterLines = recipe.ingredients.filter { $0.name == "Butter" }
         #expect(butterLines.count == 2)
         for butter in butterLines {
             #expect(resolution.mentionsAmount(of: butter, in: steps[0]))
             #expect(resolution.mentionsAmount(of: butter, in: steps[1]))
         }
-        #expect(recipe.ingredients(mentionedIn: steps[0], resolution: resolution, scaledToServings: 8).isEmpty)
+        #expect(recipe.ingredients(mentionedIn: steps[0], resolution: resolution, scaledToServings: 8).map(\.name) == ["Ei"])
         #expect(recipe.ingredients(mentionedIn: steps[1], resolution: resolution, scaledToServings: 8).isEmpty)
     }
 
@@ -906,5 +907,295 @@ struct AmountAIProposalTests {
 
         let resolution = StepAmountResolver.resolve(recipe, toServings: 4, additionalMentions: mentions, formatter: formatter)
         #expect(resolution.allSuggestions.isEmpty)
+    }
+
+    // MARK: - Head-noun matching
+
+    @Test("The head noun a written name answers to in running text")
+    func headWords() {
+        #expect(StepAmountResolver.headWord(of: "rote Zwiebel") == "Zwiebel")
+        #expect(StepAmountResolver.headWord(of: "Dose Kokosmilch") == "Kokosmilch")
+        #expect(StepAmountResolver.headWord(of: "frisch geriebener Ingwer") == "Ingwer")
+        #expect(StepAmountResolver.headWord(of: "Limette, Saft davon") == "Limette")
+        #expect(StepAmountResolver.headWord(of: "dicke Kokosmilch / Kokoscreme") == "Kokosmilch")
+        #expect(StepAmountResolver.headWord(of: "Fett für die Form") == "Fett")
+        #expect(StepAmountResolver.headWord(of: "Petersilie (optional)") == "Petersilie")
+        // A qualifier written after the noun does not become the head —
+        // the last capitalized word is the noun.
+        #expect(StepAmountResolver.headWord(of: "Paprika rot") == "Paprika")
+        #expect(StepAmountResolver.headWord(of: "Weißwein trocken") == "Weißwein")
+        // An unspaced slash is a plural marker, not an alternative.
+        #expect(StepAmountResolver.headWord(of: "Zehe/n Knoblauch") == "Knoblauch")
+        // A grading qualifies rather than names.
+        #expect(StepAmountResolver.headWord(of: "Weizenmehl Type 405") == "Weizenmehl")
+        // A single word has no separate head, and neither does a head too
+        // short to stand for anything.
+        #expect(StepAmountResolver.headWord(of: "Zwiebel") == nil)
+        #expect(StepAmountResolver.headWord(of: "Kokosöl") == nil)
+        #expect(StepAmountResolver.headWord(of: "2 x Öl") == nil)
+    }
+
+    @Test("A step naming just the head noun binds its amount against the qualified line")
+    func amountBindsThroughHeadNoun() {
+        let recipe = Recipe(
+            title: "Ala Hodi",
+            servings: 4,
+            ingredientsText: "500 g festkochende Kartoffeln",
+            instructionsText: "300 g Kartoffeln in Stücke schneiden."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        let text = resolution.segments(for: recipe.steps[0]).map { segment in
+            switch segment {
+            case .text(let s), .amount(let s): s
+            }
+        }.joined()
+        #expect(text.contains("600 g"))
+        #expect(resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[0]))
+    }
+
+    @Test("A bare head-noun mention earns the chip and the suggestion the full name used to miss")
+    func bareHeadNounEarnsChipAndSuggestion() {
+        let recipe = Recipe(
+            title: "Ala Hodi",
+            servings: 4,
+            ingredientsText: """
+            2 rote Zwiebeln
+            1 TL Kurkuma
+            """,
+            instructionsText: "Die Zwiebeln würfeln und glasig dünsten."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["rote Zwiebeln"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["rote Zwiebeln"])
+    }
+
+    @Test("A line saying exactly the head noun owns it — the qualified line does not steal the mention")
+    func exactNameOutranksHeadNoun() {
+        let recipe = Recipe(
+            title: "Zwiebelkuchen",
+            servings: 4,
+            ingredientsText: """
+            1 rote Zwiebel
+            2 Zwiebeln
+            """,
+            instructionsText: "Die Zwiebeln würfeln."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Zwiebeln"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Zwiebeln"])
+    }
+
+    // MARK: - Compound heads
+
+    @Test("A bare 'Öl' binds its amount against the one oil the list has")
+    func compoundHeadBindsAmount() {
+        let recipe = Recipe(
+            title: "Pfanne",
+            servings: 4,
+            ingredientsText: "2 EL Olivenöl",
+            instructionsText: "1 EL Öl in der Pfanne erhitzen."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        let text = resolution.segments(for: recipe.steps[0]).map { segment in
+            switch segment {
+            case .text(let s), .amount(let s): s
+            }
+        }.joined()
+        #expect(text.contains("2 EL Öl"))
+        #expect(resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[0]))
+    }
+
+    @Test("Two oils on the list, and a bare 'Öl' means neither")
+    func ambiguousCompoundHeadBindsNothing() {
+        let recipe = Recipe(
+            title: "Pfanne",
+            servings: 4,
+            ingredientsText: """
+            2 EL Olivenöl
+            2 EL Rapsöl
+            """,
+            instructionsText: """
+            1 EL Öl in der Pfanne erhitzen.
+            Mit dem Öl beträufeln.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(!resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[0]))
+        #expect(!resolution.mentionsAmount(of: recipe.ingredients[1], in: recipe.steps[0]))
+        #expect(resolution.suggestions(for: recipe.steps[1]).isEmpty)
+        #expect(recipe.ingredients(mentionedIn: recipe.steps[1], resolution: resolution).isEmpty)
+    }
+
+    @Test("A bare head noun earns the compound line its chip and suggestion")
+    func compoundHeadEarnsChipAndSuggestion() {
+        let recipe = Recipe(
+            title: "Curry",
+            servings: 4,
+            ingredientsText: """
+            500 ml Gemüsebrühe
+            200 g Räuchertofu
+            """,
+            instructionsText: """
+            Den Tofu würfeln und anbraten.
+            Mit der Brühe ablöschen.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips1 = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips1.map(\.name) == ["Räuchertofu"])
+        let chips2 = recipe.ingredients(mentionedIn: recipe.steps[1], resolution: resolution)
+        #expect(chips2.map(\.name) == ["Gemüsebrühe"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Räuchertofu"])
+        #expect(resolution.suggestions(for: recipe.steps[1]).map(\.ingredientName) == ["Gemüsebrühe"])
+    }
+
+    @Test("A line saying exactly 'Öl' owns the word — and matches it standing alone, not inside 'Kokosöl'")
+    func shortNameMatchesOnlyAsAWholeWord() {
+        let recipe = Recipe(
+            title: "Pfanne",
+            servings: 4,
+            ingredientsText: """
+            2 EL Öl
+            1 EL Kokosöl
+            """,
+            instructionsText: """
+            Das Öl erhitzen.
+            Das Kokosöl schmelzen.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips1 = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips1.map(\.name) == ["Öl"])
+        let chips2 = recipe.ingredients(mentionedIn: recipe.steps[1], resolution: resolution)
+        #expect(chips2.map(\.name) == ["Kokosöl"])
+    }
+
+    // MARK: - Bundles
+
+    @Test("A step saying 'Tomaten' binds its amount against the one variant the list has")
+    func bundleBindsAmount() {
+        let recipe = Recipe(
+            title: "Salat",
+            servings: 4,
+            ingredientsText: "250 g Kirschtomaten",
+            instructionsText: "100 g Tomaten halbieren."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 8, formatter: formatter)
+        let text = resolution.segments(for: recipe.steps[0]).map { segment in
+            switch segment {
+            case .text(let s), .amount(let s): s
+            }
+        }.joined()
+        #expect(text.contains("200 g"))
+        #expect(resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[0]))
+    }
+
+    @Test("A bare parent name earns the variant line its chip and suggestion")
+    func bundleEarnsChipAndSuggestion() {
+        let recipe = Recipe(
+            title: "Salat",
+            servings: 4,
+            ingredientsText: """
+            250 g Kirschtomaten
+            1 TL Salz
+            """,
+            instructionsText: "Die Tomaten halbieren."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Kirschtomaten"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Kirschtomaten"])
+    }
+
+    @Test("Two variants of the same bundle, and the parent name means neither")
+    func ambiguousBundleBindsNothing() {
+        let recipe = Recipe(
+            title: "Salat",
+            servings: 4,
+            ingredientsText: """
+            250 g Kirschtomaten
+            2 Strauchtomaten
+            """,
+            instructionsText: "Die Tomaten halbieren."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution).isEmpty)
+        #expect(resolution.suggestions(for: recipe.steps[0]).isEmpty)
+    }
+
+    @Test("An exclusion ends with the noun it excludes — what follows is back in play")
+    func exclusionEndsAtItsNoun() {
+        let recipe = Recipe(
+            title: "Tofusalat",
+            servings: 4,
+            ingredientsText: """
+            2 EL Pinienkerne
+            1 EL Fett
+            """,
+            instructionsText: "In einer Pfanne ohne Fett Pinienkerne anrösten."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Pinienkerne"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Pinienkerne"])
+    }
+
+    // MARK: - Compound stems
+
+    @Test("A step calling the seeds by their plant reaches the line — chip, suggestion, and amount")
+    func compoundStemReachesTheLine() {
+        let recipe = Recipe(
+            title: "Ala Hodi",
+            servings: 4,
+            ingredientsText: """
+            1 TL Bockshornkleesamen
+            1 TL Kurkuma
+            """,
+            instructionsText: """
+            Den Bockshornklee darin anrösten, bis er duftet.
+            ½ TL Bockshornklee zum Schluss unterrühren.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Bockshornkleesamen"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Bockshornkleesamen"])
+        #expect(resolution.mentionsAmount(of: recipe.ingredients[0], in: recipe.steps[1]))
+    }
+
+    @Test("A line saying exactly the word owns it — the powder never steals the onions")
+    func exactNameOutranksCompoundStem() {
+        let recipe = Recipe(
+            title: "Gewürzmischung",
+            servings: 4,
+            ingredientsText: """
+            2 Zwiebeln
+            1 TL Zwiebelpulver
+            """,
+            instructionsText: "Die Zwiebeln würfeln und glasig dünsten."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Zwiebeln"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Zwiebeln"])
+    }
+
+    @Test("A line saying exactly the parent owns it — the variant does not steal the mention")
+    func exactParentOutranksBundle() {
+        let recipe = Recipe(
+            title: "Salat",
+            servings: 4,
+            ingredientsText: """
+            3 Tomaten
+            250 g Kirschtomaten
+            """,
+            instructionsText: "Die Tomaten würfeln."
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        let chips = recipe.ingredients(mentionedIn: recipe.steps[0], resolution: resolution)
+        #expect(chips.map(\.name) == ["Tomaten"])
+        #expect(resolution.suggestions(for: recipe.steps[0]).map(\.ingredientName) == ["Tomaten"])
     }
 }
