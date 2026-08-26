@@ -138,17 +138,50 @@ public final class NutritionLibrary {
             state: .unspecified,
             of: name
         )
-        if let perPiece = nutrition.unitWeightsGrams[IngredientUnit.piece.symbol] {
-            await catalogLibrary.setUnitWeight(perPiece, unit: .piece, of: name)
+        for (symbol, grams) in nutrition.unitWeightsGrams {
+            await catalogLibrary.setUnitWeight(grams, unit: IngredientUnit(symbol: symbol), of: name)
         }
         await settle()
     }
 
+    /// Takes back the numbers, and only the numbers.
+    ///
+    /// The piece weight used to go with them, which made no sense in either
+    /// direction: what an onion weighs is not a nutrition value, and losing
+    /// it because the cook withdrew their calories was a second decision
+    /// nobody asked for. Measures are edited on their own now — see
+    /// ``setUnitWeight(_:unit:forName:)``.
     public func deleteIngredientNutrition(name: String) async {
         let name = catalog.canonicalName(for: name)
         await catalogLibrary.setBasis(nil, state: .unspecified, of: name)
-        await catalogLibrary.setUnitWeight(nil, unit: .piece, of: name)
         await settle()
+    }
+
+    /// What one of `unit` weighs for this ingredient, as the cook corrected
+    /// it — "my onions are bigger", and equally "an Esslöffel of my honey is
+    /// 25 g". `nil` takes the correction back, leaving whatever the measure
+    /// table says.
+    ///
+    /// Any unit, not only `Stk.`: the storage was always a dictionary keyed
+    /// by unit symbol, and the concept asks for exactly this ("the cook can
+    /// override any value on their ingredient"). A weight written here beats
+    /// the density for that unit — see `NutritionResolver.resolve`.
+    public func setUnitWeight(_ grams: Double?, unit: IngredientUnit, forName name: String) async {
+        await catalogLibrary.setUnitWeight(grams, unit: unit, of: catalog.canonicalName(for: name))
+        await settle()
+    }
+
+    /// What the app currently believes one of `unit` weighs for `name`,
+    /// shipped table and the cook's correction taken together — what a
+    /// correction field starts out showing.
+    public func unitWeight(_ unit: IngredientUnit, forName name: String) -> Double? {
+        nutrition(forName: name)?.unitWeightsGrams[unit.symbol]
+    }
+
+    /// Whether the weight for `unit` is the cook's own rather than the
+    /// shipped one — what tells a correction from a default in the form.
+    public func hasOwnUnitWeight(_ unit: IngredientUnit, forName name: String) -> Bool {
+        catalogLibrary.entry(for: name)?.unitWeightsGrams[unit.symbol] != nil
     }
 
     /// The cook picked a row: the mapping is settled, for every recipe.

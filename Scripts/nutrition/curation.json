@@ -1137,6 +1137,27 @@
    },
    "via": "BLS-Gruppe \"Schwein Bauchspeck, Rohpökelware, geräuchert\""
   },
+  "Speisestärke": {
+   "targets": {
+    "unspecified": [
+     "C446000",
+     "C216000",
+     "K230000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mais Stärke\""
+  },
+  "Suppengrün": {
+   "targets": {
+    "raw": [
+     "G093100"
+    ],
+    "cooked": [
+     "G093132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Suppengrün/Suppenkraut\""
+  },
   "Süßkartoffel": {
    "targets": {
     "raw": [
@@ -1217,6 +1238,16 @@
     ]
    },
    "via": "BLS-Gruppe \"Weintraube\""
+  },
+  "Vollkornmehl": {
+   "targets": {
+    "unspecified": [
+     "C211000",
+     "C221000",
+     "C235000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizen Vollkornmehl\""
   },
   "Wasser": {
    "targets": {

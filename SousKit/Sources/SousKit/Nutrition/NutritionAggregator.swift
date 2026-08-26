@@ -82,16 +82,30 @@ public enum NutritionAggregator {
                 continue
             }
 
-            let canonicalName = catalog.canonicalName(for: ingredient.name)
+            // Not the canonical name: a qualifier on the line can mean a
+            // different food entirely — "Tomaten, Konserve" is its own row.
+            let canonicalName = catalog.nutritionName(for: ingredient)
             let entry = nutritionCatalog.nutrition(forCanonicalName: canonicalName)
             // The candidates ride along on every outcome, gaps included: the
             // line with no basis is the one the picker exists for.
             let candidates = entry?.candidateCodes ?? []
+            // Only a state the line *named* can be missed. A line that said
+            // nothing is answered by the default state — "as purchased" —
+            // and telling the cook that their unstated state was unstated
+            // would put a word on screen that nobody wrote.
+            let matchesState = ingredient.state == .unspecified
+                || entry?.hasOwnBasis(for: ingredient.state) ?? true
 
-            func report(_ outcome: NutritionLineReport.Outcome, basis: NutritionBasis? = nil) {
+            func report(
+                _ outcome: NutritionLineReport.Outcome,
+                basis: NutritionBasis? = nil,
+                amount: NutritionResolver.ResolvedAmount? = nil
+            ) {
                 lines.append(NutritionLineReport(
                     ingredientName: displayName, outcome: outcome,
-                    basis: basis, candidateCodes: candidates
+                    basis: basis, candidateCodes: candidates,
+                    quantity: ingredient.quantity, resolvedAmount: amount,
+                    state: ingredient.state, matchesState: matchesState
                 ))
             }
 
@@ -117,14 +131,14 @@ public enum NutritionAggregator {
                 continue
             }
 
-            guard let grams = NutritionResolver.resolvedGrams(
+            guard let amount = NutritionResolver.resolve(
                 for: ingredient, catalog: catalog, nutritionCatalog: nutritionCatalog
             ) else {
                 report(.gap(.noGramEquivalent))
                 continue
             }
 
-            let contribution = basis.values.scaled(byGrams: grams)
+            let contribution = basis.values.scaled(byGrams: amount.grams)
             // The basis and the alternatives ride along with the number, so
             // whatever shows it can say what it rests on — and so the picker
             // has the candidate list without recomputing anything. The status
@@ -133,7 +147,8 @@ public enum NutritionAggregator {
             report(
                 basis.status == .confirmed
                     ? .contributed(contribution) : .provisional(contribution),
-                basis: basis
+                basis: basis,
+                amount: amount
             )
             total = total + contribution
         }

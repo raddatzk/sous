@@ -109,6 +109,16 @@
    "origin": "bls"
   },
   {
+   "word": "Agavendicksaft",
+   "aliases": [
+    "Agavensirup"
+   ],
+   "category": "baking",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated"
+  },
+  {
    "word": "Ahornsirup",
    "aliases": [],
    "category": "baking",
@@ -40712,6 +40722,32 @@
    "origin": "bls"
   },
   {
+   "word": "Speisestärke",
+   "aliases": [
+    "Maisstärke"
+   ],
+   "category": "grains",
+   "targets": [
+    {
+     "code": "C446000",
+     "state": "unspecified",
+     "weight": 1.0
+    },
+    {
+     "code": "C216000",
+     "state": "unspecified",
+     "weight": 0.8
+    },
+    {
+     "code": "K230000",
+     "state": "unspecified",
+     "weight": 0.8
+    }
+   ],
+   "candidates": [],
+   "origin": "curated"
+  },
+  {
    "word": "Speisezwiebel",
    "aliases": [],
    "category": "vegetables",
@@ -41478,6 +41514,32 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Suppengrün",
+   "aliases": [
+    "Suppenkraut"
+   ],
+   "category": "vegetables",
+   "targets": [
+    {
+     "code": "G093132",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "G093100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [
+    "G093200",
+    "G093232",
+    "G093400",
+    "G093432"
+   ],
+   "origin": "curated"
   },
   {
    "word": "Suppengrün/Suppenkraut",
@@ -43590,6 +43652,32 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Vollkornmehl",
+   "aliases": [
+    "Weizenvollkornmehl"
+   ],
+   "category": "grains",
+   "targets": [
+    {
+     "code": "C211000",
+     "state": "unspecified",
+     "weight": 1.0
+    },
+    {
+     "code": "C221000",
+     "state": "unspecified",
+     "weight": 0.8
+    },
+    {
+     "code": "C235000",
+     "state": "unspecified",
+     "weight": 0.8
+    }
+   ],
+   "candidates": [],
+   "origin": "curated"
   },
   {
    "word": "Vollkornteigwaren eifrei",

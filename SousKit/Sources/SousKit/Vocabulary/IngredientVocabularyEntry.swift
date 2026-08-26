@@ -99,19 +99,32 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
     /// the numbers: the concept's most important invariant is that user data
     /// references the shipped world by key, so that a release can be swapped
     /// in wholesale and the values follow silently (decision D).
-    public func nutritionOverride(bls: BLSCatalog, source: String) -> CatalogNutrition? {
+    public func nutritionOverride(
+        bls: BLSCatalog, source: String, measures: MeasureTable = .bundled
+    ) -> CatalogNutrition? {
         var resolved: [String: NutritionBasis] = [:]
+        var group: String?
         for (state, assignment) in bases {
-            resolved[state] = assignment.basis(bls: bls, source: source)
+            let basis = assignment.basis(bls: bls, source: source)
+            resolved[state] = basis
+            group = group ?? basis.code.flatMap { bls.entry(for: $0)?.group }
         }
         guard !resolved.isEmpty || !unitWeightsGrams.isEmpty || parentName != nil else {
             return nil
         }
+        // An own ingredient has no density of its own to give — there is no
+        // field for one, and asking a cook for grams per milliliter would be
+        // asking the wrong question. What it does have is the row the cook
+        // mapped it onto, and that row's food group answers it: whatever
+        // "Grandmas Öl" was pinned to in group Q pours like the oils do.
+        // `overlaid(by:)` keeps the shipped density where this finds none, so
+        // an entry that says nothing about measures still says nothing.
+        let density = group.flatMap(measures.density(forGroup:))
         return CatalogNutrition(
             name: name,
             bases: resolved,
             unitWeightsGrams: unitWeightsGrams,
-            densityGramsPerMl: nil,
+            densityGramsPerMl: density,
             source: resolved.values.first?.source ?? source,
             candidateCodes: [],
             parentName: parentName

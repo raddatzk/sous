@@ -22,6 +22,22 @@ public enum IngredientState: String, Codable, Hashable, Sendable {
     /// Raw before cooked before unspecified — the order BLS's own merge step
     /// writes them in, so a picker lists them the way the data reads.
     public static let displayOrder: [IngredientState] = [.raw, .cooked, .unspecified]
+
+    /// How the shopping list annotates an amount that named a state —
+    /// "500 g + 300 g (gegart gewogen)".
+    ///
+    /// It says *gewogen*, not just *gegart*, because that is the whole point
+    /// of the annotation: nobody buys 300 g of cooked potatoes. How much raw
+    /// yields 300 g cooked the source does not know and the list does not
+    /// pretend to, so it hands the cook the fact and stops there. `nil` where
+    /// the line said nothing, which is almost every line.
+    public var shoppingAnnotation: String? {
+        switch self {
+        case .unspecified: nil
+        case .raw: "roh gewogen"
+        case .cooked: "gegart gewogen"
+        }
+    }
 }
 
 /// Words that stand in for a number — "Salz nach Geschmack", "etwas Mehl".

@@ -67,11 +67,13 @@ struct BundledDataTests {
 
     @Test("Olive oil has a density, and it is not water's")
     func oliveOilHasADensity() throws {
-        // Curated here, deliberately not yet consulted — phase 5 switches the
-        // measure table on. Shipping it unread is only safe as long as
-        // something checks it is still there to switch on.
         let density = try #require(measures.density(forIngredient: "Olivenöl"))
         #expect(density > 0.85 && density < 0.95)
+        // …and it reaches the table the app computes against, which is the
+        // half that used to be missing: `NutritionCatalog.make` hardcoded
+        // `densityGramsPerMl: nil` and threw every one of these away.
+        let entry = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Olivenöl"))
+        #expect(entry.densityGramsPerMl == density)
     }
 
     @Test("The piece weights and generic measures survived the move into data")
@@ -84,6 +86,58 @@ struct BundledDataTests {
         #expect(measures.genericGrams(forUnit: IngredientUnit.piece.symbol) == nil)
         #expect(measures.grams(forIngredient: "Zwiebel")[IngredientUnit.piece.symbol] == 110)
         #expect(measures.grams(forIngredient: "Ei")[IngredientUnit.piece.symbol] == 55)
+    }
+
+    @Test("The cup is a measure-table entry, not a volume")
+    func theCupGoesThroughTheTable() throws {
+        // "Tasse" is `.imprecise` on purpose — what a cup holds depends on
+        // what is in it — so it is answered by weights, per ingredient first
+        // and per food group after. Nothing pinned this before.
+        #expect(measures.genericGrams(forUnit: IngredientUnit.cup.symbol) == 150)
+        #expect(measures.grams(forIngredient: "Mehl")[IngredientUnit.cup.symbol] == 120)
+        let flour = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Mehl"))
+        #expect(flour.unitWeightsGrams[IngredientUnit.cup.symbol] == 120)
+    }
+
+    @Test("Only units that convert to no volume are answered by weight")
+    func groupWeightsCoverOnlyUnconvertibleUnits() {
+        // Phase 5's decision, pinned in the data: a unit with a volume factor
+        // (ml, l, TL, EL) goes through a density, so a `byGroup` row naming
+        // one would be a second, contradicting answer. There were four.
+        for entry in measures.byGroup {
+            #expect(
+                IngredientUnit(symbol: entry.unit).baseUnitFactor == nil,
+                "\(entry.group)/\(entry.unit) has a volume factor and belongs in a density"
+            )
+        }
+        #expect(measures.grams(forGroup: "C")[IngredientUnit.cup.symbol] == 120)
+        #expect(measures.grams(forGroup: "R")[IngredientUnit.pinch.symbol] == 0.4)
+    }
+
+    @Test("Every measure row names something the vocabulary knows")
+    func everyMeasureRowIsReachable() {
+        // A row nobody can reach is curation that silently does nothing —
+        // which is what "Suppengrün" and four densities were, because the
+        // build only ever looks a measure up by a synonym word or one of its
+        // spellings.
+        var spellings = Set<String>()
+        for entry in synonyms.entries {
+            for spelling in [entry.word] + entry.aliases {
+                spellings.insert(IngredientCatalog.normalize(spelling))
+            }
+        }
+        var unreachable: [String] = []
+        for entry in measures.byIngredient
+        where !spellings.contains(IngredientCatalog.normalize(entry.name)) {
+            unreachable.append("\(entry.name) (\(entry.unit))")
+        }
+        for entry in measures.densities {
+            guard let name = entry.name else { continue }
+            if !spellings.contains(IngredientCatalog.normalize(name)) {
+                unreachable.append("\(name) (Dichte)")
+            }
+        }
+        #expect(unreachable.isEmpty, "\(unreachable)")
     }
 
     @Test("Every target and candidate points at a row that exists")

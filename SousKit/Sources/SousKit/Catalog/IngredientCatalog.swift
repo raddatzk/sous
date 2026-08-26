@@ -60,6 +60,31 @@ public struct IngredientCatalog: Sendable {
         ingredient(for: name)?.category
     }
 
+    /// The name a line's *numbers* are looked up under, which is not always
+    /// the name it is bought under.
+    ///
+    /// "Tomaten, Konserve" is one line about one thing, but the food catalog
+    /// keeps canned tomatoes as their own row with their own values — see
+    /// ``IngredientStateVocabulary``. So a qualifier is tried as part of the
+    /// name here, and only here: the shopping list goes on bundling the line
+    /// under plain "Tomate", because what the cook thought and what they buy
+    /// did not change.
+    ///
+    /// Falls back to the plain canonical name whenever the qualified word is
+    /// not one the catalog has — "Erbsen, TK" then counts as peas, which is
+    /// closer than counting as nothing.
+    public func nutritionName(for ingredient: RecipeIngredient) -> String {
+        let base = canonicalName(for: ingredient.name)
+        guard let qualifier = IngredientStateVocabulary.qualifier(in: ingredient.preparation)
+        else { return base }
+        // Both shapes the shipped names use: "Tomate Konserve" and
+        // "Apfelkompott/Apfelmark, ungesüßt, Konserve".
+        for candidate in ["\(base) \(qualifier)", "\(base), \(qualifier)"] {
+            if let match = self.ingredient(for: candidate) { return match.name }
+        }
+        return base
+    }
+
     /// The ingredient a written name bundles under on the shopping list —
     /// itself, or the one it is a variety of.
     public func groupIngredient(for name: String) -> CatalogIngredient? {

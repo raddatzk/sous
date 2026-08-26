@@ -1,6 +1,7 @@
 {
  "note": "Die Maßtabelle: (Einheit, Bezug) → Gramm, plus Dichten für Volumenangaben. Handgepflegt, nicht aus dem BLS abgeleitet — der BLS rechnet je 100 g und kennt weder Stückgewichte noch Dichten. Diese Datei ist Eingabe der Pipeline, nicht Ausgabe: ein Neulauf kopiert sie unverändert nach Resources/measures.json und kann sie nicht überschreiben.",
  "assumptionNote": "Jeder Eintrag ist eine Annahme, keine gemessene Größe — eine mittelgroße Zwiebel, ein Ei der Größe M. Die App zeigt daraus abgeleitete Gramm mit ≈ und lässt sie korrigieren.",
+ "unitRule": "Einheiten MIT Volumenfaktor (ml, l, TL = 5 ml, EL = 15 ml) rechnen über die Dichte, nicht über byGroup — ein Weg, der auch ml und l abdeckt. byGroup und units gelten nur für Einheiten ohne Volumenfaktor (Prise, Tasse, Bund, Zehe, Blatt, Pck., Stk.). Soll ein Löffel für EINE Zutat anders zählen als ihre Dichte hergibt (ein Esslöffel wird nicht randvoll), gehört das als byIngredient-Zeile mit dieser Einheit hierher: sie schlägt die Dichte. Reihenfolge in der App: byIngredient/eigene Korrektur → Dichte (Name, dann Gruppe, sonst Wasser) → byGroup → units.",
  "units": [
   {
    "unit": "Prise",
@@ -47,37 +48,11 @@
  ],
  "byGroup": [
   {
-   "group": "Q",
-   "unit": "EL",
-   "grams": 10,
-   "assumption": true,
-   "note": "Ein Esslöffel Öl wiegt weniger als 15 g Wasser."
-  },
-  {
-   "group": "Q",
-   "unit": "TL",
-   "grams": 4.5,
-   "assumption": true
-  },
-  {
-   "group": "R",
-   "unit": "TL",
-   "grams": 4,
-   "assumption": true,
-   "note": "Gemahlene Gewürze und Salz."
-  },
-  {
    "group": "R",
    "unit": "Prise",
    "grams": 0.4,
-   "assumption": true
-  },
-  {
-   "group": "S",
-   "unit": "EL",
-   "grams": 20,
    "assumption": true,
-   "note": "Honig, Sirup, Zucker."
+   "note": "Salz und gemahlene Gewürze."
   },
   {
    "group": "C",
@@ -304,6 +279,12 @@
    "note": "Speiseöle und flüssige Fette."
   },
   {
+   "group": "R",
+   "gramsPerMl": 0.8,
+   "assumption": true,
+   "note": "Gemahlene Gewürze; ein Teelöffel davon wiegt rund 4 g."
+  },
+  {
    "name": "Olivenöl",
    "gramsPerMl": 0.92,
    "assumption": true
@@ -452,11 +433,6 @@
   {
    "name": "Ketchup",
    "gramsPerMl": 1.14,
-   "assumption": true
-  },
-  {
-   "name": "Wein",
-   "gramsPerMl": 0.99,
    "assumption": true
   },
   {

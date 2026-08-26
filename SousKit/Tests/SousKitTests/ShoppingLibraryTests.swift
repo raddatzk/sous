@@ -34,6 +34,38 @@ struct ShoppingLibraryTests {
         #expect(shopping.planEntries.map(\.title) == ["Salat"])
     }
 
+    @Test("A stated state survives the store and annotates the line")
+    func statesRoundTripThroughTheStore() async throws {
+        // `ShoppingDemand.state` has had a column since the document model
+        // landed and has been `.unspecified` in every row ever written — so
+        // nothing had ever proven the column carries anything.
+        let (shopping, _, container) = try makeLibrary()
+        let recipe = Recipe(
+            title: "Auflauf", servings: 2,
+            ingredientsText: "500 g Kartoffeln\n300 g Kartoffeln, gegart"
+        )
+        await shopping.add(recipe)
+
+        // Read back through a second library on the same store: a value that
+        // only survives in memory has not been stored.
+        let reread = ShoppingLibrary(
+            store: SwiftDataShoppingListStore(modelContainer: container),
+            recipeStore: SwiftDataRecipeStore(modelContainer: container),
+            catalogLibrary: IngredientCatalogLibrary(
+                store: SwiftDataVocabularyStore(modelContainer: container)
+            )
+        )
+        await reread.reload()
+
+        let item = try #require(reread.items.first { $0.name == "Kartoffel" })
+        #expect(item.quantities == [Quantity(800, .gram)])
+        #expect(item.demands.map(\.state).sorted { $0.rawValue < $1.rawValue }
+            == [.cooked, .unspecified])
+        let stated = try #require(item.statedQuantities.first)
+        #expect(stated.state == .cooked)
+        #expect(stated.quantities == [Quantity(300, .gram)])
+    }
+
     @Test("Adding for more people scales what has to be bought")
     func addingScaled() async throws {
         let (shopping, _, _) = try makeLibrary()

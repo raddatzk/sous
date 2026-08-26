@@ -129,11 +129,30 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// Computed with a basis nobody has confirmed — decision A: the
         /// number counts, and says of itself that it is provisional.
         public var isProvisional: Bool
+        /// The amount as the line wrote it — "2 EL". Kept beside the grams
+        /// because the two together are the whole statement the gram bridge
+        /// makes, and because correcting it means saying what one EL of this
+        /// ingredient weighs.
+        public var quantity: Quantity?
+        /// What that amount was taken to be in grams.
+        public var grams: Double?
+        /// Whether those grams came out of the measure table rather than off
+        /// the line. The "≈" and the "(Annahme)" hang on this.
+        public var isAssumedGrams: Bool
+        /// The state the line asked for.
+        public var state: IngredientState
+        /// Whether the basis is filed under exactly that state, or was
+        /// answered by the fallback — see `CatalogNutrition.basis(for:)`.
+        /// A line that says "gegart" and is counted with the raw row has to
+        /// be able to say so.
+        public var matchesState: Bool
 
         public init(
             ingredientName: String, sourceRecipeTitle: String? = nil,
             basisName: String? = nil, basisCode: String? = nil,
-            candidateCodes: [String] = [], isProvisional: Bool = false
+            candidateCodes: [String] = [], isProvisional: Bool = false,
+            quantity: Quantity? = nil, grams: Double? = nil, isAssumedGrams: Bool = false,
+            state: IngredientState = .unspecified, matchesState: Bool = true
         ) {
             self.ingredientName = ingredientName
             self.sourceRecipeTitle = sourceRecipeTitle
@@ -141,6 +160,11 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
             self.basisCode = basisCode
             self.candidateCodes = candidateCodes
             self.isProvisional = isProvisional
+            self.quantity = quantity
+            self.grams = grams
+            self.isAssumedGrams = isAssumedGrams
+            self.state = state
+            self.matchesState = matchesState
         }
 
         /// Decoded leniently, for the same reason `Gap` is.
@@ -158,7 +182,20 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
                 ) ?? [],
                 isProvisional: try container.decodeIfPresent(
                     Bool.self, forKey: .isProvisional
-                ) ?? false
+                ) ?? false,
+                quantity: try container.decodeIfPresent(Quantity.self, forKey: .quantity),
+                grams: try container.decodeIfPresent(Double.self, forKey: .grams),
+                isAssumedGrams: try container.decodeIfPresent(
+                    Bool.self, forKey: .isAssumedGrams
+                ) ?? false,
+                state: try container.decodeIfPresent(
+                    IngredientState.self, forKey: .state
+                ) ?? .unspecified,
+                // Absent means "nothing ever said otherwise", which is what
+                // every figure cached before states were read is claiming.
+                matchesState: try container.decodeIfPresent(
+                    Bool.self, forKey: .matchesState
+                ) ?? true
             )
         }
 
@@ -267,16 +304,30 @@ public struct NutritionLineReport: Hashable, Sendable {
     public var basis: NutritionBasis?
     /// Every row this ingredient could have been based on, best first.
     public var candidateCodes: [String]
+    /// The amount as written, and what it was taken to be in grams — the
+    /// gram bridge's whole statement about this line.
+    public var quantity: Quantity?
+    public var resolvedAmount: NutritionResolver.ResolvedAmount?
+    /// The state the line asked for, and whether the basis is really filed
+    /// under it.
+    public var state: IngredientState
+    public var matchesState: Bool
 
     public init(
         ingredientName: String, sourceRecipeTitle: String? = nil, outcome: Outcome,
-        basis: NutritionBasis? = nil, candidateCodes: [String] = []
+        basis: NutritionBasis? = nil, candidateCodes: [String] = [],
+        quantity: Quantity? = nil, resolvedAmount: NutritionResolver.ResolvedAmount? = nil,
+        state: IngredientState = .unspecified, matchesState: Bool = true
     ) {
         self.ingredientName = ingredientName
         self.sourceRecipeTitle = sourceRecipeTitle
         self.outcome = outcome
         self.basis = basis
         self.candidateCodes = candidateCodes
+        self.quantity = quantity
+        self.resolvedAmount = resolvedAmount
+        self.state = state
+        self.matchesState = matchesState
     }
 }
 
@@ -308,7 +359,12 @@ public struct NutritionReport: Hashable, Sendable {
                     basisName: line.basis?.catalogName,
                     basisCode: line.basis?.code,
                     candidateCodes: line.candidateCodes,
-                    isProvisional: line.outcome.isProvisional
+                    isProvisional: line.outcome.isProvisional,
+                    quantity: line.quantity,
+                    grams: line.resolvedAmount?.grams,
+                    isAssumedGrams: line.resolvedAmount?.isAssumption ?? false,
+                    state: line.state,
+                    matchesState: line.matchesState
                 ))
             case .gap(let reason):
                 gaps.append(NutritionCoverage.Gap(

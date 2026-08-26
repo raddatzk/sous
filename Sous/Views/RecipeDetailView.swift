@@ -57,6 +57,10 @@ struct RecipeDetailView: View {
     /// Which coverage line has the basis picker unfolded under it. One at a
     /// time: the drill-down is a list to read, not a form.
     @State private var clarifying: String?
+    /// Which line's derived gram amount is open for correction — the gram
+    /// bridge's counterpart to `clarifying`, kept apart so answering the one
+    /// question does not fold the other away.
+    @State private var correcting: String?
     @State private var isClarifyingAll = false
     @State private var needsIngredientReview = false
     @State private var isReviewingIngredients = false
@@ -860,11 +864,11 @@ struct RecipeDetailView: View {
                             coverageRow(
                                 name: line.ingredientName,
                                 source: line.sourceRecipeTitle,
-                                detail: line.isProvisional
-                                    ? "vorgeschlagen: \(basis)" : "beruht auf: \(basis)",
+                                detail: basisDetail(for: line, basis: basis),
                                 isOpen: line.isProvisional
                             )
                         }
+                        gramBridgeRow(for: line)
                     }
                 }
                 .padding(.top, 6)
@@ -874,6 +878,69 @@ struct RecipeDetailView: View {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// What a counting line rests on, and — where the two differ — the state
+    /// it was counted in.
+    ///
+    /// "Kartoffeln, gegart" computed from the raw row is not wrong enough to
+    /// throw the line away, but it is not silent either: the row's own name
+    /// carries its state ("Kartoffel geschält, roh"), and naming the line's
+    /// alongside it is what lets a cook see the two are not the same.
+    private func basisDetail(
+        for line: NutritionCoverage.Contribution, basis: String
+    ) -> String {
+        let lead = line.isProvisional ? "vorgeschlagen" : "beruht auf"
+        guard !line.matchesState, let state = line.state.shoppingAnnotation else {
+            return "\(lead): \(basis)"
+        }
+        return "\(state) — \(lead): \(basis)"
+    }
+
+    /// "2 EL ≈ 28 g (Annahme)" — the gram bridge, said out loud for the line
+    /// it was crossed on, and tappable because the concept asks that every
+    /// assumed number be correctable where it is shown.
+    ///
+    /// Only for amounts that had to be *converted*. A line that says 300 g
+    /// contributes 300 g; repeating that under every second row would bury
+    /// the handful of numbers that really are guesses.
+    @ViewBuilder
+    private func gramBridgeRow(for line: NutritionCoverage.Contribution) -> some View {
+        if line.isAssumedGrams, let grams = line.grams, let quantity = line.quantity {
+            let written = formatter.string(for: quantity)
+            let label = "\(written) ≈ \(mass(grams)) (Annahme)"
+            let key = measureKey(for: line, unit: quantity.unit)
+            VStack(alignment: .leading, spacing: 0) {
+                Button {
+                    withAnimation { correcting = correcting == key ? nil : key }
+                } label: {
+                    Text(label)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .underline(pattern: .dot)
+                        .padding(.leading, 12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                if correcting == key {
+                    IngredientMeasurePicker(
+                        name: line.ingredientName, unit: quantity.unit
+                    ) {
+                        await recomputeNutrition()
+                    }
+                    .padding(.leading, 24)
+                }
+            }
+        }
+    }
+
+    /// One line's gram question, told apart from every other line's: the same
+    /// ingredient can appear twice in one recipe with two units.
+    private func measureKey(
+        for line: NutritionCoverage.Contribution, unit: IngredientUnit
+    ) -> String {
+        "\(line.ingredientName)|\(unit.symbol)"
     }
 
     /// "≈ 640 kcal pro Portion — 9 von 12 Zutaten, davon 4 unbestätigt".

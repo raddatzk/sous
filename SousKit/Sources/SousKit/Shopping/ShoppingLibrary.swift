@@ -51,6 +51,19 @@ public struct ShoppingGroup: Identifiable, Hashable, Sendable {
         items.reduce(into: [Quantity]()) { $0 = $0.adding($1.quantities) }
     }
 
+    /// The same annotation an item carries, summed across the varieties that
+    /// share this place on the list — see ``ShoppingItem/statedQuantities``.
+    /// The heading has to say it too: it is the line that shows the total, so
+    /// it is the line where "300 g of that was weighed cooked" belongs.
+    public var statedQuantities: [(state: IngredientState, quantities: [Quantity])] {
+        IngredientState.displayOrder.compactMap { state in
+            let quantities = items
+                .flatMap { $0.statedQuantities.filter { $0.state == state }.flatMap(\.quantities) }
+                .reduce(into: [Quantity]()) { $0 = $0.adding($1) }
+            return quantities.isEmpty ? nil : (state, quantities)
+        }
+    }
+
     public var isChecked: Bool { items.allSatisfy(\.isChecked) }
 }
 
