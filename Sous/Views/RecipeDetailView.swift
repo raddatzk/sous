@@ -54,6 +54,10 @@ struct RecipeDetailView: View {
     @State private var needsAmountReview = false
     @State private var isReviewingAmounts = false
     @State private var nutrition: RecipeNutrition?
+    /// Which coverage line has the basis picker unfolded under it. One at a
+    /// time: the drill-down is a list to read, not a form.
+    @State private var clarifying: String?
+    @State private var isClarifyingAll = false
     @State private var needsIngredientReview = false
     @State private var isReviewingIngredients = false
 
@@ -219,6 +223,11 @@ struct RecipeDetailView: View {
                     await library.markIngredientsReviewed(recipe)
                     needsIngredientReview = await library.needsIngredientReview(recipe)
                 }
+            }
+        }
+        .sheet(isPresented: $isClarifyingAll) {
+            IngredientClarificationSheet(names: openIngredientNames) {
+                await recomputeNutrition()
             }
         }
         // Shown as a sheet rather than pushed: looking up how the dough is
@@ -389,6 +398,13 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// Re-reads the figure after a basis decision. Confirming a mapping
+    /// drops every cached recipe total, so this is a recompute, not a
+    /// refresh of what was already on screen.
+    private func recomputeNutrition() async {
+        nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
+    }
+
     /// The times worth showing, in the order they happen.
     ///
     /// "Gesamt" appears whenever it says something the other numbers do not
@@ -464,6 +480,9 @@ struct RecipeDetailView: View {
             if needsIngredientReview {
                 ingredientReviewBanner(unknownIngredientCount, isWide: isWide)
             }
+            if !openIngredientNames.isEmpty {
+                basisReviewBanner(openIngredientNames.count, isWide: isWide)
+            }
         }
     }
 
@@ -486,6 +505,34 @@ struct RecipeDetailView: View {
                 isReviewingIngredients = true
             }
             .buttonStyle(.borderedProminent)
+        }
+        .padding(14)
+        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .fixedSize(horizontal: isWide, vertical: false)
+    }
+
+    /// The ingredients whose numbers rest on a guess or on nothing — what
+    /// the collected "Zutaten klären" view walks through.
+    private var openIngredientNames: [String] {
+        nutrition?.coverage.openIngredientNames ?? []
+    }
+
+    /// The batch flow of decision A: one place that names how much of this
+    /// recipe's figure is still conjecture, and one tap per ingredient to
+    /// settle it. Unlike the two banners above it, this one has nothing to
+    /// "not now" — it disappears when the questions are answered, and
+    /// "bewusst ohne" is one of the answers.
+    @ViewBuilder
+    private func basisReviewBanner(_ count: Int, isWide: Bool) -> some View {
+        HStack(spacing: 12) {
+            Label(
+                count == 1 ? "1 Zutat zu klären" : "\(count) Zutaten zu klären",
+                systemImage: "questionmark.text.page"
+            )
+            .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Klären") { isClarifyingAll = true }
+                .buttonStyle(.borderedProminent)
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: 12))
@@ -714,25 +761,42 @@ struct RecipeDetailView: View {
     private var nutritionDetail: some View {
         if let nutrition {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Nährwerte")
-                    .font(SousStyle.sectionHeading)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Nährwerte")
+                        .font(SousStyle.sectionHeading)
+                    if nutrition.coverage.isProvisional {
+                        // Decision A's marker, and it is meant to be the
+                        // loudest thing in this block: numbers computed from
+                        // unchecked conjecture are in the room, and a marker
+                        // that dulls with habit is the price the decision
+                        // names. So: a word, not a shade of grey.
+                        Text("vorläufig")
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(SousStyle.chipTint), in: .capsule)
+                            .foregroundStyle(.orange)
+                    }
+                }
                 coverageLine(for: nutrition)
+                let provisional = nutrition.coverage.isProvisional
                 VStack(alignment: .leading, spacing: 5) {
                     nutrientRow(
-                        "Energie", Self.nutrients.string(kilocalories: nutrition.perPortion.kcal), emphasized: true
+                        "Energie", Self.nutrients.string(kilocalories: nutrition.perPortion.kcal),
+                        emphasized: true, provisional: provisional
                     )
-                    nutrientRow("Fett", mass(nutrition.perPortion.fatG))
+                    nutrientRow("Fett", mass(nutrition.perPortion.fatG), provisional: provisional)
                     nutrientRow(
                         "davon gesättigte Fettsäuren", mass(nutrition.perPortion.saturatedFatG),
-                        indented: true
+                        indented: true, provisional: provisional
                     )
-                    nutrientRow("Kohlenhydrate", mass(nutrition.perPortion.carbsG))
-                    nutrientRow("davon Zucker", mass(nutrition.perPortion.sugarG), indented: true)
-                    nutrientRow("Ballaststoffe", mass(nutrition.perPortion.fiberG))
-                    nutrientRow("Eiweiß", mass(nutrition.perPortion.proteinG))
+                    nutrientRow("Kohlenhydrate", mass(nutrition.perPortion.carbsG), provisional: provisional)
+                    nutrientRow("davon Zucker", mass(nutrition.perPortion.sugarG), indented: true, provisional: provisional)
+                    nutrientRow("Ballaststoffe", mass(nutrition.perPortion.fiberG), provisional: provisional)
+                    nutrientRow("Eiweiß", mass(nutrition.perPortion.proteinG), provisional: provisional)
                     // BLS reports sodium; the standard EU label shows salt, in
                     // grams — dropped to milligrams where a portion has traces.
-                    nutrientRow("Salz", mass(nutrition.perPortion.sodiumMg * 2.5 / 1000))
+                    nutrientRow("Salz", mass(nutrition.perPortion.sodiumMg * 2.5 / 1000), provisional: provisional)
                 }
                 let micronutrients = micronutrientRows(nutrition.perPortion)
                 if !micronutrients.isEmpty {
@@ -741,11 +805,13 @@ struct RecipeDetailView: View {
                         .padding(.top, 4)
                     VStack(alignment: .leading, spacing: 5) {
                         ForEach(micronutrients, id: \.label) { row in
-                            nutrientRow(row.label, row.value)
+                            nutrientRow(row.label, row.value, provisional: provisional)
                         }
                     }
                 }
-                Text("Pro Portion, geschätzt aus den Zutaten.")
+                Text(provisional
+                     ? "Pro Portion, geschätzt aus den Zutaten — mit noch unbestätigten Zuordnungen."
+                     : "Pro Portion, geschätzt aus den Zutaten.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
@@ -757,11 +823,19 @@ struct RecipeDetailView: View {
     /// left-out lines one tap away. "9 von 12 Zutaten" counts what should
     /// have contributed; unquantified lines ("Salz nach Geschmack") stand
     /// outside the count and only appear in the drill-down, neutrally.
+    ///
+    /// "davon 4 unbestätigt" is decision A's other half: those four lines are
+    /// *in* the sum — that is the whole point of computing with proposals —
+    /// and the line says so rather than letting the total look settled.
+    ///
+    /// Every line that a basis would settle is a button here. This is the
+    /// casual entry: the recipe is the earliest place a gap becomes visible,
+    /// long before a sum or a list would be wrong, and answering it unfolds
+    /// in place rather than opening anything.
     @ViewBuilder
     private func coverageLine(for nutrition: RecipeNutrition) -> some View {
         let coverage = nutrition.coverage
-        let summary = "≈ \(Self.nutrients.string(kilocalories: nutrition.perPortion.kcal)) pro Portion"
-            + " — \(coverage.includedCount) von \(coverage.accountableCount) Zutaten"
+        let summary = coverageSummary(for: nutrition)
         if coverage.gaps.isEmpty && coverage.contributions.isEmpty {
             Text(summary)
                 .font(.subheadline)
@@ -770,14 +844,12 @@ struct RecipeDetailView: View {
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(coverage.gaps, id: \.self) { gap in
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(gap.sourceRecipeTitle.map { "aus \($0): \(gap.ingredientName)" } ?? gap.ingredientName)
-                            Spacer()
-                            Text(gap.reason.label)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.trailing)
-                        }
-                        .font(.footnote)
+                        coverageRow(
+                            name: gap.ingredientName,
+                            source: gap.sourceRecipeTitle,
+                            detail: gap.reason.label,
+                            isOpen: gap.reason.wantsBasis
+                        )
                     }
                     // The lines that *did* count, each naming the catalog row
                     // it was read from. The drill-down used to explain only
@@ -785,14 +857,13 @@ struct RecipeDetailView: View {
                     // an interpretation, and this is where it says which one.
                     ForEach(coverage.contributions, id: \.self) { line in
                         if let basis = line.basisName {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(line.sourceRecipeTitle.map { "aus \($0): \(line.ingredientName)" } ?? line.ingredientName)
-                                Spacer()
-                                Text("beruht auf: \(basis)")
-                                    .foregroundStyle(.secondary)
-                                    .multilineTextAlignment(.trailing)
-                            }
-                            .font(.footnote)
+                            coverageRow(
+                                name: line.ingredientName,
+                                source: line.sourceRecipeTitle,
+                                detail: line.isProvisional
+                                    ? "vorgeschlagen: \(basis)" : "beruht auf: \(basis)",
+                                isOpen: line.isProvisional
+                            )
                         }
                     }
                 }
@@ -805,7 +876,68 @@ struct RecipeDetailView: View {
         }
     }
 
-    private func nutrientRow(_ label: String, _ value: String, indented: Bool = false, emphasized: Bool = false) -> some View {
+    /// "≈ 640 kcal pro Portion — 9 von 12 Zutaten, davon 4 unbestätigt".
+    private func coverageSummary(for nutrition: RecipeNutrition) -> String {
+        let coverage = nutrition.coverage
+        let energy = Self.nutrients.string(kilocalories: nutrition.perPortion.kcal)
+        var summary = "≈ \(energy) pro Portion"
+            + " — \(coverage.includedCount) von \(coverage.accountableCount) Zutaten"
+        if coverage.unconfirmedCount > 0 {
+            summary += ", davon \(coverage.unconfirmedCount) unbestätigt"
+        }
+        return summary
+    }
+
+    /// One line of the drill-down. Open questions are tappable and unfold the
+    /// picker underneath; settled ones are just text.
+    @ViewBuilder
+    private func coverageRow(
+        name: String, source: String?, detail: String, isOpen: Bool
+    ) -> some View {
+        let title = source.map { "aus \($0): \(name)" } ?? name
+        VStack(alignment: .leading, spacing: 0) {
+            if isOpen {
+                Button {
+                    withAnimation { clarifying = clarifying == name ? nil : name }
+                } label: {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(title)
+                            .underline(pattern: .dot)
+                        Spacer()
+                        Text(detail)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    .font(.footnote)
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                if clarifying == name {
+                    IngredientBasisPicker(name: name) {
+                        await recomputeNutrition()
+                    }
+                    .padding(.leading, 12)
+                }
+            } else {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(title)
+                    Spacer()
+                    Text(detail)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .font(.footnote)
+            }
+        }
+    }
+
+    /// A provisional figure wears a dotted underline — the same "something
+    /// is open here" mark the concept puts on an ingredient line, so the two
+    /// read as one language rather than two warnings.
+    private func nutrientRow(
+        _ label: String, _ value: String, indented: Bool = false,
+        emphasized: Bool = false, provisional: Bool = false
+    ) -> some View {
         HStack {
             Text(label)
                 .padding(.leading, indented ? 14 : 0)
@@ -813,6 +945,7 @@ struct RecipeDetailView: View {
             Spacer()
             Text(value)
                 .fontWeight(emphasized ? .semibold : .regular)
+                .underline(provisional, pattern: .dot)
         }
         .font(.subheadline)
     }

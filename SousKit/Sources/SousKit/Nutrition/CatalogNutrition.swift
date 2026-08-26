@@ -1,6 +1,7 @@
 import Foundation
 
-/// One set of per-100g values, and where they came from.
+/// One set of per-100g values, where they came from, and how sure anyone is
+/// that they belong to the ingredient they were found for.
 ///
 /// The provenance is not decoration: the concept asks that no number appear
 /// without saying what it is based on, and "based on" for a BLS number means
@@ -8,6 +9,46 @@ import Foundation
 /// "Kartoffel". Carried per state, because a food's raw and cooked values are
 /// two different rows and each has to answer for itself.
 public struct NutritionBasis: Codable, Hashable, Sendable {
+    /// How a basis got attached to an ingredient, and what the cook has said
+    /// about it. The concept's status model, one enum for the whole app.
+    ///
+    /// The distinction that matters for every sum is `proposed` vs.
+    /// `confirmed`: a proposed basis is the synonym table's guess at what a
+    /// kitchen word means in catalog language, and the app computes with it
+    /// (decision A) while saying so. A confirmed one is the cook's word.
+    public enum Status: String, Codable, Hashable, Sendable, CaseIterable {
+        /// The synonym table found a candidate and nobody has looked at it.
+        case proposed
+        /// The cook accepted the candidate, picked another, or typed values.
+        ///
+        /// Also what a word carries that *is* the catalog's own name for the
+        /// row — "Kartoffel geschält, gekocht" written out in a recipe leaves
+        /// no mapping decision to confirm, so asking about it would be asking
+        /// the cook to agree that a word means itself.
+        case confirmed
+        /// The cook decided this ingredient stays without nutrition. A
+        /// confirmed answer, not an open question — whoever settled that
+        /// veganes Hackfleisch has no values must not be nagged again.
+        case deliberatelyWithout
+        /// The row this rests on is not in the shipped data — it never
+        /// resolved, or a data update took it away. Needs the cook, and says
+        /// so instead of quietly counting as nothing.
+        case orphaned
+
+        /// Whether a sum may be computed from this basis at all.
+        public var contributes: Bool { self == .proposed || self == .confirmed }
+
+        /// How the app names the status where it has to be spelled out.
+        public var label: String {
+            switch self {
+            case .proposed: "vorgeschlagen"
+            case .confirmed: "bestätigt"
+            case .deliberatelyWithout: "bewusst ohne Nährwerte"
+            case .orphaned: "Zuordnung verwaist"
+            }
+        }
+    }
+
     public var values: NutritionInfo
     /// The SBLS code these values are read from, `nil` for a cook's own
     /// numbers, which are a basis of equal standing with no code to name.
@@ -15,11 +56,62 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
     /// The BLS catalog name at the time these values were shipped — what
     /// "beruht auf: …" prints.
     public var catalogName: String?
+    public var status: Status
+    /// How strongly the synonym table meant this row for this word. Carried
+    /// so the picker can order alternatives the way the data ranks them, and
+    /// so the reason a basis counts as proposed is auditable rather than
+    /// recomputed from a table nobody consults at run time.
+    public var weight: Double
+    /// Where these numbers came from: "BLS 4.0" for everything bundled,
+    /// "Eigene Angabe" for what a cook typed in. Per basis rather than per
+    /// entry, because an ingredient can perfectly well have the cook's own
+    /// numbers for one state and the shipped ones for another.
+    public var source: String
 
-    public init(values: NutritionInfo, code: String? = nil, catalogName: String? = nil) {
+    /// A basis built by hand — a cook's numbers, or a test's — is one whoever
+    /// built it stands behind, so it is confirmed unless said otherwise.
+    public init(
+        values: NutritionInfo,
+        code: String? = nil,
+        catalogName: String? = nil,
+        status: Status = .confirmed,
+        weight: Double = 0,
+        source: String = CatalogNutrition.blsSource
+    ) {
         self.values = values
         self.code = code
         self.catalogName = catalogName
+        self.status = status
+        self.weight = weight
+        self.source = source
+    }
+
+    /// A basis kept as a *decision* rather than as numbers: the cook said
+    /// this ingredient has none, on purpose.
+    public static let deliberatelyWithout = NutritionBasis(
+        values: .zero, status: .deliberatelyWithout, source: CatalogNutrition.ownSource
+    )
+
+    /// Decoded leniently: bases travel inside `CatalogNutrition`, which older
+    /// callers may have encoded before there was a status to record.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            values: try container.decode(NutritionInfo.self, forKey: .values),
+            code: try container.decodeIfPresent(String.self, forKey: .code),
+            catalogName: try container.decodeIfPresent(String.self, forKey: .catalogName),
+            status: try container.decodeIfPresent(Status.self, forKey: .status) ?? .confirmed,
+            weight: try container.decodeIfPresent(Double.self, forKey: .weight) ?? 0,
+            source: try container.decodeIfPresent(String.self, forKey: .source)
+                ?? CatalogNutrition.blsSource
+        )
+    }
+
+    /// How the app says what a figure rests on: "Kartoffel geschält, gekocht
+    /// (BLS 4.0)". `nil` where there is nothing to name — the cook's own
+    /// values say "Eigene Angabe" through `source` instead.
+    public var provenance: String? {
+        catalogName.map { "\($0) (\(source))" }
     }
 }
 
@@ -43,15 +135,19 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// teaspoon of honey do not weigh the same. Curated in `measures.json`
     /// but not yet consulted; phase 5 switches it on.
     public var densityGramsPerMl: Double?
-    /// Where these numbers came from: "BLS 4.0" for everything bundled,
-    /// "Eigene Angabe" for what a cook typed in. Carried per entry rather
-    /// than assumed app-wide, because the catalog stops being one source's
-    /// the moment a cook adds anything — and because CC BY 4.0 asks the data
-    /// to say whose it is wherever it is shown.
+    /// Where these numbers came from, for the entry as a whole. Kept beside
+    /// the per-basis `source` for the catalog screen, which shows one line
+    /// for one ingredient.
     public var source: String
-    /// Every BLS row this ingredient could be based on, best first. Carried
-    /// through the result from here on; phase 4 turns it into a picker.
+    /// Every BLS row this ingredient could be based on, best first — what the
+    /// candidate picker lists. Carried on gaps as well as on contributions:
+    /// the line *without* a basis is the one the picker exists for.
     public var candidateCodes: [String]
+    /// The ingredient this one is a variety of — "Cocktailtomate" of
+    /// "Tomate". One level deep, and only ever a name: a variant inherits
+    /// its parent's basis and unit knowledge as long as it has none of its
+    /// own, which `NutritionCatalog` resolves at lookup time.
+    public var parentName: String?
 
     public init(
         name: String,
@@ -59,7 +155,8 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         unitWeightsGrams: [String: Double] = [:],
         densityGramsPerMl: Double? = nil,
         source: String = CatalogNutrition.blsSource,
-        candidateCodes: [String] = []
+        candidateCodes: [String] = [],
+        parentName: String? = nil
     ) {
         self.name = name
         self.bases = bases
@@ -67,6 +164,7 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         self.densityGramsPerMl = densityGramsPerMl
         self.source = source
         self.candidateCodes = candidateCodes
+        self.parentName = parentName
     }
 
     /// For values that have no BLS row behind them — a cook's own numbers, or
@@ -76,14 +174,35 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         perHundredGrams: [String: NutritionInfo],
         unitWeightsGrams: [String: Double] = [:],
         densityGramsPerMl: Double? = nil,
-        source: String = CatalogNutrition.blsSource
+        source: String = CatalogNutrition.blsSource,
+        candidateCodes: [String] = [],
+        parentName: String? = nil
     ) {
         self.init(
             name: name,
-            bases: perHundredGrams.mapValues { NutritionBasis(values: $0) },
+            bases: perHundredGrams.mapValues { NutritionBasis(values: $0, source: source) },
             unitWeightsGrams: unitWeightsGrams,
             densityGramsPerMl: densityGramsPerMl,
-            source: source
+            source: source,
+            candidateCodes: candidateCodes,
+            parentName: parentName
+        )
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            name: try container.decode(String.self, forKey: .name),
+            bases: try container.decode([String: NutritionBasis].self, forKey: .bases),
+            unitWeightsGrams: try container.decodeIfPresent(
+                [String: Double].self, forKey: .unitWeightsGrams
+            ) ?? [:],
+            densityGramsPerMl: try container.decodeIfPresent(Double.self, forKey: .densityGramsPerMl),
+            source: try container.decodeIfPresent(String.self, forKey: .source) ?? Self.blsSource,
+            candidateCodes: try container.decodeIfPresent(
+                [String].self, forKey: .candidateCodes
+            ) ?? [],
+            parentName: try container.decodeIfPresent(String.self, forKey: .parentName)
         )
     }
 
@@ -109,15 +228,53 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         return nil
     }
 
+    /// The values for `state`, or `nil` where the basis is a decision rather
+    /// than numbers — "bewusst ohne" has a basis and no values.
     public func nutrition(for state: IngredientState) -> NutritionInfo? {
-        basis(for: state)?.values
+        guard let basis = basis(for: state), basis.status.contributes else { return nil }
+        return basis.values
     }
+
+    /// Whether this entry says anything about nutrition at all — a word that
+    /// exists only to carry candidates or a piece weight does not.
+    public var hasBases: Bool { !bases.isEmpty }
 
     /// How the app says what a figure rests on: "beruht auf: Kartoffel
     /// geschält, gekocht (BLS 4.0)". `nil` where there is nothing to name —
     /// the cook's own values say "Quelle: Eigene Angabe" instead.
     public func provenance(for state: IngredientState) -> String? {
-        guard let name = basis(for: state)?.catalogName else { return nil }
-        return "\(name) (\(source))"
+        basis(for: state)?.provenance
+    }
+
+    /// This entry with `other` laid over it, state by state.
+    ///
+    /// A cook's entry is rarely a whole replacement: it may say what the
+    /// ingredient is worth cooked and nothing about raw, or nothing at all
+    /// about nutrition and only that it is a variety of something. Replacing
+    /// wholesale is how own entries used to lose the candidate list they were
+    /// never given in the first place.
+    public func overlaid(by other: CatalogNutrition) -> CatalogNutrition {
+        var merged = self
+        merged.name = other.name
+        merged.bases.merge(other.bases) { _, theirs in theirs }
+        merged.unitWeightsGrams.merge(other.unitWeightsGrams) { _, theirs in theirs }
+        merged.densityGramsPerMl = other.densityGramsPerMl ?? densityGramsPerMl
+        if !other.bases.isEmpty { merged.source = other.source }
+        if !other.candidateCodes.isEmpty { merged.candidateCodes = other.candidateCodes }
+        merged.parentName = other.parentName ?? parentName
+        return merged
+    }
+
+    /// This entry filled in from its parent — the variant relation's whole
+    /// point: mapping "Tomate" once maps "Cocktailtomate" with it, including
+    /// the confirmation, until the variant says something of its own.
+    public func inheriting(from parent: CatalogNutrition) -> CatalogNutrition {
+        var merged = self
+        merged.bases = parent.bases
+        merged.unitWeightsGrams = parent.unitWeightsGrams.merging(unitWeightsGrams) { _, mine in mine }
+        merged.densityGramsPerMl = densityGramsPerMl ?? parent.densityGramsPerMl
+        merged.source = parent.source
+        if merged.candidateCodes.isEmpty { merged.candidateCodes = parent.candidateCodes }
+        return merged
     }
 }

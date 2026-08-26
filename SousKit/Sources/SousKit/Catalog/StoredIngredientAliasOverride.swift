@@ -3,6 +3,10 @@ import SwiftData
 
 /// One extra spelling the cook taught an ingredient that already exists.
 ///
+/// **Legacy.** Folded into ``StoredIngredientVocabulary``, where a spelling
+/// is simply part of the entry it belongs to. Kept in the schema so the
+/// migration can read a store written before phase 4.
+///
 /// Stored as a thin delta rather than as a copy of the whole entry: the
 /// bundled catalog ships with the app and is replaced on every update, so an
 /// added alias has to name its target by key and be merged back in at read

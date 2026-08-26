@@ -197,6 +197,16 @@
    },
    "via": "BLS-Gruppe \"Erdnuss geröstet\""
   },
+  "Essig": {
+   "targets": {
+    "unspecified": [
+     "R121000",
+     "R122000",
+     "R124000"
+    ]
+   },
+   "via": "Sortengetrennt (Weißwein-, Rotwein-, Apfelessig) sind eigene Sorten; das nackte Wort ist der Weinessig"
+  },
   "Feldsalat": {
    "targets": {
     "raw": [
@@ -652,6 +662,15 @@
    },
    "via": "BLS-Gruppe \"Weizen Mehl, Type 405\""
   },
+  "Melone": {
+   "targets": {
+    "raw": [
+     "F533100",
+     "F532100"
+    ]
+   },
+   "via": "Wasser- und Honigmelone sind eigene Sorten; das nackte Wort ist die Honigmelone"
+  },
   "Milch": {
    "targets": {
     "unspecified": [
@@ -984,6 +1003,15 @@
    },
    "via": "BLS-Gruppe \"Kopfsalat\""
   },
+  "Salz": {
+   "targets": {
+    "unspecified": [
+     "R111000",
+     "R114000"
+    ]
+   },
+   "via": "Meersalz ist eine eigene Sorte; das nackte Wort ist das Speisesalz"
+  },
   "Saure Sahne": {
    "targets": {
     "unspecified": [
@@ -991,6 +1019,15 @@
     ]
    },
    "via": "BLS-Gruppe \"Sauerrahm/Saure Sahne, mind. 10 % Fett\""
+  },
+  "Schinken": {
+   "targets": {
+    "unspecified": [
+     "W424000",
+     "W423000"
+    ]
+   },
+   "via": "Koch-, Serrano-, Parmaschinken sind eigene Sorten; das nackte Wort ist der Kochschinken"
   },
   "Schmand": {
    "targets": {
@@ -1033,6 +1070,18 @@
     ]
    },
    "via": "kuratierte Auswahl"
+  },
+  "Sellerie": {
+   "targets": {
+    "raw": [
+     "G660100"
+    ],
+    "cooked": [
+     "G660132",
+     "G660152"
+    ]
+   },
+   "via": "Stauden- und Knollensellerie sind eigene Sorten; das nackte Wort ist der Knollensellerie"
   },
   "Semmelbrösel": {
    "targets": {

@@ -105,12 +105,27 @@ public final class StoredRecipe {
         )
     }
 
+    /// The ingredients a recipe can be filtered by — each line's own key and,
+    /// for a variety, its parent's as well.
+    ///
+    /// Both, because a recipe calling for Cocktailtomaten *is* a recipe with
+    /// tomatoes in it. Filtering by "Tomate" and not finding it would be the
+    /// swallowing the variety relation exists to prevent, in the other
+    /// direction: the shopping list keeps them apart, the library keeps them
+    /// together.
     static func ingredientKeys(for recipe: Recipe, catalog: IngredientCatalog) -> [String] {
         var seen = Set<String>()
-        return recipe.ingredients.compactMap { ingredient in
-            let key = ShoppingItem.key(for: ingredient.name, catalog: catalog)
-            return key.isEmpty || !seen.insert(key).inserted ? nil : key
+        var keys: [String] = []
+        for ingredient in recipe.ingredients {
+            let name = ShoppingItem.displayName(for: ingredient.name)
+            let own = ShoppingItem.key(for: ingredient.name, catalog: catalog)
+            let parent = catalog.ingredient(for: name)?.parentName.map(IngredientCatalog.normalize)
+            for key in [own, parent].compactMap({ $0 }) {
+                guard !key.isEmpty, seen.insert(key).inserted else { continue }
+                keys.append(key)
+            }
         }
+        return keys
     }
 
     static func searchText(for recipe: Recipe) -> String {

@@ -38,7 +38,7 @@ Everything here is checked in except the workbook.
 | --- | --- | --- |
 | `BLS_4_0_Daten_2025_DE.xlsx` | no, downloaded | the numbers |
 | `group_codes.json` | **yes** | which BLS letters are in scope, their category, the per-letter keyword overrides |
-| `kitchen_words.json` | **yes** | the 202 curated kitchen words, their aliases and categories — the words people cook with, which the BLS does not have |
+| `kitchen_words.json` | **yes** | the 259 curated kitchen words, their aliases, categories and the variety relation — the words people cook with, which the BLS does not have |
 | `curation.json` | **yes** | kitchen word → SBLS codes, where a plain name match cannot find them |
 | `measures.json` | **yes** | piece weights, generic unit weights, densities |
 
@@ -109,8 +109,52 @@ from BLS names on every run.
 If you add a kitchen word or a piece weight, it goes in this directory, not in
 `Resources/`.
 
+## Re-running only the mapping, without the workbook
+
+A curation change - a word gaining an alias, a variety moving out of an alias
+list - touches only the mapping half, and the rows it maps onto are already in
+`bls.json` exactly as the workbook left them:
+
+```
+python3 rebuild_synonyms.py          # --dry-run to see the counts first
+```
+
+It reads `bls.json` back into the shape `extract_bls` produces and runs the
+*same* `SynonymBuilder`, so a later full re-run with the workbook produces the
+same file. It writes only `synonyms.json`; anything that changes the rows
+themselves still needs `build_data.py` and the xlsx.
+
+## Varieties: a spelling and a kind are not the same thing
+
+`kitchen_words.json` entries may carry `"parent"`. That word is then a *variety*
+of another one - "Cocktailtomate" of "Tomate" - and reaches `synonyms.json` as
+a word of its own with a `parent` field, not as a spelling in its parent's
+alias list, which is where 57 of them used to sit.
+
+The difference is not cosmetic: aliases are what the shopping list is allowed
+to add up, so as long as "Cocktailtomaten" was a spelling of "Tomaten", 200 g
+of cocktail tomatoes became an anonymous part of 700 g of tomatoes and the
+wrong thing landed in the cart. As a variety it keeps its own line, grouped
+under its parent, and inherits the parent's nutrition basis at run time as long
+as it has none of its own.
+
+The rule for curating one: **a variety is a word that names a different product
+on the shelf**, not another word for the same one. "Meersalz" is a variety of
+"Salz"; "Speisesalz" is a spelling of it. "Räucherlachs" is a variety of
+"Lachs"; "Hühnerei" is a spelling of "Ei".
+
+Watch the parent when moving a variety out. Five words got their BLS row
+*through* the alias that became a variety - "Salz" through "Meersalz",
+"Sellerie" through "Knollensellerie", and likewise "Schinken", "Melone",
+"Essig" - and were left without a basis. `curation.json` now names the plain
+row for each, which is what the bare word meant all along. `build_data.py` and
+`rebuild_synonyms.py` both print the variety count; a word dropping out of
+`targets` shows up in "words without any target".
+
 ## What each script does
 
+- **`rebuild_synonyms.py`** - `build_data.py`'s mapping half, fed from the
+  shipped `bls.json` instead of the workbook. See above.
 - **`extract_bls.py`** - reads the xlsx sheet `BLS_4_0_Daten_2025_DE`, locates
   each of the 16 target nutrient columns *by searching the header row* for a
   cell starting with `"<BLS CODE> "` (e.g. `"ENERCC Energie (Kilokalorien)
@@ -370,7 +414,9 @@ change one of the filtering/mapping rules.
   - `Pfirsich` shipped **Nektarine's** values, for the same reason.
   Both now resolve to their own row. `Melone` moved from Honigmelone to
   Wassermelone, following the curated alias order - a deliberate consequence of
-  the new rule, not a fix.
+  the new rule, not a fix. (It moved back once "Wassermelone" became a variety
+  of its own and `curation.json` had to say what the bare word means: the
+  honeydew, which is what a recipe writing "Melone" means.)
 - The dataset version, licence, attribution and change note moved into
   `bls.json`, so the file that changes on an update is the file that states its
   own version.

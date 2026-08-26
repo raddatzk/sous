@@ -1,6 +1,9 @@
 import Foundation
 import SwiftData
 
+/// **Legacy.** The vocabulary entity absorbed this, as this comment already
+/// announced it would. Kept in the schema so the migration can read it.
+///
 /// The cook's mark that an ingredient is a pantry staple — salt, oil, flour:
 /// things checked against the shelf, not hunted through the store.
 ///

@@ -84,6 +84,17 @@ public enum NutritionAggregator {
 
             let canonicalName = catalog.canonicalName(for: ingredient.name)
             let entry = nutritionCatalog.nutrition(forCanonicalName: canonicalName)
+            // The candidates ride along on every outcome, gaps included: the
+            // line with no basis is the one the picker exists for.
+            let candidates = entry?.candidateCodes ?? []
+
+            func report(_ outcome: NutritionLineReport.Outcome, basis: NutritionBasis? = nil) {
+                lines.append(NutritionLineReport(
+                    ingredientName: displayName, outcome: outcome,
+                    basis: basis, candidateCodes: candidates
+                ))
+            }
+
             guard let basis = entry?.basis(for: ingredient.state) else {
                 // A name nothing knows wants a catalog entry first; a known
                 // name without numbers wants the numbers — different fixes,
@@ -91,27 +102,39 @@ public enum NutritionAggregator {
                 let reason: NutritionCoverage.GapReason =
                     entry == nil && catalog.ingredient(for: ingredient.name) == nil
                         ? .noCatalogMatch : .noNutritionValues
-                lines.append(NutritionLineReport(ingredientName: displayName, outcome: .gap(reason)))
+                report(.gap(reason))
+                continue
+            }
+
+            // A basis that is a *decision* rather than numbers ends the line
+            // here. "Bewusst ohne" is an answer and stops counting as a
+            // defect; an orphaned mapping is a question and keeps counting.
+            guard basis.status.contributes else {
+                report(
+                    .gap(basis.status == .deliberatelyWithout ? .deliberatelyWithout : .orphanedBasis),
+                    basis: basis
+                )
                 continue
             }
 
             guard let grams = NutritionResolver.resolvedGrams(
                 for: ingredient, catalog: catalog, nutritionCatalog: nutritionCatalog
             ) else {
-                lines.append(NutritionLineReport(ingredientName: displayName, outcome: .gap(.noGramEquivalent)))
+                report(.gap(.noGramEquivalent))
                 continue
             }
 
             let contribution = basis.values.scaled(byGrams: grams)
             // The basis and the alternatives ride along with the number, so
-            // whatever shows it can say what it rests on — and so phase 4's
-            // picker has the candidate list without recomputing anything.
-            lines.append(NutritionLineReport(
-                ingredientName: displayName,
-                outcome: .contributed(contribution),
-                basis: basis,
-                candidateCodes: entry?.candidateCodes ?? []
-            ))
+            // whatever shows it can say what it rests on — and so the picker
+            // has the candidate list without recomputing anything. The status
+            // decides which of the two counting outcomes this is: both land
+            // in the sum, only one of them without a caveat.
+            report(
+                basis.status == .confirmed
+                    ? .contributed(contribution) : .provisional(contribution),
+                basis: basis
+            )
             total = total + contribution
         }
         return total

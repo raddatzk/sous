@@ -150,6 +150,10 @@ struct IngredientFormView: View {
 
     private let original: CatalogIngredient
     private let isNew: Bool
+    /// Opened straight from the basis picker's "Eigene Werte": the cook has
+    /// already said they want to type numbers, so the bundled read-only view
+    /// would be one tap in the way.
+    private let startsOnOwnValues: Bool
 
     @State private var name: String
     @State private var aliasText: String
@@ -161,14 +165,26 @@ struct IngredientFormView: View {
     /// a change is written back.
     @State private var isPantry = false
     @State private var storedPantry = false
+    /// Set once the cook asks to enter their own numbers over shipped ones.
+    @State private var isEnteringOwnValues = false
+    /// The ingredient this one is filed as a variety of — proposed for a new
+    /// name by the word-ending heuristic, and editable afterwards.
+    @State private var parentName: String?
+    /// The proposal, kept apart from `parentName` so that dismissing it is
+    /// remembered for as long as the form is open. Decision B: asked once,
+    /// in passing, at the moment the ingredient comes into being.
+    @State private var variantProposal: CatalogIngredient?
 
-    init(ingredient: CatalogIngredient) {
+    init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
         isNew = ingredient.name.isEmpty
+        self.startsOnOwnValues = startsOnOwnValues
         _name = State(initialValue: ingredient.name)
         _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
         _category = State(initialValue: ingredient.category)
         _nutritionDraft = State(initialValue: NutritionDraft())
+        _parentName = State(initialValue: ingredient.parentName)
+        _isEnteringOwnValues = State(initialValue: startsOnOwnValues)
     }
 
     /// Whether this entry is the cook's own — a new one counts, since saving
@@ -190,10 +206,13 @@ struct IngredientFormView: View {
         return nutrition.ownNutrition(forCanonicalName: trimmedName)
     }
 
-    /// Bundled values are shown, not offered for editing: correcting BLS
-    /// belongs in a pull request against the data, not in one cook's device.
+    /// Bundled values are shown rather than offered for editing: correcting
+    /// BLS belongs in a pull request against the data, not in one cook's
+    /// device. But own values are one of the three answers to "what is this
+    /// based on", so the read-only view is a default, not a wall — asking to
+    /// type numbers over shipped ones opens the form.
     private var isNutritionEditable: Bool {
-        resolvedNutrition == nil || ownNutrition != nil
+        isEnteringOwnValues || resolvedNutrition?.hasBases != true || ownNutrition != nil
     }
 
     private var trimmedName: String {
@@ -210,6 +229,7 @@ struct IngredientFormView: View {
                     bundledIdentitySection
                     bundledAliasSection
                 }
+                variantSection
                 pantrySection
                 nutritionSection
             }
@@ -235,7 +255,11 @@ struct IngredientFormView: View {
                 await shopping.ensurePantryLoaded()
                 storedPantry = shopping.pantryKeys.contains(pantryKey)
                 isPantry = storedPantry
+                proposeVariantIfNew()
             }
+            // Retyping the name is still "coming into being": the proposal
+            // follows what is being written until the entry is saved.
+            .onChange(of: trimmedName) { proposeVariantIfNew() }
         }
         .sousSheetSizing(.form)
     }
@@ -268,9 +292,14 @@ struct IngredientFormView: View {
 
     // MARK: - Pantry
 
-    /// The key the shopping list files this ingredient under.
+    /// The name the pantry flag is filed under — the catalog's, so the flag
+    /// and the list agree about which ingredient is meant.
+    private var pantryName: String {
+        catalog.catalog.canonicalName(for: trimmedName)
+    }
+
     private var pantryKey: String {
-        ShoppingItem.key(for: trimmedName, catalog: catalog.catalog)
+        IngredientCatalog.normalize(pantryName)
     }
 
     private var pantrySection: some View {
@@ -278,6 +307,54 @@ struct IngredientFormView: View {
             Toggle("Vorrat", isOn: $isPantry)
         } footer: {
             Text("Vorräte stehen auf der Einkaufsliste eingeklappt am Ende — zum Durchsehen am Regal statt zwischen den Besorgungen.")
+        }
+    }
+
+    // MARK: - Varieties
+
+    /// What this ingredient is a variety of, and what is a variety of it.
+    ///
+    /// The proposal at the top appears only while the ingredient is coming
+    /// into being, and only when the word ends in another one — decision B's
+    /// single, casual moment. Everything else here is the relation as it
+    /// stands, changeable but never guessed again.
+    @ViewBuilder
+    private var variantSection: some View {
+        let children = trimmedName.isEmpty ? [] : catalog.catalog.variants(of: pantryName)
+        if variantProposal != nil || parentName != nil || !children.isEmpty {
+            Section {
+                if let proposal = variantProposal, parentName == nil {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text("Als Sorte von \(proposal.name) führen?")
+                        Spacer(minLength: 8)
+                        Button("Ja") {
+                            parentName = proposal.name
+                            variantProposal = nil
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Button("Nein") { variantProposal = nil }
+                    }
+                    .controlSize(.small)
+                }
+                if let parentName {
+                    HStack {
+                        LabeledContent("Sorte von", value: parentName)
+                        Spacer(minLength: 8)
+                        Button("Lösen", systemImage: "minus.circle", role: .destructive) {
+                            self.parentName = nil
+                        }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                    }
+                }
+                ForEach(children) { child in
+                    LabeledContent("Sorte", value: child.name)
+                }
+            } header: {
+                Text("Sorten")
+            } footer: {
+                Text("Sorten stehen auf der Einkaufsliste als Unterzeilen der Stammzutat — an einer Stelle, ohne die Unterscheidung zu verlieren. Nährwerte erben sie, solange sie keine eigenen haben.")
+            }
         }
     }
 
@@ -413,6 +490,7 @@ struct IngredientFormView: View {
             if let perPiece = entry.unitWeightsGrams[IngredientUnit.piece.symbol] {
                 nutrientRow("Ein Stück wiegt", mass(perPiece))
             }
+            Button("Eigene Werte eintragen") { isEnteringOwnValues = true }
         } header: {
             Text("Nährwerte je 100 g")
         } footer: {
@@ -422,8 +500,12 @@ struct IngredientFormView: View {
             // word — "Kartoffel" is "Kartoffel geschält, gekocht" there — and
             // until now the app showed the values without ever saying so.
             VStack(alignment: .leading, spacing: 2) {
-                if let basis = entry.basis(for: selectedState.wrappedValue)?.catalogName {
-                    Text("beruht auf: \(basis)")
+                if let basis = entry.basis(for: selectedState.wrappedValue) {
+                    if let catalogName = basis.catalogName {
+                        Text("beruht auf: \(catalogName) — \(basis.status.label)")
+                    } else {
+                        Text(basis.status.label)
+                    }
                 }
                 // The entry's own string, never a label hardcoded here — the
                 // day a second source joins BLS, this line has to keep
@@ -536,7 +618,16 @@ struct IngredientFormView: View {
         } header: {
             Text("Nährwerte je 100 g")
         } footer: {
-            Text("Ohne Nährwerte zählt diese Zutat in keinem Rezept mit. Energie und die vier Hauptwerte reichen — alles Weitere ist freiwillig. Oder mach die Zutat zur Schreibweise einer Zutat, die die App schon kennt.")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ohne Nährwerte zählt diese Zutat in keinem Rezept mit. Energie und die vier Hauptwerte reichen — alles Weitere ist freiwillig. Oder mach die Zutat zur Schreibweise einer Zutat, die die App schon kennt.")
+                // The stamp the re-key left behind: these numbers hang on a
+                // name that matches no row of the food catalog, so a data
+                // update cannot follow them. Nothing is broken — it is a
+                // question, and this is where it gets asked.
+                if nutrition.needsBasisReview(forName: trimmedName) {
+                    Text("Zu diesem Namen kennt der Lebensmittelkatalog keine Zeile. Die eigenen Werte gelten weiter; eine Zuordnung würde sie bei Datenaktualisierungen mitführen.")
+                }
+            }
         }
     }
 
@@ -558,6 +649,13 @@ struct IngredientFormView: View {
 
     // MARK: - Saving
 
+    /// Decision B's one moment: only for a name that is coming into being,
+    /// only once per spelling, and only ever as a question.
+    private func proposeVariantIfNew() {
+        guard isNew, parentName == nil else { return }
+        variantProposal = VariantHeuristic.parent(for: trimmedName, in: catalog.catalog)
+    }
+
     private func save() {
         let ingredient = CatalogIngredient(
             name: trimmedName,
@@ -565,7 +663,8 @@ struct IngredientFormView: View {
                 .split(separator: ",")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty },
-            category: category
+            category: category,
+            parentName: parentName
         )
         let isOwn = isOwnEntry
         let editable = isNutritionEditable
@@ -573,11 +672,17 @@ struct IngredientFormView: View {
         let entered = draft.catalogNutrition(named: trimmedName)
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
-        let key = pantryKey
+        let pantryTarget = pantryName
 
+        let parent = parentName
+        let wasParented = original.parentName
         Task {
             if isOwn {
                 await catalog.save(ingredient)
+            } else if parent != wasParented {
+                // A shipped ingredient the cook filed under another one:
+                // everything else about it stays the app's.
+                await catalog.setParent(parent, of: trimmedName)
             }
             if editable {
                 if let entered {
@@ -588,7 +693,7 @@ struct IngredientFormView: View {
                 }
             }
             if pantryChanged {
-                await shopping.setPantry(pantryFlagged, key: key)
+                await shopping.setPantry(pantryFlagged, name: pantryTarget)
             }
             dismiss()
         }

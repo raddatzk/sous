@@ -60,6 +60,25 @@ public struct IngredientCatalog: Sendable {
         ingredient(for: name)?.category
     }
 
+    /// The ingredient a written name bundles under on the shopping list —
+    /// itself, or the one it is a variety of.
+    public func groupIngredient(for name: String) -> CatalogIngredient? {
+        guard let match = ingredient(for: name) else { return nil }
+        guard let parentName = match.parentName else { return match }
+        // One level, and a missing parent falls back to the variety itself:
+        // a dangling relation must not make an ingredient disappear.
+        return ingredient(for: parentName) ?? match
+    }
+
+    /// The varieties of an ingredient, in name order — what the shopping
+    /// list groups as sub-lines and what an ingredient form lists.
+    public func variants(of name: String) -> [CatalogIngredient] {
+        let key = Self.normalize(name)
+        return ingredients
+            .filter { $0.parentName.map(Self.normalize) == key }
+            .sorted { $0.name < $1.name }
+    }
+
     /// Ingredients whose name or spellings start with, or contain, `text` —
     /// for suggesting while typing. Prefix matches come first.
     public func suggestions(for text: String, limit: Int = 8) -> [CatalogIngredient] {

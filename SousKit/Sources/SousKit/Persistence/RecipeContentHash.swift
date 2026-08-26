@@ -17,8 +17,11 @@ enum RecipeContentHash {
     /// Raised to 4 when nutrition began resolving through SBLS codes instead
     /// of curated names, "Tasse" entered the unit vocabulary, and the set of
     /// known names moved from `ingredients.json` into `synonyms.json` — that
-    /// set decides which lines the parser leaves whole at a comma.
-    private static let readingVersion = 4
+    /// set decides which lines the parser leaves whole at a comma. Raised to
+    /// 5 when a basis gained a status: the same line now reads as counted,
+    /// counted-but-unconfirmed, or deliberately without, and a figure cached
+    /// before that says nothing about which.
+    private static let readingVersion = 5
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.

@@ -20,6 +20,40 @@ public enum ShoppingSection: Hashable, Sendable {
     }
 }
 
+/// One place on the shopping list: an ingredient, together with the
+/// varieties of it that are also wanted.
+///
+/// The concept's grouped entry (§6), and the answer to the brief's "Tomaten
+/// and Cocktailtomaten — one line": one place to walk to, with the
+/// distinction intact underneath. Taken literally, a single summed line would
+/// send the cook home with the wrong tomatoes.
+public struct ShoppingGroup: Identifiable, Hashable, Sendable {
+    /// The parent ingredient's key, or the item's own where it has no parent.
+    public var id: String
+    /// What the place is called — the parent's name.
+    public var name: String
+    /// Its rows, each still its own checkable item.
+    public var items: [ShoppingItem]
+    /// Whether anything is actually being held apart. `false` is the ordinary
+    /// single row, which must keep looking exactly as it always did.
+    public var isGrouped: Bool
+
+    public init(id: String, name: String, items: [ShoppingItem], isGrouped: Bool) {
+        self.id = id
+        self.name = name
+        self.items = items
+        self.isGrouped = isGrouped
+    }
+
+    /// Everything wanted across the group, bundled unit by unit — the total
+    /// the header line shows. Only equal units are added up, as everywhere.
+    public var quantities: [Quantity] {
+        items.reduce(into: [Quantity]()) { $0 = $0.adding($1.quantities) }
+    }
+
+    public var isChecked: Bool { items.allSatisfy(\.isChecked) }
+}
+
 /// One section of the by-recipe view: a plan entry with its portion dial,
 /// a frozen origin without one, or the hand-typed rest.
 public struct ShoppingRecipeGroup: Identifiable, Sendable {
@@ -43,14 +77,13 @@ public struct ShoppingRecipeGroup: Identifiable, Sendable {
 public final class ShoppingLibrary {
     private let store: any ShoppingListStore
     private let recipeStore: any RecipeStore
-    /// Kept so that ingredients the cook added resolve like the bundled ones.
+    /// Kept so that ingredients the cook added resolve like the bundled ones
+    /// — and because the pantry flag lives on their vocabulary entry now.
     private let catalogLibrary: IngredientCatalogLibrary?
-    private let pantryStore: (any PantryFlagStore)?
 
     /// Every line still on the list, swept rows already left out.
     public private(set) var items: [ShoppingItem] = []
     public private(set) var planEntries: [ShoppingPlanEntry] = []
-    public private(set) var pantryKeys: Set<String> = []
     public var errorMessage: String?
     /// Set after something was added, so the interface can say what happened.
     public var lastAddition: String?
@@ -58,14 +91,17 @@ public final class ShoppingLibrary {
     public init(
         store: any ShoppingListStore,
         recipeStore: any RecipeStore,
-        catalogLibrary: IngredientCatalogLibrary? = nil,
-        pantryStore: (any PantryFlagStore)? = nil
+        catalogLibrary: IngredientCatalogLibrary? = nil
     ) {
         self.store = store
         self.recipeStore = recipeStore
         self.catalogLibrary = catalogLibrary
-        self.pantryStore = pantryStore
     }
+
+    /// Which ingredients are shelf staples — read straight off the
+    /// vocabulary, so the flag and everything else about an ingredient say
+    /// the same thing at the same moment.
+    public var pantryKeys: Set<String> { catalogLibrary?.pantryKeys ?? [] }
 
     private var catalog: IngredientCatalog {
         catalogLibrary?.catalog ?? .bundled
@@ -73,12 +109,10 @@ public final class ShoppingLibrary {
 
     public func reload() async {
         do {
+            await catalogLibrary?.ensureLoaded()
             let snapshot = try await store.snapshot()
             items = snapshot.items.filter { !$0.isCleared }
             planEntries = snapshot.planEntries
-            if let pantryStore {
-                pantryKeys = try await pantryStore.flaggedKeys()
-            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -202,33 +236,61 @@ public final class ShoppingLibrary {
     // MARK: - Pantry
 
     public func isPantry(_ item: ShoppingItem) -> Bool {
-        pantryKeys.contains(item.key)
+        pantryKeys.contains(item.key) || groupIngredient(of: item).map {
+            pantryKeys.contains($0.key)
+        } == true
     }
 
-    /// Loads the pantry flags without touching the list — for screens that
+    /// Loads the vocabulary without touching the list — for screens that
     /// only ask about the flag.
     public func ensurePantryLoaded() async {
-        guard let pantryStore else { return }
-        do {
-            pantryKeys = try await pantryStore.flaggedKeys()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        await catalogLibrary?.ensureLoaded()
     }
 
     /// The cook's call that an ingredient is a shelf staple — set from the
     /// ingredient form or straight on the list item.
-    public func setPantry(_ flagged: Bool, key: String) async {
-        guard let pantryStore else { return }
-        do {
-            try await pantryStore.setFlagged(flagged, key: key)
-            if flagged {
-                pantryKeys.insert(key)
-            } else {
-                pantryKeys.remove(key)
+    public func setPantry(_ flagged: Bool, name: String) async {
+        await catalogLibrary?.setPantry(flagged, name: name)
+    }
+
+    // MARK: - Varieties
+
+    /// The ingredient an item bundles under: itself, or the one it is a
+    /// variety of.
+    private func groupIngredient(of item: ShoppingItem) -> CatalogIngredient? {
+        catalog.groupIngredient(for: item.name)
+    }
+
+    /// The items of one stretch of the list as the *places* they occupy.
+    ///
+    /// Varieties share a place with the ingredient they are varieties of —
+    /// the concept's grouped entry: one line to find in the shop, and the
+    /// distinction still readable underneath it. Anything without varieties
+    /// in play comes back as a group of one, which renders exactly as a plain
+    /// row always did.
+    public func grouped(_ items: [ShoppingItem]) -> [ShoppingGroup] {
+        var order: [String] = []
+        var byGroup: [String: [ShoppingItem]] = [:]
+        var names: [String: String] = [:]
+        for item in items {
+            let parent = groupIngredient(of: item)
+            let key = parent?.key ?? item.key
+            if byGroup[key] == nil {
+                order.append(key)
+                names[key] = parent?.name ?? item.name
             }
-        } catch {
-            errorMessage = error.localizedDescription
+            byGroup[key, default: []].append(item)
+        }
+        return order.map { key in
+            let members = byGroup[key] ?? []
+            return ShoppingGroup(
+                id: key,
+                name: names[key] ?? key,
+                items: members,
+                // A single item under its own name is not a group, however
+                // the display renders it: nothing is being held apart.
+                isGrouped: members.count > 1 || members.first.map { $0.key != key } == true
+            )
         }
     }
 

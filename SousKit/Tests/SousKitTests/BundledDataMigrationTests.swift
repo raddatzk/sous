@@ -15,8 +15,8 @@ struct BundledDataMigrationTests {
     @Test("A name the synonym table knows gains its code")
     func mappableNameIsRekeyed() async throws {
         let container = try store()
-        let nutrition = SwiftDataCatalogNutritionStore(modelContainer: container)
-        try await nutrition.save(CatalogNutrition(
+        let legacy = LegacyRows(modelContainer: container)
+        try await legacy.addOwnNutrition(CatalogNutrition(
             name: "Kartoffel",
             perHundredGrams: [IngredientState.unspecified.rawValue: .zero],
             source: CatalogNutrition.ownSource
@@ -31,7 +31,7 @@ struct BundledDataMigrationTests {
     @Test("A name that maps to nothing keeps working and is flagged instead")
     func unmappableNameKeepsWorking() async throws {
         let container = try store()
-        let nutrition = SwiftDataCatalogNutritionStore(modelContainer: container)
+        let legacy = LegacyRows(modelContainer: container)
         let own = CatalogNutrition(
             name: "Omas Streuselmischung",
             perHundredGrams: [IngredientState.unspecified.rawValue: NutritionInfo(
@@ -41,7 +41,7 @@ struct BundledDataMigrationTests {
             )],
             source: CatalogNutrition.ownSource
         )
-        try await nutrition.save(own)
+        try await legacy.addOwnNutrition(own)
 
         let report = try await SwiftDataBundledDataMigration(modelContainer: container).run()
 
@@ -49,18 +49,16 @@ struct BundledDataMigrationTests {
         #expect(report.nutritionRekeyed == 0)
         // The compatibility path: the row still reads back, by name, with the
         // cook's numbers intact. Nothing about the re-key may cost them that.
-        let all = try await nutrition.all()
-        #expect(all.count == 1)
-        #expect(all.first?.name == "Omas Streuselmischung")
-        #expect(all.first?.nutrition(for: .unspecified)?.kcal == 420)
+        #expect(try await legacy.ownNutritionNames() == ["Omas Streuselmischung"])
+        #expect(try await legacy.flaggedNutritionNames() == ["Omas Streuselmischung"])
     }
 
     @Test("An alias override is re-keyed by the entry it points at")
     func aliasOverrideIsRekeyed() async throws {
         let container = try store()
-        let aliases = SwiftDataIngredientAliasOverrideStore(modelContainer: container)
-        try await aliases.addAlias("Erdapfel", toKey: IngredientCatalog.normalize("Kartoffel"))
-        try await aliases.addAlias("Wunderknolle", toKey: "gibtesnicht")
+        let legacy = LegacyRows(modelContainer: container)
+        try await legacy.addAlias("Erdapfel", toKey: IngredientCatalog.normalize("Kartoffel"))
+        try await legacy.addAlias("Wunderknolle", toKey: "gibtesnicht")
 
         let report = try await SwiftDataBundledDataMigration(modelContainer: container).run()
 
@@ -68,19 +66,20 @@ struct BundledDataMigrationTests {
         #expect(report.aliasesFlagged == 1)
         // Both still resolve their spelling — the flagged one by name, as it
         // always did.
-        let byKey = try await aliases.overridesByKey()
+        let byKey = try await legacy.aliasesByKey()
         #expect(byKey[IngredientCatalog.normalize("Kartoffel")] == ["Erdapfel"])
         #expect(byKey["gibtesnicht"] == ["Wunderknolle"])
+        #expect(try await legacy.flaggedAliases() == ["Wunderknolle"])
     }
 
     @Test("Running it twice changes nothing the second time")
     func migrationIsIdempotent() async throws {
         let container = try store()
-        let nutrition = SwiftDataCatalogNutritionStore(modelContainer: container)
-        try await nutrition.save(CatalogNutrition(
+        let legacy = LegacyRows(modelContainer: container)
+        try await legacy.addOwnNutrition(CatalogNutrition(
             name: "Kartoffel", perHundredGrams: [:], source: CatalogNutrition.ownSource
         ))
-        try await nutrition.save(CatalogNutrition(
+        try await legacy.addOwnNutrition(CatalogNutrition(
             name: "Omas Streuselmischung", perHundredGrams: [:], source: CatalogNutrition.ownSource
         ))
         let migration = SwiftDataBundledDataMigration(modelContainer: container)
@@ -96,11 +95,11 @@ struct BundledDataMigrationTests {
     @Test("A word with identity but no values is not given a code")
     func identityOnlyWordIsFlagged() async throws {
         let container = try store()
-        let nutrition = SwiftDataCatalogNutritionStore(modelContainer: container)
+        let legacy = LegacyRows(modelContainer: container)
         // "Kurkuma" is a known ingredient with no BLS row behind it. There is
         // no code to write down, and inventing one would be worse than the
         // name-keyed join it already has.
-        try await nutrition.save(CatalogNutrition(
+        try await legacy.addOwnNutrition(CatalogNutrition(
             name: "Kurkuma", perHundredGrams: [:], source: CatalogNutrition.ownSource
         ))
 

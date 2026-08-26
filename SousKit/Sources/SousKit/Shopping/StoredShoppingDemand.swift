@@ -18,6 +18,8 @@ public final class StoredShoppingDemand {
     public var lineID: UUID?
     /// The recipe or subrecipe title it reads as coming from.
     public var originTitle: String = ""
+    /// The ingredient as the recipe wrote it — see ``ShoppingDemand/writtenName``.
+    public var writtenName: String = ""
     /// Serialized ``Quantity`` as captured; empty means unquantified.
     public var quantityData: Data = Data()
     public var stateRaw: String = IngredientState.unspecified.rawValue
@@ -51,6 +53,7 @@ public final class StoredShoppingDemand {
         planEntryID = demand.planEntryID
         lineID = demand.lineID
         originTitle = demand.originTitle
+        writtenName = demand.writtenName
         quantity = demand.quantity
         stateRaw = demand.state.rawValue
         scales = demand.scales
@@ -86,6 +89,7 @@ public final class StoredShoppingDemand {
             planEntryID: planEntryID,
             lineID: lineID,
             originTitle: originTitle,
+            writtenName: writtenName,
             quantity: captured,
             effectiveQuantity: effectiveQuantity(planEntry: planEntry),
             state: IngredientState(rawValue: stateRaw) ?? .unspecified,

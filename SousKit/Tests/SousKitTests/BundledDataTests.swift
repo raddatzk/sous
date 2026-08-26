@@ -130,9 +130,52 @@ struct BundledDataTests {
         // The 134 alias lists are the oldest hand-work in the project; the
         // synonym table inherited them and must not have dropped any.
         let tomato = try #require(synonyms.entry(for: "Tomate"))
-        #expect(tomato.aliases.contains("Cocktailtomaten"))
+        #expect(tomato.aliases.contains("Tomaten"))
         #expect(IngredientCatalog.bundled.canonicalName(for: "Möhren") == "Karotte")
         #expect(IngredientCatalog.bundled.canonicalName(for: "Eier") == "Ei")
+    }
+
+    @Test("A variety left the alias list for a word of its own")
+    func varietiesAreNotSpellings() throws {
+        // This used to pin "Cocktailtomaten" *inside* Tomate's aliases, which
+        // is what made the shopping list add 200 g of cocktail tomatoes into
+        // an anonymous 700 g of tomatoes. The hand-work is not lost, it is
+        // reclassified: still curated, still shipped, now saying which of the
+        // two things it is.
+        let tomato = try #require(synonyms.entry(for: "Tomate"))
+        #expect(!tomato.aliases.contains("Cocktailtomaten"))
+        #expect(tomato.parent == nil)
+
+        let cocktail = try #require(synonyms.entry(for: "Cocktailtomaten"))
+        #expect(cocktail.word == "Cocktailtomate")
+        #expect(cocktail.parent == "Tomate")
+        #expect(IngredientCatalog.bundled.canonicalName(for: "Cocktailtomaten") == "Cocktailtomate")
+        #expect(IngredientCatalog.bundled.variants(of: "Tomate").map(\.name)
+            == ["Cocktailtomate", "Kirschtomate", "Strauchtomate"])
+    }
+
+    @Test("A variety with no row of its own is worth what its parent is")
+    func varietiesInheritTheirParentsBasis() throws {
+        // Nobody has curated values for cocktail tomatoes, and nobody should
+        // have to: mapping "Tomate" once maps every variety of it.
+        let tomato = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Tomate"))
+        let cocktail = try #require(
+            NutritionCatalog.bundled.nutrition(forCanonicalName: "Cocktailtomate")
+        )
+        #expect(cocktail.basis(for: .raw)?.code == tomato.basis(for: .raw)?.code)
+        #expect(cocktail.name == "Cocktailtomate")
+    }
+
+    @Test("A word whose varieties moved out still has a basis of its own")
+    func parentsKeptTheirBasis() throws {
+        // Salz got its row through the alias "Meersalz", Sellerie through
+        // "Knollensellerie". Moving those out would have left the bare word
+        // without values — so the curation now names the plain row for each,
+        // which is what the bare word meant all along.
+        for word in ["Salz", "Sellerie", "Schinken", "Melone", "Essig"] {
+            let entry = try #require(synonyms.entry(for: word), "\(word) is missing")
+            #expect(!entry.targets.isEmpty, "\(word) lost its basis to its varieties")
+        }
     }
 
     @Test("A name that carries its own comma is still one name")

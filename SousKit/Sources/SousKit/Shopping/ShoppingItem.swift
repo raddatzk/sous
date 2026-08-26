@@ -91,6 +91,21 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// Came from no recipe at all.
     public var isManual: Bool { demands.isEmpty }
 
+    /// The spellings the recipes actually used, each named once and only
+    /// where they differ from the heading — what a grouped entry's sub-lines
+    /// read as, so "Cocktailtomaten" does not become "Tomaten" on the way to
+    /// the shop.
+    public var writtenNames: [String] {
+        var seen = Set([IngredientCatalog.normalize(name)])
+        return demands.compactMap { demand in
+            let written = demand.writtenName.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !written.isEmpty,
+                  seen.insert(IngredientCatalog.normalize(written)).inserted
+            else { return nil }
+            return written
+        }
+    }
+
     /// Where it reads as coming from, each origin named once.
     public var originTitles: [String] {
         var seen = Set<String>()

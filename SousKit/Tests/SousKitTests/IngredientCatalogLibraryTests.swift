@@ -9,8 +9,7 @@ struct IngredientCatalogLibraryTests {
     private func makeLibrary() throws -> IngredientCatalogLibrary {
         let container = try ModelContainer.sousContainer(inMemory: true)
         return IngredientCatalogLibrary(
-            store: SwiftDataIngredientCatalogStore(modelContainer: container),
-            aliasStore: SwiftDataIngredientAliasOverrideStore(modelContainer: container)
+            store: SwiftDataVocabularyStore(modelContainer: container)
         )
     }
 
@@ -93,16 +92,22 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ingredient(for: "Ochsenherz") == nil)
     }
 
-    @Test("An own entry shadowing an override's target keeps both intact")
+    @Test("Taking over a bundled entry keeps the spelling taught to it")
     func ownEntryShadowsAnOverriddenBundledOne() async throws {
         let library = try makeLibrary()
         await library.reload()
         let bundled = try #require(library.catalog.ingredient(for: "Olive"))
         await library.addAlias("Kalamata", to: bundled)
 
-        // Now the cook defines "Olive" themselves. The override was written
-        // against the key, so it lands on whichever entry now answers to it.
-        await library.save(CatalogIngredient(name: "Olive", category: .canned))
+        // Now the cook defines "Olive" themselves — from the entry as it
+        // stands, which is what the form hands back. Spelling and entry live
+        // in one vocabulary row now, so taking the entry over must not
+        // quietly drop what was taught to it.
+        let taught = try #require(library.catalog.ingredient(for: "Olive"))
+        #expect(taught.aliases.contains("Kalamata"))
+        var own = taught
+        own.category = .canned
+        await library.save(own)
 
         #expect(library.catalog.canonicalName(for: "Kalamata") == "Olive")
         #expect(library.catalog.category(for: "Kalamata") == .canned)

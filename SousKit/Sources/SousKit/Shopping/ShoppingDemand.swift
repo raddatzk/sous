@@ -20,6 +20,14 @@ public struct ShoppingDemand: Identifiable, Hashable, Sendable {
     /// linked recipe was resolved, even though it scales with the parent's
     /// plan entry.
     public var originTitle: String
+    /// The ingredient exactly as the recipe wrote it.
+    ///
+    /// Capture replaces the written name with the catalog's for the item's
+    /// heading, which is right for the heading and destroys the very thing a
+    /// variety sub-line has to say: "200 g Cocktailtomaten", not "200 g
+    /// Tomaten". Kept here so the distinction survives the moment of adding,
+    /// which is the only moment it could be lost in.
+    public var writtenName: String
     /// The amount as captured, at the plan entry's captured portion count.
     /// `nil` is an unquantified demand ("Salz nach Geschmack").
     public var quantity: Quantity?
@@ -56,6 +64,7 @@ public struct ShoppingDemand: Identifiable, Hashable, Sendable {
         planEntryID: UUID? = nil,
         lineID: UUID? = nil,
         originTitle: String = "",
+        writtenName: String = "",
         quantity: Quantity? = nil,
         effectiveQuantity: Quantity? = nil,
         state: IngredientState = .unspecified,
@@ -70,6 +79,7 @@ public struct ShoppingDemand: Identifiable, Hashable, Sendable {
         self.planEntryID = planEntryID
         self.lineID = lineID
         self.originTitle = originTitle
+        self.writtenName = writtenName
         self.quantity = quantity
         self.effectiveQuantity = effectiveQuantity ?? quantity
         self.state = state
