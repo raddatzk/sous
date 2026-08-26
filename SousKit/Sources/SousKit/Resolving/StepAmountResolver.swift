@@ -186,7 +186,7 @@ public enum StepAmountResolver {
         let factor = Double(targetServings) / Double(recipe.servings)
         let scaledLines = recipe.scaledIngredients(toServings: targetServings)
         let canonicalNames = lines.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) }
-        let pots = pots(lines: lines, scaledLines: scaledLines, canonicalNames: canonicalNames)
+        let pots = pots(lines: lines, scaledLines: scaledLines, canonicalNames: canonicalNames, catalog: catalog)
 
         // `additionalMentions` — e.g. from `AmountAIExtractor` — supplements
         // the regex scanner rather than replacing it: both compete for the
@@ -281,7 +281,7 @@ public enum StepAmountResolver {
                             // Right after the name as matched, not after
                             // whatever the phrase scan happened to also pick up.
                             let point = matchedNameEnd(
-                                in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
+                                in: mention.namePhrase, for: pot, catalog: catalog
                             ) ?? mention.namePhrase.endIndex
                             operations.append(.insertAfter(point: point, amount: amount))
                         }
@@ -310,7 +310,7 @@ public enum StepAmountResolver {
                             }
                         } else {
                             let point = matchedNameEnd(
-                                in: mention.namePhrase, canonicalTarget: pot.canonicalName, catalog: catalog
+                                in: mention.namePhrase, for: pot, catalog: catalog
                             ) ?? mention.namePhrase.endIndex
                             if !isAlreadyAnswered(at: point, in: step.text) {
                                 let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
@@ -350,9 +350,13 @@ public enum StepAmountResolver {
             // Pots this step names but never gave a share of its own —
             // candidates for the review screen, never written in here.
             let negated = negatedRanges(in: step.text)
-            for pot in pots where !boundIDs.contains(lines[pot.lineIndices[0]].id) {
+            for (potIndex, pot) in pots.enumerated() where !boundIDs.contains(lines[pot.lineIndices[0]].id) {
                 if let stepGroup = step.group, let potGroup = pot.group, stepGroup != potGroup { continue }
-                guard let end = firstBareNameEnd(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog) else { continue }
+                guard let end = firstBareNameEnd(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog)
+                    ?? pot.headCanonicalName.flatMap({ firstBareNameEnd(of: $0, in: step.text, avoiding: negated, catalog: catalog) })
+                    ?? pot.groupKey.flatMap({ firstGroupNameEnd(groupKey: $0, in: step.text, avoiding: negated, catalog: catalog) })
+                    ?? firstCompoundHeadEnd(claimedBy: potIndex, pots: pots, stepGroup: step.group, in: step.text, avoiding: negated, catalog: catalog)
+                else { continue }
                 // A parenthetical right after the name is an amount someone
                 // already accepted — `AmountMentionScanner` does not read it
                 // back as a mention (nothing follows it that looks like a
@@ -412,16 +416,38 @@ public enum StepAmountResolver {
     private struct Pot {
         var lineIndices: [Int]
         let canonicalName: String
+        /// The canonical form of the name's head noun, when the written name
+        /// carries more words than a step would repeat — "rote Zwiebel" is
+        /// called "Zwiebel" in running text. `nil` for single-word names,
+        /// and cleared where another pot owns the head name outright: with
+        /// both "rote Zwiebel" and "Zwiebeln" on the list, a bare "Zwiebel"
+        /// in a step belongs to the pot that says exactly that.
+        var headCanonicalName: String?
+        /// The key of the catalog ingredient this pot's name bundles under
+        /// — its variant parent, or its own entry. `nil` where the catalog
+        /// has never heard of the name, and cleared where two pots share
+        /// it: with Kirschtomaten and Strauchtomaten both listed, a bare
+        /// "Tomaten" in a step means neither.
+        var groupKey: String?
         let group: String?
         let scalesWithServings: Bool
         var totalQuantity: Quantity
         var scaledTotal: Quantity
+
+        /// The one word the compound tier may try step words against as
+        /// suffixes — the head noun where there is one, the name itself
+        /// where the name is a single word ("Olivenöl"). A multi-word name
+        /// without a usable head offers nothing to build a compound on.
+        var suffixHost: String? {
+            headCanonicalName ?? (canonicalName.contains(" ") ? nil : canonicalName)
+        }
     }
 
     private static func pots(
         lines: [RecipeIngredient],
         scaledLines: [RecipeIngredient],
-        canonicalNames: [String]
+        canonicalNames: [String],
+        catalog: IngredientCatalog
     ) -> [Pot] {
         var result: [Pot] = []
         for index in lines.indices {
@@ -447,6 +473,14 @@ public enum StepAmountResolver {
                 result.append(Pot(
                     lineIndices: [index],
                     canonicalName: canonicalNames[index],
+                    // From the written name, not the canonical one — the
+                    // canonical form is lowercased, and picking the head
+                    // out of a postpositive qualifier needs the
+                    // capitalization the cook wrote.
+                    headCanonicalName: headWord(of: lines[index].name).map {
+                        IngredientCatalog.normalize(catalog.canonicalName(for: $0))
+                    },
+                    groupKey: catalog.groupIngredient(for: canonicalNames[index])?.key,
                     group: lines[index].group,
                     scalesWithServings: lines[index].scalesWithServings,
                     totalQuantity: quantity,
@@ -454,7 +488,56 @@ public enum StepAmountResolver {
                 ))
             }
         }
+        let taken = Set(result.map(\.canonicalName))
+        var potsPerGroupKey: [String: Int] = [:]
+        for pot in result {
+            if let key = pot.groupKey { potsPerGroupKey[key, default: 0] += 1 }
+        }
+        for index in result.indices {
+            if let head = result[index].headCanonicalName, taken.contains(head) {
+                result[index].headCanonicalName = nil
+            }
+            if let key = result[index].groupKey, potsPerGroupKey[key, default: 0] > 1 {
+                result[index].groupKey = nil
+            }
+        }
         return result
+    }
+
+    /// The head noun a multi-word name answers to in running text — "rote
+    /// Zwiebel" is called "Zwiebel", "Dose Kokosmilch" is called
+    /// "Kokosmilch", "Limette, Saft davon" is called "Limette".
+    ///
+    /// German noun phrases end in their head — except where a list writes
+    /// the qualifier after it ("Paprika rot", "Weißwein trocken"), which is
+    /// why the last *capitalized* word wins, nouns being the words German
+    /// capitalizes. What follows a comma or an opening parenthesis
+    /// qualifies rather than names, a spaced slash offers an alternative
+    /// (an unspaced one is a plural marker: "Zehe/n Knoblauch"), and a
+    /// purpose clause ("Fett für die Form") stops the phrase early.
+    /// `nil` where there is no separate head to speak of: single-word
+    /// names, and heads too short to stand for anything on their own.
+    static func headWord(of name: String) -> String? {
+        var base = Substring(name)
+        if let cut = base.range(of: " / ") {
+            base = base[..<cut.lowerBound]
+        }
+        if let cut = base.firstIndex(where: { $0 == "," || $0 == "(" }) {
+            base = base[..<cut]
+        }
+        var words = base.split(separator: " ")
+        // "für/zum/zur/nach" open a purpose clause; "Type/Typ" opens a
+        // grading — "Weizenmehl Type 405" is called "Weizenmehl", not
+        // "Type". Both end the part of the name that names.
+        let qualifierWords: Set<String> = ["für", "zum", "zur", "nach", "type", "typ"]
+        if let cut = words.firstIndex(where: { qualifierWords.contains($0.lowercased()) }) {
+            words = Array(words[..<cut])
+        }
+        guard let head = (words.last(where: { $0.first?.isUppercase == true }) ?? words.last).map(String.init),
+              head.count >= 3,
+              IngredientCatalog.normalize(head) != IngredientCatalog.normalize(name)
+        else { return nil }
+        return head
     }
 
     // MARK: - Matching
@@ -465,13 +548,169 @@ public enum StepAmountResolver {
         pots: [Pot],
         catalog: IngredientCatalog
     ) -> [Int] {
-        pots.indices.filter { index in
+        let direct = pots.indices.filter { index in
             if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
             if mention.namePrecedesAmount {
-                return matchedNameStart(in: mention.namePhrase, canonicalTarget: pots[index].canonicalName, catalog: catalog) != nil
+                return matchedNameStart(in: mention.namePhrase, for: pots[index], catalog: catalog) != nil
             }
-            return matchedNameEnd(in: mention.namePhrase, canonicalTarget: pots[index].canonicalName, catalog: catalog) != nil
+            return matchedNameEnd(in: mention.namePhrase, for: pots[index], catalog: catalog) != nil
         }
+        guard direct.isEmpty else { return direct }
+        // The bundle tier: "10 Tomaten" against a list that only says
+        // "Kirschtomaten" — the catalog's variant relation, applied where
+        // no pot matched by name. `groupKey` is already cleared on pots
+        // whose bundle is shared, so a match here is unambiguous.
+        let grouped = pots.indices.filter { index in
+            if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+            guard let key = pots[index].groupKey else { return false }
+            if mention.namePrecedesAmount {
+                return groupMatchedNameStart(in: mention.namePhrase, groupKey: key, catalog: catalog) != nil
+            }
+            return groupMatchedNameEnd(in: mention.namePhrase, groupKey: key, catalog: catalog) != nil
+        }
+        guard grouped.isEmpty else { return grouped.count == 1 ? grouped : [] }
+        // The compound tier: "1 EL Öl" against a list that only says
+        // "Olivenöl". Tried only where no pot matched by name, and only
+        // through `compoundHeadPot`'s uniqueness guard.
+        let words = mention.namePhrase.split(separator: " ")
+        guard let word = mention.namePrecedesAmount ? words.last : words.first,
+              let potIndex = compoundHeadPot(claiming: word, pots: pots, stepGroup: stepGroup, catalog: catalog)
+        else { return [] }
+        return [potIndex]
+    }
+
+    /// The single pot `word` can only mean as the head of a compound —
+    /// "Öl" against a list whose one oil is "Olivenöl" — or `nil`.
+    ///
+    /// German compounds end in their head noun, so "Olivenöl" *is* an Öl
+    /// the way `VariantHeuristic` already reasons for new names — and the
+    /// same false friends exist ("Erdnussbutter" ends in "butter" and is
+    /// not a kind of butter), which is why this tier only ever answers
+    /// within one recipe and only when the answer is unique: no pot that
+    /// says exactly this word, no head noun that says it, and exactly one
+    /// compound ending in it. Two oils on the list, and a bare "Öl" means
+    /// neither.
+    private static func compoundHeadPot(
+        claiming word: Substring, pots: [Pot], stepGroup: String?, catalog: IngredientCatalog
+    ) -> Int? {
+        let canonical = IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))
+        guard !pots.contains(where: { $0.canonicalName == canonical || $0.headCanonicalName == canonical })
+        else { return nil }
+        func matches(_ related: (Substring, String) -> Bool) -> [Int] {
+            pots.indices.filter { index in
+                if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+                guard let host = pots[index].suffixHost else { return false }
+                return related(word, host)
+            }
+        }
+        // The head direction first — "Olivenöl" *is* an Öl, so that claim
+        // is safe wherever it is unique, and two heads sharing the word
+        // are an ambiguity to stop at, never to sidestep into the weaker
+        // stem direction. Only where no host ends in the word at all does
+        // the stem get a try.
+        let heads = matches { isCompoundHead($0, of: $1, catalog: catalog) }
+        guard heads.isEmpty else { return heads.count == 1 ? heads.first : nil }
+        let stems = matches { isCompoundStem($0, of: $1, catalog: catalog) }
+        return stems.count == 1 ? stems.first : nil
+    }
+
+    /// Whether `host` is a compound built on `word`. The leftover must be
+    /// a real morpheme, not a plural ending, so "Reis" never claims "Eis".
+    /// The word is also tried in its canonical form: the host went through
+    /// the catalog and lost its plural there, so a written "Tomaten" must
+    /// become "Tomate" again to be seen at the end of "Strauchtomate".
+    fileprivate static func isCompoundHead(_ word: some StringProtocol, of host: String, catalog: IngredientCatalog) -> Bool {
+        let normalized = IngredientCatalog.normalize(String(word))
+        if suffixMatches(normalized, host: host) { return true }
+        let canonical = IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))
+        return canonical != normalized && suffixMatches(canonical, host: host)
+    }
+
+    private static func suffixMatches(_ word: String, host: String) -> Bool {
+        word.count >= 2 && host.count - word.count >= 3 && host.hasSuffix(word)
+    }
+
+    /// Whether `host` is a compound whose *modifier* is `word` — the step
+    /// calling "Bockshornkleesamen" just "Bockshornklee". The reverse of
+    /// `isCompoundHead`, and the semantically weaker direction: a
+    /// "Zwiebelpulver" is not a Zwiebel, which is exactly the false friend
+    /// `VariantHeuristic` refuses to automate. It is admitted here anyway
+    /// because the guards around it carry the safety: a word any line
+    /// owns outright never reaches this tier, the claim must be unique in
+    /// the recipe, and the head direction is always tried first. The
+    /// longer minimum keeps trivial stems out entirely.
+    fileprivate static func isCompoundStem(_ word: some StringProtocol, of host: String, catalog: IngredientCatalog) -> Bool {
+        let normalized = IngredientCatalog.normalize(String(word))
+        if stemMatches(normalized, host: host) { return true }
+        let canonical = IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))
+        return canonical != normalized && stemMatches(canonical, host: host)
+    }
+
+    private static func stemMatches(_ word: String, host: String) -> Bool {
+        word.count >= 4 && host.count - word.count >= 3 && host.hasPrefix(word)
+    }
+
+    /// `matchedNameEnd` against everything a pot answers to: its full
+    /// canonical name first, its head noun second — so "die Kokosmilch"
+    /// still reaches the pot the list wrote as "Dose Kokosmilch". The full
+    /// name always gets the first try: where it matches, the head can only
+    /// agree, and where another pot owns the head outright the head was
+    /// already cleared at construction.
+    private static func matchedNameEnd(in phrase: Substring, for pot: Pot, catalog: IngredientCatalog) -> String.Index? {
+        if let end = matchedNameEnd(in: phrase, canonicalTarget: pot.canonicalName, catalog: catalog) { return end }
+        if let head = pot.headCanonicalName,
+           let end = matchedNameEnd(in: phrase, canonicalTarget: head, catalog: catalog) { return end }
+        if let key = pot.groupKey,
+           let end = groupMatchedNameEnd(in: phrase, groupKey: key, catalog: catalog) { return end }
+        // For a pot already chosen through the compound tier, the resolved
+        // amount still belongs right after the word that named it.
+        if let host = pot.suffixHost, let word = phrase.split(separator: " ").first,
+           isCompoundHead(word, of: host, catalog: catalog) || isCompoundStem(word, of: host, catalog: catalog) {
+            return word.endIndex
+        }
+        return nil
+    }
+
+    private static func matchedNameStart(in phrase: Substring, for pot: Pot, catalog: IngredientCatalog) -> String.Index? {
+        if let start = matchedNameStart(in: phrase, canonicalTarget: pot.canonicalName, catalog: catalog) { return start }
+        if let head = pot.headCanonicalName,
+           let start = matchedNameStart(in: phrase, canonicalTarget: head, catalog: catalog) { return start }
+        if let key = pot.groupKey,
+           let start = groupMatchedNameStart(in: phrase, groupKey: key, catalog: catalog) { return start }
+        if let host = pot.suffixHost, let word = phrase.split(separator: " ").last,
+           isCompoundHead(word, of: host, catalog: catalog) || isCompoundStem(word, of: host, catalog: catalog) {
+            return word.startIndex
+        }
+        return nil
+    }
+
+    /// `matchedNameEnd`'s shape, comparing at the shopping-list level
+    /// instead of by name: the phrase names *some member* of the pot's
+    /// bundle — "Tomaten" reaching the line that says "Kirschtomaten",
+    /// because the catalog files both under one parent. Same word windows,
+    /// longest first, same reasons.
+    private static func groupMatchedNameEnd(in phrase: Substring, groupKey: String, catalog: IngredientCatalog) -> String.Index? {
+        let words = phrase.split(separator: " ")
+        guard !words.isEmpty else { return nil }
+        for count in stride(from: min(words.count, 4), through: 1, by: -1) {
+            let candidateWords = words.prefix(count)
+            if catalog.groupIngredient(for: candidateWords.joined(separator: " "))?.key == groupKey {
+                return candidateWords.last!.endIndex
+            }
+        }
+        return nil
+    }
+
+    private static func groupMatchedNameStart(in phrase: Substring, groupKey: String, catalog: IngredientCatalog) -> String.Index? {
+        let words = phrase.split(separator: " ")
+        guard !words.isEmpty else { return nil }
+        for count in stride(from: min(words.count, 4), through: 1, by: -1) {
+            let candidateWords = words.suffix(count)
+            if catalog.groupIngredient(for: candidateWords.joined(separator: " "))?.key == groupKey {
+                return candidateWords.first!.startIndex
+            }
+        }
+        return nil
     }
 
     /// Where `phrase`'s match against `canonicalTarget` ends, or `nil` if it
@@ -552,13 +791,60 @@ public enum StepAmountResolver {
         return nil
     }
 
+    /// Where a bundle member is first named bare in `text` — the
+    /// counterpart of `firstBareNameEnd` for the tier that matches through
+    /// the catalog's variant relation instead of by name. Same walk over
+    /// every word start, same negation rule.
+    private static func firstGroupNameEnd(
+        groupKey: String, in text: String, avoiding: [Range<String.Index>], catalog: IngredientCatalog
+    ) -> String.Index? {
+        var cursor = text.startIndex
+        while cursor < text.endIndex {
+            guard text[cursor].isLetter else {
+                cursor = text.index(after: cursor)
+                continue
+            }
+            let wordStart = cursor
+            let phrase = AmountMentionScanner.namePhrase(after: cursor, in: text)
+            if let end = groupMatchedNameEnd(in: phrase, groupKey: groupKey, catalog: catalog),
+               !avoiding.contains(where: { $0.contains(wordStart) }) {
+                return end
+            }
+            while cursor < text.endIndex, text[cursor].isLetter || text[cursor] == "-" {
+                cursor = text.index(after: cursor)
+            }
+        }
+        return nil
+    }
+
+    /// Where a bare step word first names `pots[potIndex]` as the head of a
+    /// compound — the counterpart of `firstBareNameEnd` for the tier where
+    /// no pot is named outright. Only capitalized words are tried: the
+    /// compound head is a noun, and skipping the lowercase ones keeps a
+    /// verb like "braten" from ever being read as the tail of one.
+    private static func firstCompoundHeadEnd(
+        claimedBy potIndex: Int, pots: [Pot], stepGroup: String?, in text: String,
+        avoiding: [Range<String.Index>], catalog: IngredientCatalog
+    ) -> String.Index? {
+        for match in text.matches(of: /[\p{L}][\p{L}\-]*/) {
+            let word = text[match.range]
+            guard word.first?.isUppercase == true,
+                  !avoiding.contains(where: { $0.contains(match.range.lowerBound) })
+            else { continue }
+            if compoundHeadPot(claiming: word, pots: pots, stepGroup: stepGroup, catalog: catalog) == potIndex {
+                return match.range.upperBound
+            }
+        }
+        return nil
+    }
+
     /// Whether `text` already carries a parenthetical right after `index` —
     /// the same shape `buildSegments` writes a resolved amount in.
     ///
     /// A parenthetical that opens with a negation trigger — "Tomate
     /// (abgesehen vom Öl)" — is an exclusion clause, not an answered
     /// amount, so it does not count. See `negationTriggerWords`.
-    private static func isAlreadyAnswered(at index: String.Index, in text: String) -> Bool {
+    fileprivate static func isAlreadyAnswered(at index: String.Index, in text: String) -> Bool {
         var cursor = index
         while cursor < text.endIndex, text[cursor] == " " { cursor = text.index(after: cursor) }
         guard cursor < text.endIndex, text[cursor] == "(" else { return false }
@@ -603,15 +889,44 @@ public enum StepAmountResolver {
     /// property: `Regex` is not `Sendable`, so it cannot live in static
     /// state under strict concurrency — the same reason `AmountMentionScanner`
     /// builds its patterns fresh each time.
+    /// A clause ends with the noun it excludes, not at the next comma —
+    /// "ohne Fett Pinienkerne anrösten" only excludes the fat, and running
+    /// to the comma would swallow the Pinienkerne with it. The excluded
+    /// noun is the first capitalized word after the trigger that is not a
+    /// unit ("bis auf 2 EL Wasser" must reach past the EL to the Wasser),
+    /// and a conjunction right after it hands the clause on to the next
+    /// one ("abgesehen vom Olivenöl und paar Pinienkerne" excludes both).
+    /// Clauses that never name a noun ("ohne umzurühren") keep the old
+    /// punctuation end.
     fileprivate static func negatedRanges(in text: String) -> [Range<String.Index>] {
         let negationTriggers = /(?i)(?:abgesehen vo[nm]|außer|ausgenommen|bis auf|ohne)\s+/
         let enders: Set<Character> = [",", ".", ";", ")", "\n"]
+        let conjunctions: Set<String> = ["und", "oder", "sowie"]
         return text.matches(of: negationTriggers).map { match in
             var end = match.range.upperBound
             while end < text.endIndex, !enders.contains(text[end]) {
                 end = text.index(after: end)
             }
-            return match.range.lowerBound..<end
+            let clause = text[match.range.upperBound..<end]
+
+            func isNoun(_ word: Substring) -> Bool {
+                guard word.first?.isUppercase == true else { return false }
+                guard case .custom = IngredientUnit(symbol: String(word)) else { return false }
+                return true
+            }
+
+            var nounEnd: String.Index?
+            for wordMatch in clause.matches(of: /[\p{L}][\p{L}\-]*/) {
+                let word = clause[wordMatch.range]
+                if nounEnd == nil {
+                    if isNoun(word) { nounEnd = wordMatch.range.upperBound }
+                } else if conjunctions.contains(word.lowercased()) {
+                    nounEnd = nil
+                } else {
+                    break
+                }
+            }
+            return match.range.lowerBound..<(nounEnd ?? end)
         }
     }
 
@@ -625,11 +940,24 @@ public enum StepAmountResolver {
     /// since it only reads "amount name" order ("40 ml Olivenöl"), not
     /// "name (amount)". Without this check, the fallback chip would repeat
     /// what the sentence already says.
-    fileprivate static func mentionedAsBareName(_ name: String, in text: String, negated: [Range<String.Index>]) -> Bool {
+    /// `requiringWordStart` is set for a head-noun search: a full written
+    /// name matching mid-word was always unlikely, but a bare head like
+    /// "Fett" would otherwise hit inside "einfetten". `requiringWordEnd`
+    /// joins it for the shortest names — "Öl" and "Tee" must stand alone,
+    /// or they hit inside "Ölivenöl"-style compounds and "Teelöffel".
+    fileprivate static func mentionedAsBareName(
+        _ name: String, in text: String, negated: [Range<String.Index>],
+        requiringWordStart: Bool = false, requiringWordEnd: Bool = false
+    ) -> Bool {
         var searchStart = text.startIndex
         while searchStart < text.endIndex,
               let found = text.range(of: name, options: [.caseInsensitive], range: searchStart..<text.endIndex) {
-            if !negated.contains(where: { $0.overlaps(found) }), !isAlreadyAnswered(at: found.upperBound, in: text) {
+            let startsWord = found.lowerBound == text.startIndex
+                || !text[text.index(before: found.lowerBound)].isLetter
+            let endsWord = found.upperBound == text.endIndex
+                || !text[found.upperBound].isLetter
+            if !requiringWordStart || startsWord, !requiringWordEnd || endsWord,
+               !negated.contains(where: { $0.overlaps(found) }), !isAlreadyAnswered(at: found.upperBound, in: text) {
                 return true
             }
             searchStart = found.upperBound
@@ -848,11 +1176,16 @@ extension Recipe {
     /// it — a guess rather than a fact, but right often enough to be useful
     /// and wrong in a way that is obvious to the cook, who can see the full
     /// list one swipe away.
-    public func ingredients(mentionedIn step: RecipeStep, scaledToServings targetServings: Int? = nil) -> [RecipeIngredient] {
+    public func ingredients(
+        mentionedIn step: RecipeStep,
+        scaledToServings targetServings: Int? = nil,
+        catalog: IngredientCatalog = .bundled
+    ) -> [RecipeIngredient] {
         ingredients(
             mentionedIn: step,
-            resolution: StepAmountResolver.resolve(self, toServings: targetServings ?? servings),
-            scaledToServings: targetServings
+            resolution: StepAmountResolver.resolve(self, toServings: targetServings ?? servings, catalog: catalog),
+            scaledToServings: targetServings,
+            catalog: catalog
         )
     }
 
@@ -863,15 +1196,96 @@ extension Recipe {
     public func ingredients(
         mentionedIn step: RecipeStep,
         resolution: StepAmountResolver.Resolution,
-        scaledToServings targetServings: Int? = nil
+        scaledToServings targetServings: Int? = nil,
+        catalog: IngredientCatalog = .bundled
     ) -> [RecipeIngredient] {
         let all = scaledIngredients(toServings: targetServings ?? servings)
         let negated = StepAmountResolver.negatedRanges(in: step.text)
+        // The names other lines own outright, so a head noun never stands
+        // in where the list also says exactly that: with "rote Zwiebel"
+        // and "Zwiebeln" both listed, a bare "Zwiebel" means the latter.
+        let ownedKeys = Set(all.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) })
+
+        // One walk over the step's capitalized words feeds two tiers the
+        // substring search cannot serve. The catalog tier: a word whose
+        // canonical entry is a line's — "Brühe" is an alias of
+        // "Gemüsebrühe", "Zwiebel" the singular of "Zwiebeln" — matches
+        // that line the way the resolver's own name matching always has.
+        // The compound tier, mirroring `compoundHeadPot` at line level: a
+        // word nothing owns outright, ending exactly one line's host word
+        // — "Tofu" reaching the line that says "Räuchertofu". Both are
+        // collected up front because ownership and uniqueness are
+        // questions about all lines at once, not about one at a time.
+        let ownersByCanonical = Dictionary(grouping: all) {
+            IngredientCatalog.normalize(catalog.canonicalName(for: $0.name))
+        }
+        let bundles: [(id: UUID, groupKey: String, canonical: String)] = all.compactMap { ingredient in
+            guard let group = catalog.groupIngredient(for: ingredient.name) else { return nil }
+            return (ingredient.id, group.key, IngredientCatalog.normalize(catalog.canonicalName(for: ingredient.name)))
+        }
+        let hosts: [(id: UUID, host: String)] = all.compactMap { ingredient in
+            let name = ingredient.name.trimmingCharacters(in: .whitespaces)
+            if let head = StepAmountResolver.headWord(of: name) {
+                return (ingredient.id, IngredientCatalog.normalize(catalog.canonicalName(for: head)))
+            }
+            guard !name.contains(" ") else { return nil }
+            return (ingredient.id, IngredientCatalog.normalize(catalog.canonicalName(for: name)))
+        }
+        var wordMatched = Set<UUID>()
+        for match in step.text.matches(of: /[\p{L}][\p{L}\-]*/) {
+            let word = step.text[match.range]
+            guard word.first?.isUppercase == true,
+                  !negated.contains(where: { $0.contains(match.range.lowerBound) }),
+                  !StepAmountResolver.isAlreadyAnswered(at: match.range.upperBound, in: step.text)
+            else { continue }
+            if let owners = ownersByCanonical[IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))] {
+                wordMatched.formUnion(owners.map(\.id))
+                continue
+            }
+            // The bundle tier: the word names the parent (or a sibling) of
+            // exactly one listed variant — "Tomaten" reaching the line
+            // that says "Kirschtomaten". Two distinct variants of the same
+            // bundle, and the word means neither.
+            if let wordGroup = catalog.groupIngredient(for: String(word))?.key {
+                let members = bundles.filter { $0.groupKey == wordGroup }
+                if !members.isEmpty {
+                    if Set(members.map(\.canonical)).count == 1 {
+                        for member in members { wordMatched.insert(member.id) }
+                    }
+                    continue
+                }
+            }
+            // Head direction before stem direction, and an ambiguous head
+            // never falls through to a stem — same order, same reasons as
+            // `compoundHeadPot`.
+            var claimants = hosts.filter { StepAmountResolver.isCompoundHead(word, of: $0.host, catalog: catalog) }
+            if claimants.isEmpty {
+                claimants = hosts.filter { StepAmountResolver.isCompoundStem(word, of: $0.host, catalog: catalog) }
+            }
+            // Two lines spelling the same host are one supply, not an
+            // ambiguity — the pot dedupe below folds them back together.
+            if Set(claimants.map(\.host)).count == 1 {
+                for claimant in claimants { wordMatched.insert(claimant.id) }
+            }
+        }
+
         let matching = all.filter { ingredient in
             guard !resolution.mentionsAmount(of: ingredient, in: step) else { return false }
             let name = ingredient.name.trimmingCharacters(in: .whitespaces)
-            guard name.count >= 3 else { return false }
-            return StepAmountResolver.mentionedAsBareName(name, in: step.text, negated: negated)
+            guard name.count >= 2 else { return false }
+            // The shortest names must stand alone as a word — "Öl" and
+            // "Tee" would otherwise hit inside "Kokosöl" and "Teelöffel".
+            let standalone = name.count < 4
+            if StepAmountResolver.mentionedAsBareName(
+                name, in: step.text, negated: negated,
+                requiringWordStart: standalone, requiringWordEnd: standalone
+            ) { return true }
+            if let head = StepAmountResolver.headWord(of: name),
+               !ownedKeys.contains(IngredientCatalog.normalize(catalog.canonicalName(for: head))),
+               StepAmountResolver.mentionedAsBareName(head, in: step.text, negated: negated, requiringWordStart: true) {
+                return true
+            }
+            return wordMatched.contains(ingredient.id)
         }
 
         // Lines sharing a pot are one supply, and this list is answering
