@@ -9,10 +9,13 @@ struct RecipeListView: View {
     /// same commands and cannot see this view's state.
     @Environment(LibraryCommands.self) private var commands
 
-    @State private var selectedRecipeID: Recipe.ID?
+    @State private var selected: RecipeListSelection?
     /// Only the phone offers this: the Mac has the Settings scene behind
     /// Cmd-, and would otherwise reach the same form twice.
     @State private var isShowingSettings = false
+    /// The recipe a second version is being made of, while the sheet asking
+    /// for its name is up.
+    @State private var addingVariantTo: Recipe?
 
     var body: some View {
         @Bindable var library = library
@@ -36,7 +39,14 @@ struct RecipeListView: View {
             .sheet(item: $library.editing) { recipe in
                 RecipeEditorView(recipe: recipe) { edited in
                     await library.save(edited)
-                    selectedRecipeID = edited.id
+                    selected = .recipe(edited.id)
+                }
+            }
+            .sheet(item: $addingVariantTo) { recipe in
+                AddVariantSheet(recipe: recipe) { variant in
+                    // Straight to the new one: it is a copy of what was on
+                    // screen a moment ago, and the point is to change it.
+                    selected = .recipe(variant.id)
                 }
             }
             // A draft the cook walked away from takes its pictures with it.
@@ -67,9 +77,16 @@ struct RecipeListView: View {
             list
                 // Without this, tapping a row selected it and opened nothing:
                 // a list with a selection but no destination goes nowhere.
-                .navigationDestination(item: $selectedRecipeID) { id in
-                    if let recipe = library.recipes.first(where: { $0.id == id }) {
-                        RecipeDetailView(recipe: recipe)
+                .navigationDestination(item: $selected) { target in
+                    switch target {
+                    case .recipe(let id):
+                        if let recipe = library.recipes.first(where: { $0.id == id }) {
+                            RecipeDetailView(recipe: recipe)
+                        }
+                    case .group(let id):
+                        if let group = library.variantGroups[id] {
+                            VariantGroupView(group: group)
+                        }
                     }
                 }
         }
@@ -80,16 +97,38 @@ struct RecipeListView: View {
     private var list: some View {
         @Bindable var library = library
 
-        List(selection: $selectedRecipeID) {
+        List(selection: $selected) {
             filterBar
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
                 .listRowSeparator(.hidden)
                 .listRowBackground(Color.clear)
 
-            ForEach(library.recipes) { recipe in
-                RecipeRow(recipe: recipe)
-                    .tag(recipe.id)
-                    .contextMenu { contextActions(for: recipe) }
+            // Groups are always open. A disclosure triangle would put the
+            // versions of a dish behind a tap and make the list lie about how
+            // much is in it; a per-group collapsed state can be added later
+            // without touching anything stored.
+            ForEach(library.entries) { entry in
+                switch entry {
+                case .recipe(let recipe):
+                    row(for: recipe)
+                case .group(let group, let members):
+                    VariantGroupRow(
+                        group: group,
+                        shown: members.count,
+                        total: library.variantMemberCounts[group.id] ?? members.count
+                    )
+                    .tag(RecipeListSelection.group(group.id))
+                    .contextMenu { groupActions(for: group) }
+                    ForEach(members) { member in
+                        row(for: member)
+                            // Indented rather than in a `Section`: a section
+                            // header on the Mac's sidebar list brings a
+                            // collapse behaviour with it that this list does
+                            // not want, and both kinds of row have to be
+                            // selectable the same way.
+                            .padding(.leading, 16)
+                    }
+                }
             }
         }
         // Without this the selected row is a solid slab of accent across the
@@ -127,30 +166,52 @@ struct RecipeListView: View {
         // The selected row is what the detail column shows. Kept in sync
         // rather than held there, because the list wants an id for its
         // highlight and the column wants the recipe.
-        .onChange(of: selectedRecipeID) {
-            selection.recipe = selectedRecipe
+        .onChange(of: selected) {
+            selection.target = selectedTarget
             // A plain pick from the list means "as written" — a leftover
             // scaling from whatever the meal plan last opened must not
             // follow it here.
             selection.plannedEntryID = nil
         }
         .onChange(of: library.recipes) {
-            if selectedRecipeID != nil { selection.recipe = selectedRecipe }
+            if selected != nil { selection.target = selectedTarget }
         }
-        #if os(macOS)
-        // The meal plan can also set `selection.recipe` — directly, since it
-        // has its own rows to highlight and no use for this list's id. That
-        // leaves this list's own selection stale, so a row picked here after
-        // a plan-opened recipe would silently no-op instead of switching:
-        // `selectedRecipeID` would already equal it from some earlier visit.
-        .onChange(of: selection.recipe?.id) { _, newValue in
-            if selectedRecipeID != newValue { selectedRecipeID = newValue }
+        // Whoever else sets the selection gets this list to follow. On the
+        // Mac that is the meal plan and the comparison page, which have
+        // their own rows to highlight and no use for this list's id — and
+        // it also keeps this list's own selection from going stale, so that
+        // a row picked here after a plan-opened recipe switches instead of
+        // silently matching what `selected` already held. On the phone it is
+        // the one way to change what is pushed from inside the pushed page:
+        // "Variante anlegen" opens the new version by naming it here.
+        .onChange(of: selection.target) { _, newValue in
+            let row: RecipeListSelection? = switch newValue {
+            case .recipe(let recipe): .recipe(recipe.id)
+            case .group(let group): .group(group.id)
+            case nil: nil
+            }
+            if selected != row { selected = row }
         }
-        #endif
     }
 
-    private var selectedRecipe: Recipe? {
-        library.recipes.first { $0.id == selectedRecipeID }
+    /// One recipe's row, whether it stands on its own or under a group.
+    private func row(for recipe: Recipe) -> some View {
+        RecipeRow(recipe: recipe)
+            .tag(RecipeListSelection.recipe(recipe.id))
+            .contextMenu { contextActions(for: recipe) }
+    }
+
+    /// What the selected row stands for, resolved against what the list
+    /// currently holds.
+    private var selectedTarget: RecipeSelection.Target? {
+        switch selected {
+        case .recipe(let id):
+            library.recipes.first { $0.id == id }.map(RecipeSelection.Target.recipe)
+        case .group(let id):
+            library.variantGroups[id].map(RecipeSelection.Target.group)
+        case nil:
+            nil
+        }
     }
 
     @ViewBuilder
@@ -291,9 +352,34 @@ struct RecipeListView: View {
         ) {
             Task { await library.toggleWantToCook(recipe) }
         }
+        Button("Variante anlegen", systemImage: "square.on.square") {
+            addingVariantTo = recipe
+        }
         Divider()
         Button("Löschen", systemImage: "trash", role: .destructive) {
             Task { await library.delete(recipe) }
         }
     }
+
+    /// A group can be renamed and taken apart, and that is the whole of it —
+    /// everything else on the menu above needs a recipe.
+    @ViewBuilder
+    private func groupActions(for group: VariantGroup) -> some View {
+        Button("Vergleichen", systemImage: "square.on.square") {
+            selected = .group(group.id)
+        }
+        Button("Gruppe auflösen", systemImage: "square.on.square.slash") {
+            Task { await library.dissolveVariantGroup(group.id) }
+        }
+    }
+}
+
+/// What a row in the library stands for.
+///
+/// The list holds ids rather than the things themselves, the way it always
+/// did: a row wants something small and stable to highlight, and the detail
+/// column wants the recipe or group those ids name.
+enum RecipeListSelection: Hashable {
+    case recipe(Recipe.ID)
+    case group(VariantGroup.ID)
 }

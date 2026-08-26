@@ -91,6 +91,7 @@ public enum MelaImport: RecipeImportFormat {
         let cook = RecipeFieldParsing.seconds(in: string(object["cookTime"]))
         let total = RecipeFieldParsing.seconds(in: string(object["totalTime"]))
 
+        let group = variantGroup(from: object)
         let recipe = Recipe(
             // Derived from Mela's own id, so importing the same library twice
             // updates the recipes instead of doubling them.
@@ -110,10 +111,30 @@ public enum MelaImport: RecipeImportFormat {
             // Mela usually records nothing but a total, and that is a
             // reading of its own — not cooking time by another name.
             totalTimeSeconds: total,
+            variantGroupID: group?.id,
             createdAt: date(object["date"]) ?? .nowInSyncPrecision,
             updatedAt: .nowInSyncPrecision
         )
-        return ImportedRecipe(recipe: recipe, images: images(object["images"]))
+        return ImportedRecipe(
+            recipe: recipe,
+            images: images(object["images"]),
+            variantGroup: group
+        )
+    }
+
+    /// The group this file says its recipe belongs to — Sous's own key, and
+    /// absent from anything Mela wrote.
+    ///
+    /// A group without a readable id is no group: inventing one here would
+    /// put every recipe of a broken import into a group of its own.
+    private static func variantGroup(from object: [String: Any]) -> VariantGroup? {
+        guard let raw = object["sousVariantGroup"] as? [String: Any],
+              let id = nonEmpty(string(raw["id"])).flatMap(UUID.init(uuidString:))
+        else { return nil }
+        let title = nonEmpty(string(raw["title"]))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let title, !title.isEmpty else { return nil }
+        return VariantGroup(id: id, title: title)
     }
 
     private static func identifier(for object: [String: Any]) -> UUID {

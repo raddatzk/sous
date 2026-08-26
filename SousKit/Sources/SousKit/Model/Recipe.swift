@@ -44,6 +44,15 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// ``RecipeImageStore`` for why they live outside the aggregate.
     public var imageIDs: [UUID]
 
+    /// The ``VariantGroup`` this recipe is one version of, if it is.
+    ///
+    /// On the member rather than as a list on the group, so that dissolving
+    /// a group is clearing a field and nothing above has to keep two sides
+    /// of a relation in step. A recipe is a full recipe either way: nothing
+    /// about it is inherited from its siblings, and the group has no say in
+    /// what it contains.
+    public var variantGroupID: UUID?
+
     /// The user who created it. Optional until user management exists.
     public var createdBy: UUID?
     public var createdAt: Date
@@ -69,6 +78,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         cookTimeSeconds: Int? = nil,
         totalTimeSeconds: Int? = nil,
         imageIDs: [UUID] = [],
+        variantGroupID: UUID? = nil,
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
         updatedAt: Date = .nowInSyncPrecision,
@@ -89,6 +99,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.cookTimeSeconds = cookTimeSeconds
         self.totalTimeSeconds = totalTimeSeconds
         self.imageIDs = imageIDs
+        self.variantGroupID = variantGroupID
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.updatedAt = updatedAt

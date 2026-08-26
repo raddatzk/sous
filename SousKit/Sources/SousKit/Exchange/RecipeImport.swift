@@ -9,10 +9,19 @@ public struct ImportedRecipe: Sendable, Hashable {
     public var recipe: Recipe
     /// Pictures in the order the file listed them, still as they were found.
     public var images: [Data]
+    /// The variant group the file says this recipe is one version of.
+    ///
+    /// The group travels with its members rather than as an entry of its
+    /// own: an archive is a bag of recipe files, and a group that had to be
+    /// read before them would be a second kind of entry every other reader
+    /// of this format would trip over. Every member repeats the same id and
+    /// title, and the import puts the group back together from them.
+    public var variantGroup: VariantGroup?
 
-    public init(recipe: Recipe, images: [Data] = []) {
+    public init(recipe: Recipe, images: [Data] = [], variantGroup: VariantGroup? = nil) {
         self.recipe = recipe
         self.images = images
+        self.variantGroup = variantGroup
     }
 }
 

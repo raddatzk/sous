@@ -160,9 +160,15 @@ struct RootView: View {
             // to shoulder with "Heute". The recipe rows want the room too.
             .navigationSplitViewColumnWidth(min: 300, ideal: 380, max: 520)
         } detail: {
-            if let recipe = selection.recipe {
+            switch selection.target {
+            case .recipe(let recipe):
                 RecipeDetailView(recipe: recipe, plannedEntryID: selection.plannedEntryID)
-            } else {
+            // The one thing in this column that is not a recipe. It cannot be
+            // planned, bought or cooked from here — all three need a version
+            // of the dish, and the comparison is where one is picked.
+            case .group(let group):
+                VariantGroupView(group: group)
+            case nil:
                 ContentUnavailableView(
                     "Kein Rezept ausgewählt",
                     systemImage: "fork.knife",
