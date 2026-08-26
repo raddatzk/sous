@@ -29,6 +29,7 @@ struct VariantGroupView: View {
     @State private var isRenaming = false
     @State private var newTitle = ""
     @State private var isConfirmingDissolve = false
+    @State private var isAddingMember = false
 
     /// The width of one column. Wide enough for "Chili vegetarisch" on two
     /// lines and an amount beside a unit, narrow enough that two of them and
@@ -70,6 +71,9 @@ struct VariantGroupView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar { groupToolbar }
+        .sheet(isPresented: $isAddingMember) {
+            VariantJoinPicker(target: .group(group))
+        }
         .task(id: group.id) { await load() }
         // The members are recipes like any other and can be edited, deleted
         // or restored from anywhere else in the app while this page is up.
@@ -244,6 +248,12 @@ struct VariantGroupView: View {
     private var groupToolbar: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Menu("Mehr", systemImage: "ellipsis.circle") {
+                // A recipe that was written separately and turns out to be
+                // another version of this dish. Nothing is copied — it keeps
+                // everything it had and gains a sibling.
+                Button("Rezept aufnehmen", systemImage: "rectangle.stack.badge.plus") {
+                    isAddingMember = true
+                }
                 Button("Umbenennen", systemImage: "pencil") {
                     newTitle = group.title
                     isRenaming = true

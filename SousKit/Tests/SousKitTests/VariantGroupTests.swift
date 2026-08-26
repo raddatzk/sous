@@ -191,3 +191,49 @@ struct VariantCopyTests {
         #expect(!variant.wantToCook)
     }
 }
+
+@Suite("What to call a group")
+struct VariantGroupTitleTests {
+    @Test("Two recipes that share a name are that dish")
+    func sharedPrefix() {
+        let plain = Recipe(title: "Ajvar-Suppe")
+        let vegan = Recipe(title: "Ajvar-Suppe vegan")
+
+        #expect(VariantGroup.suggestedTitle(for: [plain, vegan]) == "Ajvar-Suppe")
+    }
+
+    @Test("A prefix that stops mid-word is a letter count, not a name")
+    func midWordPrefix() {
+        // "Chili" is where the letters agree and not what either dish is
+        // called, so the first title stands in rather than a fragment.
+        let chili = Recipe(title: "Chili con Carne")
+        let prawns = Recipe(title: "Chiligarnelen")
+
+        #expect(VariantGroup.suggestedTitle(for: [chili, prawns]) == "Chili con Carne")
+    }
+
+    @Test("Nothing in common falls back to the recipe it started from")
+    func noPrefix() {
+        let chili = Recipe(title: "Chili con Carne")
+        let stew = Recipe(title: "Linseneintopf mit Chili")
+
+        #expect(VariantGroup.suggestedTitle(for: [chili, stew]) == "Chili con Carne")
+    }
+
+    @Test("A word boundary counts wherever a word can end")
+    func boundaries() {
+        #expect(
+            VariantGroup.suggestedTitle(for: [
+                Recipe(title: "Kartoffelsalat"),
+                Recipe(title: "Kartoffelsalat, schwäbisch"),
+            ]) == "Kartoffelsalat"
+        )
+        // Case does not decide it: the shared name is the shared name.
+        #expect(
+            VariantGroup.suggestedTitle(for: [
+                Recipe(title: "Ajvar-Suppe"),
+                Recipe(title: "ajvar-suppe scharf"),
+            ]) == "Ajvar-Suppe"
+        )
+    }
+}

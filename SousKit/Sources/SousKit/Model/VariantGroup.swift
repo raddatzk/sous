@@ -38,6 +38,55 @@ public struct VariantGroup: Identifiable, Codable, Hashable, Sendable {
     }
 }
 
+extension VariantGroup {
+    /// What to call the dish two recipes are versions of.
+    ///
+    /// The name they already share, where they share one: "Ajvar-Suppe" and
+    /// "Ajvar-Suppe vegan" are both an Ajvar-Suppe, and asking the cook to
+    /// type that out again would be asking them to repeat themselves.
+    ///
+    /// Only up to a word boundary, and only from three characters on. The
+    /// common prefix of "Chili con Carne" and "Chiligarnelen" is "Chili" by
+    /// letters and nothing by meaning, and the VISION's own example —
+    /// "Chili con Carne" against "Linseneintopf mit Chili" — has no prefix at
+    /// all. Where nothing survives those two rules the first recipe's title
+    /// stands in, which is always a name even when it is not yet the right
+    /// one. A suggestion either way: it is prefilled, not decided.
+    public static func suggestedTitle(for recipes: [Recipe]) -> String {
+        guard let first = recipes.first else { return "" }
+        guard recipes.count > 1 else { return first.title }
+
+        var prefix = first.title
+        for recipe in recipes.dropFirst() {
+            prefix = String(
+                zip(prefix, recipe.title)
+                    .prefix { $0.lowercased() == $1.lowercased() }
+                    .map(\.0)
+            )
+            if prefix.isEmpty { break }
+        }
+
+        // A prefix that stops mid-word is a letter count, not a name. It has
+        // to end where a word ends in every title it came from, which is
+        // either at a separator in the longer text or at the whole of it.
+        while let last = prefix.last {
+            let endsCleanly = recipes.allSatisfy { recipe in
+                recipe.title.count == prefix.count
+                    || recipe.title.dropFirst(prefix.count).first.map(Self.isSeparator) == true
+            }
+            if endsCleanly, !Self.isSeparator(last) { break }
+            prefix.removeLast()
+        }
+
+        let trimmed = prefix.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.count >= 3 ? trimmed : first.title
+    }
+
+    private static func isSeparator(_ character: Character) -> Bool {
+        character.isWhitespace || character == "-" || character == "," || character == "("
+    }
+}
+
 extension Recipe {
     /// A second version of this recipe, as a full recipe of its own.
     ///

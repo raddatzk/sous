@@ -81,11 +81,7 @@ struct AddVariantSheet: View {
                 }
             }
         }
-        // Room for two short fields and a sentence about each. On the Mac a
-        // sheet has no size of its own to fall back on.
-        #if os(macOS)
-        .frame(minWidth: 420, minHeight: 340)
-        #endif
+        .sousSheetSizing(.form)
     }
 
     private var canCreate: Bool {

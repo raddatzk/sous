@@ -253,3 +253,95 @@ struct VariantGroupLibraryTests {
         #expect(fresh.variantGroups[variant.variantGroupID!]?.title == "Chili")
     }
 }
+
+@MainActor
+@Suite("Grouping recipes that already exist")
+struct VariantJoinTests {
+    private func makeLibrary() throws -> RecipeLibrary {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        return RecipeLibrary(
+            store: SwiftDataRecipeStore(modelContainer: container),
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        )
+    }
+
+    @Test("Two recipes written separately become versions of one dish")
+    func joinTwo() async throws {
+        let library = try makeLibrary()
+        let plain = Recipe(title: "Ajvar-Suppe", ingredientsText: "200 g Sahne")
+        let vegan = Recipe(title: "Ajvar-Suppe vegan", ingredientsText: "200 g Hafercreme")
+        await library.save(plain)
+        await library.save(vegan)
+
+        let group = try #require(await library.groupAsVariants(plain, vegan))
+
+        // Named after what they already had in common, and nothing was
+        // copied: both recipes are exactly the text they were.
+        #expect(group.title == "Ajvar-Suppe")
+        #expect(await library.recipe(id: plain.id)?.ingredientsText == "200 g Sahne")
+        #expect(await library.recipe(id: vegan.id)?.ingredientsText == "200 g Hafercreme")
+        #expect(library.entries.count == 1)
+        #expect(library.entries.first?.recipes.count == 2)
+    }
+
+    @Test("A recipe that already belongs somewhere is not taken")
+    func refusesToMergeGroups() async throws {
+        let library = try makeLibrary()
+        let chili = Recipe(title: "Chili con Carne")
+        await library.save(chili)
+        let variant = try #require(
+            await library.addVariant(of: chili, title: "Chili vegetarisch", groupTitle: "Chili")
+        )
+        let soup = Recipe(title: "Ajvar-Suppe")
+        await library.save(soup)
+
+        // Merging would have to throw one of the two titles away, so it is
+        // refused rather than done quietly.
+        #expect(await library.groupAsVariants(soup, variant) == nil)
+        #expect(await library.recipe(id: soup.id)?.variantGroupID == nil)
+        #expect(library.variantGroups.count == 1)
+    }
+
+    @Test("An existing group can take another recipe in")
+    func addsToExistingGroup() async throws {
+        let library = try makeLibrary()
+        let plain = Recipe(title: "Ajvar-Suppe")
+        let vegan = Recipe(title: "Ajvar-Suppe vegan")
+        await library.save(plain)
+        await library.save(vegan)
+        let group = try #require(await library.groupAsVariants(plain, vegan))
+
+        let hot = Recipe(title: "Ajvar-Suppe scharf")
+        await library.save(hot)
+        #expect(await library.addToVariantGroup(group.id, recipe: hot))
+
+        #expect(library.variantMemberCounts[group.id] == 3)
+        #expect(await library.variantMembers(of: group.id).map(\.title) == [
+            "Ajvar-Suppe", "Ajvar-Suppe vegan", "Ajvar-Suppe scharf",
+        ])
+    }
+
+    @Test("One member can leave without taking the others with it")
+    func leaving() async throws {
+        let library = try makeLibrary()
+        let plain = Recipe(title: "Ajvar-Suppe")
+        let vegan = Recipe(title: "Ajvar-Suppe vegan")
+        let hot = Recipe(title: "Ajvar-Suppe scharf")
+        for recipe in [plain, vegan, hot] { await library.save(recipe) }
+        let group = try #require(await library.groupAsVariants(plain, vegan))
+        _ = await library.addToVariantGroup(group.id, recipe: hot)
+
+        await library.removeFromVariantGroup(hot)
+        #expect(library.variantMemberCounts[group.id] == 2)
+        #expect(await library.recipe(id: hot.id)?.variantGroupID == nil)
+
+        // Down to one, and this time nothing is coming back from the trash —
+        // so the group goes rather than waiting for a sibling.
+        await library.removeFromVariantGroup(vegan)
+        #expect(library.variantGroups.isEmpty)
+        #expect(await library.variantGroup(id: group.id) == nil)
+        #expect(await library.recipe(id: plain.id)?.variantGroupID == nil)
+    }
+}

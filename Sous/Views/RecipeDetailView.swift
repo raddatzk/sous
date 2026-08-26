@@ -37,6 +37,7 @@ struct RecipeDetailView: View {
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
     @State private var isAddingVariant = false
+    @State private var isJoiningVariants = false
     /// Whether the page's own title has scrolled up behind the navigation
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
@@ -246,6 +247,11 @@ struct RecipeDetailView: View {
                             Button("Fertig") { linkedRecipe = nil }
                         }
                     }
+            }
+        }
+        .sheet(isPresented: $isJoiningVariants) {
+            VariantJoinPicker(target: .recipe(recipe)) { group in
+                selection.target = .group(group)
             }
         }
         .sheet(isPresented: $isAddingVariant) {
@@ -1162,6 +1168,18 @@ struct RecipeDetailView: View {
                 if !recipe.isDeleted {
                     Button("Variante anlegen", systemImage: "square.on.square") {
                         isAddingVariant = true
+                    }
+                    if variantGroup != nil {
+                        Button("Aus der Gruppe lösen", systemImage: "square.on.square.slash") {
+                            Task { await library.removeFromVariantGroup(recipe) }
+                        }
+                    } else {
+                        Button(
+                            "Mit einem Rezept zusammenfassen",
+                            systemImage: "rectangle.stack.badge.plus"
+                        ) {
+                            isJoiningVariants = true
+                        }
                     }
                 }
                 Button("Exportieren", systemImage: "square.and.arrow.up") {
