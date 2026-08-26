@@ -191,6 +191,7 @@ extension ModelContainer {
             StoredCatalogIngredient.self, StoredRecipeEnrichment.self, StoredAmountReview.self,
             StoredRecipeNutrition.self, StoredIngredientReview.self,
             StoredIngredientAliasOverride.self, StoredCatalogNutrition.self,
+            StoredIngredientVocabulary.self,
             configurations: configuration
         )
     }

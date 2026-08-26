@@ -36,10 +36,20 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// `curated` for a word a person wrote down, `bls` for one that is a BLS
     /// name itself.
     public var origin: String
+    /// The word this one is a *variety* of — "Cocktailtomate" of "Tomate".
+    ///
+    /// Curated, never guessed at run time: a spelling and a variety look the
+    /// same from the outside ("Cocktailtomaten" could be either), and the
+    /// difference decides whether the shopping list may add two lines up. The
+    /// aliases stay what they always were — other ways of writing *this*
+    /// word — and the varieties that were hiding among them are their own
+    /// words now, with a parent.
+    public var parent: String?
 
     public init(
         word: String, aliases: [String] = [], category: IngredientCategory,
-        targets: [SynonymTarget] = [], candidates: [String] = [], origin: String = "curated"
+        targets: [SynonymTarget] = [], candidates: [String] = [],
+        origin: String = "curated", parent: String? = nil
     ) {
         self.word = word
         self.aliases = aliases
@@ -47,6 +57,19 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         self.targets = targets
         self.candidates = candidates
         self.origin = origin
+        self.parent = parent
+    }
+
+    /// Whether `target` is this word's own row rather than a mapping onto
+    /// someone else's — the word is a BLS name and the row is the one it
+    /// names, at full weight.
+    ///
+    /// This is the whole difference between "the recipe wrote the catalog's
+    /// word" (nothing to confirm) and "a kitchen word was mapped onto a
+    /// catalog row" (exactly what the cook confirms). See
+    /// `NutritionCatalog.make`.
+    public func isCatalogsOwnName(for target: SynonymTarget) -> Bool {
+        origin == "bls" && target.weight >= 1
     }
 
     /// The row this word means in `state` — the heaviest target, ties going to
@@ -114,7 +137,9 @@ public struct SynonymTable: Sendable {
     /// which is what `IngredientCatalog` is built from.
     public var catalogIngredients: [CatalogIngredient] {
         entries.map {
-            CatalogIngredient(name: $0.word, aliases: $0.aliases, category: $0.category)
+            CatalogIngredient(
+                name: $0.word, aliases: $0.aliases, category: $0.category, parentName: $0.parent
+            )
         }
     }
 }

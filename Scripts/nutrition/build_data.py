@@ -19,8 +19,9 @@ Inputs, all in this directory and all hand-curated except the workbook:
 
   - the xlsx (not in the repo, see README)
   - `group_codes.json`  which BLS letters are in scope and what they are
-  - `kitchen_words.json` the curated kitchen words, aliases, categories -
-                        the words people cook with, which the BLS does not have
+  - `kitchen_words.json` the curated kitchen words, aliases, categories, and
+                        the variety relation - the words people cook with,
+                        which the BLS does not have
   - `curation.json`     kitchen word -> SBLS codes where a name match cannot
                         find them (the handwork a re-run used to destroy)
   - `measures.json`     the measure table
@@ -194,6 +195,14 @@ class SynonymBuilder:
         words: dict[str, dict] = {}
 
         # 2 - the curated words first, so they own their names.
+        #
+        # A variety ("Cocktailtomate") is an ordinary curated word carrying a
+        # `parent`. It used to sit in its parent's alias list, which made it a
+        # *spelling* of the parent - and a spelling is exactly what a shopping
+        # list is allowed to add up. Reclassified here, in the data, rather
+        # than guessed at run time: from the outside "Cocktailtomaten" and
+        # "Tomaten" look the same, and only curation knows which of them names
+        # a different thing on the shelf.
         for entry in self.catalog:
             name = entry["name"]
             words[name] = {
@@ -204,6 +213,8 @@ class SynonymBuilder:
                 "candidates": [],
                 "origin": "curated",
             }
+            if entry.get("parent"):
+                words[name]["parent"] = entry["parent"]
         self.stats["curated_words"] = len(words)
 
         # 3 - the curation's explicit codes.
@@ -294,6 +305,14 @@ class SynonymBuilder:
             entry["targets"].sort(key=lambda t: (t["state"], -t["weight"], t["code"]))
             entry["candidates"] = sorted(set(entry["candidates"]))
 
+        self.stats["variants"] = sorted(
+            w for w, e in words.items() if e.get("parent")
+        )
+        unknown_parents = sorted(
+            e["parent"] for e in words.values()
+            if e.get("parent") and e["parent"] not in words
+        )
+        self.stats["unknown_parents"] = unknown_parents
         self.stats["curated_without_targets"] = sorted(
             w for w, e in words.items() if e["origin"] == "curated" and not e["targets"]
         )
@@ -377,6 +396,9 @@ def main():
           f"{len(stats['curated_without_targets'])}")
     print(f"  {stats['curated_without_targets']}")
     print(f"Prefix candidates attached: {stats['prefix_candidates']}")
+    print(f"Varieties (own word, parent named): {len(stats['variants'])}")
+    if stats["unknown_parents"]:
+        print(f"!! varieties naming a parent that is not a word: {stats['unknown_parents']}")
     print(f"Overlay conflicts (curation wins, BLS row kept as candidate): "
           f"{len(stats['overlay_conflicts'])}")
     for owner, base, state, code in stats["overlay_conflicts"][:15]:

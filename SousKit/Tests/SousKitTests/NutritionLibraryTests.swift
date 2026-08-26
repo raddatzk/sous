@@ -12,7 +12,9 @@ struct NutritionLibraryTests {
         let nutrition = NutritionLibrary(
             store: SwiftDataRecipeNutritionStore(modelContainer: container),
             recipeStore: recipes,
-            nutritionStore: SwiftDataCatalogNutritionStore(modelContainer: container)
+            catalogLibrary: IngredientCatalogLibrary(
+                store: SwiftDataVocabularyStore(modelContainer: container)
+            )
         )
         return (nutrition, recipes)
     }
@@ -115,6 +117,90 @@ struct NutritionLibraryTests {
 
         // Two pieces of 50 g, at 200 kcal/100 g.
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 200)
+    }
+
+    @Test("A shipped mapping counts, provisionally, until the cook confirms it")
+    func confirmingSettlesTheFigure() async throws {
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
+
+        let proposed = try #require(await nutrition.nutrition(for: recipe))
+        // Decision A: the figure is there from the first look, and says of
+        // itself that it rests on a guess.
+        #expect(proposed.perPortion.kcal > 0)
+        #expect(proposed.coverage.unconfirmedCount == 1)
+        #expect(!proposed.coverage.isComplete)
+        // Named as the recipe wrote it — the question belongs to the line
+        // the cook is looking at, even though the answer holds for the word.
+        #expect(proposed.coverage.openIngredientNames == ["Tomaten"])
+
+        await nutrition.confirmProposedBasis(forName: "Tomate")
+
+        let confirmed = try #require(await nutrition.nutrition(for: recipe))
+        // Same number, and now a solid one — the badge's gate opens.
+        #expect(confirmed.perPortion.kcal == proposed.perPortion.kcal)
+        #expect(confirmed.coverage.unconfirmedCount == 0)
+        #expect(confirmed.coverage.isComplete)
+        #expect(confirmed.coverage.openIngredientNames.isEmpty)
+    }
+
+    @Test("Picking another row changes what the figure is based on")
+    func pickingAnotherRow() async throws {
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Toast", servings: 1, ingredientsText: "100 g Schmelzkäse")
+        let before = try #require(await nutrition.nutrition(for: recipe))
+        let candidates = nutrition.candidates(forName: "Schmelzkäse")
+        // The eleven Schmelzkäse rows the source ships, not the one averaged
+        // row the old pipeline made of them. The synonym table knows five of
+        // them; the other six come from searching the catalog's own names,
+        // which is what makes the picker usable for a word curation never
+        // reached.
+        #expect(candidates.count == 11)
+        let other = try #require(candidates.first {
+            $0.code != before.coverage.contributions.first?.basisCode
+        })
+
+        await nutrition.confirmBasis(code: other.code, forName: "Schmelzkäse")
+
+        let after = try #require(await nutrition.nutrition(for: recipe))
+        #expect(after.coverage.contributions.first?.basisCode == other.code)
+        #expect(after.coverage.contributions.first?.isProvisional == false)
+        #expect(after.coverage.isComplete)
+    }
+
+    @Test("Deliberately without stops the asking for good")
+    func deliberatelyWithoutIsRemembered() async throws {
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Bratlinge", servings: 2, ingredientsText: "200 g veganes Hackfleisch")
+        let asking = try #require(await nutrition.nutrition(for: recipe))
+        #expect(asking.coverage.defects.count == 1)
+
+        await nutrition.setDeliberatelyWithoutBasis(forName: "veganes Hackfleisch")
+
+        let settled = try #require(await nutrition.nutrition(for: recipe))
+        #expect(settled.coverage.gaps.first?.reason == .deliberatelyWithout)
+        #expect(settled.coverage.defects.isEmpty)
+        #expect(settled.coverage.openIngredientNames.isEmpty)
+        // Not a badge, though: nothing contributed, so there is no sum to
+        // pass a verdict on.
+        #expect(!settled.coverage.isComplete)
+    }
+
+    @Test("Confirming an ingredient confirms its varieties with it")
+    func varietiesInheritTheConfirmation() async throws {
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten")
+
+        let proposed = try #require(await nutrition.nutrition(for: recipe))
+        #expect(proposed.coverage.unconfirmedCount == 1)
+
+        // The mapping is attached per ingredient so the work amortizes — and
+        // a variety with nothing of its own is that ingredient.
+        await nutrition.confirmProposedBasis(forName: "Tomate")
+
+        let confirmed = try #require(await nutrition.nutrition(for: recipe))
+        #expect(confirmed.coverage.unconfirmedCount == 0)
+        #expect(confirmed.coverage.isComplete)
     }
 
     @Test("An invalid serving count is refused rather than dividing by zero")

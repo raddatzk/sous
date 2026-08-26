@@ -15,7 +15,10 @@ struct IngredientCatalogTests {
     func spellingsResolve() {
         #expect(catalog.canonicalName(for: "Tomaten") == "Tomate")
         #expect(catalog.canonicalName(for: "tomate") == "Tomate")
-        #expect(catalog.canonicalName(for: "Cocktailtomaten") == "Tomate")
+        // A variety is not a spelling: "Cocktailtomaten" resolves to the
+        // variety, which knows what it is a variety of.
+        #expect(catalog.canonicalName(for: "Cocktailtomaten") == "Cocktailtomate")
+        #expect(catalog.groupIngredient(for: "Cocktailtomaten")?.name == "Tomate")
         #expect(catalog.canonicalName(for: "Möhren") == "Karotte")
         #expect(catalog.canonicalName(for: "Eier") == "Ei")
     }

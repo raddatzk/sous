@@ -125,6 +125,9 @@ public enum ShoppingListBuilder {
                 planEntryID: planEntryID,
                 lineID: ingredient.id,
                 originTitle: origin,
+                // The heading takes the catalog's spelling; the demand keeps
+                // the cook's, so a variety is still readable underneath it.
+                writtenName: written,
                 quantity: ingredient.quantity,
                 state: ingredient.state,
                 scales: scales && ingredient.scalesWithServings && ingredient.quantity != nil

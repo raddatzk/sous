@@ -553,6 +553,21 @@
    "origin": "bls"
   },
   {
+   "word": "Apfelessig",
+   "aliases": [],
+   "category": "oils",
+   "targets": [
+    {
+     "code": "R123100",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Essig"
+  },
+  {
    "word": "Apfelkompott/Apfelmark, ungesüßt, Konserve",
    "aliases": [],
    "category": "fruit",
@@ -1612,6 +1627,15 @@
    "origin": "bls"
   },
   {
+   "word": "Bauernbrot",
+   "aliases": [],
+   "category": "bakery",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Brot"
+  },
+  {
    "word": "Bauernleberwurst",
    "aliases": [],
    "category": "meat",
@@ -1673,6 +1697,15 @@
    "origin": "bls"
   },
   {
+   "word": "Belugalinsen",
+   "aliases": [],
+   "category": "legumes",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Linsen"
+  },
+  {
    "word": "Bergkäse",
    "aliases": [
     "Emmentaler",
@@ -1721,6 +1754,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Berglinsen",
+   "aliases": [],
+   "category": "legumes",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Linsen"
   },
   {
    "word": "Berliner Knacker/Berliner Knackwurst",
@@ -2048,6 +2090,24 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Blattsalat",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Salat"
+  },
+  {
+   "word": "Blattspinat",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Spinat"
   },
   {
    "word": "Blaubeere",
@@ -2413,9 +2473,7 @@
   {
    "word": "Bohne",
    "aliases": [
-    "Bohnen",
-    "Grüne Bohnen",
-    "Buschbohnen"
+    "Bohnen"
    ],
    "category": "vegetables",
    "targets": [
@@ -2803,6 +2861,17 @@
    "origin": "bls"
   },
   {
+   "word": "Brauner Champignon",
+   "aliases": [
+    "Braune Champignons"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Champignon"
+  },
+  {
    "word": "Brauner Zucker",
    "aliases": [
     "Rohrzucker"
@@ -3125,11 +3194,7 @@
   },
   {
    "word": "Brot",
-   "aliases": [
-    "Bauernbrot",
-    "Vollkornbrot",
-    "Sauerteigbrot"
-   ],
+   "aliases": [],
    "category": "bakery",
    "targets": [
     {
@@ -3474,6 +3539,17 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Buschbohne",
+   "aliases": [
+    "Buschbohnen"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Bohne"
   },
   {
    "word": "Butter",
@@ -4104,8 +4180,7 @@
   {
    "word": "Champignon",
    "aliases": [
-    "Champignons",
-    "Braune Champignons"
+    "Champignons"
    ],
    "category": "vegetables",
    "targets": [
@@ -4518,6 +4593,17 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Cocktailtomate",
+   "aliases": [
+    "Cocktailtomaten"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Tomate"
   },
   {
    "word": "Cocktailwürstchen Konserve",
@@ -5123,6 +5209,15 @@
    "origin": "bls"
   },
   {
+   "word": "Dijonsenf",
+   "aliases": [],
+   "category": "canned",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Senf"
+  },
+  {
    "word": "Dill",
    "aliases": [],
    "category": "herbs",
@@ -5289,6 +5384,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Dinkelmehl",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mehl"
   },
   {
    "word": "Dinkelteigwaren eifrei",
@@ -7083,17 +7187,23 @@
   },
   {
    "word": "Essig",
-   "aliases": [
-    "Weißweinessig",
-    "Rotweinessig",
-    "Apfelessig"
-   ],
+   "aliases": [],
    "category": "oils",
    "targets": [
     {
-     "code": "R123100",
+     "code": "R121000",
      "state": "unspecified",
-     "weight": 0.88
+     "weight": 1.0
+    },
+    {
+     "code": "R122000",
+     "state": "unspecified",
+     "weight": 0.8
+    },
+    {
+     "code": "R124000",
+     "state": "unspecified",
+     "weight": 0.8
     }
    ],
    "candidates": [],
@@ -7507,6 +7617,15 @@
    "targets": [],
    "candidates": [],
    "origin": "curated"
+  },
+  {
+   "word": "Festkochende Kartoffeln",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Kartoffel"
   },
   {
    "word": "Feta",
@@ -8237,6 +8356,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Frischhefe",
+   "aliases": [],
+   "category": "baking",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Hefe"
   },
   {
    "word": "Frischkäse",
@@ -9729,6 +9857,15 @@
    "origin": "bls"
   },
   {
+   "word": "Gelbe Paprika",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Paprika"
+  },
+  {
    "word": "Gelbflossen-Thun",
    "aliases": [],
    "category": "fish",
@@ -9803,6 +9940,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Gemahlene Mandeln",
+   "aliases": [],
+   "category": "nuts",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mandel"
   },
   {
    "word": "Gemüse Bouillon/Brühe/Suppe (Brühwürfel, Pulver)",
@@ -10723,6 +10869,17 @@
    "origin": "bls"
   },
   {
+   "word": "Gemüsezwiebel",
+   "aliases": [
+    "Gemüsezwiebeln"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Zwiebel"
+  },
+  {
    "word": "Gerauchte Schinkenwurst",
    "aliases": [],
    "category": "meat",
@@ -11468,10 +11625,17 @@
    "origin": "bls"
   },
   {
+   "word": "Griechischer Joghurt",
+   "aliases": [],
+   "category": "dairy",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Joghurt"
+  },
+  {
    "word": "Grieß",
-   "aliases": [
-    "Hartweizengrieß"
-   ],
+   "aliases": [],
    "category": "grains",
    "targets": [
     {
@@ -11633,6 +11797,17 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Grüne Bohne",
+   "aliases": [
+    "Grüne Bohnen"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Bohne"
   },
   {
    "word": "Grünkern ganzes Korn",
@@ -11846,9 +12021,7 @@
   {
    "word": "Gurke",
    "aliases": [
-    "Gurken",
-    "Salatgurke",
-    "Salatgurken"
+    "Gurken"
    ],
    "category": "vegetables",
    "targets": [
@@ -12990,6 +13163,15 @@
    "origin": "bls"
   },
   {
+   "word": "Hartweizengrieß",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Grieß"
+  },
+  {
    "word": "Hase Fleisch",
    "aliases": [],
    "category": "meat",
@@ -13259,10 +13441,7 @@
   },
   {
    "word": "Hefe",
-   "aliases": [
-    "Frischhefe",
-    "Trockenhefe"
-   ],
+   "aliases": [],
    "category": "baking",
    "targets": [
     {
@@ -14020,6 +14199,21 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Honigmelone",
+   "aliases": [],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F533100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Melone"
   },
   {
    "word": "Honigmelonensaft",
@@ -15358,10 +15552,7 @@
   },
   {
    "word": "Joghurt",
-   "aliases": [
-    "Naturjoghurt",
-    "Griechischer Joghurt"
-   ],
+   "aliases": [],
    "category": "dairy",
    "targets": [
     {
@@ -18233,7 +18424,6 @@
    "word": "Kartoffel",
    "aliases": [
     "Kartoffeln",
-    "Festkochende Kartoffeln",
     "Salzkartoffeln"
    ],
    "category": "vegetables",
@@ -18903,6 +19093,19 @@
    "origin": "curated"
   },
   {
+   "word": "Kirschtomate",
+   "aliases": [
+    "Kirschtomaten",
+    "Cherrytomate",
+    "Cherrytomaten"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Tomate"
+  },
+  {
    "word": "Kiwi",
    "aliases": [
     "Kiwis"
@@ -19203,6 +19406,43 @@
    "origin": "bls"
   },
   {
+   "word": "Knollensellerie",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [
+    {
+     "code": "G660132",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "G660152",
+     "state": "cooked",
+     "weight": 0.8
+    },
+    {
+     "code": "G660162",
+     "state": "cooked",
+     "weight": 0.8
+    },
+    {
+     "code": "G660182",
+     "state": "cooked",
+     "weight": 0.8
+    },
+    {
+     "code": "G660100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [
+    "G660802"
+   ],
+   "origin": "curated",
+   "parent": "Sellerie"
+  },
+  {
    "word": "Knollensellerie gesäuert, abgetropft",
    "aliases": [],
    "category": "vegetables",
@@ -19431,6 +19671,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Kochschinken",
+   "aliases": [],
+   "category": "meat",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Schinken"
   },
   {
    "word": "Kohlrabi",
@@ -20507,8 +20756,7 @@
   {
    "word": "Lachs",
    "aliases": [
-    "Lachsfilet",
-    "Räucherlachs"
+    "Lachsfilet"
    ],
    "category": "fish",
    "targets": [
@@ -21098,6 +21346,15 @@
    "origin": "bls"
   },
   {
+   "word": "Langkornreis",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Reis"
+  },
+  {
    "word": "Languste",
    "aliases": [],
    "category": "fish",
@@ -21609,10 +21866,7 @@
   },
   {
    "word": "Linsen",
-   "aliases": [
-    "Belugalinsen",
-    "Berglinsen"
-   ],
+   "aliases": [],
    "category": "legumes",
    "targets": [
     {
@@ -21891,6 +22145,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Magerquark",
+   "aliases": [],
+   "category": "dairy",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Quark"
   },
   {
    "word": "Mais",
@@ -22220,9 +22483,7 @@
   {
    "word": "Mandel",
    "aliases": [
-    "Mandeln",
-    "Mandelblättchen",
-    "Gemahlene Mandeln"
+    "Mandeln"
    ],
    "category": "nuts",
    "targets": [
@@ -22324,6 +22585,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Mandelblättchen",
+   "aliases": [],
+   "category": "nuts",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mandel"
   },
   {
    "word": "Mandeldrink gesüßt, aromatisiert",
@@ -23045,6 +23315,21 @@
    "origin": "bls"
   },
   {
+   "word": "Meersalz",
+   "aliases": [],
+   "category": "spices",
+   "targets": [
+    {
+     "code": "R112000",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Salz"
+  },
+  {
    "word": "Meeräsche",
    "aliases": [],
    "category": "fish",
@@ -23094,12 +23379,7 @@
   },
   {
    "word": "Mehl",
-   "aliases": [
-    "Weizenmehl",
-    "Dinkelmehl",
-    "Mehl Type 405",
-    "Mehl Type 550"
-   ],
+   "aliases": [],
    "category": "grains",
    "targets": [
     {
@@ -23110,6 +23390,24 @@
    ],
    "candidates": [],
    "origin": "curated"
+  },
+  {
+   "word": "Mehl Type 405",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mehl"
+  },
+  {
+   "word": "Mehl Type 550",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mehl"
   },
   {
    "word": "Mehlmischung eiweißarm, glutenfrei, natriumarm",
@@ -23333,21 +23631,21 @@
   },
   {
    "word": "Melone",
-   "aliases": [
-    "Wassermelone",
-    "Honigmelone"
-   ],
+   "aliases": [],
    "category": "fruit",
    "targets": [
     {
-     "code": "F535100",
+     "code": "F533100",
      "state": "raw",
-     "weight": 0.9
+     "weight": 1.0
+    },
+    {
+     "code": "F532100",
+     "state": "raw",
+     "weight": 0.8
     }
    ],
-   "candidates": [
-    "F533100"
-   ],
+   "candidates": [],
    "origin": "curated"
   },
   {
@@ -23442,7 +23740,9 @@
   },
   {
    "word": "Miesmuschel",
-   "aliases": [],
+   "aliases": [
+    "Miesmuscheln"
+   ],
    "category": "fish",
    "targets": [
     {
@@ -23456,8 +23756,16 @@
      "weight": 1.0
     }
    ],
-   "candidates": [],
-   "origin": "bls"
+   "candidates": [
+    "T792182",
+    "T792200",
+    "T792232",
+    "T792282",
+    "T792702",
+    "T832900"
+   ],
+   "origin": "curated",
+   "parent": "Muschel"
   },
   {
    "word": "Miesmuschel gekocht",
@@ -23528,7 +23836,6 @@
   {
    "word": "Milch",
    "aliases": [
-    "Vollmilch",
     "Frischmilch"
    ],
    "category": "dairy",
@@ -23968,10 +24275,17 @@
    "origin": "bls"
   },
   {
+   "word": "Mineralwasser",
+   "aliases": [],
+   "category": "drinks",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Wasser"
+  },
+  {
    "word": "Minze",
-   "aliases": [
-    "Pfefferminze"
-   ],
+   "aliases": [],
    "category": "herbs",
    "targets": [],
    "candidates": [],
@@ -24212,6 +24526,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Mittelscharfer Senf",
+   "aliases": [],
+   "category": "canned",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Senf"
   },
   {
    "word": "Mixed Pickles gesäuert, abgetropft",
@@ -24574,8 +24897,7 @@
   {
    "word": "Muschel",
    "aliases": [
-    "Muscheln",
-    "Miesmuscheln"
+    "Muscheln"
    ],
    "category": "fish",
    "targets": [
@@ -24791,12 +25113,30 @@
    "origin": "curated"
   },
   {
+   "word": "Natives Olivenöl",
+   "aliases": [],
+   "category": "oils",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Olivenöl"
+  },
+  {
    "word": "Natron",
    "aliases": [],
    "category": "baking",
    "targets": [],
    "candidates": [],
    "origin": "curated"
+  },
+  {
+   "word": "Naturjoghurt",
+   "aliases": [],
+   "category": "dairy",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Joghurt"
   },
   {
    "word": "Nelke",
@@ -25187,8 +25527,7 @@
   {
    "word": "Olivenöl",
    "aliases": [
-    "Olivenoel",
-    "Natives Olivenöl"
+    "Olivenoel"
    ],
    "category": "oils",
    "targets": [
@@ -25499,9 +25838,7 @@
    "word": "Paprika",
    "aliases": [
     "Paprikaschote",
-    "Paprikaschoten",
-    "Rote Paprika",
-    "Gelbe Paprika"
+    "Paprikaschoten"
    ],
    "category": "vegetables",
    "targets": [
@@ -25666,6 +26003,31 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Parmaschinken",
+   "aliases": [],
+   "category": "meat",
+   "targets": [
+    {
+     "code": "W441032",
+     "state": "cooked",
+     "weight": 1.0
+    },
+    {
+     "code": "W441082",
+     "state": "cooked",
+     "weight": 0.8
+    },
+    {
+     "code": "W441000",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Schinken"
   },
   {
    "word": "Parmesan",
@@ -25996,10 +26358,7 @@
   },
   {
    "word": "Pfeffer",
-   "aliases": [
-    "Schwarzer Pfeffer",
-    "Pfefferkörner"
-   ],
+   "aliases": [],
    "category": "spices",
    "targets": [
     {
@@ -26024,6 +26383,24 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Pfefferkörner",
+   "aliases": [],
+   "category": "spices",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Pfeffer"
+  },
+  {
+   "word": "Pfefferminze",
+   "aliases": [],
+   "category": "herbs",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Minze"
   },
   {
    "word": "Pfefferschote gesäuert, abgetropft",
@@ -26754,8 +27131,7 @@
   {
    "word": "Pilze",
    "aliases": [
-    "Pilz",
-    "Waldpilze"
+    "Pilz"
    ],
    "category": "vegetables",
    "targets": [
@@ -27918,8 +28294,7 @@
   {
    "word": "Quark",
    "aliases": [
-    "Speisequark",
-    "Magerquark"
+    "Speisequark"
    ],
    "category": "dairy",
    "targets": [
@@ -28360,9 +28735,7 @@
   },
   {
    "word": "Reis",
-   "aliases": [
-    "Langkornreis"
-   ],
+   "aliases": [],
    "category": "grains",
    "targets": [
     {
@@ -31567,6 +31940,15 @@
    "origin": "curated"
   },
   {
+   "word": "Rote Paprika",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Paprika"
+  },
+  {
    "word": "Rote Rübe/Rote Bete",
    "aliases": [],
    "category": "vegetables",
@@ -31852,6 +32234,15 @@
    "origin": "bls"
   },
   {
+   "word": "Rotweinessig",
+   "aliases": [],
+   "category": "oils",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Essig"
+  },
+  {
    "word": "Rotzunge",
    "aliases": [],
    "category": "fish",
@@ -31942,6 +32333,24 @@
    "origin": "bls"
   },
   {
+   "word": "Räucherlachs",
+   "aliases": [],
+   "category": "fish",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Lachs"
+  },
+  {
+   "word": "Räucherspeck",
+   "aliases": [],
+   "category": "meat",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Speck"
+  },
+  {
    "word": "Römersalat",
    "aliases": [],
    "category": "vegetables",
@@ -31980,7 +32389,6 @@
   {
    "word": "Sahne",
    "aliases": [
-    "Schlagsahne",
     "Schlagobers",
     "Süße Sahne"
    ],
@@ -32293,9 +32701,7 @@
   },
   {
    "word": "Salat",
-   "aliases": [
-    "Blattsalat"
-   ],
+   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
@@ -32308,6 +32714,17 @@
    "origin": "curated"
   },
   {
+   "word": "Salatgurke",
+   "aliases": [
+    "Salatgurken"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Gurke"
+  },
+  {
    "word": "Salbei",
    "aliases": [],
    "category": "herbs",
@@ -32318,16 +32735,20 @@
   {
    "word": "Salz",
    "aliases": [
-    "Meersalz",
     "Speisesalz",
     "Tafelsalz"
    ],
    "category": "spices",
    "targets": [
     {
-     "code": "R112000",
+     "code": "R111000",
      "state": "unspecified",
-     "weight": 0.9
+     "weight": 1.0
+    },
+    {
+     "code": "R114000",
+     "state": "unspecified",
+     "weight": 0.8
     }
    ],
    "candidates": [],
@@ -32902,6 +33323,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Sauerteigbrot",
+   "aliases": [],
+   "category": "bakery",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Brot"
   },
   {
    "word": "Saure Sahne",
@@ -34855,27 +35285,18 @@
   },
   {
    "word": "Schinken",
-   "aliases": [
-    "Kochschinken",
-    "Serranoschinken",
-    "Parmaschinken"
-   ],
+   "aliases": [],
    "category": "meat",
    "targets": [
     {
-     "code": "W441032",
-     "state": "cooked",
-     "weight": 0.88
-    },
-    {
-     "code": "W441082",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "W441000",
+     "code": "W424000",
      "state": "unspecified",
-     "weight": 0.88
+     "weight": 1.0
+    },
+    {
+     "code": "W423000",
+     "state": "unspecified",
+     "weight": 0.8
     }
    ],
    "candidates": [
@@ -35065,6 +35486,18 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Schlagsahne",
+   "aliases": [],
+   "category": "dairy",
+   "targets": [],
+   "candidates": [
+    "M173800",
+    "M173900"
+   ],
+   "origin": "curated",
+   "parent": "Sahne"
   },
   {
    "word": "Schlagsahne mind. 30 % Fett",
@@ -35723,10 +36156,7 @@
   },
   {
    "word": "Schokolade",
-   "aliases": [
-    "Zartbitterschokolade",
-    "Vollmilchschokolade"
-   ],
+   "aliases": [],
    "category": "baking",
    "targets": [
     {
@@ -35736,7 +36166,6 @@
     }
    ],
    "candidates": [
-    "S539900",
     "S580000"
    ],
    "origin": "curated"
@@ -35901,6 +36330,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Schwarzer Pfeffer",
+   "aliases": [],
+   "category": "spices",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Pfeffer"
   },
   {
    "word": "Schwarztee (Getränk)",
@@ -38914,16 +39352,13 @@
   },
   {
    "word": "Sellerie",
-   "aliases": [
-    "Staudensellerie",
-    "Knollensellerie"
-   ],
+   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
      "code": "G660132",
      "state": "cooked",
-     "weight": 0.89
+     "weight": 1.0
     },
     {
      "code": "G660152",
@@ -38931,19 +39366,9 @@
      "weight": 0.8
     },
     {
-     "code": "G660162",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
-     "code": "G660182",
-     "state": "cooked",
-     "weight": 0.8
-    },
-    {
      "code": "G660100",
      "state": "raw",
-     "weight": 0.89
+     "weight": 1.0
     }
    ],
    "candidates": [],
@@ -39043,10 +39468,7 @@
   },
   {
    "word": "Senf",
-   "aliases": [
-    "Dijonsenf",
-    "Mittelscharfer Senf"
-   ],
+   "aliases": [],
    "category": "canned",
    "targets": [
     {
@@ -39139,6 +39561,15 @@
    "targets": [],
    "candidates": [],
    "origin": "curated"
+  },
+  {
+   "word": "Serranoschinken",
+   "aliases": [],
+   "category": "meat",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Schinken"
   },
   {
    "word": "Sesam",
@@ -39996,8 +40427,7 @@
   {
    "word": "Speck",
    "aliases": [
-    "Bacon",
-    "Räucherspeck"
+    "Bacon"
    ],
    "category": "meat",
    "targets": [
@@ -40412,9 +40842,7 @@
   },
   {
    "word": "Spinat",
-   "aliases": [
-    "Blattspinat"
-   ],
+   "aliases": [],
    "category": "vegetables",
    "targets": [
     {
@@ -40661,6 +41089,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Staudensellerie",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Sellerie"
   },
   {
    "word": "Steinbuscher mind. 30 % Fett i. Tr.",
@@ -40974,6 +41411,17 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Strauchtomate",
+   "aliases": [
+    "Strauchtomaten"
+   ],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Tomate"
   },
   {
    "word": "Straßburger Gänseleberwurst mit Schweinefleisch",
@@ -42266,13 +42714,7 @@
   {
    "word": "Tomate",
    "aliases": [
-    "Tomaten",
-    "Cocktailtomate",
-    "Cocktailtomaten",
-    "Kirschtomate",
-    "Kirschtomaten",
-    "Cherrytomaten",
-    "Strauchtomaten"
+    "Tomaten"
    ],
    "category": "vegetables",
    "targets": [
@@ -42780,6 +43222,15 @@
    "origin": "bls"
   },
   {
+   "word": "Trockenhefe",
+   "aliases": [],
+   "category": "baking",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Hefe"
+  },
+  {
    "word": "Trüffel",
    "aliases": [],
    "category": "vegetables",
@@ -43094,6 +43545,15 @@
    "origin": "bls"
   },
   {
+   "word": "Vollkornbrot",
+   "aliases": [],
+   "category": "bakery",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Brot"
+  },
+  {
    "word": "Vollkorneierteigwaren",
    "aliases": [],
    "category": "grains",
@@ -43170,6 +43630,18 @@
    "origin": "bls"
   },
   {
+   "word": "Vollmilch",
+   "aliases": [],
+   "category": "dairy",
+   "targets": [],
+   "candidates": [
+    "M111300",
+    "M114300"
+   ],
+   "origin": "curated",
+   "parent": "Milch"
+  },
+  {
    "word": "Vollmilch 3,5 % Fett, laktosefrei, pasteurisiert",
    "aliases": [],
    "category": "dairy",
@@ -43210,6 +43682,23 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Vollmilchschokolade",
+   "aliases": [],
+   "category": "baking",
+   "targets": [
+    {
+     "code": "S539900",
+     "state": "unspecified",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [
+    "C532100"
+   ],
+   "origin": "curated",
+   "parent": "Schokolade"
   },
   {
    "word": "Vollmilchschokolade mit Puffreis und Crispies",
@@ -43444,6 +43933,15 @@
    "origin": "bls"
   },
   {
+   "word": "Waldpilze",
+   "aliases": [],
+   "category": "vegetables",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Pilze"
+  },
+  {
    "word": "Walnuss",
    "aliases": [
     "Walnüsse"
@@ -43534,9 +44032,7 @@
   },
   {
    "word": "Wasser",
-   "aliases": [
-    "Mineralwasser"
-   ],
+   "aliases": [],
    "category": "drinks",
    "targets": [
     {
@@ -43547,6 +44043,21 @@
    ],
    "candidates": [],
    "origin": "curated"
+  },
+  {
+   "word": "Wassermelone",
+   "aliases": [],
+   "category": "fruit",
+   "targets": [
+    {
+     "code": "F535100",
+     "state": "raw",
+     "weight": 1.0
+    }
+   ],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Melone"
   },
   {
    "word": "Weichkäse aus Schafmilch, mind. 45 % Fett i. Tr.",
@@ -44168,6 +44679,15 @@
    "origin": "bls"
   },
   {
+   "word": "Weizenmehl",
+   "aliases": [],
+   "category": "grains",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Mehl"
+  },
+  {
    "word": "Weizenpops/Weizen gepufft, gesüßt",
    "aliases": [],
    "category": "grains",
@@ -44513,6 +45033,15 @@
    ],
    "candidates": [],
    "origin": "bls"
+  },
+  {
+   "word": "Weißweinessig",
+   "aliases": [],
+   "category": "oils",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Essig"
   },
   {
    "word": "Wels",
@@ -45514,6 +46043,15 @@
    "origin": "bls"
   },
   {
+   "word": "Zartbitterschokolade",
+   "aliases": [],
+   "category": "baking",
+   "targets": [],
+   "candidates": [],
+   "origin": "curated",
+   "parent": "Schokolade"
+  },
+  {
    "word": "Zervelatwurst",
    "aliases": [],
    "category": "meat",
@@ -45995,9 +46533,7 @@
   {
    "word": "Zwiebel",
    "aliases": [
-    "Zwiebeln",
-    "Gemüsezwiebel",
-    "Gemüsezwiebeln"
+    "Zwiebeln"
    ],
    "category": "vegetables",
    "targets": [

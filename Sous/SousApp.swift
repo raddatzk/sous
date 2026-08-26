@@ -24,21 +24,23 @@ struct SousApp: App {
     /// than in the recipe list, because a command in the scene cannot see a
     /// view's state.
     @State private var commands = LibraryCommands()
-    /// Held so the once-per-launch re-key can reach the store without opening
-    /// a second container.
+    /// Held so the once-per-launch migrations can reach the store without
+    /// opening a second container.
     private let migration: SwiftDataBundledDataMigration
+    private let vocabularyMigration: SwiftDataVocabularyMigration
 
     init() {
         do {
             let container = try ModelContainer.sousContainer()
             migration = SwiftDataBundledDataMigration(modelContainer: container)
+            vocabularyMigration = SwiftDataVocabularyMigration(modelContainer: container)
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
-                store: SwiftDataIngredientCatalogStore(modelContainer: container),
-                aliasStore: SwiftDataIngredientAliasOverrideStore(modelContainer: container),
-                // Teaching the app a spelling can change what a recipe's
-                // nutrition adds up to, which is cached per recipe text.
+                store: SwiftDataVocabularyStore(modelContainer: container),
+                // Teaching the app a spelling, or confirming what a word
+                // means, can change what a recipe's nutrition adds up to —
+                // and that is cached per recipe text, which never notices.
                 nutritionCache: nutritionStore
             )
             _catalog = State(initialValue: catalogLibrary)
@@ -59,14 +61,12 @@ struct SousApp: App {
             _shopping = State(initialValue: ShoppingLibrary(
                 store: SwiftDataShoppingListStore(modelContainer: container),
                 recipeStore: recipes,
-                catalogLibrary: catalogLibrary,
-                pantryStore: SwiftDataPantryFlagStore(modelContainer: container)
+                catalogLibrary: catalogLibrary
             ))
             _nutrition = State(initialValue: NutritionLibrary(
                 store: nutritionStore,
                 recipeStore: recipes,
-                catalogLibrary: catalogLibrary,
-                nutritionStore: SwiftDataCatalogNutritionStore(modelContainer: container)
+                catalogLibrary: catalogLibrary
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -75,12 +75,17 @@ struct SousApp: App {
         }
     }
 
-    /// Stamps the cook's name-keyed rows with their SBLS code once, and says
-    /// nothing when there is nothing to do — which is every launch after the
-    /// first. A failure here is not worth stopping for: every row keeps
-    /// joining by name, which is exactly the compatibility path.
+    /// Stamps the cook's name-keyed rows with their SBLS code, then folds
+    /// them into the vocabulary — in that order, because the fold carries the
+    /// stamps across and a row stamped afterwards would be stamped in a table
+    /// nobody reads any more.
+    ///
+    /// Both say nothing when there is nothing to do, which is every launch
+    /// after the first. A failure is not worth stopping for: the legacy rows
+    /// are only deleted once their content has been written.
     private func migrateBundledData() async {
         _ = try? await migration.run()
+        _ = try? await vocabularyMigration.run()
     }
 
     var body: some Scene {

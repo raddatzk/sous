@@ -181,6 +181,9 @@ struct RecipeFilterTests {
         let tomato = try #require(IngredientCatalog.bundled.ingredient(for: "Tomate"))
         let found = try await store.recipes(matching: RecipeQuery(filters: [.ingredient(tomato)]))
 
+        // Cocktailtomaten is a variety rather than a spelling now, and the
+        // filter still finds it: on the list the two are held apart, in the
+        // library a cocktail tomato is a tomato.
         #expect(found.map(\.title) == ["Salat", "Sauce"])
     }
 
@@ -240,8 +243,10 @@ struct RecipeFilterTests {
             categories: []
         )
 
-        let cucumber = try #require(suggestions.first { $0.title == "Gurke" })
-        #expect(cucumber.matchedAs == "Salatgurke")
+        // "Salatgurke" is a variety of Gurke, so it is a word of its own and
+        // matches under its own name — the parent still turns up beside it.
+        let cucumber = try #require(suggestions.first { $0.title == "Salatgurke" })
+        #expect(cucumber.matchedAs == nil)
     }
 
     @Test("A match on the name itself needs no explanation")

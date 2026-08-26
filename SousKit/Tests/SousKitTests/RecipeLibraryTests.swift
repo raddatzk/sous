@@ -398,7 +398,7 @@ struct RecipeLibraryAmountReviewTests {
 struct RecipeLibraryIngredientReviewTests {
     private func makeLibrary() async throws -> RecipeLibrary {
         let container = try ModelContainer.sousContainer(inMemory: true)
-        let catalogLibrary = IngredientCatalogLibrary(store: SwiftDataIngredientCatalogStore(modelContainer: container))
+        let catalogLibrary = IngredientCatalogLibrary(store: SwiftDataVocabularyStore(modelContainer: container))
         await catalogLibrary.reload()
         return RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),

@@ -3,6 +3,11 @@ import SwiftData
 
 /// Nutrition a cook entered by hand for one ingredient.
 ///
+/// **Legacy.** Folded into ``StoredIngredientVocabulary`` as an own-values
+/// basis — a widening, not a rename: this row holds one state, eight of the
+/// sixteen nutrients, one piece weight and no candidates, and the assignment
+/// it becomes has room for all of it. Kept in the schema for the migration.
+///
 /// Flat scalars rather than a stored `NutritionInfo`: this is what a person
 /// can reasonably read off a packet — energy and the four macros, plus the
 /// few extras a label usually prints — and a form that asked for sixteen

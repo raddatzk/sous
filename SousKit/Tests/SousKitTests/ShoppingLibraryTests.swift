@@ -12,7 +12,11 @@ struct ShoppingLibraryTests {
         let shopping = ShoppingLibrary(
             store: SwiftDataShoppingListStore(modelContainer: container),
             recipeStore: recipes,
-            pantryStore: SwiftDataPantryFlagStore(modelContainer: container)
+            // The pantry flag lives on the vocabulary entry now, so the
+            // catalog library is what the list asks about it.
+            catalogLibrary: IngredientCatalogLibrary(
+                store: SwiftDataVocabularyStore(modelContainer: container)
+            )
         )
         return (shopping, recipes, container)
     }
@@ -334,11 +338,54 @@ extension ShoppingLibraryTests {
         let (shopping, _, _) = try makeLibrary()
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.add(Recipe(title: "B", servings: 2, ingredientsText: "2 Tomate"))
-        await shopping.addItem("500 g Cocktailtomaten")
+        await shopping.addItem("500 g Tomate")
 
         #expect(shopping.items.count == 1)
         #expect(shopping.items[0].name == "Tomate")
         #expect(shopping.items[0].quantities == [Quantity(800, .gram), Quantity(2, .piece)])
+    }
+
+    @Test("A variety keeps its own line, in the parent's place on the list")
+    func varietiesGroupWithoutMerging() async throws {
+        let (shopping, _, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "Bauernsalat", servings: 2, ingredientsText: "500 g Tomaten"))
+        await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
+
+        // Two items, because two different things are being bought.
+        #expect(shopping.items.map(\.name) == ["Tomate", "Cocktailtomate"])
+
+        // One place on the list, with the total on the heading and the
+        // distinction intact underneath — the concept's grouped entry.
+        let groups = shopping.grouped(shopping.items)
+        #expect(groups.count == 1)
+        let tomatoes = try #require(groups.first)
+        #expect(tomatoes.name == "Tomate")
+        #expect(tomatoes.isGrouped)
+        #expect(tomatoes.quantities == [Quantity(700, .gram)])
+        #expect(tomatoes.items.map(\.name) == ["Tomate", "Cocktailtomate"])
+    }
+
+    @Test("A sub-line keeps the word the recipe wrote")
+    func varietySublinesKeepTheWrittenName() async throws {
+        let (shopping, _, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
+
+        // Capture files the item under the catalog's spelling, which is right
+        // for a heading and would destroy the sub-line. The demand keeps what
+        // was written — the only moment it could have been lost in.
+        let item = try #require(shopping.items.first)
+        #expect(item.name == "Cocktailtomate")
+        #expect(item.writtenNames == ["Cocktailtomaten"])
+    }
+
+    @Test("An ordinary ingredient is a group of one, and renders as it always did")
+    func plainItemsAreNotGrouped() async throws {
+        let (shopping, _, _) = try makeLibrary()
+        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
+
+        let groups = shopping.grouped(shopping.items)
+        #expect(groups.count == 1)
+        #expect(groups.first?.isGrouped == false)
     }
 
     @Test("The walk starts with the unassigned, then the aisles, then the pantry")
@@ -365,7 +412,7 @@ extension ShoppingLibraryTests {
 
         // The pantry flag moves an ingredient out of its aisle, to the end.
         let cumin = try #require(shopping.items.first { $0.name == "Kreuzkümmel" })
-        await shopping.setPantry(true, key: cumin.key)
+        await shopping.setPantry(true, name: cumin.name)
         sections = shopping.bySection
         #expect(sections.map(\.section) == [
             .unassigned, .aisle(.vegetables), .aisle(.fruit), .aisle(.dairy), .pantry,

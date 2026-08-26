@@ -81,9 +81,7 @@ struct ShoppingListView: View {
     private var byAisle: some View {
         ForEach(openSections, id: \.section) { group in
             Section {
-                ForEach(group.items) { item in
-                    row(item, showingSource: true)
-                }
+                place(group.items)
             } header: {
                 sectionHeader(group.section.title)
             }
@@ -91,15 +89,54 @@ struct ShoppingListView: View {
 
         if !checkedErrands.isEmpty {
             Section {
-                ForEach(checkedErrands) { item in
-                    row(item, showingSource: true)
-                }
+                place(checkedErrands)
             } header: {
                 sectionHeader("Erledigt")
             }
         }
 
         pantrySection
+    }
+
+    /// A stretch of the list as the places it occupies: an ingredient and
+    /// its varieties are one place, with the varieties readable underneath.
+    @ViewBuilder
+    private func place(_ items: [ShoppingItem], showingSource: Bool = true) -> some View {
+        ForEach(shopping.grouped(items)) { group in
+            if group.isGrouped {
+                variantGroup(group, showingSource: showingSource)
+            } else if let item = group.items.first {
+                row(item, showingSource: showingSource)
+            }
+        }
+    }
+
+    /// The concept's grouped entry: one heading with the total, and a
+    /// sub-line per variety that keeps the word the recipe wrote.
+    ///
+    /// The heading is not checkable — the sub-lines are. Ticking a group off
+    /// as a whole would be the lossy single line all over again: what went
+    /// into the basket was 200 g of cocktail tomatoes, not a share of 700 g
+    /// of tomatoes.
+    @ViewBuilder
+    private func variantGroup(_ group: ShoppingGroup, showingSource: Bool) -> some View {
+        // Sibling rows rather than one row holding a stack: the sub-lines are
+        // the checkable things here, and a row nested inside another row gets
+        // neither its swipe actions nor its own selection.
+        groupHeadline(group)
+        ForEach(group.items) { item in
+            row(item, showingSource: showingSource, isSubline: true)
+        }
+    }
+
+    private func groupHeadline(_ group: ShoppingGroup) -> some View {
+        let amounts = group.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
+        let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
+        return HStack(alignment: .firstTextBaseline, spacing: 12) {
+            amounts.isEmpty ? Text(group.name) : Text("\(amount) \(group.name)")
+            Spacer(minLength: 0)
+        }
+        .opacity(group.isChecked ? 0.5 : 1)
     }
 
     /// The open items of every section but the pantry, which keeps its own
@@ -124,9 +161,7 @@ struct ShoppingListView: View {
         if !pantry.isEmpty {
             Section {
                 if pantryExpanded {
-                    ForEach(pantry) { item in
-                        row(item, showingSource: true)
-                    }
+                    place(pantry)
                 }
             } header: {
                 Button {
@@ -211,7 +246,9 @@ struct ShoppingListView: View {
     }
 
     @ViewBuilder
-    private func row(_ item: ShoppingItem, showingSource: Bool, note: String? = nil) -> some View {
+    private func row(
+        _ item: ShoppingItem, showingSource: Bool, note: String? = nil, isSubline: Bool = false
+    ) -> some View {
         // A button rather than a tap gesture: the pointer changes over it,
         // the keyboard reaches it, and the Mac gets the click it expects.
         Button {
@@ -221,7 +258,7 @@ struct ShoppingListView: View {
                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    label(for: item)
+                    label(for: item, isSubline: isSubline)
                         .strikethrough(item.isChecked)
                     if let annotation = annotation(for: item) {
                         Text(annotation)
@@ -242,6 +279,7 @@ struct ShoppingListView: View {
                 Spacer(minLength: 0)
             }
             .opacity(item.isChecked ? 0.5 : 1)
+            .padding(.leading, isSubline ? 16 : 0)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -256,11 +294,11 @@ struct ShoppingListView: View {
         if !item.key.isEmpty {
             if shopping.isPantry(item) {
                 Button("Kein Vorrat mehr", systemImage: "cabinet") {
-                    Task { await shopping.setPantry(false, key: item.key) }
+                    Task { await shopping.setPantry(false, name: item.name) }
                 }
             } else {
                 Button("Als Vorrat merken", systemImage: "cabinet") {
-                    Task { await shopping.setPantry(true, key: item.key) }
+                    Task { await shopping.setPantry(true, name: item.name) }
                 }
             }
         }
@@ -294,11 +332,15 @@ struct ShoppingListView: View {
 
     /// The amounts lead, in the accent, because that is what is read while
     /// standing in the shop.
-    private func label(for item: ShoppingItem) -> Text {
+    private func label(for item: ShoppingItem, isSubline: Bool = false) -> Text {
         let amounts = item.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
-        guard !amounts.isEmpty else { return Text(item.name) }
+        // Under a grouped heading the row says what makes it different: the
+        // word the recipe wrote. Capture replaces that word with the
+        // catalog's for the heading, and the demand is where it survived.
+        let name = isSubline ? (item.writtenNames.first ?? item.name) : item.name
+        guard !amounts.isEmpty else { return Text(name) }
         let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
-        return Text("\(amount) \(item.name)")
+        return Text("\(amount) \(name)")
     }
 
     private func sectionHeader(_ title: String) -> some View {

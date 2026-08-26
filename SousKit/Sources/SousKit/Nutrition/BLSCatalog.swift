@@ -72,6 +72,35 @@ public struct BLSCatalog: Sendable {
 
     public func entry(for code: String) -> BLSEntry? { byCode[code] }
 
+    public func entries(for codes: [String]) -> [BLSEntry] { codes.compactMap(entry(for:)) }
+
+    /// Rows whose catalog name contains `text`, best first — the second half
+    /// of the concept's bridge across the two languages: the synonym table
+    /// carries what curation knows, this carries everything else.
+    ///
+    /// It is what makes the picker usable at all for a word the table has
+    /// nothing for: "Kurkuma" has no candidates and no values, and a picker
+    /// that could only offer its candidates would offer nothing. Prefix
+    /// matches lead, then shorter names, so "Schmelzkäse" lists the plain
+    /// cheeses before the preparations with ham in them.
+    public func search(_ text: String, limit: Int = 40) -> [BLSEntry] {
+        let query = IngredientCatalog.normalize(text)
+        guard query.count >= 3 else { return [] }
+
+        func rank(_ entry: BLSEntry) -> (Int, Int) {
+            let name = IngredientCatalog.normalize(entry.name)
+            return (name.hasPrefix(query) ? 0 : 1, name.count)
+        }
+
+        return entries
+            .filter { IngredientCatalog.normalize($0.name).contains(query) }
+            .sorted { first, second in
+                rank(first) == rank(second) ? first.name < second.name : rank(first) < rank(second)
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
     /// The table shipped with the app.
     public static let bundled: BLSCatalog = {
         guard let url = Bundle.module.url(forResource: "bls", withExtension: "json"),

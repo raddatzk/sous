@@ -3,6 +3,11 @@ import SwiftData
 
 /// An ingredient the cook added to the catalog themselves.
 ///
+/// **Legacy.** Folded into ``StoredIngredientVocabulary`` by
+/// ``SwiftDataVocabularyMigration`` and deleted there. It stays in the
+/// schema because a store written before phase 4 still holds these rows,
+/// and the migration has to be able to read them.
+///
 /// Stored separately from the bundled list rather than as a copy of it: the
 /// bundled catalog ships with the app and is replaced on every update, while
 /// these belong to the user and must survive that.
