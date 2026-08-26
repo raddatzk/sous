@@ -108,7 +108,7 @@ struct RecipeRow: View {
                 .imageScale(.small)
         }
         if needsIngredientReview {
-            Image(systemName: "questionmark.circle")
+            Image(systemName: "text.book.closed")
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
         }

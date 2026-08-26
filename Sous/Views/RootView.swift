@@ -65,7 +65,7 @@ struct RootView: View {
             )
             .font(.subheadline.weight(.medium))
             Spacer(minLength: 0)
-            Button("Klären") { isClarifyingOrphans = true }
+            Button("Zuordnen") { isClarifyingOrphans = true }
                 .buttonStyle(.borderedProminent)
             Button("Später") { dataUpdate.isDismissed = true }
                 .buttonStyle(.bordered)

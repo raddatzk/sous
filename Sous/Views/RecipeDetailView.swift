@@ -561,12 +561,12 @@ struct RecipeDetailView: View {
     private func ingredientReviewBanner(_ count: Int, isWide: Bool) -> some View {
         HStack(spacing: 12) {
             Label(
-                count == 1 ? "1 Zutat unbekannt" : "\(count) Zutaten unbekannt",
-                systemImage: "questionmark.circle"
+                count == 1 ? "1 Zutat fehlt im Katalog" : "\(count) Zutaten fehlen im Katalog",
+                systemImage: "text.book.closed"
             )
             .font(.subheadline.weight(.medium))
             Spacer()
-            Button("Prüfen") {
+            Button("Anlegen") {
                 isReviewingIngredients = true
             }
             .buttonStyle(.borderedProminent)
@@ -577,10 +577,17 @@ struct RecipeDetailView: View {
     }
 
     /// The ingredients whose numbers rest on a guess or on nothing — what
-    /// the collected "Zutaten klären" view walks through, each with the
+    /// the collected "Nährwerte zuordnen" view walks through, each with the
     /// preparation state its answer has to be filed under.
+    ///
+    /// Names the catalog does not know are left out while the banner above
+    /// is still asking about them: they were being counted in both numbers
+    /// at once, which read as two rival questions about the same word rather
+    /// than as the two steps it actually is. They come back the moment that
+    /// banner is settled — see `openIngredientsWithKnownName`.
     private var openIngredients: [NutritionCoverage.OpenIngredient] {
-        nutrition?.coverage.openIngredients ?? []
+        guard let coverage = nutrition?.coverage else { return [] }
+        return needsIngredientReview ? coverage.openIngredientsWithKnownName : coverage.openIngredients
     }
 
     /// The batch flow of decision A: one place that names how much of this
@@ -592,12 +599,14 @@ struct RecipeDetailView: View {
     private func basisReviewBanner(_ count: Int, isWide: Bool) -> some View {
         HStack(spacing: 12) {
             Label(
-                count == 1 ? "1 Zutat zu klären" : "\(count) Zutaten zu klären",
+                count == 1
+                    ? "1 Zutat ohne bestätigte Nährwerte"
+                    : "\(count) Zutaten ohne bestätigte Nährwerte",
                 systemImage: "questionmark.text.page"
             )
             .font(.subheadline.weight(.medium))
             Spacer()
-            Button("Klären") { isClarifyingAll = true }
+            Button("Zuordnen") { isClarifyingAll = true }
                 .buttonStyle(.borderedProminent)
         }
         .padding(14)

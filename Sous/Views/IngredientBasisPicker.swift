@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Not a modal. It unfolds where it was asked for: under a line of the
 /// coverage drill-down in the recipe, or under a row of the collected
-/// "Zutaten klären" view. The concept wants this question to be answerable in
+/// "Nährwerte zuordnen" view. The concept wants this question to be answerable in
 /// passing, wherever it becomes visible — a dialog that has to be dismissed
 /// before the recipe can be read again would make it a task instead.
 struct IngredientBasisPicker: View {

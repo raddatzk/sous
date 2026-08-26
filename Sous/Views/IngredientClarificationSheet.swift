@@ -1,9 +1,9 @@
 import SousKit
 import SwiftUI
 
-/// "5 Zutaten zu klären" — every ingredient of one recipe whose numbers rest
-/// on a guess or on nothing, gathered so the answers can be given in one
-/// sitting.
+/// "5 Zutaten ohne bestätigte Nährwerte" — every ingredient of one recipe
+/// whose numbers rest on a guess or on nothing, gathered so the answers can
+/// be given in one sitting.
 ///
 /// Built like `IngredientReviewSheet`, and for the same reason: there is no
 /// separate "apply" step. Each answer saves itself the moment it is given,
@@ -61,7 +61,7 @@ struct IngredientClarificationSheet: View {
                     }
                 }
             }
-            .navigationTitle("Zutaten klären")
+            .navigationTitle("Nährwerte zuordnen")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
