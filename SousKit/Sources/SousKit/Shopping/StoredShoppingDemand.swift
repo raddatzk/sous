@@ -102,12 +102,14 @@ public final class StoredShoppingDemand {
         )
     }
 
-    /// Captured × current/captured of the plan entry — frozen at the
-    /// check-off, and left alone entirely for non-scaling demands.
+    /// See ``ShoppingDemandScaling``, which both stored forms share.
     public func effectiveQuantity(planEntry: ShoppingPlanEntry?) -> Quantity? {
-        guard let captured = quantity else { return nil }
-        guard scales, !isScaleDiff, let planEntry, planEntry.servingsCaptured > 0 else { return captured }
-        let target = checkedAtServings ?? planEntry.servingsCurrent
-        return captured.scaled(by: Double(target) / Double(planEntry.servingsCaptured))
+        ShoppingDemandScaling.effectiveQuantity(
+            captured: quantity,
+            scales: scales,
+            isScaleDiff: isScaleDiff,
+            checkedAtServings: checkedAtServings,
+            planEntry: planEntry
+        )
     }
 }

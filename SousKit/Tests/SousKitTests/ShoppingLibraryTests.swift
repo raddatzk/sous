@@ -6,24 +6,40 @@ import Testing
 @MainActor
 @Suite("Shopping library")
 struct ShoppingLibraryTests {
-    private func makeLibrary() throws -> (ShoppingLibrary, SwiftDataRecipeStore, ModelContainer) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let recipes = SwiftDataRecipeStore(modelContainer: container)
+    private func makeLibrary(
+        _ backend: StoreBackend
+    ) throws -> (ShoppingLibrary, any RecipeStore, StoreBackend.StoreSet) {
+        let stores = try backend.makeStores()
         let shopping = ShoppingLibrary(
-            store: SwiftDataShoppingListStore(modelContainer: container),
-            recipeStore: recipes,
+            store: stores.shopping,
+            recipeStore: stores.recipes,
             // The pantry flag lives on the vocabulary entry now, so the
             // catalog library is what the list asks about it.
+            catalogLibrary: IngredientCatalogLibrary(store: stores.vocabulary)
+        )
+
+        return (shopping, stores.recipes, stores)
+    }
+
+    /// SwiftData only, and deliberately so: these two write pre-document rows
+    /// straight into the store, and only the SwiftData one has a pass that
+    /// reads them. The Core Data store is filled through the protocol, where
+    /// `snapshot()` has already turned such rows into demands.
+    private func makeLegacyLibrary() throws -> (ShoppingLibrary, ModelContainer) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let shopping = ShoppingLibrary(
+            store: SwiftDataShoppingListStore(modelContainer: container),
+            recipeStore: SwiftDataRecipeStore(modelContainer: container),
             catalogLibrary: IngredientCatalogLibrary(
                 store: SwiftDataVocabularyStore(modelContainer: container)
             )
         )
-        return (shopping, recipes, container)
+        return (shopping, container)
     }
 
-    @Test("A recipe's ingredients are put on the list on request")
-    func addingARecipe() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("A recipe's ingredients are put on the list on request", arguments: StoreBackend.allCases)
+    func addingARecipe(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\nSalz")
 
         await shopping.add(recipe)
@@ -34,12 +50,12 @@ struct ShoppingLibraryTests {
         #expect(shopping.planEntries.map(\.title) == ["Salat"])
     }
 
-    @Test("A stated state survives the store and annotates the line")
-    func statesRoundTripThroughTheStore() async throws {
+    @Test("A stated state survives the store and annotates the line", arguments: StoreBackend.allCases)
+    func statesRoundTripThroughTheStore(_ backend: StoreBackend) async throws {
         // `ShoppingDemand.state` has had a column since the document model
         // landed and has been `.unspecified` in every row ever written — so
         // nothing had ever proven the column carries anything.
-        let (shopping, _, container) = try makeLibrary()
+        let (shopping, _, stores) = try makeLibrary(backend)
         let recipe = Recipe(
             title: "Auflauf", servings: 2,
             ingredientsText: "500 g Kartoffeln\n300 g Kartoffeln, gegart"
@@ -49,11 +65,9 @@ struct ShoppingLibraryTests {
         // Read back through a second library on the same store: a value that
         // only survives in memory has not been stored.
         let reread = ShoppingLibrary(
-            store: SwiftDataShoppingListStore(modelContainer: container),
-            recipeStore: SwiftDataRecipeStore(modelContainer: container),
-            catalogLibrary: IngredientCatalogLibrary(
-                store: SwiftDataVocabularyStore(modelContainer: container)
-            )
+            store: stores.shopping,
+            recipeStore: stores.recipes,
+            catalogLibrary: IngredientCatalogLibrary(store: stores.vocabulary)
         )
         await reread.reload()
 
@@ -66,9 +80,9 @@ struct ShoppingLibraryTests {
         #expect(stated.quantities == [Quantity(300, .gram)])
     }
 
-    @Test("Adding for more people scales what has to be bought")
-    func addingScaled() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Adding for more people scales what has to be bought", arguments: StoreBackend.allCases)
+    func addingScaled(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
 
         await shopping.add(recipe, servings: 6)
@@ -76,9 +90,9 @@ struct ShoppingLibraryTests {
         #expect(shopping.planEntries[0].servingsCaptured == 6)
     }
 
-    @Test("Adding a second recipe bundles into the line already there")
-    func addingTwice() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Adding a second recipe bundles into the line already there", arguments: StoreBackend.allCases)
+    func addingTwice(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.add(Recipe(title: "B", servings: 2, ingredientsText: "200 g Tomaten"))
 
@@ -89,9 +103,9 @@ struct ShoppingLibraryTests {
         #expect(shopping.items[0].demands.count == 2)
     }
 
-    @Test("The list stays put when a recipe changes afterwards")
-    func listDoesNotFollowRecipes() async throws {
-        let (shopping, recipes, _) = try makeLibrary()
+    @Test("The list stays put when a recipe changes afterwards", arguments: StoreBackend.allCases)
+    func listDoesNotFollowRecipes(_ backend: StoreBackend) async throws {
+        let (shopping, recipes, _) = try makeLibrary(backend)
         var recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
         try await recipes.save(recipe)
         await shopping.add(recipe)
@@ -103,9 +117,9 @@ struct ShoppingLibraryTests {
         #expect(shopping.items.map(\.name) == ["Tomate"])
     }
 
-    @Test("A linked recipe contributes its ingredients, not its name")
-    func linkedRecipes() async throws {
-        let (shopping, recipes, _) = try makeLibrary()
+    @Test("A linked recipe contributes its ingredients, not its name", arguments: StoreBackend.allCases)
+    func linkedRecipes(_ backend: StoreBackend) async throws {
+        let (shopping, recipes, _) = try makeLibrary(backend)
         let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "250 g Mehl")
         try await recipes.save(naan)
         let curry = Recipe(
@@ -118,9 +132,9 @@ struct ShoppingLibraryTests {
         #expect(shopping.items.map(\.name) == ["Kokosmilch", "Mehl"])
     }
 
-    @Test("Ticking and clearing behave like a shopping trip")
-    func tickingAndClearing() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Ticking and clearing behave like a shopping trip", arguments: StoreBackend.allCases)
+    func tickingAndClearing(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten\nSalz"))
 
         await shopping.toggle(try #require(shopping.items.first))
@@ -132,9 +146,9 @@ struct ShoppingLibraryTests {
         #expect(shopping.items.map(\.name) == ["Salz"])
     }
 
-    @Test("A line typed by hand is parsed like an ingredient")
-    func manualItems() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("A line typed by hand is parsed like an ingredient", arguments: StoreBackend.allCases)
+    func manualItems(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
 
         await shopping.addItem("2 kg Kartoffeln")
         #expect(shopping.items.map(\.name) == ["Kartoffel"])
@@ -149,9 +163,9 @@ struct ShoppingLibraryTests {
 // MARK: - Reconciliation: check-off is never reset
 
 extension ShoppingLibraryTests {
-    @Test("Re-adding a recipe never un-checks — new demand appends late instead")
-    func reAddingNeverUnchecks() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Re-adding a recipe never un-checks — new demand appends late instead", arguments: StoreBackend.allCases)
+    func reAddingNeverUnchecks(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
         await shopping.add(recipe)
         await shopping.toggle(try #require(shopping.items.first))
@@ -168,9 +182,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.planEntries.count == 2)
     }
 
-    @Test("New demand under a checked ingredient lands on a fresh open item")
-    func newDemandUnderCheckedItem() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("New demand under a checked ingredient lands on a fresh open item", arguments: StoreBackend.allCases)
+    func newDemandUnderCheckedItem(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.toggle(try #require(shopping.items.first))
 
@@ -183,9 +197,9 @@ extension ShoppingLibraryTests {
         #expect(late.isLateAddition)
     }
 
-    @Test("After sweeping, the next add starts a fresh line, not a late one")
-    func addingAfterClearingStartsFresh() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("After sweeping, the next add starts a fresh line, not a late one", arguments: StoreBackend.allCases)
+    func addingAfterClearingStartsFresh(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.toggle(try #require(shopping.items.first))
         await shopping.clearChecked()
@@ -201,9 +215,9 @@ extension ShoppingLibraryTests {
 // MARK: - Re-scaling on the list
 
 extension ShoppingLibraryTests {
-    @Test("Scaling an open item adjusts it in place")
-    func rescalingOpenItems() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Scaling an open item adjusts it in place", arguments: StoreBackend.allCases)
+    func rescalingOpenItems(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
 
         await shopping.setServings(4, for: try #require(shopping.planEntries.first))
@@ -216,9 +230,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.items[0].quantities == [Quantity(150, .gram)])
     }
 
-    @Test("Scaling up past a checked item appends the difference as open late demand")
-    func rescalingUpPastChecked() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Scaling up past a checked item appends the difference as open late demand", arguments: StoreBackend.allCases)
+    func rescalingUpPastChecked(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.toggle(try #require(shopping.items.first))
 
@@ -236,9 +250,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.openItems[0].quantities == [Quantity(600, .gram)])
     }
 
-    @Test("Scaling down past a checked item annotates the lapse, not the check")
-    func rescalingDownPastChecked() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Scaling down past a checked item annotates the lapse, not the check", arguments: StoreBackend.allCases)
+    func rescalingDownPastChecked(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.toggle(try #require(shopping.items.first))
 
@@ -254,9 +268,9 @@ extension ShoppingLibraryTests {
         #expect(try #require(shopping.items.first).lapsedQuantities.isEmpty)
     }
 
-    @Test("Un-checking hands the item back to the stepper and absorbs the difference row")
-    func uncheckingAbsorbsDifference() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Un-checking hands the item back to the stepper and absorbs the difference row", arguments: StoreBackend.allCases)
+    func uncheckingAbsorbsDifference(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.toggle(try #require(shopping.items.first))
         await shopping.setServings(4, for: try #require(shopping.planEntries.first))
@@ -270,9 +284,9 @@ extension ShoppingLibraryTests {
         #expect(!shopping.items[0].isChecked)
     }
 
-    @Test("Unquantified demands do not scale")
-    func unquantifiedDoesNotScale() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Unquantified demands do not scale", arguments: StoreBackend.allCases)
+    func unquantifiedDoesNotScale(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\nSalz"))
 
         await shopping.setServings(4, for: try #require(shopping.planEntries.first))
@@ -281,9 +295,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.items.count == 2)
     }
 
-    @Test("Subrecipe demands scale with the parent's plan entry")
-    func subrecipesScaleWithParent() async throws {
-        let (shopping, recipes, _) = try makeLibrary()
+    @Test("Subrecipe demands scale with the parent's plan entry", arguments: StoreBackend.allCases)
+    func subrecipesScaleWithParent(_ backend: StoreBackend) async throws {
+        let (shopping, recipes, _) = try makeLibrary(backend)
         let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "250 g Mehl")
         try await recipes.save(naan)
         let curry = Recipe(
@@ -303,9 +317,9 @@ extension ShoppingLibraryTests {
         #expect(flour.originTitles == ["Naan"])
     }
 
-    @Test("Removing a plan entry drops open demand and annotates checked demand")
-    func removingAPlanEntry() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Removing a plan entry drops open demand and annotates checked demand", arguments: StoreBackend.allCases)
+    func removingAPlanEntry(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n2 Zwiebeln"))
         let tomatoes = try #require(shopping.items.first { $0.name == "Tomate" })
         await shopping.toggle(tomatoes)
@@ -325,9 +339,9 @@ extension ShoppingLibraryTests {
 // MARK: - Views of the document
 
 extension ShoppingLibraryTests {
-    @Test("Grouping by recipe shows each dish's own share, with its dial")
-    func groupedByRecipe() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Grouping by recipe shows each dish's own share, with its dial", arguments: StoreBackend.allCases)
+    func groupedByRecipe(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.add(Recipe(title: "Sauce", servings: 2, ingredientsText: "200 g Tomaten\n1 Zwiebel"))
         await shopping.addItem("Kaffee")
@@ -347,9 +361,9 @@ extension ShoppingLibraryTests {
         #expect(groups[2].items.map(\.name) == ["Kaffee"])
     }
 
-    @Test("Topping up a line by hand shows up in both readings")
-    func manualTopUpIsAccountedFor() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Topping up a line by hand shows up in both readings", arguments: StoreBackend.allCases)
+    func manualTopUpIsAccountedFor(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.addItem("700 g Tomaten")
 
@@ -365,9 +379,9 @@ extension ShoppingLibraryTests {
         #expect(groups[1].items[0].quantities == [Quantity(700, .gram)])
     }
 
-    @Test("Different spellings become one line")
-    func spellingsMerge() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("Different spellings become one line", arguments: StoreBackend.allCases)
+    func spellingsMerge(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "A", servings: 2, ingredientsText: "300 g Tomaten"))
         await shopping.add(Recipe(title: "B", servings: 2, ingredientsText: "2 Tomate"))
         await shopping.addItem("500 g Tomate")
@@ -377,9 +391,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.items[0].quantities == [Quantity(800, .gram), Quantity(2, .piece)])
     }
 
-    @Test("A variety keeps its own line, in the parent's place on the list")
-    func varietiesGroupWithoutMerging() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("A variety keeps its own line, in the parent's place on the list", arguments: StoreBackend.allCases)
+    func varietiesGroupWithoutMerging(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Bauernsalat", servings: 2, ingredientsText: "500 g Tomaten"))
         await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
 
@@ -397,9 +411,9 @@ extension ShoppingLibraryTests {
         #expect(tomatoes.items.map(\.name) == ["Tomate", "Cocktailtomate"])
     }
 
-    @Test("A sub-line keeps the word the recipe wrote")
-    func varietySublinesKeepTheWrittenName() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("A sub-line keeps the word the recipe wrote", arguments: StoreBackend.allCases)
+    func varietySublinesKeepTheWrittenName(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
 
         // Capture files the item under the catalog's spelling, which is right
@@ -410,9 +424,9 @@ extension ShoppingLibraryTests {
         #expect(item.writtenNames == ["Cocktailtomaten"])
     }
 
-    @Test("An ordinary ingredient is a group of one, and renders as it always did")
-    func plainItemsAreNotGrouped() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("An ordinary ingredient is a group of one, and renders as it always did", arguments: StoreBackend.allCases)
+    func plainItemsAreNotGrouped(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
 
         let groups = shopping.grouped(shopping.items)
@@ -461,9 +475,9 @@ extension ShoppingLibraryTests {
         #expect(shopping.bySection.map(\.section) == [.unassigned, .aisle(.vegetables), .aisle(.dairy)])
     }
 
-    @Test("The walk starts with the unassigned, then the aisles, then the pantry")
-    func groupedBySection() async throws {
-        let (shopping, _, _) = try makeLibrary()
+    @Test("The walk starts with the unassigned, then the aisles, then the pantry", arguments: StoreBackend.allCases)
+    func groupedBySection(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(
             title: "Menü",
             servings: 2,
@@ -499,7 +513,7 @@ extension ShoppingLibraryTests {
 extension ShoppingLibraryTests {
     @Test("Migrated sources keep the order they were written in")
     func migrationKeepsSourceOrder() async throws {
-        let (shopping, _, container) = try makeLibrary()
+        let (shopping, container) = try makeLegacyLibrary()
 
         // Six sources, migrated in one pass. They are all stamped within the
         // same millisecond, so ordering them by time alone leaves the fetch
@@ -532,7 +546,7 @@ extension ShoppingLibraryTests {
 
     @Test("Pre-document rows carry over: checked stays checked, sources become frozen demand")
     func migrationRoundtrip() async throws {
-        let (shopping, _, container) = try makeLibrary()
+        let (shopping, container) = try makeLegacyLibrary()
 
         // A store as the pre-document schema wrote it: title-keyed sources
         // in a blob, no item id, one row checked off.

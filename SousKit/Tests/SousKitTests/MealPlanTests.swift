@@ -5,8 +5,8 @@ import Testing
 
 @Suite("Meal plan")
 struct MealPlanTests {
-    private func makeStore() throws -> SwiftDataMealPlanStore {
-        SwiftDataMealPlanStore(modelContainer: try .sousContainer(inMemory: true))
+    private func makeStore(_ backend: StoreBackend) throws -> any MealPlanStore {
+        try backend.makeMealPlanStore()
     }
 
     private var monday: Date {
@@ -34,9 +34,9 @@ struct MealPlanTests {
     }
 
 
-    @Test("Entries come back for the days they were planned on")
-    func storeAndFetch() async throws {
-        let store = try makeStore()
+    @Test("Entries come back for the days they were planned on", arguments: StoreBackend.allCases)
+    func storeAndFetch(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let recipeID = UUID()
         let days = monday.weekDays
 
@@ -49,9 +49,9 @@ struct MealPlanTests {
         #expect(entries.map(\.day) == [days[0], days[3], days[3]])
     }
 
-    @Test("Other weeks are left out")
-    func weekIsolation() async throws {
-        let store = try makeStore()
+    @Test("Other weeks are left out", arguments: StoreBackend.allCases)
+    func weekIsolation(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let thisWeek = monday.weekDays
         let nextWeek = monday.addingWeeks(1).weekDays
 
@@ -62,9 +62,9 @@ struct MealPlanTests {
         #expect(try await store.entries(for: nextWeek).count == 1)
     }
 
-    @Test("Saving twice updates the entry rather than adding one")
-    func saveIsIdempotent() async throws {
-        let store = try makeStore()
+    @Test("Saving twice updates the entry rather than adding one", arguments: StoreBackend.allCases)
+    func saveIsIdempotent(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let days = monday.weekDays
         var entry = MealPlanEntry(day: days[1], recipeID: UUID())
 
@@ -77,9 +77,9 @@ struct MealPlanTests {
         #expect(entries[0].servings == 6)
     }
 
-    @Test("A removed entry disappears from the plan")
-    func deletion() async throws {
-        let store = try makeStore()
+    @Test("A removed entry disappears from the plan", arguments: StoreBackend.allCases)
+    func deletion(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let days = monday.weekDays
         let entry = MealPlanEntry(day: days[4], recipeID: UUID())
 
@@ -93,19 +93,15 @@ struct MealPlanTests {
 @MainActor
 @Suite("Planning from a recipe")
 struct MealPlanLibraryTests {
-    private func makeLibrary() throws -> (MealPlanLibrary, SwiftDataRecipeStore) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let recipes = SwiftDataRecipeStore(modelContainer: container)
-        let plan = MealPlanLibrary(
-            store: SwiftDataMealPlanStore(modelContainer: container),
-            recipeStore: recipes
-        )
-        return (plan, recipes)
+    private func makeLibrary(_ backend: StoreBackend) throws -> (MealPlanLibrary, any RecipeStore) {
+        let stores = try backend.makeStores()
+        let plan = MealPlanLibrary(store: stores.mealPlan, recipeStore: stores.recipes)
+        return (plan, stores.recipes)
     }
 
-@Test("The plan runs from today onwards, and grows when scrolled")
-    func continuousRun() async throws {
-        let (plan, _) = try makeLibrary()
+@Test("The plan runs from today onwards, and grows when scrolled", arguments: StoreBackend.allCases)
+    func continuousRun(_ backend: StoreBackend) async throws {
+        let (plan, _) = try makeLibrary(backend)
 
         #expect(plan.days.first == Date().startOfDay)
         #expect(plan.days.count == 28)
@@ -119,9 +115,9 @@ struct MealPlanLibraryTests {
         ).day == 55)
     }
 
-    @Test("A recipe planned for today shows up on today")
-    func planningForToday() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("A recipe planned for today shows up on today", arguments: StoreBackend.allCases)
+    func planningForToday(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2)
         try await recipes.save(recipe)
 
@@ -133,9 +129,9 @@ struct MealPlanLibraryTests {
         #expect(today[0].entry.servings == nil)
     }
 
-    @Test("Planning for a different number of people is remembered")
-    func planningWithServings() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("Planning for a different number of people is remembered", arguments: StoreBackend.allCases)
+    func planningWithServings(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2)
         try await recipes.save(recipe)
 
@@ -145,9 +141,9 @@ struct MealPlanLibraryTests {
         #expect(plan.plannedRecipes.first?.servings == 6)
     }
 
-    @Test("Servings on an already-planned meal can be changed, without duplicating it")
-    func changingServings() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("Servings on an already-planned meal can be changed, without duplicating it", arguments: StoreBackend.allCases)
+    func changingServings(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2)
         try await recipes.save(recipe)
 
@@ -165,9 +161,9 @@ struct MealPlanLibraryTests {
         #expect(plan.plan(for: Date()).first?.entry.servings == nil)
     }
 
-    @Test("Planning beyond the end of the run extends it")
-    func planningPastTheEnd() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("Planning beyond the end of the run extends it", arguments: StoreBackend.allCases)
+    func planningPastTheEnd(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2)
         try await recipes.save(recipe)
 
@@ -179,9 +175,9 @@ struct MealPlanLibraryTests {
         #expect(plan.plan(for: farOff).count == 1)
     }
 
-    @Test("A stretch of days can be read on its own, for shopping")
-    func plannedRecipesInRange() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("A stretch of days can be read on its own, for shopping", arguments: StoreBackend.allCases)
+    func plannedRecipesInRange(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let today = Recipe(title: "Heute", servings: 2)
         let later = Recipe(title: "Später", servings: 2)
         try await recipes.save(today)
@@ -196,9 +192,9 @@ struct MealPlanLibraryTests {
         #expect(plan.plannedRecipes(from: Date(), through: inThreeDays).count == 2)
     }
 
-    @Test("An accepted proposal is written in one go: pool meals move, new picks appear")
-    func applyingAProposal() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("An accepted proposal is written in one go: pool meals move, new picks appear", arguments: StoreBackend.allCases)
+    func applyingAProposal(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let pooled = Recipe(title: "Vorgemerkt", servings: 2)
         let fresh = Recipe(title: "Neu", servings: 2)
         let undated = Recipe(title: "In die Sammlung", servings: 2)
@@ -228,19 +224,15 @@ struct MealPlanLibraryTests {
 @MainActor
 @Suite("Meals of the day")
 struct MealSlotTests {
-    private func makeLibrary() throws -> (MealPlanLibrary, SwiftDataRecipeStore) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let recipes = SwiftDataRecipeStore(modelContainer: container)
-        let plan = MealPlanLibrary(
-            store: SwiftDataMealPlanStore(modelContainer: container),
-            recipeStore: recipes
-        )
-        return (plan, recipes)
+    private func makeLibrary(_ backend: StoreBackend) throws -> (MealPlanLibrary, any RecipeStore) {
+        let stores = try backend.makeStores()
+        let plan = MealPlanLibrary(store: stores.mealPlan, recipeStore: stores.recipes)
+        return (plan, stores.recipes)
     }
 
-    @Test("A day's entries come back in the order the meals happen")
-    func mealsAreOrdered() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("A day's entries come back in the order the meals happen", arguments: StoreBackend.allCases)
+    func mealsAreOrdered(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let porridge = Recipe(title: "Porridge", servings: 1)
         let soup = Recipe(title: "Suppe", servings: 2)
         try await recipes.save(porridge)
@@ -253,9 +245,9 @@ struct MealSlotTests {
         #expect(plan.plan(for: Date()).map(\.recipe?.title) == ["Porridge", "Suppe"])
     }
 
-    @Test("Meals with nothing planned are left out")
-    func emptyMealsAreSkipped() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("Meals with nothing planned are left out", arguments: StoreBackend.allCases)
+    func emptyMealsAreSkipped(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let soup = Recipe(title: "Suppe", servings: 2)
         try await recipes.save(soup)
 
@@ -266,9 +258,9 @@ struct MealSlotTests {
         #expect(meals[0].items.map(\.recipe?.title) == ["Suppe"])
     }
 
-    @Test("Dinner is what a recipe is planned for unless said otherwise")
-    func dinnerByDefault() async throws {
-        let (plan, recipes) = try makeLibrary()
+    @Test("Dinner is what a recipe is planned for unless said otherwise", arguments: StoreBackend.allCases)
+    func dinnerByDefault(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
         let soup = Recipe(title: "Suppe", servings: 2)
         try await recipes.save(soup)
 
@@ -280,23 +272,19 @@ struct MealSlotTests {
 @MainActor
 @Suite("The undated pool")
 struct MealPlanPoolTests {
-    private func makeLibrary() throws -> (MealPlanLibrary, SwiftDataRecipeStore) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let recipes = SwiftDataRecipeStore(modelContainer: container)
-        let library = MealPlanLibrary(
-            store: SwiftDataMealPlanStore(modelContainer: container),
-            recipeStore: recipes
-        )
-        return (library, recipes)
+    private func makeLibrary(_ backend: StoreBackend) throws -> (MealPlanLibrary, any RecipeStore) {
+        let stores = try backend.makeStores()
+        let library = MealPlanLibrary(store: stores.mealPlan, recipeStore: stores.recipes)
+        return (library, stores.recipes)
     }
 
-    private func saved(_ title: String, in store: SwiftDataRecipeStore) async throws -> Recipe {
+    private func saved(_ title: String, in store: any RecipeStore) async throws -> Recipe {
         try await store.save(Recipe(title: title, servings: 2, ingredientsText: "200 g Linsen"))
     }
 
-    @Test("A recipe planned without a day lands in the pool, not on the calendar")
-    func addToPool() async throws {
-        let (library, recipes) = try makeLibrary()
+    @Test("A recipe planned without a day lands in the pool, not on the calendar", arguments: StoreBackend.allCases)
+    func addToPool(_ backend: StoreBackend) async throws {
+        let (library, recipes) = try makeLibrary(backend)
         let recipe = try await saved("Linsensuppe", in: recipes)
 
         await library.add(recipe, to: nil)
@@ -307,9 +295,9 @@ struct MealPlanPoolTests {
         #expect(library.pooledMeals.first?.recipe?.title == "Linsensuppe")
     }
 
-    @Test("A pool entry moves onto a day and keeps what was planned with it")
-    func moveOntoDay() async throws {
-        let (library, recipes) = try makeLibrary()
+    @Test("A pool entry moves onto a day and keeps what was planned with it", arguments: StoreBackend.allCases)
+    func moveOntoDay(_ backend: StoreBackend) async throws {
+        let (library, recipes) = try makeLibrary(backend)
         let recipe = try await saved("Linsensuppe", in: recipes)
         await library.add(recipe, to: nil, servings: 6)
         let entry = try #require(library.pool.first)
@@ -325,9 +313,9 @@ struct MealPlanPoolTests {
         #expect(planned.entry.slot == .lunch)
     }
 
-    @Test("A meal can be taken off its day and left loose")
-    func moveIntoPool() async throws {
-        let (library, recipes) = try makeLibrary()
+    @Test("A meal can be taken off its day and left loose", arguments: StoreBackend.allCases)
+    func moveIntoPool(_ backend: StoreBackend) async throws {
+        let (library, recipes) = try makeLibrary(backend)
         let recipe = try await saved("Linsensuppe", in: recipes)
         let today = try #require(library.days.first)
         await library.add(recipe, to: today)
@@ -339,9 +327,9 @@ struct MealPlanPoolTests {
         #expect(library.pool.map(\.id) == [entry.id])
     }
 
-    @Test("The shopping list can take the pool as it is")
-    func shoppingFromPool() async throws {
-        let (library, recipes) = try makeLibrary()
+    @Test("The shopping list can take the pool as it is", arguments: StoreBackend.allCases)
+    func shoppingFromPool(_ backend: StoreBackend) async throws {
+        let (library, recipes) = try makeLibrary(backend)
         await library.add(try await saved("Linsensuppe", in: recipes), to: nil, servings: 4)
         await library.add(try await saved("Rührei", in: recipes), to: nil)
 

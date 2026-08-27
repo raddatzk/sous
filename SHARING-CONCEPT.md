@@ -83,12 +83,15 @@ It is *worth syncing* versus *recomputable*.
 **Shared** — what a person wrote, and what the other person should see:
 `StoredRecipe`, `StoredRecipeImage`, `StoredVariantGroup`,
 `StoredMealPlanEntry`, `StoredShoppingEntry`, `StoredShoppingPlanEntry`,
-`StoredShoppingDemand`, `StoredPantryFlag`, `StoredIngredientVocabulary`.
+`StoredShoppingDemand`, `StoredIngredientVocabulary`.
 
-The pantry flag belongs here for the same reason the shopping list does: "we
-have that at home" is a statement about one kitchen, not about one phone.
-The vocabulary belongs here because teaching an ingredient its spelling or
-its nutrition by hand is work, and nobody should do it twice.
+The pantry mark belongs here for the same reason the shopping list does: "we
+have that at home" is a statement about one kitchen, not about one phone. It
+does not appear as a row of its own, though — `StoredPantryFlag` is legacy,
+long since folded into the vocabulary entry as `isPantry`, and only the
+vocabulary migration still reads it. It stays behind in SwiftData with the
+other legacy rows. The vocabulary belongs here because teaching an ingredient
+its spelling or its nutrition by hand is work, and nobody should do it twice.
 
 The two review markers — `StoredAmountReview`, `StoredIngredientReview` —
 are shared as well, and that is a judgment worth stating: they record that a
