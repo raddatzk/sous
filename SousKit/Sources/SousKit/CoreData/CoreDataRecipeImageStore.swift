@@ -4,7 +4,7 @@ import Foundation
 /// The Core Data form of a stored picture — the counterpart to
 /// ``StoredRecipeImage``.
 @objc(CDRecipeImage)
-final class CDRecipeImage: NSManagedObject {
+final class CDRecipeImage: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var recipeID: UUID?
     @NSManaged var sortOrder: Int64

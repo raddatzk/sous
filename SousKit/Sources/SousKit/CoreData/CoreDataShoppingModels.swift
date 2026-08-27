@@ -4,7 +4,7 @@ import Foundation
 /// The Core Data form of a shopping item — the counterpart to
 /// ``StoredShoppingEntry``.
 @objc(CDShoppingEntry)
-final class CDShoppingEntry: NSManagedObject {
+final class CDShoppingEntry: CDHouseholdMember {
     @NSManaged var itemID: UUID?
     @NSManaged var key: String
     @NSManaged var name: String
@@ -49,7 +49,7 @@ final class CDShoppingEntry: NSManagedObject {
 
 /// The Core Data form of a captured recipe on the list.
 @objc(CDShoppingPlanEntry)
-final class CDShoppingPlanEntry: NSManagedObject {
+final class CDShoppingPlanEntry: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var recipeID: UUID?
     @NSManaged var title: String
@@ -83,7 +83,7 @@ final class CDShoppingPlanEntry: NSManagedObject {
 
 /// The Core Data form of one contribution to an item.
 @objc(CDShoppingDemand)
-final class CDShoppingDemand: NSManagedObject {
+final class CDShoppingDemand: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var itemID: UUID?
     @NSManaged var planEntryID: UUID?

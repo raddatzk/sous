@@ -4,7 +4,7 @@ import Foundation
 /// The Core Data form of a vocabulary entry — the counterpart to
 /// ``StoredIngredientVocabulary``.
 @objc(CDVocabularyEntry)
-final class CDVocabularyEntry: NSManagedObject {
+final class CDVocabularyEntry: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var key: String
     @NSManaged var name: String

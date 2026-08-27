@@ -31,16 +31,31 @@ enum SousManagedObjectModel {
     /// closure returns.
     nonisolated(unsafe) static let shared: NSManagedObjectModel = {
         let model = NSManagedObjectModel()
-        model.entities = [
+        let household = householdEntity()
+        let members = [
             recipeEntity(), variantGroupEntity(), recipeImageEntity(), mealPlanEntryEntity(),
             reviewMarkEntity(named: amountReviewEntityName),
             reviewMarkEntity(named: ingredientReviewEntityName),
             vocabularyEntryEntity(),
             shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
         ]
+        // Wired after the fact, because a relationship needs both entities to
+        // exist before either can name the other.
+        link(members, to: household)
+        model.entities = [household] + members
         return model
     }()
 
+    static let householdEntityName = "CDHousehold"
+
+    /// Every entity that belongs to a household, for the passes that have to
+    /// walk all of them.
+    static let memberEntityNames = [
+        recipeEntityName, variantGroupEntityName, recipeImageEntityName,
+        mealPlanEntryEntityName, amountReviewEntityName, ingredientReviewEntityName,
+        vocabularyEntryEntityName, shoppingEntryEntityName,
+        shoppingPlanEntryEntityName, shoppingDemandEntityName,
+    ]
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
     static let recipeImageEntityName = "CDRecipeImage"
@@ -293,6 +308,78 @@ enum SousManagedObjectModel {
             index(named: "byPlanEntryID", on: entity, properties: ["planEntryID"]),
         ]
         return entity
+    }
+
+    /// The row every other row belongs to.
+    ///
+    /// It exists for one reason: a shared CloudKit zone is entered through an
+    /// object graph. `share(_:to:)` carries whatever hangs off the object it
+    /// is given, so one household at the root means one call shares the whole
+    /// library — and everything written afterwards joins the zone by being
+    /// attached to it, rather than by every insert remembering to say so.
+    ///
+    /// It also answers a question `VISION.md` already asked: which household
+    /// a row belongs to has to be on the row, and this is that, as a relation
+    /// rather than a loose id. The switch between several households reads it
+    /// as a filter.
+    private static func householdEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = householdEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDHousehold.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("name", .stringAttributeType, default: ""),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
+        return entity
+    }
+
+    /// Gives every member entity a `household` relation and the household the
+    /// inverse — which CloudKit requires: a relationship without one cannot
+    /// be mirrored.
+    ///
+    /// Deleting a household nullifies rather than cascades. Cascade is the
+    /// truer reading of "this household is gone", but a bug on that path
+    /// would take the whole library with it, while a row left without a
+    /// household is visible and repairable — the same bargain a variant makes
+    /// when its group row disappears.
+    private static func link(_ members: [NSEntityDescription], to household: NSEntityDescription) {
+        var inverses: [NSPropertyDescription] = []
+
+        for member in members {
+            let toHousehold = NSRelationshipDescription()
+            toHousehold.name = "household"
+            toHousehold.destinationEntity = household
+            toHousehold.minCount = 0
+            toHousehold.maxCount = 1
+            toHousehold.isOptional = true
+            toHousehold.deleteRule = .nullifyDeleteRule
+
+            let toMembers = NSRelationshipDescription()
+            // Named after the entity so the household can carry ten of them
+            // without collision: "cdRecipes", "cdMealPlanEntries", …
+            toMembers.name = memberRelationName(for: member)
+            toMembers.destinationEntity = member
+            toMembers.minCount = 0
+            toMembers.maxCount = 0
+            toMembers.isOptional = true
+            toMembers.deleteRule = .nullifyDeleteRule
+
+            toHousehold.inverseRelationship = toMembers
+            toMembers.inverseRelationship = toHousehold
+
+            member.properties.append(toHousehold)
+            inverses.append(toMembers)
+        }
+
+        household.properties.append(contentsOf: inverses)
+    }
+
+    private static func memberRelationName(for entity: NSEntityDescription) -> String {
+        let name = entity.name ?? "members"
+        return name.prefix(1).lowercased() + name.dropFirst() + "s"
     }
 
     private static func attribute(
