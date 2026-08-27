@@ -31,13 +31,26 @@ enum SousManagedObjectModel {
     /// closure returns.
     nonisolated(unsafe) static let shared: NSManagedObjectModel = {
         let model = NSManagedObjectModel()
-        model.entities = [recipeEntity(), variantGroupEntity(), recipeImageEntity()]
+        model.entities = [
+            recipeEntity(), variantGroupEntity(), recipeImageEntity(), mealPlanEntryEntity(),
+            reviewMarkEntity(named: amountReviewEntityName),
+            reviewMarkEntity(named: ingredientReviewEntityName),
+            vocabularyEntryEntity(),
+            shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
+        ]
         return model
     }()
 
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
     static let recipeImageEntityName = "CDRecipeImage"
+    static let mealPlanEntryEntityName = "CDMealPlanEntry"
+    static let amountReviewEntityName = "CDAmountReview"
+    static let ingredientReviewEntityName = "CDIngredientReview"
+    static let vocabularyEntryEntityName = "CDVocabularyEntry"
+    static let shoppingEntryEntityName = "CDShoppingEntry"
+    static let shoppingPlanEntryEntityName = "CDShoppingPlanEntry"
+    static let shoppingDemandEntityName = "CDShoppingDemand"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -127,6 +140,157 @@ enum SousManagedObjectModel {
         entity.indexes = [
             index(named: "byRecipeID", on: entity, properties: ["recipeID"]),
             index(named: "byID", on: entity, properties: ["id"]),
+        ]
+        return entity
+    }
+
+    private static func mealPlanEntryEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = mealPlanEntryEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDMealPlanEntry.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            // Absent for a pool entry, which is the whole distinction between
+            // a meal that sits on a day and one that is merely intended.
+            attribute("day", .dateAttributeType, optional: true),
+            attribute("slotRaw", .stringAttributeType, default: MealSlot.dinner.rawValue),
+            attribute("recipeID", .UUIDAttributeType),
+            attribute("servings", .integer64AttributeType, optional: true),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+            attribute("deletedAt", .dateAttributeType, optional: true),
+        ]
+        entity.indexes = [
+            index(named: "byDay", on: entity, properties: ["day"]),
+            index(named: "byID", on: entity, properties: ["id"]),
+        ]
+        return entity
+    }
+
+    /// The two review marks, which are the same row twice.
+    ///
+    /// Two entities rather than one with a "kind" column, because they answer
+    /// different questions and a recipe may have settled one and not the
+    /// other — but they share a class and a shape, so they are described once.
+    private static func reviewMarkEntity(named name: String) -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = name
+        entity.managedObjectClassName = NSStringFromClass(CDReviewMark.self)
+        entity.properties = [
+            attribute("recipeID", .UUIDAttributeType),
+            attribute("reviewedContentHash", .stringAttributeType, default: ""),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byRecipeID", on: entity, properties: ["recipeID"])]
+        return entity
+    }
+
+    private static func vocabularyEntryEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = vocabularyEntryEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDVocabularyEntry.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("key", .stringAttributeType, default: ""),
+            attribute("name", .stringAttributeType, default: ""),
+            attribute("aliasesJSON", .stringAttributeType, default: "[]"),
+            attribute("categoryRaw", .stringAttributeType, optional: true),
+            // The variety relation, as an id rather than a Core Data
+            // relationship — one level deep, and a name changes while an
+            // identity does not.
+            attribute("parentID", .UUIDAttributeType, optional: true),
+            attribute("isOwnIngredient", .booleanAttributeType, default: false),
+            attribute("isPantry", .booleanAttributeType, default: false),
+            attribute("needsBasisReview", .booleanAttributeType, default: false),
+            // The two blobs the shape forces: bases per state and unit
+            // weights are dictionaries, read and written whole with the entry.
+            attribute("basisData", .binaryDataAttributeType, optional: true),
+            attribute("unitWeightData", .binaryDataAttributeType, optional: true),
+            attribute("preferredStore", .stringAttributeType, optional: true),
+            attribute("shoppingNote", .stringAttributeType, optional: true),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [
+            index(named: "byKey", on: entity, properties: ["key"]),
+            index(named: "byParentID", on: entity, properties: ["parentID"]),
+        ]
+        return entity
+    }
+
+    private static func shoppingEntryEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = shoppingEntryEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDShoppingEntry.self)
+        entity.properties = [
+            attribute("itemID", .UUIDAttributeType),
+            attribute("key", .stringAttributeType, default: ""),
+            attribute("name", .stringAttributeType, default: ""),
+            attribute("categoryRaw", .stringAttributeType, optional: true),
+            attribute("manualQuantityData", .binaryDataAttributeType, optional: true),
+            attribute("isChecked", .booleanAttributeType, default: false),
+            attribute("isLateAddition", .booleanAttributeType, default: false),
+            // Set when "Erledigte entfernen" swept it off the list; the row
+            // stays as the list's memory instead of being deleted.
+            attribute("clearedAt", .dateAttributeType, optional: true),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("addedAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byKey", on: entity, properties: ["key"])]
+        return entity
+    }
+
+    private static func shoppingPlanEntryEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = shoppingPlanEntryEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDShoppingPlanEntry.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("recipeID", .UUIDAttributeType, optional: true),
+            attribute("title", .stringAttributeType, default: ""),
+            attribute("servingsCaptured", .integer64AttributeType, default: 1),
+            attribute("servingsCurrent", .integer64AttributeType, default: 1),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("addedAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
+        return entity
+    }
+
+    private static func shoppingDemandEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = shoppingDemandEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDShoppingDemand.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("itemID", .UUIDAttributeType, optional: true),
+            // `nil` means frozen — a lapsed remainder that no longer follows
+            // any stepper.
+            attribute("planEntryID", .UUIDAttributeType, optional: true),
+            attribute("lineID", .UUIDAttributeType, optional: true),
+            attribute("originTitle", .stringAttributeType, default: ""),
+            attribute("writtenName", .stringAttributeType, default: ""),
+            attribute("quantityData", .binaryDataAttributeType, optional: true),
+            attribute("stateRaw", .stringAttributeType, default: IngredientState.unspecified.rawValue),
+            attribute("scales", .booleanAttributeType, default: true),
+            attribute("isLate", .booleanAttributeType, default: false),
+            attribute("isScaleDiff", .booleanAttributeType, default: false),
+            // Named for the storage rather than the reading: the class
+            // exposes it as an `Int?`, and a managed property has to carry
+            // the attribute's own name.
+            attribute("checkedAtServingsValue", .integer64AttributeType, optional: true),
+            attribute("lapsedQuantityData", .binaryDataAttributeType, optional: true),
+            attribute("isLapsed", .booleanAttributeType, default: false),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("addedAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [
+            index(named: "byItemID", on: entity, properties: ["itemID"]),
+            index(named: "byPlanEntryID", on: entity, properties: ["planEntryID"]),
         ]
         return entity
     }

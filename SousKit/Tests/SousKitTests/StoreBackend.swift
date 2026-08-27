@@ -22,21 +22,53 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
         }
     }
 
-    func makeStore() throws -> any RecipeStore {
+    /// Several stores over one container.
+    ///
+    /// Which matters as soon as a test needs two of them to see each other —
+    /// a plan entry pointing at a recipe, a shopping list built from one.
+    /// Handing out stores over separate containers would give each test its
+    /// own private, mutually invisible library.
+    struct StoreSet {
+        let recipes: any RecipeStore
+        let images: any RecipeImageStore
+        let mealPlan: any MealPlanStore
+        let amountReviews: any RecipeAmountReviewStore
+        let ingredientReviews: any RecipeIngredientReviewStore
+        let vocabulary: any VocabularyStore
+        let shopping: any ShoppingListStore
+    }
+
+    func makeStores() throws -> StoreSet {
         switch self {
         case .swiftData:
-            SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+            let container = try ModelContainer.sousContainer(inMemory: true)
+            return StoreSet(
+                recipes: SwiftDataRecipeStore(modelContainer: container),
+                images: SwiftDataRecipeImageStore(modelContainer: container),
+                mealPlan: SwiftDataMealPlanStore(modelContainer: container),
+                amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+                ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
+                vocabulary: SwiftDataVocabularyStore(modelContainer: container),
+                shopping: SwiftDataShoppingListStore(modelContainer: container)
+            )
         case .coreData:
-            CoreDataRecipeStore(container: try SousPersistentContainer.make(inMemory: true))
+            let container = try SousPersistentContainer.make(inMemory: true)
+            return StoreSet(
+                recipes: CoreDataRecipeStore(container: container),
+                images: CoreDataRecipeImageStore(container: container),
+                mealPlan: CoreDataMealPlanStore(container: container),
+                amountReviews: CoreDataRecipeAmountReviewStore(container: container),
+                ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container),
+                vocabulary: CoreDataVocabularyStore(container: container),
+                shopping: CoreDataShoppingListStore(container: container)
+            )
         }
     }
 
-    func makeImageStore() throws -> any RecipeImageStore {
-        switch self {
-        case .swiftData:
-            SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
-        case .coreData:
-            CoreDataRecipeImageStore(container: try SousPersistentContainer.make(inMemory: true))
-        }
-    }
+    func makeStore() throws -> any RecipeStore { try makeStores().recipes }
+    func makeImageStore() throws -> any RecipeImageStore { try makeStores().images }
+    func makeMealPlanStore() throws -> any MealPlanStore { try makeStores().mealPlan }
+    func makeAmountReviewStore() throws -> any RecipeAmountReviewStore { try makeStores().amountReviews }
+    func makeIngredientReviewStore() throws -> any RecipeIngredientReviewStore { try makeStores().ingredientReviews }
+    func makeVocabularyStore() throws -> any VocabularyStore { try makeStores().vocabulary }
 }

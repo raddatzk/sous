@@ -6,16 +6,13 @@ import Testing
 @MainActor
 @Suite("Own ingredients")
 struct IngredientCatalogLibraryTests {
-    private func makeLibrary() throws -> IngredientCatalogLibrary {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        return IngredientCatalogLibrary(
-            store: SwiftDataVocabularyStore(modelContainer: container)
-        )
+    private func makeLibrary(_ backend: StoreBackend) throws -> IngredientCatalogLibrary {
+        IngredientCatalogLibrary(store: try backend.makeVocabularyStore())
     }
 
-    @Test("An added ingredient becomes part of the catalog")
-    func addingAnIngredient() async throws {
-        let library = try makeLibrary()
+    @Test("An added ingredient becomes part of the catalog", arguments: StoreBackend.allCases)
+    func addingAnIngredient(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.reload()
         #expect(library.catalog.ingredient(for: "Gochujang") == nil)
 
@@ -30,18 +27,18 @@ struct IngredientCatalogLibraryTests {
         #expect(library.ownIngredients.map(\.name) == ["Gochujang"])
     }
 
-    @Test("An own entry overrides the bundled one of the same name")
-    func ownEntryWins() async throws {
-        let library = try makeLibrary()
+    @Test("An own entry overrides the bundled one of the same name", arguments: StoreBackend.allCases)
+    func ownEntryWins(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         // Bundled: Olive is a vegetable. Someone may disagree.
         await library.save(CatalogIngredient(name: "Olive", aliases: ["Oliven"], category: .canned))
 
         #expect(library.catalog.category(for: "Oliven") == .canned)
     }
 
-    @Test("Only own entries can be edited or removed")
-    func ownershipIsVisible() async throws {
-        let library = try makeLibrary()
+    @Test("Only own entries can be edited or removed", arguments: StoreBackend.allCases)
+    func ownershipIsVisible(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.save(CatalogIngredient(name: "Gochujang", category: .canned))
 
         let own = try #require(library.catalog.ingredient(for: "Gochujang"))
@@ -53,9 +50,9 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ingredient(for: "Gochujang") == nil)
     }
 
-    @Test("A spelling taught to a bundled entry resolves to it")
-    func aliasOverrideOnABundledEntry() async throws {
-        let library = try makeLibrary()
+    @Test("A spelling taught to a bundled entry resolves to it", arguments: StoreBackend.allCases)
+    func aliasOverrideOnABundledEntry(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.reload()
         let tomato = try #require(library.catalog.ingredient(for: "Tomate"))
         #expect(library.catalog.ingredient(for: "Ochsenherz") == nil)
@@ -69,9 +66,9 @@ struct IngredientCatalogLibraryTests {
         #expect(library.ownAliases(of: tomato) == ["Ochsenherz"])
     }
 
-    @Test("A spelling taught to an own entry resolves to it too")
-    func aliasOverrideOnAnOwnEntry() async throws {
-        let library = try makeLibrary()
+    @Test("A spelling taught to an own entry resolves to it too", arguments: StoreBackend.allCases)
+    func aliasOverrideOnAnOwnEntry(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.save(CatalogIngredient(name: "Gochujang", category: .canned))
         let own = try #require(library.catalog.ingredient(for: "Gochujang"))
 
@@ -80,9 +77,9 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.canonicalName(for: "Gochu-Paste") == "Gochujang")
     }
 
-    @Test("A taught spelling can be taken back")
-    func aliasOverrideIsRemovable() async throws {
-        let library = try makeLibrary()
+    @Test("A taught spelling can be taken back", arguments: StoreBackend.allCases)
+    func aliasOverrideIsRemovable(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.reload()
         let tomato = try #require(library.catalog.ingredient(for: "Tomate"))
 
@@ -92,9 +89,9 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ingredient(for: "Ochsenherz") == nil)
     }
 
-    @Test("Taking over a bundled entry keeps the spelling taught to it")
-    func ownEntryShadowsAnOverriddenBundledOne() async throws {
-        let library = try makeLibrary()
+    @Test("Taking over a bundled entry keeps the spelling taught to it", arguments: StoreBackend.allCases)
+    func ownEntryShadowsAnOverriddenBundledOne(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.reload()
         let bundled = try #require(library.catalog.ingredient(for: "Olive"))
         await library.addAlias("Kalamata", to: bundled)
@@ -114,9 +111,9 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ingredients.filter { $0.key == "olive" }.count == 1)
     }
 
-    @Test("A recipe's unknown ingredients are found, links and knowns skipped")
-    func unknownIngredients() async throws {
-        let library = try makeLibrary()
+    @Test("A recipe's unknown ingredients are found, links and knowns skipped", arguments: StoreBackend.allCases)
+    func unknownIngredients(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
         await library.reload()
 
         let unknown = library.unknownIngredients(in: """
