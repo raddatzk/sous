@@ -154,15 +154,15 @@ struct RecipeListView: View {
         #endif
         .navigationTitle("Rezepte")
         // The system places it: the sidebar's own field on the Mac and iPad,
-        // under the title on the phone. Ingredients and categories ride in it
+        // and the bottom toolbar on the phone — iOS 26 moved search down
+        // into thumb's reach, and `.toolbar` is what asks for that. The old
+        // under-the-title drawer meant scrolling a long list all the way up
+        // just to search it. Ingredients and categories ride in the field
         // as tokens, which is what the hand-built field was for.
         .searchable(
             text: $library.searchText,
             tokens: tokens,
-            // Left to the system on purpose. `.sidebar` would be right on the
-            // Mac and a guess on the phone, where this list is a stack and has
-            // no sidebar to put it in.
-            placement: .automatic,
+            placement: searchPlacement,
             prompt: "Titel, Zutat, Kategorie"
         ) { filter in
             Label(
@@ -171,6 +171,12 @@ struct RecipeListView: View {
             )
         }
         .searchSuggestions { filterSuggestions }
+        #if os(iOS)
+        // The iOS 26 shape of a searchable list under a tab bar: the field
+        // rides at the bottom edge and minimizes to a capsule while the
+        // list is being read, instead of hiding at the top of the scroll.
+        .searchToolbarBehavior(.minimize)
+        #endif
         .overlay { emptyState }
         .toolbar { listToolbar }
         .task { await library.reload() }
@@ -203,6 +209,17 @@ struct RecipeListView: View {
             }
             if selected != row { selected = row }
         }
+    }
+
+    /// Where the field goes on each platform. The phone gets the bottom
+    /// toolbar; the Mac and iPad keep `.automatic`, which resolves to the
+    /// sidebar's own field there.
+    private var searchPlacement: SearchFieldPlacement {
+        #if os(iOS)
+        .toolbar
+        #else
+        .automatic
+        #endif
     }
 
     /// One recipe's row, whether it stands on its own or under a group.
