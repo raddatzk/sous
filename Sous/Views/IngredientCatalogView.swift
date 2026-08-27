@@ -165,6 +165,12 @@ struct IngredientFormView: View {
     /// a change is written back.
     @State private var isPantry = false
     @State private var storedPantry = false
+    /// Where this ingredient is bought and what to know at the shelf, as
+    /// shown and as loaded — like the pantry flag, only a change writes.
+    @State private var storeDraft = ""
+    @State private var noteDraft = ""
+    @State private var storedStore = ""
+    @State private var storedNote = ""
     /// Set once the cook asks to enter their own numbers over shipped ones.
     @State private var isEnteringOwnValues = false
     /// The ingredient this one is filed as a variety of — proposed for a new
@@ -244,6 +250,7 @@ struct IngredientFormView: View {
                 }
                 variantSection
                 pantrySection
+                shoppingSection
                 nutritionSection
                 measuresSection
             }
@@ -269,6 +276,11 @@ struct IngredientFormView: View {
                 await shopping.ensurePantryLoaded()
                 storedPantry = shopping.pantryKeys.contains(pantryKey)
                 isPantry = storedPantry
+                let entry = catalog.entry(for: pantryName)
+                storedStore = entry?.preferredStore ?? ""
+                storedNote = entry?.shoppingNote ?? ""
+                storeDraft = storedStore
+                noteDraft = storedNote
                 proposeVariantIfNew()
             }
             // Retyping the name is still "coming into being": the proposal
@@ -321,6 +333,17 @@ struct IngredientFormView: View {
             Toggle("Vorrat", isOn: $isPantry)
         } footer: {
             Text("Vorräte stehen auf der Einkaufsliste eingeklappt am Ende — zum Durchsehen am Regal statt zwischen den Besorgungen.")
+        }
+    }
+
+    private var shoppingSection: some View {
+        Section {
+            TextField("Supermarkt, z. B. Lidl", text: $storeDraft)
+            TextField("Notiz, z. B. die feste Sorte", text: $noteDraft)
+        } header: {
+            Text("Einkauf")
+        } footer: {
+            Text("Mit Supermarkt steht die Zutat auf der Einkaufsliste als eigene Besorgung. Auf der Stamm-Zutat gesetzt gilt beides auch für ihre Sorten.")
         }
     }
 
@@ -780,6 +803,9 @@ struct IngredientFormView: View {
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
         let pantryTarget = pantryName
+        let shoppingChanged = storeDraft != storedStore || noteDraft != storedNote
+        let storeEntered = storeDraft
+        let noteEntered = noteDraft
 
         let parent = parentName
         let wasParented = original.parentName
@@ -806,6 +832,14 @@ struct IngredientFormView: View {
             }
             if pantryChanged {
                 await shopping.setPantry(pantryFlagged, name: pantryTarget)
+            }
+            if shoppingChanged {
+                // Through the catalog library, not the shopping one: the
+                // share extension shows this form without a ShoppingLibrary
+                // in its environment.
+                await catalog.setShoppingPreferences(
+                    store: storeEntered, note: noteEntered, name: pantryTarget
+                )
             }
             dismiss()
         }

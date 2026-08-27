@@ -112,6 +112,14 @@ public final class IngredientCatalogLibrary {
         Set(vocabulary.values.filter(\.isPantry).map(\.key))
     }
 
+    /// Where each ingredient is bought, keyed like `pantryKeys` — only the
+    /// entries where the cook named a store.
+    public var preferredStores: [String: String] {
+        vocabulary.values.reduce(into: [:]) { result, entry in
+            if let store = entry.preferredStore { result[entry.key] = store }
+        }
+    }
+
     /// The ingredients named in a recipe's text that the catalog does not
     /// know — what the editor offers to add.
     public func unknownIngredients(in text: String) -> [String] {
@@ -192,6 +200,18 @@ public final class IngredientCatalogLibrary {
     public func setPantry(_ flagged: Bool, name: String) async {
         await mutate(name, affectsNutrition: false) { entry in
             entry.isPantry = flagged
+        }
+    }
+
+    /// Where an ingredient is bought and what to know at the shelf. Empty
+    /// strings clear — a store preference taken back is an entry with
+    /// nothing to say, and the store sweeps it like any other.
+    public func setShoppingPreferences(store: String?, note: String?, name: String) async {
+        let trimmedStore = store?.trimmingCharacters(in: .whitespaces)
+        let trimmedNote = note?.trimmingCharacters(in: .whitespaces)
+        await mutate(name, affectsNutrition: false) { entry in
+            entry.preferredStore = trimmedStore?.isEmpty == false ? trimmedStore : nil
+            entry.shoppingNote = trimmedNote?.isEmpty == false ? trimmedNote : nil
         }
     }
 

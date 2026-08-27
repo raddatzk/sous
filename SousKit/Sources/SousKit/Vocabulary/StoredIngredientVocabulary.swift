@@ -42,6 +42,10 @@ public final class StoredIngredientVocabulary {
     public var basisData: Data = Data()
     /// Serialized `[String: Double]`, keyed by `IngredientUnit.symbol`.
     public var unitWeightData: Data = Data()
+    /// Where this ingredient is bought, and what to know at the shelf —
+    /// see ``IngredientVocabularyEntry/preferredStore``.
+    public var preferredStore: String?
+    public var shoppingNote: String?
     public var createdAt: Date = Date.nowInSyncPrecision
     public var updatedAt: Date = Date.nowInSyncPrecision
 
@@ -80,6 +84,8 @@ public final class StoredIngredientVocabulary {
             unitWeightsGrams: unitWeightsGrams,
             bases: bases,
             needsBasisReview: needsBasisReview,
+            preferredStore: preferredStore,
+            shoppingNote: shoppingNote,
             updatedAt: updatedAt
         )
     }
@@ -96,6 +102,8 @@ public final class StoredIngredientVocabulary {
         needsBasisReview = entry.needsBasisReview
         bases = entry.bases
         unitWeightsGrams = entry.unitWeightsGrams
+        preferredStore = entry.preferredStore
+        shoppingNote = entry.shoppingNote
         updatedAt = .nowInSyncPrecision
     }
 }

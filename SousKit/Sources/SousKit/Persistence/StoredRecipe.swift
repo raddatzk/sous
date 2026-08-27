@@ -149,8 +149,16 @@ public final class StoredRecipe {
         for ingredient in recipe.ingredients {
             let name = ShoppingItem.displayName(for: ingredient.name)
             let own = ShoppingItem.key(for: ingredient.name, catalog: catalog)
-            let parent = catalog.ingredient(for: name)?.parentName.map(IngredientCatalog.normalize)
-            for key in [own, parent].compactMap({ $0 }) {
+            var resolved = catalog.ingredient(for: name)
+            var headKey: String?
+            if resolved == nil, let head = StepAmountResolver.headWord(of: name) {
+                // "1 kleiner Hokkaido" — the catalog knows the head noun,
+                // not the phrase. The same reach the step matcher has.
+                resolved = catalog.ingredient(for: head)
+                headKey = resolved.map(\.key)
+            }
+            let parent = resolved?.parentName.map(IngredientCatalog.normalize)
+            for key in [own, headKey, parent].compactMap({ $0 }) {
                 guard !key.isEmpty, seen.insert(key).inserted else { continue }
                 keys.append(key)
             }

@@ -77,7 +77,13 @@ enum RecipeContentHash {
             "Only \(found) of \(bundledDataResources.count) bundled data files "
                 + "(\(bundledDataResources)) could be read for the fingerprint"
         )
-        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+        // The reading version rides along: the fingerprint answers "would
+        // the app derive something different from the same stored text?",
+        // and a parser that reads differently is exactly such a change —
+        // `BundledDataMarker` compares this string, so a code-only bump
+        // re-runs the reconciliation and the search reindex the same way
+        // new data does.
+        return "r\(readingVersion)-" + hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }()
 
     static func hash(for recipe: Recipe) -> String {

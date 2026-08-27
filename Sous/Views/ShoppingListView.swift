@@ -10,6 +10,9 @@ struct ShoppingListView: View {
     @State private var newItem = ""
     /// The pantry is a check-through list, not errands — it starts folded.
     @State private var pantryExpanded = false
+    /// "I am standing in this shop" — the aisle view narrowed to one
+    /// store's errands. `nil` is the whole list.
+    @State private var storeFilter: String?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -60,12 +63,31 @@ struct ShoppingListView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
+            if grouping == .aisle, !storeNames.isEmpty {
+                ToolbarItem(placement: .primaryAction) {
+                    Menu {
+                        Picker("Besorgung", selection: $storeFilter) {
+                            Text("Alle Besorgungen").tag(String?.none)
+                            ForEach(storeNames, id: \.self) { name in
+                                Text(name).tag(String?.some(name))
+                            }
+                        }
+                    } label: {
+                        Label(
+                            "Besorgung",
+                            systemImage: activeStoreFilter == nil ? "storefront" : "storefront.fill"
+                        )
+                    }
+                    .help("Nach Besorgung filtern")
+                }
+            }
             if !shopping.checkedItems.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
                     Button("Erledigte entfernen", systemImage: "trash") {
                         Task { await shopping.clearChecked() }
                     }
                     .labelStyle(.iconOnly)
+                    .help("Erledigte entfernen")
                 }
             }
         }
@@ -95,7 +117,10 @@ struct ShoppingListView: View {
             }
         }
 
-        pantrySection
+        // Standing in one shop, the shelf at home is not on the walk.
+        if activeStoreFilter == nil {
+            pantrySection
+        }
     }
 
     /// A stretch of the list as the places it occupies: an ingredient and
@@ -168,17 +193,37 @@ struct ShoppingListView: View {
     }
 
     /// The open items of every section but the pantry, which keeps its own
-    /// checked rows and comes last.
+    /// checked rows and comes last. With a store filter set, only that
+    /// shop's errands remain.
     private var openSections: [(section: ShoppingSection, items: [ShoppingItem])] {
         shopping.bySection.compactMap { group in
             guard group.section != .pantry else { return nil }
+            if let store = activeStoreFilter, group.section != .store(store) { return nil }
             let open = group.items.filter { !$0.isChecked }
             return open.isEmpty ? nil : (group.section, open)
         }
     }
 
+    /// The stores the current list mentions, for the filter menu.
+    private var storeNames: [String] {
+        shopping.bySection.compactMap { group in
+            if case .store(let name) = group.section { return name }
+            return nil
+        }
+    }
+
+    /// The filter, unless the store it named has meanwhile left the list —
+    /// clearing the last Lidl item must not leave an empty view behind.
+    private var activeStoreFilter: String? {
+        storeFilter.flatMap { storeNames.contains($0) ? $0 : nil }
+    }
+
     private var checkedErrands: [ShoppingItem] {
-        shopping.checkedItems.filter { !shopping.isPantry($0) }
+        shopping.checkedItems.filter { item in
+            guard !shopping.isPantry(item) else { return false }
+            guard let store = activeStoreFilter else { return true }
+            return shopping.preferredStore(of: item) == store
+        }
     }
 
     /// Pantry staples as a check-through list: open and checked stay in
@@ -295,6 +340,13 @@ struct ShoppingListView: View {
                     }
                     if let note {
                         Text(note)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    // What the cook wrote down for the shelf — "die feste
+                    // Sorte" — travels with the item wherever it renders.
+                    if let shelfNote = shopping.shoppingNote(of: item) {
+                        Text(shelfNote)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

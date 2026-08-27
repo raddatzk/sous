@@ -41,6 +41,14 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
     /// the question it is: the entry works, and the review flow has a list of
     /// what to ask about.
     public var needsBasisReview: Bool
+    /// Where this ingredient is bought — "Lidl". Free text: a store is a
+    /// word the cook uses, not a registry the app maintains. `nil` where
+    /// the cook never said; the shopping list groups by it where they did.
+    public var preferredStore: String?
+    /// What to know at the shelf — "die feste Sorte", "Marke Taifun".
+    /// Cross-recipe by construction: a preference tied to one recipe
+    /// belongs in that recipe's own line, not here.
+    public var shoppingNote: String?
     public var updatedAt: Date
 
     public init(
@@ -54,6 +62,8 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
         unitWeightsGrams: [String: Double] = [:],
         bases: [String: BasisAssignment] = [:],
         needsBasisReview: Bool = false,
+        preferredStore: String? = nil,
+        shoppingNote: String? = nil,
         updatedAt: Date = .nowInSyncPrecision
     ) {
         self.id = id
@@ -66,6 +76,8 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
         self.unitWeightsGrams = unitWeightsGrams
         self.bases = bases
         self.needsBasisReview = needsBasisReview
+        self.preferredStore = preferredStore
+        self.shoppingNote = shoppingNote
         self.updatedAt = updatedAt
     }
 
@@ -79,7 +91,7 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
     public var isEmpty: Bool {
         !isOwnIngredient && !isPantry && aliases.isEmpty && bases.isEmpty
             && unitWeightsGrams.isEmpty && parentName == nil && category == nil
-            && !needsBasisReview
+            && !needsBasisReview && preferredStore == nil && shoppingNote == nil
     }
 
     /// What the vanished rows were called, in state display order.

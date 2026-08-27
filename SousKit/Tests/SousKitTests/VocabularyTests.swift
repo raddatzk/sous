@@ -198,6 +198,22 @@ struct VocabularyStoreTests {
         #expect(try await store.entries().isEmpty)
     }
 
+    @Test("A store preference is state, not residue — it keeps the entry alive and round-trips")
+    func storePreferenceSurvives() async throws {
+        let store = try store()
+        _ = try await store.save(IngredientVocabularyEntry(
+            name: "Dürüm", preferredStore: "Lidl", shoppingNote: "die große Packung"
+        ))
+
+        let entry = try #require(try await store.entries().first { $0.key == "dürüm" })
+        #expect(entry.preferredStore == "Lidl")
+        #expect(entry.shoppingNote == "die große Packung")
+
+        // Taking the preference back empties the entry, and the sweep takes it.
+        _ = try await store.save(IngredientVocabularyEntry(name: "Dürüm"))
+        #expect(try await store.entries().isEmpty)
+    }
+
     @Test("Deleting an entry does not leave its varieties pointing at nothing")
     func deletingDetachesChildren() async throws {
         let store = try store()
