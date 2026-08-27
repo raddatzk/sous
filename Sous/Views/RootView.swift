@@ -13,9 +13,9 @@ struct RootView: View {
     @Environment(\.dismissWindow) private var dismissWindow
     #endif
 
-    /// Which of the three the Mac is showing. The phone and iPad keep a tab
-    /// view, which holds this itself.
-    @State private var section: SousSection = .recipes
+    /// Which of the three is showing — held above the views so that an App
+    /// Intent ("Öffne die Einkaufsliste") or a Spotlight hit can steer it.
+    @Environment(SousNavigation.self) private var navigation
     /// Whether the collected "was ist verwaist" sheet is up.
     @State private var isClarifyingOrphans = false
 
@@ -153,7 +153,7 @@ struct RootView: View {
         // buttons had nowhere to sit and collapsed into an overflow chevron.
         NavigationSplitView {
             Group {
-                switch section {
+                switch navigation.section {
                 case .recipes: RecipeListView()
                 case .mealPlan: MealPlanView()
                 case .shopping: ShoppingListView()
@@ -236,10 +236,10 @@ struct RootView: View {
     /// all three names are readable all the time.
     @ViewBuilder
     private func sectionButton(_ item: SousSection) -> some View {
-        let isActive = item == section
+        let isActive = item == navigation.section
 
         Button {
-            section = item
+            navigation.section = item
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: item.symbol)
@@ -256,9 +256,10 @@ struct RootView: View {
     #else
     @ViewBuilder
     private var sections: some View {
-        TabView {
+        @Bindable var navigation = navigation
+        TabView(selection: $navigation.section) {
             ForEach(SousSection.allCases) { section in
-                Tab(section.title, systemImage: section.symbol) {
+                Tab(section.title, systemImage: section.symbol, value: section) {
                     switch section {
                     case .recipes: RecipeListView()
                     case .mealPlan: MealPlanView()
@@ -315,6 +316,17 @@ private struct SectionButtonStyle: ButtonStyle {
     }
 }
 #endif
+
+/// Which of the three places the app is standing in.
+///
+/// App state rather than view state, for the same reason the selection is:
+/// an App Intent has no view to ask, and "Öffne die Einkaufsliste" has to
+/// land somewhere that outlives whichever tab was open.
+@MainActor
+@Observable
+final class SousNavigation {
+    var section: SousSection = .recipes
+}
 
 /// The three places the app is used from, named once so the tab bar and the
 /// Mac's switch cannot drift apart on wording or order.

@@ -1,3 +1,5 @@
+import AppIntents
+import CoreSpotlight
 import SwiftData
 import SousKit
 import SwiftUI
@@ -12,6 +14,11 @@ struct SousApp: App {
     @State private var catalog: IngredientCatalogLibrary
     @State private var nutrition: NutritionLibrary
     @State private var dinnerPlanner: DinnerPlannerLibrary
+    /// Which section is showing — app state, so an App Intent can steer it.
+    @State private var navigation = SousNavigation()
+    /// Held by the app for the Spotlight index, which wants every recipe
+    /// and not whatever the list is currently filtered to.
+    private let recipeStore: SwiftDataRecipeStore
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -68,11 +75,12 @@ struct SousApp: App {
                 recipeStore: recipes
             )
             _mealPlan = State(initialValue: plan)
-            _shopping = State(initialValue: ShoppingLibrary(
+            let shoppingLibrary = ShoppingLibrary(
                 store: SwiftDataShoppingListStore(modelContainer: container),
                 recipeStore: recipes,
                 catalogLibrary: catalogLibrary
-            ))
+            )
+            _shopping = State(initialValue: shoppingLibrary)
             let nutritionLibrary = NutritionLibrary(
                 store: nutritionStore,
                 recipeStore: recipes,
@@ -85,11 +93,29 @@ struct SousApp: App {
                 nutrition: nutritionLibrary,
                 enrichment: enrichmentStore
             ))
+            recipeStore = recipes
+
+            // The same instances the views hold, handed to the App Intents:
+            // Siri writing to a second store while the app shows the first
+            // would be two apps in one process.
+            AppDependencyManager.shared.add(dependency: recipes)
+            AppDependencyManager.shared.add(dependency: shoppingLibrary)
+            AppDependencyManager.shared.add(dependency: plan)
         } catch {
             // A recipe app without its database has nothing to show, and
             // hiding that behind an empty list would be worse than stopping.
             fatalError("Could not open the recipe store: \(error)")
         }
+        // These carry their defaults, so `self` is whole here — the session
+        // and selection go to the intents as the same objects the UI holds.
+        // Bound to locals first: `add` takes its dependency lazily, and a
+        // lazy read of `self` is not something an initializer may hand out.
+        let cookSession = session
+        let recipeSelection = selection
+        let sousNavigation = navigation
+        AppDependencyManager.shared.add(dependency: cookSession)
+        AppDependencyManager.shared.add(dependency: recipeSelection)
+        AppDependencyManager.shared.add(dependency: sousNavigation)
     }
 
     /// Stamps the cook's name-keyed rows with their SBLS code, then folds
@@ -133,6 +159,13 @@ struct SousApp: App {
         dataUpdate.didFindOrphans = !report.orphanedNames.isEmpty
     }
 
+    /// Every live recipe into the system index, so the collection answers
+    /// from Spotlight without the app open.
+    private func indexRecipesForSpotlight() async {
+        guard let recipes = try? await recipeStore.recipes(matching: RecipeQuery()) else { return }
+        try? await CSSearchableIndex.default().indexAppEntities(recipes.map(RecipeEntity.init))
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -147,6 +180,7 @@ struct SousApp: App {
                 .environment(selection)
                 .environment(commands)
                 .environment(dataUpdate)
+                .environment(navigation)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
@@ -165,6 +199,13 @@ struct SousApp: App {
                     #if os(iOS)
                     await timers.watchAlarms()
                     #endif
+                    // Siri's vocabulary and the system search, refreshed per
+                    // launch: the phrases need the current want-to-cook
+                    // marks, Spotlight the current titles. Per-save updates
+                    // can come later; a day-old index finds yesterday's
+                    // recipe, which is far better than none.
+                    SousAppShortcuts.updateAppShortcutParameters()
+                    await indexRecipesForSpotlight()
                 }
                 // A page shared from Safari arrives as sous://import?url=…
                 .onOpenURL { url in
