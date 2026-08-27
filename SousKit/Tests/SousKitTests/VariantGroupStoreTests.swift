@@ -5,13 +5,13 @@ import Testing
 
 @Suite("Variant groups in the store")
 struct VariantGroupStoreTests {
-    private func makeStore() throws -> SwiftDataRecipeStore {
-        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    private func makeStore(_ backend: StoreBackend) throws -> any RecipeStore {
+        try backend.makeStore()
     }
 
     /// A group with two members in it, the way `addVariant` leaves one.
     private func makePair(
-        in store: SwiftDataRecipeStore
+        in store: any RecipeStore
     ) async throws -> (group: VariantGroup, first: Recipe, second: Recipe) {
         let group = try await store.saveVariantGroup(VariantGroup(title: "Chili con Carne"))
         let first = Recipe(
@@ -31,9 +31,9 @@ struct VariantGroupStoreTests {
         return (group, first, second)
     }
 
-    @Test("A member remembers which group it is a version of")
-    func membershipRoundTrips() async throws {
-        let store = try makeStore()
+    @Test("A member remembers which group it is a version of", arguments: StoreBackend.allCases)
+    func membershipRoundTrips(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (group, first, second) = try await makePair(in: store)
 
         let loaded = try #require(try await store.recipe(id: first.id))
@@ -44,9 +44,9 @@ struct VariantGroupStoreTests {
         #expect(members.map(\.id) == [first.id, second.id])
     }
 
-    @Test("The group's title is searchable through its members")
-    func groupTitleIsSearchable() async throws {
-        let store = try makeStore()
+    @Test("The group's title is searchable through its members", arguments: StoreBackend.allCases)
+    func groupTitleIsSearchable(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (_, _, second) = try await makePair(in: store)
 
         // "Chili vegetarisch" does not contain "con Carne" anywhere in its
@@ -56,9 +56,9 @@ struct VariantGroupStoreTests {
         #expect(found.map(\.id).contains(second.id))
     }
 
-    @Test("Renaming a group rewrites what its members are found by")
-    func renamingReindexes() async throws {
-        let store = try makeStore()
+    @Test("Renaming a group rewrites what its members are found by", arguments: StoreBackend.allCases)
+    func renamingReindexes(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (group, first, second) = try await makePair(in: store)
 
         var renamed = group
@@ -75,9 +75,9 @@ struct VariantGroupStoreTests {
         #expect(Set(new.map(\.id)) == [first.id, second.id])
     }
 
-    @Test("A group in the trash keeps its row, so restoring puts the pair back")
-    func deletingDoesNotDissolve() async throws {
-        let store = try makeStore()
+    @Test("A group in the trash keeps its row, so restoring puts the pair back", arguments: StoreBackend.allCases)
+    func deletingDoesNotDissolve(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (group, first, second) = try await makePair(in: store)
 
         try await store.delete(id: second.id)
@@ -94,9 +94,9 @@ struct VariantGroupStoreTests {
         #expect(restored.liveMembers == 2)
     }
 
-    @Test("Erasing the second-to-last member takes the group with it")
-    func erasingCollects() async throws {
-        let store = try makeStore()
+    @Test("Erasing the second-to-last member takes the group with it", arguments: StoreBackend.allCases)
+    func erasingCollects(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (group, first, second) = try await makePair(in: store)
 
         try await store.delete(id: second.id)
@@ -108,9 +108,9 @@ struct VariantGroupStoreTests {
         #expect(try await store.recipe(id: first.id)?.variantGroupID == nil)
     }
 
-    @Test("Dissolving leaves the members behind as ordinary recipes")
-    func dissolving() async throws {
-        let store = try makeStore()
+    @Test("Dissolving leaves the members behind as ordinary recipes", arguments: StoreBackend.allCases)
+    func dissolving(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let (group, first, second) = try await makePair(in: store)
 
         try await store.dissolveVariantGroup(id: group.id)

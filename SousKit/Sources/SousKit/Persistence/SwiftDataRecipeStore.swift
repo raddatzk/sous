@@ -120,7 +120,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
             // access to the cook's own catalog to do that faithfully.
             recipe.categories = updated.categories
             recipe.updatedAt = updated.updatedAt
-            recipe.searchText = try StoredRecipe.searchText(
+            recipe.searchText = try RecipeIndex.searchText(
                 for: updated,
                 variantGroupTitle: variantGroupTitle(of: recipe)
             )
@@ -137,7 +137,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
             updated.updatedAt = .nowInSyncPrecision
             recipe.categories = updated.categories
             recipe.updatedAt = updated.updatedAt
-            recipe.searchText = try StoredRecipe.searchText(
+            recipe.searchText = try RecipeIndex.searchText(
                 for: updated,
                 variantGroupTitle: variantGroupTitle(of: recipe)
             )
@@ -181,7 +181,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
             // bargain `renameCategory` makes.
             if wasRenamed {
                 for member in try members(ofGroup: group.id) {
-                    member.searchText = StoredRecipe.searchText(
+                    member.searchText = RecipeIndex.searchText(
                         for: member.domainValue,
                         variantGroupTitle: updated.title
                     )
@@ -198,7 +198,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
         guard let recipe = try stored(id: recipeID), let groupID = recipe.variantGroupID else { return }
         recipe.variantGroupID = nil
         recipe.updatedAt = .nowInSyncPrecision
-        recipe.searchText = StoredRecipe.searchText(for: recipe.domainValue)
+        recipe.searchText = RecipeIndex.searchText(for: recipe.domainValue)
         // Unlike a deletion, this one cannot be taken back from the trash:
         // the recipe is still there and simply is not a version of that dish
         // any more. So a group left with a single member is collected here
@@ -212,7 +212,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
         for member in try members(ofGroup: id) {
             member.variantGroupID = nil
             member.updatedAt = now
-            member.searchText = StoredRecipe.searchText(for: member.domainValue)
+            member.searchText = RecipeIndex.searchText(for: member.domainValue)
         }
         if let group = try storedGroup(id: id) {
             modelContext.delete(group)
@@ -237,7 +237,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
         for member in remaining {
             member.variantGroupID = nil
             member.updatedAt = .nowInSyncPrecision
-            member.searchText = StoredRecipe.searchText(for: member.domainValue)
+            member.searchText = RecipeIndex.searchText(for: member.domainValue)
         }
         if let group = try storedGroup(id: id) {
             modelContext.delete(group)
@@ -258,12 +258,12 @@ public actor SwiftDataRecipeStore: RecipeStore {
         // one it happened to be deleted under.
         for recipe in try modelContext.fetch(FetchDescriptor<StoredRecipe>()) {
             let domain = recipe.domainValue
-            recipe.searchText = try StoredRecipe.searchText(
+            recipe.searchText = try RecipeIndex.searchText(
                 for: domain,
                 variantGroupTitle: variantGroupTitle(of: recipe),
                 catalog: catalog
             )
-            recipe.ingredientKeys = StoredRecipe.ingredientKeys(for: domain, catalog: catalog)
+            recipe.ingredientKeys = RecipeIndex.ingredientKeys(for: domain, catalog: catalog)
         }
         try modelContext.save()
     }
