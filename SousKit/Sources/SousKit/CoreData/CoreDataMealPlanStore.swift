@@ -70,7 +70,7 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
                 NSSortDescriptor(key: "slotRaw", ascending: true),
                 NSSortDescriptor(key: "sortOrder", ascending: true),
             ]
-            return try self.context.fetch(request).compactMap(\.domainValue)
+            return try self.context.fetchInActiveHousehold(request).compactMap(\.domainValue)
         }
     }
 
@@ -82,7 +82,7 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
                 NSSortDescriptor(key: "sortOrder", ascending: true),
                 NSSortDescriptor(key: "createdAt", ascending: true),
             ]
-            return try self.context.fetch(request).compactMap(\.domainValue)
+            return try self.context.fetchInActiveHousehold(request).compactMap(\.domainValue)
         }
     }
 
@@ -123,7 +123,7 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
         let request = CDMealPlanEntry.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 }
 

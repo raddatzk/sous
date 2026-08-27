@@ -86,12 +86,7 @@ struct PlanDinnersSheet: View {
             Stepper(value: $count, in: 1...14) {
                 Label("\(count) Gerichte", systemImage: "fork.knife")
             }
-            Picker("Wohin", selection: $mode) {
-                Text("Auf Tage verteilen").tag(DinnerPlannerLibrary.Mode.days)
-                Text("In die Sammlung").tag(DinnerPlannerLibrary.Mode.pool)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            destinationPicker
         } footer: {
             Text(mode == .days
                 ? "Vorschläge für die nächsten Abende ohne geplantes Abendessen — zusammengestellt als ausgewogene Mischung, Vorgemerktes zuerst."
@@ -108,10 +103,30 @@ struct PlanDinnersSheet: View {
         .listRowBackground(Color.clear)
     }
 
+    /// One picker for both phases, so the choice reads the same before and
+    /// after generating.
+    private var destinationPicker: some View {
+        Picker("Wohin", selection: $mode) {
+            Text("Auf Tage verteilen").tag(DinnerPlannerLibrary.Mode.days)
+            Text("In die Sammlung").tag(DinnerPlannerLibrary.Mode.pool)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
     // MARK: - Proposal
 
     @ViewBuilder
     private func proposalSections(_ proposal: PlanProposal) -> some View {
+        // The destination stays a choice after the fact: the dishes were
+        // picked for the mix, and re-addressing them costs nothing.
+        Section {
+            destinationPicker
+                .onChange(of: mode) {
+                    planner.reassign(mode: mode)
+                }
+        }
+        .listRowBackground(Color.clear)
         Section {
             ForEach(proposal.placements) { placement in
                 placementRow(placement)
@@ -152,36 +167,117 @@ struct PlanDinnersSheet: View {
                     .clipShape(.rect(cornerRadius: 8))
             }
             VStack(alignment: .leading, spacing: 2) {
-                if let day = placement.day {
-                    HStack(spacing: 4) {
-                        Text(day, format: .dateTime.weekday(.wide))
-                        Text(day, format: .dateTime.day().month())
-                            .foregroundStyle(.secondary)
-                    }
-                    .font(.caption)
-                }
+                dayLine(placement)
                 Text(placement.candidate.title)
                     .font(SousStyle.recipeName)
-                provenance(placement)
+                HStack(spacing: 6) {
+                    // The list's rule travels along: an incomplete figure
+                    // is shown as the floor it is, never naked.
+                    if let kcal = placement.candidate.perPortion?.kcal, kcal > 0 {
+                        Text(placement.candidate.isProvisional
+                            ? "≈ \(Int(kcal.rounded())) kcal"
+                            : "\(Int(kcal.rounded())) kcal")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    provenance(placement)
+                }
             }
             Spacer(minLength: 0)
             if !placement.candidate.isPool {
-                Button {
-                    if planner.swap(placement) {
-                        deselected.remove(placement.id)
-                    } else {
-                        exhausted.insert(placement.id)
+                // A silently disabled icon reads as a broken button, so a
+                // failed swap says in words what happened: the collection
+                // has no other dinner-worthy dish left to offer this seat.
+                if exhausted.contains(placement.id) {
+                    Text("Keine Alternative")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    Button {
+                        if planner.swap(placement) {
+                            deselected.remove(placement.id)
+                        } else {
+                            exhausted.insert(placement.id)
+                        }
+                    } label: {
+                        Label("Austauschen", systemImage: "arrow.triangle.2.circlepath")
+                            .labelStyle(.iconOnly)
                     }
-                } label: {
-                    Label("Austauschen", systemImage: "arrow.triangle.2.circlepath")
-                        .labelStyle(.iconOnly)
+                    .buttonStyle(.borderless)
+                    .help("Gegen einen anderen Vorschlag tauschen")
                 }
-                .buttonStyle(.borderless)
-                .disabled(exhausted.contains(placement.id))
-                .help("Gegen einen anderen Vorschlag tauschen")
             }
         }
         .opacity(isOn.wrappedValue ? 1 : 0.4)
+    }
+
+    /// The day above the dish — and the way to choose it: a menu over the
+    /// free evenings, unoccupied ones included, because an evening is not
+    /// obliged to hold a recipe. Picking an empty evening moves the dish
+    /// there and leaves its old one empty; picking an occupied one swaps
+    /// the two; "In die Sammlung" takes it off the days without unpicking
+    /// it. In pool mode the whole line stays quiet — there is nothing to
+    /// address.
+    @ViewBuilder
+    private func dayLine(_ placement: PlanProposal.Placement) -> some View {
+        if mode == .days {
+            let occupants: [Date: String] = {
+                guard case .ready(let proposal) = planner.phase else { return [:] }
+                return Dictionary(
+                    uniqueKeysWithValues: proposal.placements.compactMap { seated in
+                        seated.day.map { ($0, seated.candidate.title) }
+                    }
+                )
+            }()
+            Menu {
+                ForEach(planner.availableDinnerDays(), id: \.self) { target in
+                    Button {
+                        planner.move(placement, to: target)
+                    } label: {
+                        if target == placement.day {
+                            Label(dayText(target), systemImage: "checkmark")
+                        } else if let dish = occupants[target] {
+                            // The swap partner, named — choosing a taken
+                            // evening should not be a surprise.
+                            Text("\(dayText(target)) — \(dish)")
+                        } else {
+                            Text(dayText(target))
+                        }
+                    }
+                }
+                Divider()
+                Button {
+                    planner.move(placement, to: nil)
+                } label: {
+                    if placement.day == nil {
+                        Label("In die Sammlung", systemImage: "checkmark")
+                    } else {
+                        Text("In die Sammlung")
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    if let day = placement.day {
+                        Text(day, format: .dateTime.weekday(.wide))
+                        Text(day, format: .dateTime.day().month())
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("In die Sammlung")
+                            .foregroundStyle(.secondary)
+                    }
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+                .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.primary)
+        }
+    }
+
+    private func dayText(_ day: Date) -> String {
+        day.formatted(.dateTime.weekday(.wide).day().month().locale(.sous))
     }
 
     @ViewBuilder
@@ -200,8 +296,18 @@ struct PlanDinnersSheet: View {
     @ViewBuilder
     private func summaryFooter(_ proposal: PlanProposal) -> some View {
         let selected = Set(proposal.placements.map(\.id)).subtracting(deselected)
-        if let summary = planner.summary(selecting: selected) {
-            Text(summaryText(summary))
+        VStack(alignment: .leading, spacing: 4) {
+            if let summary = planner.summary(selecting: selected) {
+                Text(summaryText(summary))
+            }
+            // Fewer rows than asked for is a fact about the collection, not
+            // a fault of the run — and the difference has to be sayable, or
+            // "immer vier" reads as a broken planner.
+            if proposal.placements.count < count {
+                Text(planner.leftOutWithoutFigures > 0
+                    ? "Mehr kommt nicht in Frage — \(planner.leftOutWithoutFigures) Rezepte bleiben ohne berechenbare Nährwerte außen vor."
+                    : "Mehr gibt die Sammlung gerade nicht her.")
+            }
         }
     }
 

@@ -252,6 +252,57 @@ struct DinnerPlannerTests {
         #expect(cost(improved) < cost(greedy))
     }
 
+    // MARK: - Variety
+
+    @Test("A fresh seed reshuffles the near-equals; the same seed repeats itself")
+    func seedVariesTheTies() {
+        // Ten dinners the cost function cannot tell apart — exactly the
+        // situation "Neu vorschlagen" is pressed in.
+        let candidates = (0..<10).map { index in
+            candidate(
+                "Gleichwertig \(index)",
+                perPortion: balanced(),
+                id: UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index + 1))!
+            )
+        }
+        func selection(seed: UInt64) -> [UUID] {
+            DinnerPlanner.plan(
+                PlanRequest(seats: .days(days(3)), candidates: candidates, seed: seed)
+            ).placements.map(\.id)
+        }
+
+        // Deterministic given its seed…
+        #expect(selection(seed: 7) == selection(seed: 7))
+        // …and genuinely different across seeds, because these ten are
+        // interchangeable and the jitter is allowed to choose among them.
+        let unseeded = selection(seed: 0)
+        #expect((1...12).contains { selection(seed: UInt64($0)) != unseeded })
+    }
+
+    @Test("The jitter never outbids a real difference")
+    func jitterStaysBelowRealDifferences() {
+        // One dinner is genuinely better (it fixes a protein shortfall),
+        // one is marked "will ich kochen" — under every seed, both must
+        // beat an interchangeable third.
+        var proteinRich = balanced()
+        proteinRich.proteinG *= 2
+        let better = candidate("Besser", perPortion: proteinRich)
+        let marked = candidate("Gemerkt", source: .wantToCook, isWantToCook: true, perPortion: balanced())
+        let filler = candidate("Beliebig", perPortion: balanced())
+
+        var base = balanced(kcal: 1200)
+        base.proteinG = 0
+        for seed: UInt64 in [1, 2, 3, 99, 12345] {
+            let picked = DinnerPlanner.plan(PlanRequest(
+                seats: .days(days(2)),
+                baseVector: base,
+                candidates: [filler, better, marked],
+                seed: seed
+            )).placements.map(\.candidate.title)
+            #expect(Set(picked) == ["Besser", "Gemerkt"], "seed \(seed)")
+        }
+    }
+
     // MARK: - Determinism
 
     @Test("A shuffled candidate list proposes the same dinners")

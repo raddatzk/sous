@@ -56,7 +56,7 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
         let request = NSFetchRequest<CDReviewMark>(entityName: entityName)
         request.predicate = NSPredicate(format: "recipeID == %@", recipeID as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 }
 

@@ -45,6 +45,15 @@ public final class DinnerPlannerLibrary {
     private var swappedAway: Set<UUID> = []
     /// What the user deselected before asking for a fresh proposal.
     private var rejected: Set<UUID> = []
+    /// This run's variety seed — drawn fresh per `propose`, so asking again
+    /// genuinely proposes anew among the near-equals, and carried in the
+    /// request so a swap prices candidates the same way the run did.
+    private var seed: UInt64 = 0
+    /// How many contenders the last run had to leave out because not a
+    /// single ingredient produced a figure — the sheet says this number,
+    /// because "only four proposals" is otherwise indistinguishable from a
+    /// planner that is broken.
+    public private(set) var leftOutWithoutFigures = 0
 
     public init(
         recipeStore: any RecipeStore,
@@ -88,6 +97,7 @@ public final class DinnerPlannerLibrary {
     public func propose(mode: Mode, count: Int, excluding: Set<UUID> = []) async {
         rejected.formUnion(excluding)
         swappedAway = []
+        seed = UInt64.random(in: 1 ... .max)
         phase = .loading(progress: 0)
 
         await mealPlan.reload()
@@ -156,7 +166,8 @@ public final class DinnerPlannerLibrary {
             seats: .days(seatDays),
             baseVector: baseVector,
             excludedDishKeys: excludedDishKeys,
-            candidates: candidates
+            candidates: candidates,
+            seed: seed
         ))
     }
 
@@ -189,7 +200,8 @@ public final class DinnerPlannerLibrary {
             seats: .pool(count: count),
             baseVector: baseVector,
             excludedDishKeys: excludedDishKeys,
-            candidates: candidates
+            candidates: candidates,
+            seed: seed
         ))
     }
 
@@ -243,9 +255,18 @@ public final class DinnerPlannerLibrary {
     /// where no figures exist. The slow path is the first run over a large
     /// collection; afterwards every figure comes out of the content-hash
     /// cache.
+    ///
+    /// The gate takes what the list's rows take: a figure at least one
+    /// ingredient contributed to. Demanding a *complete* figure sounded
+    /// rigorous and starved the planner in practice — a grown, imported
+    /// collection resolves a handful of recipes fully, and a planner that
+    /// only knows four dishes proposes the same four forever, whatever the
+    /// seed does. An incomplete figure is a floor; the candidate carries
+    /// that flag and the sheet shows it as the list does, with an "≈".
     private func warm(_ candidates: inout [PlannerCandidate]) async {
         var warmed: [PlannerCandidate] = []
         let total = candidates.count
+        leftOutWithoutFigures = 0
         for (index, candidate) in candidates.enumerated() {
             phase = .loading(progress: Double(index) / Double(max(total, 1)))
             guard let recipe = await resolveRecipe(candidate.recipeID) else { continue }
@@ -254,16 +275,20 @@ public final class DinnerPlannerLibrary {
             var enriched = candidate
             let figures = await nutrition.nutrition(for: recipe)
             enriched.perPortion = figures?.perPortion
+            enriched.isProvisional = figures.map { !$0.coverage.isComplete } ?? true
 
             if candidate.isPool {
                 warmed.append(enriched)
                 continue
             }
             guard let figures,
-                  figures.coverage.defects.isEmpty,
-                  figures.perPortion.kcal > 0,
-                  await suitsDinner(recipe)
-            else { continue }
+                  figures.coverage.includedCount > 0,
+                  figures.perPortion.kcal > 0
+            else {
+                leftOutWithoutFigures += 1
+                continue
+            }
+            guard await suitsDinner(recipe) else { continue }
             warmed.append(enriched)
         }
         candidates = warmed
@@ -290,6 +315,67 @@ public final class DinnerPlannerLibrary {
         else { return true }
         try? await enrichment.saveSuitabilityGuess(guess, for: recipe.id, inputHash: hash)
         return guess.contains(.dinner)
+    }
+
+    // MARK: - Re-addressing
+
+    /// Moves the standing proposal between the two destinations without
+    /// re-choosing anything: the dishes were picked for the mix, and the
+    /// mix does not care whether it is eaten on dated evenings or out of
+    /// the Sammlung. Switching to days deals the next free dinner days in
+    /// row order; switching to the pool clears them.
+    public func reassign(mode: Mode) {
+        guard case .ready(var proposal) = phase else { return }
+        switch mode {
+        case .pool:
+            for index in proposal.placements.indices {
+                proposal.placements[index].day = nil
+            }
+        case .days:
+            let seatDays = mealPlan.days.filter { day in
+                !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
+            }.prefix(proposal.placements.count)
+            for index in proposal.placements.indices {
+                // Fewer free evenings than rows leaves the overhang undated
+                // — those land in the Sammlung on apply, which the row says.
+                proposal.placements[index].day =
+                    index < seatDays.count ? seatDays[seatDays.startIndex + index] : nil
+            }
+        }
+        phase = .ready(proposal)
+    }
+
+    /// The evenings a proposed dinner may sit on: every dinner-less day in
+    /// the loaded run — those this proposal already targets included, since
+    /// the plan itself does not know the proposal yet. An evening is not
+    /// obliged to hold a dish, so the list runs past the proposal's size.
+    public func availableDinnerDays() -> [Date] {
+        Array(
+            mealPlan.days.filter { day in
+                !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
+            }.prefix(14)
+        )
+    }
+
+    /// Puts one proposed dinner onto a chosen evening. A dish already
+    /// sitting there takes this one's old place; an empty evening simply
+    /// takes the dish, and the evening it left stays empty — an evening is
+    /// under no obligation to hold a recipe.
+    public func move(_ placement: PlanProposal.Placement, to day: Date?) {
+        guard case .ready(var proposal) = phase,
+              let from = proposal.placements.firstIndex(where: { $0.id == placement.id })
+        else { return }
+        if let day, let occupant = proposal.placements.firstIndex(where: { $0.day == day }) {
+            proposal.placements[occupant].day = proposal.placements[from].day
+        }
+        proposal.placements[from].day = day
+        // The rows keep reading top-to-bottom in day order, wherever the
+        // move put things; the undated sink to the bottom, where the
+        // Sammlung's rows belong.
+        proposal.placements.sort {
+            ($0.day ?? .distantFuture) < ($1.day ?? .distantFuture)
+        }
+        phase = .ready(proposal)
     }
 
     // MARK: - Swapping

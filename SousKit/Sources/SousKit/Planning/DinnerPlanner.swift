@@ -24,6 +24,10 @@ public struct PlannerCandidate: Identifiable, Hashable, Sendable {
     /// already decided to eat those, so a missing figure cannot unseat
     /// them; it merely contributes nothing to the mix.
     public var perPortion: NutritionInfo?
+    /// Whether `perPortion` is a floor rather than the dish — ingredients
+    /// without figures left out, or resting on unconfirmed bases. Same
+    /// standing the list's "≈ 847 kcal" chip has: shown, never naked.
+    public var isProvisional: Bool
     public var title: String
 
     public var id: UUID { recipeID }
@@ -34,6 +38,7 @@ public struct PlannerCandidate: Identifiable, Hashable, Sendable {
         source: Source,
         isWantToCook: Bool = false,
         perPortion: NutritionInfo? = nil,
+        isProvisional: Bool = false,
         title: String = ""
     ) {
         self.recipeID = recipeID
@@ -41,6 +46,7 @@ public struct PlannerCandidate: Identifiable, Hashable, Sendable {
         self.source = source
         self.isWantToCook = isWantToCook
         self.perPortion = perPortion
+        self.isProvisional = isProvisional
         self.title = title
     }
 
@@ -75,17 +81,27 @@ public struct PlanRequest: Sendable {
     /// Dishes that may not be proposed because the span already holds them.
     public var excludedDishKeys: Set<UUID>
     public var candidates: [PlannerCandidate]
+    /// Which of the near-equals this run favours. `0` means none of them —
+    /// pure cost, fully repeatable, what every test wants. Any other value
+    /// hands each candidate a small, seed-stable jitter (see
+    /// ``PlanCost/varietyJitter``), so "Neu vorschlagen" can genuinely
+    /// propose anew: the run is still deterministic *given its seed*, but a
+    /// fresh seed reshuffles everything the cost function considers about
+    /// equally good — without ever letting a clearly worse dinner win.
+    public var seed: UInt64
 
     public init(
         seats: Seats,
         baseVector: NutritionInfo = .zero,
         excludedDishKeys: Set<UUID> = [],
-        candidates: [PlannerCandidate]
+        candidates: [PlannerCandidate],
+        seed: UInt64 = 0
     ) {
         self.seats = seats
         self.baseVector = baseVector
         self.excludedDishKeys = excludedDishKeys
         self.candidates = candidates
+        self.seed = seed
     }
 
     var seatCount: Int {
@@ -150,8 +166,29 @@ public enum DinnerPlanner {
                 !usedRecipes.contains($0.recipeID) && !usedKeys.contains($0.dishKey)
             },
             mix: mix,
-            wantToCookCount: wantToCookCount
+            wantToCookCount: wantToCookCount,
+            seed: request.seed
         )
+    }
+
+    // MARK: - Variety
+
+    /// The candidate's jitter under this run's seed: a hash of the two,
+    /// mapped into [0, ``PlanCost/varietyJitter``). Stable within a run —
+    /// greedy, swap pass and "austauschen" must all price a candidate the
+    /// same — and independent of any iteration order. Seed 0 is exempt,
+    /// so an unseeded request behaves exactly as it always did.
+    static func jitter(for recipeID: UUID, seed: UInt64) -> Double {
+        guard seed != 0 else { return 0 }
+        // FNV-1a over the uuid's bytes, folded with the seed — no Hasher,
+        // whose per-launch randomization would make runs unrepeatable.
+        var hash: UInt64 = 0xcbf29ce484222325 ^ seed
+        let bytes = recipeID.uuid
+        for byte in [bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5, bytes.6, bytes.7,
+                     bytes.8, bytes.9, bytes.10, bytes.11, bytes.12, bytes.13, bytes.14, bytes.15] {
+            hash = (hash ^ UInt64(byte)) &* 0x100000001b3
+        }
+        return Double(hash % 10_000) / 10_000 * PlanCost.varietyJitter
     }
 
     // MARK: - Selection
@@ -206,7 +243,8 @@ public enum DinnerPlanner {
     private static func best(
         of candidates: [PlannerCandidate],
         mix: NutritionInfo,
-        wantToCookCount: Int
+        wantToCookCount: Int,
+        seed: UInt64
     ) -> PlannerCandidate? {
         var winner: PlannerCandidate?
         var winningCost = Double.infinity
@@ -214,7 +252,7 @@ public enum DinnerPlanner {
             let cost = PlanCost.totalCost(
                 of: mix + (candidate.perPortion ?? .zero),
                 wantToCookCount: wantToCookCount + (candidate.isWantToCook ? 1 : 0)
-            )
+            ) + jitter(for: candidate.recipeID, seed: seed)
             // Strictly less: with equal cost the first in sort order keeps
             // the seat, which is what encodes the tier priority into ties.
             if cost < winningCost {
@@ -233,11 +271,13 @@ public enum DinnerPlanner {
         var usedKeys: Set<UUID>
         var wantToCookCount = 0
         let seatCount: Int
+        let seed: UInt64
 
         init(request: PlanRequest) {
             mix = request.baseVector
             usedKeys = request.excludedDishKeys
             seatCount = request.seatCount
+            seed = request.seed
         }
 
         var seatsLeft: Int { seatCount - selection.count }
@@ -265,7 +305,7 @@ public enum DinnerPlanner {
                 let open = contenders.filter {
                     !selection.contains($0) && !usedKeys.contains($0.dishKey)
                 }
-                guard let pick = best(of: open, mix: mix, wantToCookCount: wantToCookCount)
+                guard let pick = best(of: open, mix: mix, wantToCookCount: wantToCookCount, seed: seed)
                 else { break }
                 seat(pick)
             }
@@ -293,11 +333,17 @@ public enum DinnerPlanner {
                     guard !selection.contains(challenger) else { continue }
                     let keysWithout = usedKeys.subtracting([seated.dishKey])
                     guard !keysWithout.contains(challenger.dishKey) else { continue }
+                    // The jitter rides in both sides of the comparison —
+                    // the kept seats' shares cancel out, so only the two
+                    // dishes actually trading places bring theirs. Without
+                    // this, the swap pass would quietly undo whatever
+                    // variety the seed just bought.
                     let cost = PlanCost.totalCost(
                         of: mixWithout + (challenger.perPortion ?? .zero),
                         wantToCookCount: marksWithout + (challenger.isWantToCook ? 1 : 0)
-                    )
-                    guard cost < currentCost - PlanCost.improvementEpsilon else { continue }
+                    ) + jitter(for: challenger.recipeID, seed: seed)
+                    let seatedCost = currentCost + jitter(for: seated.recipeID, seed: seed)
+                    guard cost < seatedCost - PlanCost.improvementEpsilon else { continue }
                     selection[index] = challenger
                     usedKeys = keysWithout.union([challenger.dishKey])
                     mix = mixWithout + (challenger.perPortion ?? .zero)

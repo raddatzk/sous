@@ -68,7 +68,7 @@ public final class CoreDataRecipeImageStore: RecipeImageStore, @unchecked Sendab
         try await context.perform {
             let request = CDRecipeImage.fetchRequest()
             request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
-            for image in try self.context.fetch(request) {
+            for image in try self.context.fetchInActiveHousehold(request) {
                 self.context.delete(image)
             }
             try self.context.save()
@@ -121,14 +121,14 @@ public final class CoreDataRecipeImageStore: RecipeImageStore, @unchecked Sendab
         let request = CDRecipeImage.fetchRequest()
         request.predicate = NSPredicate(format: "recipeID == %@", recipeID as NSUUID)
         request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func stored(id: UUID) throws -> CDRecipeImage? {
         let request = CDRecipeImage.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 }
 

@@ -8,6 +8,9 @@ struct RootView: View {
     @Environment(RecipeSelection.self) private var selection
     @Environment(NutritionLibrary.self) private var nutrition
     @Environment(DataUpdateNotice.self) private var dataUpdate
+    @Environment(OnboardingNotice.self) private var onboarding
+    @Environment(RecipeLibrary.self) private var library
+    @Environment(LibraryCommands.self) private var commands
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -77,6 +80,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var session = session
+        @Bindable var onboarding = onboarding
 
         VStack(spacing: 0) {
             // The Mac keeps the band above the window's content. On iOS it
@@ -96,6 +100,17 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: showsBanner)
         .animation(.easeInOut(duration: 0.2), value: orphaned.count)
+        // The welcome, on the first launch of an app with nothing in it —
+        // and above everything, because it is about the whole app rather
+        // than the section that happens to be showing.
+        //
+        // `onDismiss` rather than a callback: it fires for the swipe as well
+        // as for "Fertig", and both mean the same thing. It is also the
+        // moment the welcome's own buttons can be honoured — a file dialog
+        // opened out of a sheet that is still dismissing never appears.
+        .sheet(isPresented: $onboarding.isShowing, onDismiss: finishOnboarding) {
+            OnboardingView()
+        }
         .sheet(isPresented: $isClarifyingOrphans) {
             IngredientClarificationSheet(open: orphaned) {
                 // Nothing to recompute: unlike the recipe page, this sheet
@@ -127,6 +142,27 @@ struct RootView: View {
         // German too — otherwise weekdays read "Monday" next to "Portionen".
         // This goes away once the app is properly localized.
         .environment(\.locale, .sous)
+    }
+
+    /// Marks the welcome as seen and does whatever its last tap asked for.
+    ///
+    /// Both follow-ups are presented by the recipe list, so the section is
+    /// set first: on the phone the importer belongs to a tab that is not
+    /// mounted while the shopping list is showing, and a dialog with nobody
+    /// to present it is a button that did nothing.
+    private func finishOnboarding() {
+        onboarding.finish()
+        switch onboarding.followUp {
+        case .importing:
+            navigation.section = .recipes
+            commands.isImporting = true
+        case .newRecipe:
+            navigation.section = .recipes
+            library.startNewRecipe()
+        case nil:
+            break
+        }
+        onboarding.followUp = nil
     }
 
     #if os(macOS)

@@ -29,18 +29,45 @@ class CDHouseholdMember: NSManagedObject {
 
     override func awakeFromInsert() {
         super.awakeFromInsert()
-        guard let managedObjectContext else { return }
+        guard let context = managedObjectContext else { return }
         // Only when this app is the one inserting. Importing a record from
         // CloudKit creates managed objects too, and a row arriving from
         // somebody else's household has to keep the household it came with —
         // giving it this device's would rewrite their library on the next
         // export.
-        guard managedObjectContext.transactionAuthor == SousPersistentContainer.appTransactionAuthor
+        guard context.transactionAuthor == SousPersistentContainer.appTransactionAuthor
         else { return }
-        // `existing`, never `findOrCreate`: an insert must not decide that
-        // this device needs a household of its own. A row that arrives before
-        // there is one is picked up by `adoptOrphanedRows` afterwards.
-        household = try? CoreDataHouseholds.existing(in: managedObjectContext)
+
+        // Writing into a joined household. The row has to live in the shared
+        // store as well, because a relationship cannot reach across store
+        // files — a recipe in the private file cannot point at a household
+        // in the shared one.
+        if let activeID = ActiveHousehold.id,
+           let joined = try? CoreDataHouseholds.joined(id: activeID, in: context) {
+            if let coordinator = context.persistentStoreCoordinator,
+               let shared = SousPersistentContainer.sharedStore(in: coordinator) {
+                context.assign(self, to: shared)
+            }
+            household = joined
+            return
+        }
+
+        // Assigned to its store immediately, not left for the save to
+        // decide: scoped fetches restrict by store, and a pending insert
+        // with no store affiliation is invisible to them — which made a
+        // shopping capture create its item and then fail to find it two
+        // lines later, filing the next amount under a duplicate.
+        if let coordinator = context.persistentStoreCoordinator,
+           let own = SousPersistentContainer.privateStore(in: coordinator) {
+            context.assign(self, to: own)
+        }
+        // The own household comes into being with the first thing that
+        // belongs to it — not at launch, where an invitation-only member
+        // would get an empty one beside the household they joined. The
+        // duplicate a reinstall race can still make is folded away by
+        // `mergeDuplicates`; what that race can no longer do is create a
+        // zone, which was the part that hurt.
+        household = try? CoreDataHouseholds.findOrCreate(in: context)
     }
 }
 
@@ -123,6 +150,83 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     private static func ownStores(for context: NSManagedObjectContext) -> [NSPersistentStore]? {
         guard let coordinator = context.persistentStoreCoordinator else { return nil }
         return SousPersistentContainer.privateStore(in: coordinator).map { [$0] }
+    }
+
+    /// A household this person was invited into, by id.
+    ///
+    /// Looked up in the shared store only: that is where joined households
+    /// live, and an id that matches nothing there is not one to write into.
+    static func joined(id: UUID, in context: NSManagedObjectContext) throws -> CDHousehold? {
+        guard let coordinator = context.persistentStoreCoordinator,
+              let shared = SousPersistentContainer.sharedStore(in: coordinator)
+        else { return nil }
+        let request = NSFetchRequest<CDHousehold>(
+            entityName: SousManagedObjectModel.householdEntityName
+        )
+        request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+        request.affectedStores = [shared]
+        request.fetchLimit = 1
+        return try context.fetch(request).first
+    }
+
+    /// Everything a person could switch to: their own household, if it
+    /// exists yet, and every household they joined.
+    public func choices() async throws -> [HouseholdChoice] {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            var result: [HouseholdChoice] = []
+            if let own = try CoreDataHouseholds.existing(in: context), let id = own.id {
+                result.append(HouseholdChoice(id: id, name: own.name, isOwn: true))
+            }
+            if let coordinator = context.persistentStoreCoordinator,
+               let shared = SousPersistentContainer.sharedStore(in: coordinator) {
+                let request = NSFetchRequest<CDHousehold>(
+                    entityName: SousManagedObjectModel.householdEntityName
+                )
+                request.affectedStores = [shared]
+                request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+                for household in try context.fetch(request) {
+                    guard let id = household.id else { continue }
+                    result.append(HouseholdChoice(id: id, name: household.name, isOwn: false))
+                }
+            }
+            return result
+        }
+    }
+
+    /// Takes an invitation somebody tapped and files the household it opens
+    /// into the shared store.
+    ///
+    /// This is the other half of the sharing sheet: the system delivers the
+    /// tapped invitation to the app as metadata, and nothing happens unless
+    /// the app hands it to the container. Once accepted, CloudKit imports the
+    /// zone behind it, the household lands in the shared store, and the
+    /// remote-change reload puts its recipes on screen — there is no further
+    /// step and no screen to build for it.
+    ///
+    /// Through the completion API for the same reason `makeShare` is: the
+    /// generated async variant assumes a completion without an error carries
+    /// values, and this one may carry neither while the delegate starts up.
+    public func acceptInvitation(from metadata: CKShare.Metadata) async throws {
+        guard let cloudContainer = container as? NSPersistentCloudKitContainer else {
+            throw HouseholdSharingError.notAvailable
+        }
+        guard let sharedStore = SousPersistentContainer.sharedStore(
+            in: container.persistentStoreCoordinator
+        ) else {
+            throw HouseholdSharingError.notAvailable
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            cloudContainer.acceptShareInvitations(from: [metadata], into: sharedStore) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        Self.log.info("Accepted an invitation into the shared store.")
     }
 
     /// Creates the share, through the completion API rather than the `async`
@@ -294,21 +398,27 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     public func adoptOrphanedRows() async throws -> Int {
         let context = SousPersistentContainer.backgroundContext(for: container)
         return try await context.perform {
-            let household = try CoreDataHouseholds.findOrCreate(in: context)
-            var adopted = 0
+            // The orphans are found before a household is conjured up to hold
+            // them: creating one eagerly is how an invitation-only member
+            // ended up with an empty own household standing beside the one
+            // they joined. No orphans, no household.
+            var orphans: [NSManagedObject] = []
             for entity in SousManagedObjectModel.memberEntityNames {
                 let request = NSFetchRequest<NSManagedObject>(entityName: entity)
                 request.predicate = NSPredicate(format: "household == nil")
-                // Same reason: a row in a household somebody else owns is not
-                // orphaned, it belongs to them.
+                // A row in a household somebody else owns is not orphaned,
+                // it belongs to them.
                 request.affectedStores = CoreDataHouseholds.ownStores(for: context)
-                for row in try context.fetch(request) {
-                    row.setValue(household, forKey: "household")
-                    adopted += 1
-                }
+                orphans.append(contentsOf: try context.fetch(request))
+            }
+            guard !orphans.isEmpty else { return 0 }
+
+            let household = try CoreDataHouseholds.findOrCreate(in: context)
+            for row in orphans {
+                row.setValue(household, forKey: "household")
             }
             if context.hasChanges { try context.save() }
-            return adopted
+            return orphans.count
         }
     }
 }
@@ -325,4 +435,11 @@ public enum HouseholdSharingError: LocalizedError {
             "Sous kann gerade nicht auf iCloud zugreifen. Melde dich in den Systemeinstellungen bei iCloud an."
         }
     }
+}
+
+/// One entry in the household switch.
+public struct HouseholdChoice: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let isOwn: Bool
 }

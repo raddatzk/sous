@@ -196,6 +196,16 @@ public enum SousPersistentContainer {
         return stores.first { $0.url == url } ?? stores.first
     }
 
+    /// The store mirroring the shared CloudKit database — where an accepted
+    /// invitation has to be filed, because that is the database the household
+    /// arrives in.
+    public static func sharedStore(
+        in coordinator: NSPersistentStoreCoordinator
+    ) -> NSPersistentStore? {
+        let url = sharedStoreURL()
+        return coordinator.persistentStores.first { $0.url == url }
+    }
+
     /// Beside the SwiftData store in the app group, under its own name. The
     /// app and its share extension both read from there, and a recipe saved
     /// from Safari has to land where the app looks.

@@ -9,7 +9,6 @@ import SwiftUI
 /// Entries move between the two without being re-entered.
 struct MealPlanView: View {
     @Environment(MealPlanLibrary.self) private var plan
-    @Environment(ShoppingLibrary.self) private var shopping
 
     /// Remembered across launches: whichever way a cook plans, they keep
     /// planning that way.
@@ -342,7 +341,6 @@ struct MealPlanView: View {
     @ToolbarContentBuilder
     private var calendarToolbar: some ToolbarContent {
         planButton
-        shoppingListButton
     }
 
     @ToolbarContentBuilder
@@ -351,7 +349,6 @@ struct MealPlanView: View {
             Button("Gericht vormerken", systemImage: "plus") { isPickingForPool = true }
         }
         planButton
-        shoppingListButton
     }
 
     /// Always enabled: the sheet itself explains when there is nothing to
@@ -362,42 +359,6 @@ struct MealPlanView: View {
             Button("Essen planen", systemImage: "wand.and.stars") { isPlanning = true }
                 .labelStyle(.iconOnly)
                 .help("Essen planen")
-        }
-    }
-
-    @ToolbarContentBuilder
-    private var shoppingListButton: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Menu("Einkaufsliste", systemImage: "cart.badge.plus") {
-                Button("Nächste 7 Tage") { addToShoppingList(days: 7) }
-                Button("Nächste 14 Tage") { addToShoppingList(days: 14) }
-                if !plan.pool.isEmpty {
-                    Divider()
-                    Button("Alles aus der Sammlung") { addPoolToShoppingList() }
-                }
-            }
-            .labelStyle(.iconOnly)
-            .disabled(plan.entries.isEmpty && plan.pool.isEmpty)
-            .help("Auf die Einkaufsliste")
-        }
-    }
-
-    private func addToShoppingList(days: Int) {
-        guard let start = plan.days.first,
-              let end = Calendar.current.date(byAdding: .day, value: days - 1, to: start)
-        else { return }
-
-        Task {
-            await shopping.add(
-                planned: plan.plannedRecipes(from: start, through: end),
-                describing: "Essensplan"
-            )
-        }
-    }
-
-    private func addPoolToShoppingList() {
-        Task {
-            await shopping.add(planned: plan.pooledRecipes, describing: "Sammlung")
         }
     }
 }
