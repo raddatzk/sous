@@ -25,6 +25,8 @@ struct SousApp: App {
     /// catalog and the caches are not in either, since they never sync.
     private let migrationSource: RecipeStoreMigration.Source
     private let migrationDestination: RecipeStoreMigration.Destination
+    /// The household every row hangs off, and the object the share sits on.
+    private let households: CoreDataHouseholds
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -69,6 +71,7 @@ struct SousApp: App {
             let amountReviews = CoreDataRecipeAmountReviewStore(container: coreData)
             let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
 
+            households = CoreDataHouseholds(container: coreData)
             orphanReconciliation = VocabularyOrphanReconciliation(store: vocabulary)
             migrationSource = RecipeStoreMigration.Source(
                 recipes: SwiftDataRecipeStore(modelContainer: container),
@@ -155,6 +158,21 @@ struct SousApp: App {
         AppDependencyManager.shared.add(dependency: sousNavigation)
     }
 
+    /// Attaches anything the migration brought over to the household, then
+    /// makes sure that household sits in a shared CloudKit zone.
+    ///
+    /// In that order: a row that reaches the zone has to be hanging off the
+    /// household when the share is made, since sharing traverses the graph
+    /// rather than the table.
+    ///
+    /// Silent either way. Without an iCloud account there is no zone to make,
+    /// and a library that syncs to nobody is still a library — the next
+    /// launch on a signed-in device makes one.
+    private func joinTheHousehold() async {
+        _ = try? await households.adoptOrphanedRows()
+        _ = try? await households.ensureShared()
+    }
+
     /// Stamps the cook's name-keyed rows with their SBLS code, then folds
     /// them into the vocabulary — in that order, because the fold carries the
     /// stamps across and a row stamped afterwards would be stamped in a table
@@ -228,6 +246,7 @@ struct SousApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .environment(\.households, households)
                 .environment(library)
                 .environment(mealPlan)
                 .environment(shopping)
@@ -250,6 +269,7 @@ struct SousApp: App {
                     // run, since it reads the vocabulary where it now lives.
                     await foldLegacyRows()
                     await migrateStores()
+                    await joinTheHousehold()
                     await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a
