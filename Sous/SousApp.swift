@@ -20,12 +20,11 @@ struct SousApp: App {
     /// Held by the app for the Spotlight index, which wants every recipe
     /// and not whatever the list is currently filtered to.
     private let recipeStore: CoreDataRecipeStore
-    /// The stores the recipes used to live in, kept only so the migration
-    /// has something to read. Everything else still writes to SwiftData —
-    /// the catalog and the caches never sync and have no reason to move.
-    private let legacyRecipes: SwiftDataRecipeStore
-    private let legacyImages: SwiftDataRecipeImageStore
-    private let recipeImages: CoreDataRecipeImageStore
+    /// The two sides of the store migration, held so the launch task can run
+    /// it. The source is what the household's rows used to live in; the
+    /// catalog and the caches are not in either, since they never sync.
+    private let migrationSource: RecipeStoreMigration.Source
+    private let migrationDestination: RecipeStoreMigration.Destination
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -46,7 +45,7 @@ struct SousApp: App {
     /// opening a second container.
     private let migration: SwiftDataBundledDataMigration
     private let vocabularyMigration: SwiftDataVocabularyMigration
-    private let orphanReconciliation: SwiftDataOrphanReconciliation
+    private let orphanReconciliation: VocabularyOrphanReconciliation
     /// What data this device last ran against. Device state, not user
     /// content — see `BundledDataMarker`.
     private let marker = BundledDataMarker()
@@ -61,16 +60,41 @@ struct SousApp: App {
             let coreData = try SousPersistentContainer.make()
             migration = SwiftDataBundledDataMigration(modelContainer: container)
             vocabularyMigration = SwiftDataVocabularyMigration(modelContainer: container)
-            orphanReconciliation = SwiftDataOrphanReconciliation(modelContainer: container)
+
             let recipes = CoreDataRecipeStore(container: coreData)
             let images = CoreDataRecipeImageStore(container: coreData)
-            legacyRecipes = SwiftDataRecipeStore(modelContainer: container)
-            legacyImages = SwiftDataRecipeImageStore(modelContainer: container)
-            recipeImages = images
+            let vocabulary = CoreDataVocabularyStore(container: coreData)
+            let plan = CoreDataMealPlanStore(container: coreData)
+            let shoppingStore = CoreDataShoppingListStore(container: coreData)
+            let amountReviews = CoreDataRecipeAmountReviewStore(container: coreData)
+            let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
+
+            orphanReconciliation = VocabularyOrphanReconciliation(store: vocabulary)
+            migrationSource = RecipeStoreMigration.Source(
+                recipes: SwiftDataRecipeStore(modelContainer: container),
+                images: SwiftDataRecipeImageStore(modelContainer: container),
+                mealPlan: SwiftDataMealPlanStore(modelContainer: container),
+                vocabulary: SwiftDataVocabularyStore(modelContainer: container),
+                shopping: SwiftDataShoppingListStore(modelContainer: container),
+                amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+                ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
+            )
+            migrationDestination = RecipeStoreMigration.Destination(
+                recipes: recipes,
+                images: images,
+                mealPlan: plan,
+                vocabulary: vocabulary,
+                shopping: shoppingStore,
+                amountReviews: amountReviews,
+                ingredientReviews: ingredientReviews
+            )
+
+            // The caches stay in SwiftData: both are keyed to a content hash
+            // and cheaper to recompute than to carry around.
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let enrichmentStore = SwiftDataRecipeEnrichmentStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
-                store: SwiftDataVocabularyStore(modelContainer: container),
+                store: vocabulary,
                 // Teaching the app a spelling, or confirming what a word
                 // means, can change what a recipe's nutrition adds up to —
                 // and that is cached per recipe text, which never notices.
@@ -81,18 +105,15 @@ struct SousApp: App {
                 store: recipes,
                 imageStore: images,
                 enrichmentStore: enrichmentStore,
-                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+                amountReviewStore: amountReviews,
                 nutritionStore: nutritionStore,
-                ingredientReviewStore: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
+                ingredientReviewStore: ingredientReviews,
                 catalogLibrary: catalogLibrary
             ))
-            let plan = MealPlanLibrary(
-                store: SwiftDataMealPlanStore(modelContainer: container),
-                recipeStore: recipes
-            )
-            _mealPlan = State(initialValue: plan)
+            let planLibrary = MealPlanLibrary(store: plan, recipeStore: recipes)
+            _mealPlan = State(initialValue: planLibrary)
             let shoppingLibrary = ShoppingLibrary(
-                store: SwiftDataShoppingListStore(modelContainer: container),
+                store: shoppingStore,
                 recipeStore: recipes,
                 catalogLibrary: catalogLibrary
             )
@@ -105,7 +126,7 @@ struct SousApp: App {
             _nutrition = State(initialValue: nutritionLibrary)
             _dinnerPlanner = State(initialValue: DinnerPlannerLibrary(
                 recipeStore: recipes,
-                mealPlan: plan,
+                mealPlan: planLibrary,
                 nutrition: nutritionLibrary,
                 enrichment: enrichmentStore
             ))
@@ -116,7 +137,7 @@ struct SousApp: App {
             // would be two apps in one process.
             AppDependencyManager.shared.add(dependency: recipes)
             AppDependencyManager.shared.add(dependency: shoppingLibrary)
-            AppDependencyManager.shared.add(dependency: plan)
+            AppDependencyManager.shared.add(dependency: planLibrary)
         } catch {
             // A recipe app without its database has nothing to show, and
             // hiding that behind an empty list would be worse than stopping.
@@ -134,37 +155,40 @@ struct SousApp: App {
         AppDependencyManager.shared.add(dependency: sousNavigation)
     }
 
-    /// Moves recipes and pictures out of the SwiftData store, if any are
-    /// still there.
-    ///
-    /// No marker guarding it and no progress shown, because there is no
-    /// installed base to migrate: on a fresh device the source is empty and
-    /// this is two fetches against empty tables. What it does cover is a
-    /// development device that has been in use, where the library would
-    /// otherwise appear to have been lost.
-    ///
-    /// Failure is silent on purpose. The source is never modified, so a run
-    /// that goes wrong leaves the old store intact to try again from.
-    private func migrateRecipeStore() async {
-        _ = try? await RecipeStoreMigration.run(
-            from: legacyRecipes, images: legacyImages,
-            to: recipeStore, images: recipeImages
-        )
-        await library.reload()
-    }
-
     /// Stamps the cook's name-keyed rows with their SBLS code, then folds
     /// them into the vocabulary — in that order, because the fold carries the
     /// stamps across and a row stamped afterwards would be stamped in a table
     /// nobody reads any more.
     ///
+    /// Both still work on the SwiftData store, and both must run *before* the
+    /// stores move: what they fold is legacy rows into `StoredIngredientVocabulary`,
+    /// which is the very table the migration then carries across. Run the
+    /// other way round and the fold would write into a store nothing reads
+    /// any more.
+    ///
     /// Both say nothing when there is nothing to do, which is every launch
     /// after the first. A failure is not worth stopping for: the legacy rows
     /// are only deleted once their content has been written.
-    private func migrateBundledData() async {
+    private func foldLegacyRows() async {
         _ = try? await migration.run()
         _ = try? await vocabularyMigration.run()
-        await reconcileBundledData()
+    }
+
+    /// Moves the household's rows out of the SwiftData store, if any are
+    /// still there — recipes, pictures, plan, shopping list, vocabulary and
+    /// the review marks.
+    ///
+    /// No marker guarding it and no progress shown, because there is no
+    /// installed base to migrate: on a fresh device the source is empty and
+    /// this is a handful of fetches against empty tables. What it does cover
+    /// is a development device that has been in use, where the library would
+    /// otherwise appear to have been lost.
+    ///
+    /// Failure is silent on purpose. The source is never modified, so a run
+    /// that goes wrong leaves the old store intact to try again from.
+    private func migrateStores() async {
+        _ = try? await RecipeStoreMigration.run(from: migrationSource, to: migrationDestination)
+        await library.reload()
     }
 
     /// Phase 6's reconciliation, and only when there is something to
@@ -219,13 +243,14 @@ struct SousApp: App {
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
-                    // Before anything reads a recipe: the library the views
-                    // are bound to is the Core Data one now.
-                    await migrateRecipeStore()
-                    // Before the catalogs are read: the cook's own rows have
-                    // to carry their SBLS code, or the first thing that looks
-                    // one up joins by name and caches the answer.
-                    await migrateBundledData()
+                    // In this order, and the order is the whole point. The
+                    // fold works on the old store and has to happen while
+                    // anything still reads it; the move then carries its
+                    // result across; only afterwards can the reconciliation
+                    // run, since it reads the vocabulary where it now lives.
+                    await foldLegacyRows()
+                    await migrateStores()
+                    await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a
                     // recipe resolved against the bundled list alone would

@@ -167,10 +167,11 @@ final class Libraries {
     /// editor, so the extension has to be able to answer it too.
     let nutrition: NutritionLibrary
 
-    /// Two containers, because a recipe now lands in Core Data while the
-    /// catalog it is checked against stays in SwiftData. Both sit in the app
-    /// group: saving into the extension's own would look like success and put
-    /// the recipe where the app never looks.
+    /// Two containers: everything belonging to the household is in Core
+    /// Data, while the nutrition and enrichment caches stay in SwiftData —
+    /// both keyed to a content hash and cheaper to recompute than to sync.
+    /// Both sit in the app group: saving into the extension's own would look
+    /// like success and put the recipe where the app never looks.
     init(container: ModelContainer, coreData: NSPersistentContainer) {
         let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
         let recipeStore = CoreDataRecipeStore(container: coreData)
@@ -178,7 +179,7 @@ final class Libraries {
             store: recipeStore,
             imageStore: CoreDataRecipeImageStore(container: coreData),
             enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            amountReviewStore: CoreDataRecipeAmountReviewStore(container: coreData)
         )
         // The extension never runs the migrations — it may well be the first
         // thing to open the store after an update. Writing a vocabulary entry
@@ -186,7 +187,7 @@ final class Libraries {
         // inserting, so whatever the app finds later joins this row instead of
         // doubling it.
         catalog = IngredientCatalogLibrary(
-            store: SwiftDataVocabularyStore(modelContainer: container),
+            store: CoreDataVocabularyStore(container: coreData),
             nutritionCache: nutritionStore
         )
         nutrition = NutritionLibrary(
