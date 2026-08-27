@@ -46,10 +46,10 @@ struct VariantGroupView: View {
     @Environment(RecipeSelection.self) private var selection
 
     @State private var members: [Recipe] = []
-    /// Kilocalories per portion per member, and whether the figure covers
-    /// every accountable ingredient — an incomplete one is still shown, but
-    /// never naked. Same rule as the list's rows.
-    @State private var kcal: [UUID: (value: Int, isComplete: Bool)] = [:]
+    /// Per-portion figures per member, from the same cache the recipe page
+    /// reads. The whole record rather than a kcal excerpt: the table shows
+    /// the label's rows, and each needs its own number.
+    @State private var nutrition: [UUID: RecipeNutrition] = [:]
     @State private var isRenaming = false
     @State private var newTitle = ""
     @State private var isConfirmingDissolve = false
@@ -69,8 +69,11 @@ struct VariantGroupView: View {
     /// Nearly, not quite: past two variants this is a table, and a table
     /// scrolls sideways. Squeezing the columns until five fit would make
     /// every one of them unreadable to save a gesture.
-    private static let columnWidth: CGFloat = 150
-    private static let labelWidth: CGFloat = 110
+    ///
+    /// Scaled with the type size: at accessibility sizes a fixed 150 points
+    /// holds about one word, and the table already knows how to scroll.
+    @ScaledMetric(relativeTo: .subheadline) private var columnWidth: CGFloat = 150
+    @ScaledMetric(relativeTo: .subheadline) private var labelWidth: CGFloat = 110
 
     private var comparison: VariantComparison {
         VariantComparison.make(of: members, catalog: catalog.catalog)
@@ -203,7 +206,7 @@ struct VariantGroupView: View {
         ScrollView(.horizontal, showsIndicators: true) {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
                 GridRow {
-                    Color.clear.frame(width: Self.labelWidth, height: 1)
+                    Color.clear.frame(width: labelWidth, height: 1)
                     ForEach(members) { member in
                         memberHeader(member)
                     }
@@ -214,9 +217,32 @@ struct VariantGroupView: View {
                 attributeRow("Zeit") { recipe in
                     recipe.elapsedTimeSeconds.map { "\($0 / 60) Min." } ?? "—"
                 }
-                attributeRow("Pro Portion") { recipe in
-                    guard let entry = kcal[recipe.id] else { return "—" }
-                    return entry.isComplete ? "\(entry.value) kcal" : "≈ \(entry.value) kcal"
+
+                if !nutrition.isEmpty {
+                    Divider().gridCellUnsizedAxes(.horizontal)
+                    GridRow {
+                        Text("Pro Portion")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(width: labelWidth, alignment: .leading)
+                    }
+                    // The label's rows, in the label's order — the same
+                    // eight the recipe page shows, so a figure read here
+                    // and there is the same figure. The energy row carries
+                    // the ≈ for an incomplete column; the rows below it
+                    // are the same estimate and inherit its flag.
+                    nutrientRow("Energie", emphasized: true) { figures in
+                        let value = Self.nutrients.string(kilocalories: figures.perPortion.kcal)
+                        return figures.coverage.isComplete ? value : "≈ \(value)"
+                    }
+                    nutrientRow("Fett") { mass($0.perPortion.fatG) }
+                    nutrientRow("davon gesättigt", indented: true) { mass($0.perPortion.saturatedFatG) }
+                    nutrientRow("Kohlenhydrate") { mass($0.perPortion.carbsG) }
+                    nutrientRow("davon Zucker", indented: true) { mass($0.perPortion.sugarG) }
+                    nutrientRow("Ballaststoffe") { mass($0.perPortion.fiberG) }
+                    nutrientRow("Eiweiß") { mass($0.perPortion.proteinG) }
+                    // BLS reports sodium; the label shows salt — the same
+                    // conversion the recipe page makes.
+                    nutrientRow("Salz") { mass($0.perPortion.sodiumMg * 2.5 / 1000) }
                 }
 
                 if !comparison.rows.isEmpty {
@@ -224,7 +250,7 @@ struct VariantGroupView: View {
                     GridRow {
                         Text("Unterschiede")
                             .font(.subheadline.weight(.semibold))
-                            .frame(width: Self.labelWidth, alignment: .leading)
+                            .frame(width: labelWidth, alignment: .leading)
                     }
                     ForEach(comparison.rows) { row in
                         differenceRow(row)
@@ -257,7 +283,7 @@ struct VariantGroupView: View {
                     }
                 }
             }
-            .frame(width: Self.columnWidth, alignment: .leading)
+            .frame(width: columnWidth, alignment: .leading)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -271,13 +297,50 @@ struct VariantGroupView: View {
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                .frame(width: Self.labelWidth, alignment: .leading)
+                .frame(width: labelWidth, alignment: .leading)
             ForEach(members) { member in
                 Text(value(member))
                     .font(.subheadline)
-                    .frame(width: Self.columnWidth, alignment: .leading)
+                    .frame(width: columnWidth, alignment: .leading)
             }
         }
+    }
+
+    /// One nutrient across the columns. A member without figures reads as
+    /// a dash — same rule as a missing ingredient line below: the absence
+    /// is the answer, not a cell nobody filled in.
+    private func nutrientRow(
+        _ label: String,
+        emphasized: Bool = false,
+        indented: Bool = false,
+        value: @escaping (RecipeNutrition) -> String
+    ) -> some View {
+        GridRow {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .padding(.leading, indented ? 12 : 0)
+                .frame(width: labelWidth, alignment: .leading)
+            ForEach(members) { member in
+                Group {
+                    if let figures = nutrition[member.id] {
+                        Text(value(figures))
+                            .font(emphasized ? .subheadline.weight(.medium) : .subheadline)
+                    } else {
+                        Text("—")
+                            .font(.subheadline)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(width: columnWidth, alignment: .leading)
+            }
+        }
+    }
+
+    private static let nutrients = NutrientFormatter(locale: .sous)
+
+    private func mass(_ grams: Double) -> String {
+        Self.nutrients.string(grams, in: .grams)
     }
 
     /// One ingredient the versions disagree about.
@@ -289,7 +352,7 @@ struct VariantGroupView: View {
         GridRow {
             Text(row.title)
                 .font(.subheadline)
-                .frame(width: Self.labelWidth, alignment: .leading)
+                .frame(width: labelWidth, alignment: .leading)
             ForEach(members) { member in
                 Group {
                     if let ingredient = row.ingredients[member.id] {
@@ -301,7 +364,7 @@ struct VariantGroupView: View {
                             .foregroundStyle(.tertiary)
                     }
                 }
-                .frame(width: Self.columnWidth, alignment: .leading)
+                .frame(width: columnWidth, alignment: .leading)
             }
         }
     }
@@ -355,17 +418,14 @@ struct VariantGroupView: View {
         // One cache read per member — the same call the recipe page makes,
         // in a loop, because nutrition is keyed per recipe and variants
         // compute independently.
-        var figures: [UUID: (value: Int, isComplete: Bool)] = [:]
+        var figures: [UUID: RecipeNutrition] = [:]
         for member in members {
-            guard let nutrition = await nutritionLibrary.nutrition(for: member),
-                  nutrition.coverage.includedCount > 0
+            guard let memberNutrition = await nutritionLibrary.nutrition(for: member),
+                  memberNutrition.coverage.includedCount > 0
             else { continue }
-            figures[member.id] = (
-                Int(nutrition.perPortion.kcal.rounded()),
-                nutrition.coverage.isComplete
-            )
+            figures[member.id] = memberNutrition
         }
-        kcal = figures
+        nutrition = figures
     }
 
     /// Opens one of the versions.
