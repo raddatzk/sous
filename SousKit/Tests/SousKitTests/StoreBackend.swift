@@ -30,4 +30,13 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
             CoreDataRecipeStore(container: try SousPersistentContainer.make(inMemory: true))
         }
     }
+
+    func makeImageStore() throws -> any RecipeImageStore {
+        switch self {
+        case .swiftData:
+            SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
+        case .coreData:
+            CoreDataRecipeImageStore(container: try SousPersistentContainer.make(inMemory: true))
+        }
+    }
 }

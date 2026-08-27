@@ -55,18 +55,18 @@ struct RecipeImageTests {
         #expect(prepared.thumbnail.count < prepared.data.count)
     }
 
-    @Test("Data that is not an image is refused rather than stored")
-    func refusesNonImages() async throws {
-        let store = SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
+    @Test("Data that is not an image is refused rather than stored", arguments: StoreBackend.allCases)
+    func refusesNonImages(_ backend: StoreBackend) async throws {
+        let store = try backend.makeImageStore()
 
         await #expect(throws: RecipeImageError.self) {
             try await store.add(Data("not an image".utf8), to: UUID())
         }
     }
 
-    @Test("Images are stored per recipe, in order, and read back")
-    func storeAndRead() async throws {
-        let store = SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
+    @Test("Images are stored per recipe, in order, and read back", arguments: StoreBackend.allCases)
+    func storeAndRead(_ backend: StoreBackend) async throws {
+        let store = try backend.makeImageStore()
         let recipeID = UUID()
 
         let first = try await store.add(try makeImage(width: 800, height: 600), to: recipeID)
@@ -80,9 +80,9 @@ struct RecipeImageTests {
         #expect(try await store.image(id: UUID()) == nil)
     }
 
-    @Test("Images of other recipes are untouched")
-    func isolationBetweenRecipes() async throws {
-        let store = SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
+    @Test("Images of other recipes are untouched", arguments: StoreBackend.allCases)
+    func isolationBetweenRecipes(_ backend: StoreBackend) async throws {
+        let store = try backend.makeImageStore()
         let mine = UUID()
         let theirs = UUID()
 
@@ -93,9 +93,9 @@ struct RecipeImageTests {
         #expect(try await store.thumbnails(for: theirs).count == 1)
     }
 
-    @Test("Removing a picture from a recipe deletes its blob")
-    func pruningUnreferenced() async throws {
-        let store = SwiftDataRecipeImageStore(modelContainer: try .sousContainer(inMemory: true))
+    @Test("Removing a picture from a recipe deletes its blob", arguments: StoreBackend.allCases)
+    func pruningUnreferenced(_ backend: StoreBackend) async throws {
+        let store = try backend.makeImageStore()
         let recipeID = UUID()
 
         let kept = try await store.add(try makeImage(width: 300, height: 300), to: recipeID)
@@ -107,9 +107,9 @@ struct RecipeImageTests {
         #expect(try await store.image(id: dropped) == nil)
     }
 
-    @Test("A recipe carries its image references through a round trip")
-    func recipeKeepsReferences() async throws {
-        let store = SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    @Test("A recipe carries its image references through a round trip", arguments: StoreBackend.allCases)
+    func recipeKeepsReferences(_ backend: StoreBackend) async throws {
+        let store = try backend.makeStore()
         let imageID = UUID()
         let recipe = Recipe(title: "Brot", imageIDs: [imageID])
 
