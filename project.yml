@@ -11,6 +11,31 @@ packages:
   SousKit:
     path: SousKit
 
+# Declared so xcodegen generates them: without this it deletes the shared
+# scheme files on every regeneration, and a project without its schemes
+# looks in Xcode as if the targets themselves were gone.
+schemes:
+  Sous:
+    build:
+      targets:
+        Sous: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+  SousShare:
+    build:
+      targets:
+        SousShare: all
+    run:
+      config: Debug
+  SousWidgets:
+    build:
+      targets:
+        SousWidgets: all
+    run:
+      config: Debug
+
 targets:
   Sous:
     type: application
@@ -51,6 +76,12 @@ targets:
         MARKETING_VERSION: "0.1"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # The Icon Composer file is `sous.icon`, so the compiler has to be
+        # told that name — with the default "AppIcon" the pngs still land in
+        # the bundle, but Info.plist never gets its CFBundleIcons entry and
+        # the home screen shows a blank tile. Set here so a regeneration
+        # cannot lose it again.
+        ASSETCATALOG_COMPILER_APPICON_NAME: sous
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_HARDENED_RUNTIME: YES
