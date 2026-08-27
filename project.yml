@@ -69,6 +69,9 @@ targets:
         LSApplicationCategoryType: public.app-category.food-and-drink
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
+        # Without this, tapping an invitation link tells the invitee the app
+        # does not support sharing — before any of our code runs.
+        CKSharingSupported: true
         # How CloudKit says that another device changed something.
         UIBackgroundModes:
           - remote-notification

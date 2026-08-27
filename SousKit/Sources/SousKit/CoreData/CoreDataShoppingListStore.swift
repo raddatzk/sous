@@ -380,14 +380,14 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
     private func allEntries() throws -> [CDShoppingEntry] {
         let request = CDShoppingEntry.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func entries(key: String) throws -> [CDShoppingEntry] {
         let request = CDShoppingEntry.fetchRequest()
         request.predicate = NSPredicate(format: "key == %@", key)
         request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func entry(itemID: UUID?) throws -> CDShoppingEntry? {
@@ -395,7 +395,7 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
         let request = CDShoppingEntry.fetchRequest()
         request.predicate = NSPredicate(format: "itemID == %@", itemID as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 
     private func allDemands() throws -> [CDShoppingDemand] {
@@ -407,26 +407,26 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
             NSSortDescriptor(key: "addedAt", ascending: true),
             NSSortDescriptor(key: "sortOrder", ascending: true),
         ]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func demands(itemID: UUID?) throws -> [CDShoppingDemand] {
         guard let itemID else { return [] }
         let request = CDShoppingDemand.fetchRequest()
         request.predicate = NSPredicate(format: "itemID == %@", itemID as NSUUID)
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func demands(planEntryID: UUID) throws -> [CDShoppingDemand] {
         let request = CDShoppingDemand.fetchRequest()
         request.predicate = NSPredicate(format: "planEntryID == %@", planEntryID as NSUUID)
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func planEntries() throws -> [CDShoppingPlanEntry] {
         let request = CDShoppingPlanEntry.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: true)]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func planEntriesByID() throws -> [UUID: CDShoppingPlanEntry] {
@@ -440,7 +440,7 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
         let request = CDShoppingPlanEntry.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 
     private func nextSortOrder() throws -> Int {
@@ -460,7 +460,7 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
     private func nextSortOrder<T: NSManagedObject>(_ request: NSFetchRequest<T>) throws -> Int {
         request.sortDescriptors = [NSSortDescriptor(key: "sortOrder", ascending: false)]
         request.fetchLimit = 1
-        let highest = try context.fetch(request).first?.value(forKey: "sortOrder") as? Int64
+        let highest = try context.fetchInActiveHousehold(request).first?.value(forKey: "sortOrder") as? Int64
         return Int(highest ?? -1) + 1
     }
 }

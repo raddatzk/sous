@@ -34,7 +34,7 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
                 [NSSortDescriptor(key: "updatedAt", ascending: false)]
             }
 
-            var results = try self.context.fetch(request)
+            var results = try self.context.fetchInActiveHousehold(request)
             // The list filters stay in memory because the fields they read are
             // JSON in a string column — a shape chosen so that lists survive
             // CloudKit without a value transformer, and one SQLite cannot
@@ -180,7 +180,7 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
             // Every row, tombstoned ones included: a recipe restored from the
             // trash must come back searchable by today's reading, not by the
             // one it happened to be deleted under.
-            for row in try self.context.fetch(CDRecipe.fetchRequest()) {
+            for row in try self.context.fetchInActiveHousehold(CDRecipe.fetchRequest()) {
                 guard let domain = row.domainValue else { continue }
                 row.searchText = RecipeIndex.searchText(
                     for: domain,
@@ -237,7 +237,7 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
                 guard let groupID = recipe.variantGroupID else { continue }
                 counts[groupID, default: 0] += 1
             }
-            return try self.context.fetch(CDVariantGroup.fetchRequest())
+            return try self.context.fetchInActiveHousehold(CDVariantGroup.fetchRequest())
                 .compactMap { row in
                     guard let group = row.domainValue else { return nil }
                     return (group, counts[group.id] ?? 0)
@@ -355,27 +355,27 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
     private func members(ofGroup id: UUID) throws -> [CDRecipe] {
         let request = CDRecipe.fetchRequest()
         request.predicate = NSPredicate(format: "variantGroupID == %@", id as NSUUID)
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func liveRecipes() throws -> [CDRecipe] {
         let request = CDRecipe.fetchRequest()
         request.predicate = NSPredicate(format: "deletedAt == nil")
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func stored(id: UUID) throws -> CDRecipe? {
         let request = CDRecipe.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 
     private func storedGroup(id: UUID) throws -> CDVariantGroup? {
         let request = CDVariantGroup.fetchRequest()
         request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 
     private func variantGroupTitle(of recipe: CDRecipe) throws -> String? {

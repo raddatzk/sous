@@ -3,11 +3,19 @@ import CoreSpotlight
 import SwiftData
 import SousKit
 import SwiftUI
+import os
 
 @main
 struct SousApp: App {
     /// The cooking window's id, shared with whoever opens it.
     static let cookWindow = "cook"
+    /// Solely for accepted household invitations — see
+    /// `ShareInvitationDelegate.swift`. Everything else stays SwiftUI.
+    #if os(iOS)
+    @UIApplicationDelegateAdaptor(SousAppDelegate.self) private var appDelegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(SousAppDelegate.self) private var appDelegate
+    #endif
     @Environment(\.scenePhase) private var scenePhase
     @State private var library: RecipeLibrary
     @State private var mealPlan: MealPlanLibrary
@@ -30,6 +38,8 @@ struct SousApp: App {
     /// Says in the console whether anything is actually reaching iCloud,
     /// which nothing else in the app would reveal.
     private let cloudKitLog = CloudKitEventLog()
+    /// Which household the screens show, and the switch between them.
+    private let switcher: HouseholdSwitcher
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -46,6 +56,8 @@ struct SousApp: App {
     /// Whether the shipped data changed under the cook's vocabulary, and
     /// something was orphaned by it.
     @State private var dataUpdate = DataUpdateNotice()
+    /// Whether this launch is somebody's first, and the welcome is owed.
+    @State private var onboarding = OnboardingNotice()
     /// Held so the once-per-launch migrations can reach the store without
     /// opening a second container.
     private let migration: SwiftDataBundledDataMigration
@@ -107,7 +119,7 @@ struct SousApp: App {
                 nutritionCache: nutritionStore
             )
             _catalog = State(initialValue: catalogLibrary)
-            _library = State(initialValue: RecipeLibrary(
+            let recipeLibrary = RecipeLibrary(
                 store: recipes,
                 imageStore: images,
                 enrichmentStore: enrichmentStore,
@@ -115,7 +127,8 @@ struct SousApp: App {
                 nutritionStore: nutritionStore,
                 ingredientReviewStore: ingredientReviews,
                 catalogLibrary: catalogLibrary
-            ))
+            )
+            _library = State(initialValue: recipeLibrary)
             let planLibrary = MealPlanLibrary(store: plan, recipeStore: recipes)
             _mealPlan = State(initialValue: planLibrary)
             let shoppingLibrary = ShoppingLibrary(
@@ -138,6 +151,17 @@ struct SousApp: App {
             ))
             recipeStore = recipes
 
+            // The switch reloads what the screens hold, because the stores
+            // now answer for a different household than the one the
+            // libraries cached.
+            let madeSwitcher = HouseholdSwitcher(households: households) {
+                await recipeLibrary.reload()
+                await planLibrary.reload()
+                await shoppingLibrary.reload()
+                await catalogLibrary.reload()
+            }
+            switcher = madeSwitcher
+
             // The same instances the views hold, handed to the App Intents:
             // Siri writing to a second store while the app shows the first
             // would be two apps in one process.
@@ -153,6 +177,24 @@ struct SousApp: App {
         // and selection go to the intents as the same objects the UI holds.
         // Bound to locals first: `add` takes its dependency lazily, and a
         // lazy read of `self` is not something an initializer may hand out.
+        // A tapped invitation reaches the delegate; the delegate reaches
+        // this. Accepting files the household into the shared store, the
+        // import brings its rows, and the switcher jumps to it as soon as it
+        // appears — which is what accepting meant.
+        let households = households
+        let switcher = switcher
+        ShareInvitationHandOff.accept = { metadata in
+            Task {
+                do {
+                    try await households.acceptInvitation(from: metadata)
+                    await MainActor.run { switcher.expectingJoin = true }
+                } catch {
+                    Logger(subsystem: "me.raddatz.sous", category: "household")
+                        .error("Could not accept the invitation: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+        }
+
         let cookSession = session
         let recipeSelection = selection
         let sousNavigation = navigation
@@ -220,6 +262,7 @@ struct SousApp: App {
             // and then there are two. Same rule as at launch, same reason.
             _ = try? await households.mergeDuplicates()
             _ = try? await households.adoptOrphanedRows()
+            await switcher.refresh()
             await library.reload()
             await mealPlan.reload()
             await shopping.reload()
@@ -282,6 +325,13 @@ struct SousApp: App {
     /// Failure is silent on purpose. The source is never modified, so a run
     /// that goes wrong leaves the old store intact to try again from.
     private func migrateStores() async {
+        // Forced into the own household for the duration: legacy SwiftData
+        // content is this person's by definition, and adopting it while a
+        // joined household is active would write their old recipes into
+        // somebody else's kitchen.
+        let active = ActiveHousehold.id
+        ActiveHousehold.id = nil
+        defer { ActiveHousehold.id = active }
         _ = try? await RecipeStoreMigration.run(from: migrationSource, to: migrationDestination)
         await library.reload()
     }
@@ -324,6 +374,7 @@ struct SousApp: App {
         WindowGroup {
             RootView()
                 .environment(\.households, households)
+                .environment(\.householdSwitcher, switcher)
                 .environment(library)
                 .environment(mealPlan)
                 .environment(shopping)
@@ -335,6 +386,7 @@ struct SousApp: App {
                 .environment(selection)
                 .environment(commands)
                 .environment(dataUpdate)
+                .environment(onboarding)
                 .environment(navigation)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
@@ -357,6 +409,13 @@ struct SousApp: App {
                     await foldLegacyRows()
                     await migrateStores()
                     await joinTheHousehold()
+                    await switcher.refresh()
+                    // Here rather than in the view, and here rather than
+                    // earlier: the library has just been read for the
+                    // household this session belongs to, so "is there
+                    // anything in this app" can finally be answered. Asked
+                    // before the move, every device looks fresh.
+                    onboarding.decide(hasRecipes: !library.recipes.isEmpty)
                     await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a

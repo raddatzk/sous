@@ -190,7 +190,7 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     private func detachChildren(of id: UUID) throws {
         let request = CDVocabularyEntry.fetchRequest()
         request.predicate = NSPredicate(format: "parentID == %@", id as NSUUID)
-        for child in try context.fetch(request) {
+        for child in try context.fetchInActiveHousehold(request) {
             child.parentID = nil
             child.updatedAt = .nowInSyncPrecision
         }
@@ -199,14 +199,14 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     private func all() throws -> [CDVocabularyEntry] {
         let request = CDVocabularyEntry.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
-        return try context.fetch(request)
+        return try context.fetchInActiveHousehold(request)
     }
 
     private func row(key: String) throws -> CDVocabularyEntry? {
         let request = CDVocabularyEntry.fetchRequest()
         request.predicate = NSPredicate(format: "key == %@", key)
         request.fetchLimit = 1
-        return try context.fetch(request).first
+        return try context.fetchInActiveHousehold(request).first
     }
 }
 

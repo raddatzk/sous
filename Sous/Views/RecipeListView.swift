@@ -11,6 +11,7 @@ struct RecipeListView: View {
     var showsSearch = true
 
     @Environment(RecipeLibrary.self) private var library
+    @Environment(\.householdSwitcher) private var householdSwitcher
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(RecipeSelection.self) private var selection
     /// Held by the app rather than here, because the menu bar issues the
@@ -166,7 +167,17 @@ struct RecipeListView: View {
         // half a title below the field. The list keeps its own spacing.
         .contentMargins(.top, 0, for: .scrollContent)
         #endif
-        .navigationTitle("Rezepte")
+        // The joined household's name when one is active — the list is its
+        // library then, and calling it by the generic name would hide the
+        // one fact that matters about what is on screen.
+        .navigationTitle(householdSwitcher?.activeName ?? "Rezepte")
+        // The switch, as a menu on the title — present only once there is
+        // something to switch to.
+        .toolbarTitleMenu {
+            if let switcher = householdSwitcher, switcher.hasJoined {
+                householdMenu(switcher)
+            }
+        }
         .modifier(RecipeSearchField(shows: showsSearch, tokens: tokens))
         .overlay { emptyState }
         .toolbar { listToolbar }
@@ -199,6 +210,26 @@ struct RecipeListView: View {
             case nil: nil
             }
             if selected != row { selected = row }
+        }
+    }
+
+    /// The households to choose from. The own one is `nil` in the
+    /// switcher's terms, whatever its row's id says.
+    @ViewBuilder
+    private func householdMenu(_ switcher: HouseholdSwitcher) -> some View {
+        ForEach(switcher.choices) { choice in
+            Button {
+                Task { await switcher.switchTo(choice.isOwn ? nil : choice.id) }
+            } label: {
+                let isActive = choice.isOwn
+                    ? switcher.activeID == nil
+                    : switcher.activeID == choice.id
+                if isActive {
+                    Label(choice.name, systemImage: "checkmark")
+                } else {
+                    Text(choice.name)
+                }
+            }
         }
     }
 
@@ -509,6 +540,7 @@ private struct RecipeSearchField: ViewModifier {
     let tokens: Binding<[RecipeFilter]>
 
     @Environment(RecipeLibrary.self) private var library
+    @Environment(\.householdSwitcher) private var householdSwitcher
     @Environment(IngredientCatalogLibrary.self) private var catalog
 
     func body(content: Content) -> some View {

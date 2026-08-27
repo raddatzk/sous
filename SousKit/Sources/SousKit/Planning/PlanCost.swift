@@ -21,6 +21,13 @@ enum PlanCost {
     /// noise keeps the pass "improving" forever.
     static let improvementEpsilon = 1e-9
 
+    /// How far a run's seed may bend a candidate's cost — the price of
+    /// "Neu vorschlagen" meaning it. Deliberately below `wantToCookBonus`:
+    /// two dinners whose nutrient terms differ by less than this are
+    /// interchangeable to the cook, so the seed may pick either — but a
+    /// marked recipe, or a genuinely better mix, still wins every time.
+    static let varietyJitter = 0.03
+
     /// The nutrient term alone: squared relative shortfalls below the nine
     /// lower bounds plus squared relative excesses above the three caps,
     /// each clamped to [0, 1] so one hopeless micronutrient cannot drown

@@ -23,8 +23,6 @@ struct HouseholdTests {
     func insertsJoinTheHousehold() async throws {
         let container = try makeContainer()
         let store = CoreDataRecipeStore(container: container)
-        // A household exists, the way it does from the first launch onwards.
-        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
 
         try await store.save(Recipe(title: "Brot"))
 
@@ -131,26 +129,19 @@ struct HouseholdTests {
         }
     }
 
-    @Test("An insert does not invent a household of its own")
-    func insertsDoNotCreateHouseholds() async throws {
+    @Test("The own household is founded by the first content, not by launch")
+    func firstContentFoundsTheHousehold() async throws {
         let container = try makeContainer()
-        let context = SousPersistentContainer.backgroundContext(for: container)
 
-        // A row written before any household exists — which is what a fresh
-        // install looks like while the import is still on its way.
-        try await context.perform {
-            let row = CDRecipe(context: context)
-            row.id = UUID()
-            row.title = "Brot"
-            try context.save()
-        }
-
-        // No household was conjured up to hold it.
+        // Launch with nothing to show: no household is conjured up. An
+        // invitation-only member stays household-less and lives entirely in
+        // the one they joined.
+        let adopted = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
+        #expect(adopted == 0)
         #expect(try households(in: container).isEmpty)
 
-        // And it is picked up once there is one.
-        let adopted = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
-        #expect(adopted == 1)
+        // The first own recipe is the founding act.
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
         #expect(try households(in: container).count == 1)
     }
 
@@ -163,5 +154,27 @@ struct HouseholdTests {
         await #expect(throws: HouseholdSharingError.self) {
             _ = try await CoreDataHouseholds(container: try makeContainer()).shareForInviting()
         }
+    }
+}
+
+/// Serialized, because the active household is process-wide state — the same
+/// way it is in the app.
+@Suite("Switching households", .serialized)
+struct HouseholdSwitchingTests {
+    @Test("An active household nothing holds falls back to the person's own")
+    func fallsBackToOwn() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        // Names a household no store on this device has — the state after
+        // being removed from one, or after the account changed.
+        ActiveHousehold.id = UUID()
+
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let store = CoreDataRecipeStore(container: container)
+        try await store.save(Recipe(title: "Brot"))
+
+        // Both the write and the read land in the own household rather than
+        // vanishing into a scope that does not exist.
+        #expect(try await store.recipes(matching: .all).map(\.title) == ["Brot"])
     }
 }
