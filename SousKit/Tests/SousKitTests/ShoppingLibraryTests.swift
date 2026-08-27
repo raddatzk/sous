@@ -420,6 +420,47 @@ extension ShoppingLibraryTests {
         #expect(groups.first?.isGrouped == false)
     }
 
+    @Test("A named store pulls its errands out of the aisle walk")
+    func preferredStoreSection() async throws {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let catalog = IngredientCatalogLibrary(
+            store: SwiftDataVocabularyStore(modelContainer: container)
+        )
+        let shopping = ShoppingLibrary(
+            store: SwiftDataShoppingListStore(modelContainer: container),
+            recipeStore: SwiftDataRecipeStore(modelContainer: container),
+            catalogLibrary: catalog
+        )
+        await shopping.add(Recipe(
+            title: "Bowl",
+            servings: 2,
+            ingredientsText: """
+            250 g Cocktailtomaten
+            200 g Feta
+            2 Dürüm
+            """
+        ))
+
+        await catalog.setShoppingPreferences(store: "Lidl", note: "die große Packung", name: "Dürüm")
+        // Set on the parent, reaching the variety on the list.
+        await catalog.setShoppingPreferences(store: "Lidl", note: nil, name: "Tomate")
+
+        let sections = shopping.bySection
+        #expect(sections.map(\.section) == [.store("Lidl"), .aisle(.dairy)])
+        // Inside the shop the aisle walk applies: the uncategorized Dürüm
+        // surfaces first, then the tomatoes from the vegetable aisle.
+        #expect(sections[0].items.map(\.name) == ["Dürüm", "Cocktailtomate"])
+
+        let dürüm = try #require(shopping.items.first { $0.name == "Dürüm" })
+        #expect(shopping.preferredStore(of: dürüm) == "Lidl")
+        #expect(shopping.shoppingNote(of: dürüm) == "die große Packung")
+
+        // Taking the store back returns everything to its aisle.
+        await catalog.setShoppingPreferences(store: nil, note: nil, name: "Dürüm")
+        await catalog.setShoppingPreferences(store: "", note: nil, name: "Tomate")
+        #expect(shopping.bySection.map(\.section) == [.unassigned, .aisle(.vegetables), .aisle(.dairy)])
+    }
+
     @Test("The walk starts with the unassigned, then the aisles, then the pantry")
     func groupedBySection() async throws {
         let (shopping, _, _) = try makeLibrary()

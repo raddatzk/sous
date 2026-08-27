@@ -53,7 +53,9 @@ struct RecipeStoreTests {
         ))
         try await store.save(Recipe(
             title: "Herbstsuppe", servings: 2,
-            ingredientsText: "1 Butternut", instructionsText: "Kochen."
+            // The qualifier hides the name from the catalog; the head-noun
+            // tier of the index must reach through it.
+            ingredientsText: "1 kleiner Butternut", instructionsText: "Kochen."
         ))
         try await store.save(Recipe(
             title: "Salat", servings: 2,

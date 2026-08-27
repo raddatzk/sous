@@ -6,6 +6,10 @@ public enum ShoppingSection: Hashable, Sendable {
     /// Raw-text lines the app could not interpret — at the very top, so
     /// they surface before the store, not in it.
     case unassigned
+    /// Everything bought at one particular shop, ahead of the aisle walk —
+    /// the cook said where these live, so they are not hunted through the
+    /// default store's aisles.
+    case store(String)
     case aisle(IngredientCategory)
     /// Pantry staples, collapsed at the end: checked against the shelf,
     /// not hunted through the store.
@@ -14,6 +18,7 @@ public enum ShoppingSection: Hashable, Sendable {
     public var title: String {
         switch self {
         case .unassigned: "Nicht zugeordnet"
+        case .store(let name): name
         case .aisle(let category): category.title
         case .pantry: "Vorräte"
         }
@@ -266,6 +271,24 @@ public final class ShoppingLibrary {
         await catalogLibrary?.setPantry(flagged, name: name)
     }
 
+    // MARK: - Stores
+
+    /// Where `item` is bought, when the cook said — its own entry first,
+    /// then the ingredient it is a variety of, the same reach `isPantry`
+    /// has: a store named on "Tofu" covers the Räuchertofu on the list.
+    public func preferredStore(of item: ShoppingItem) -> String? {
+        let stores = catalogLibrary?.preferredStores ?? [:]
+        if let store = stores[item.key] { return store }
+        return groupIngredient(of: item).flatMap { stores[$0.key] }
+    }
+
+    /// What to know at the shelf for `item`, same lookup as its store.
+    public func shoppingNote(of item: ShoppingItem) -> String? {
+        guard let vocabulary = catalogLibrary?.vocabulary else { return nil }
+        if let note = vocabulary[item.key]?.shoppingNote { return note }
+        return groupIngredient(of: item).flatMap { vocabulary[$0.key]?.shoppingNote }
+    }
+
     // MARK: - Varieties
 
     /// The ingredient an item bundles under: itself, or the one it is a
@@ -319,16 +342,20 @@ public final class ShoppingLibrary {
     }
 
     /// The list grouped for the walk through the store: raw-text lines
-    /// first, so they surface before the shop; then the aisles in walking
-    /// order; pantry staples collected at the end.
+    /// first, so they surface before the shop; then one section per named
+    /// store, since those errands happen somewhere else entirely; then the
+    /// aisles in walking order; pantry staples collected at the end.
     public var bySection: [(section: ShoppingSection, items: [ShoppingItem])] {
         var unassigned: [ShoppingItem] = []
         var pantry: [ShoppingItem] = []
+        var stores: [String: [ShoppingItem]] = [:]
         var aisles: [IngredientCategory: [ShoppingItem]] = [:]
 
         for item in items {
             if pantryKeys.contains(item.key) {
                 pantry.append(item)
+            } else if let store = preferredStore(of: item) {
+                stores[store, default: []].append(item)
             } else if let category = item.category {
                 aisles[category, default: []].append(item)
             } else {
@@ -340,6 +367,14 @@ public final class ShoppingLibrary {
         if !unassigned.isEmpty {
             sections.append((.unassigned, unassigned))
         }
+        sections.append(contentsOf: stores
+            .map { name, items in
+                // Inside one shop the aisle walk applies just the same.
+                (section: ShoppingSection.store(name), items: items.sorted {
+                    ($0.category?.aisleOrder ?? -1, $0.name) < ($1.category?.aisleOrder ?? -1, $1.name)
+                })
+            }
+            .sorted { $0.section.title.localizedCompare($1.section.title) == .orderedAscending })
         sections.append(contentsOf: aisles
             .map { (section: ShoppingSection.aisle($0.key), items: $0.value) }
             .sorted { $0.section.aisleOrder < $1.section.aisleOrder })
@@ -440,6 +475,10 @@ extension ShoppingSection {
     fileprivate var aisleOrder: Int {
         switch self {
         case .unassigned: -1
+        // Store sections sit with the unassigned lines ahead of the walk;
+        // among themselves they sort by name, which `bySection` does
+        // explicitly — this order never has to separate two of them.
+        case .store: -1
         case .aisle(let category): category.aisleOrder
         case .pantry: .max
         }
