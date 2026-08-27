@@ -235,7 +235,47 @@ struct RecipeListView: View {
             .matchedTransitionSource(id: recipe.id, in: zoomNamespace)
             #endif
             .tag(RecipeListSelection.recipe(recipe.id))
+            // The long-press previews the recipe itself, with its actions
+            // underneath rather than a bare menu — VISION.md asks for
+            // exactly this, and it is what a long-press means on iOS. The
+            // Mac keeps the plain menu: a right-click there is a menu, not
+            // a peek.
+            #if os(iOS)
+            .contextMenu {
+                contextActions(for: recipe)
+            } preview: {
+                RecipePreviewCard(recipe: recipe)
+                    // The preview is hosted outside the app's view tree and
+                    // inherits none of its `.environment` objects — without
+                    // this, the image view's environment lookup traps.
+                    .environment(library)
+            }
+            #else
             .contextMenu { contextActions(for: recipe) }
+            #endif
+            // The two judgments a thumb passes while scrolling the shelf,
+            // and the one regret. The full menu stays on the long-press.
+            .swipeActions(edge: .leading) {
+                Button(
+                    recipe.isFavorite ? "Aus Favoriten entfernen" : "Zu Favoriten",
+                    systemImage: recipe.isFavorite ? "star.slash" : "star"
+                ) {
+                    Task { await library.toggleFavorite(recipe) }
+                }
+                .tint(.yellow)
+                Button(
+                    recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
+                    systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
+                ) {
+                    Task { await library.toggleWantToCook(recipe) }
+                }
+                .tint(.accentColor)
+            }
+            .swipeActions(edge: .trailing) {
+                Button("Löschen", systemImage: "trash", role: .destructive) {
+                    Task { await library.delete(recipe) }
+                }
+            }
     }
 
     /// What the group page should open as.
@@ -442,3 +482,69 @@ enum RecipeListSelection: Hashable {
     case recipe(Recipe.ID)
     case group(VariantGroup.ID)
 }
+
+#if os(iOS)
+/// What the long-press lifts off the list: the recipe itself, at a glance —
+/// picture, name, what it is, and what goes into it — enough to decide
+/// whether to open it, which is the question a peek answers.
+private struct RecipePreviewCard: View {
+    let recipe: Recipe
+
+    /// Enough lines to know the dish; the page has the rest.
+    private static let visibleIngredients = 6
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let imageID = recipe.imageIDs.first {
+                RecipeImageView(imageID: imageID)
+                    .frame(width: 340, height: 190)
+                    .clipped()
+            }
+            VStack(alignment: .leading, spacing: 8) {
+                Text(recipe.title)
+                    .font(SousStyle.recipeName)
+                if let summary = recipe.summary, !summary.isEmpty {
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                if facts.isEmpty == false {
+                    Text(facts)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                let ingredients = recipe.ingredients
+                if !ingredients.isEmpty {
+                    Divider()
+                        .padding(.vertical, 2)
+                    ForEach(ingredients.prefix(Self.visibleIngredients)) { ingredient in
+                        IngredientLineView(ingredient: ingredient)
+                            .font(.callout)
+                    }
+                    if ingredients.count > Self.visibleIngredients {
+                        Text("+\(ingredients.count - Self.visibleIngredients) weitere Zutaten")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .frame(width: 340, alignment: .leading)
+        .background(Color.sousSurface)
+    }
+
+    /// "25 Min. · einfach, Suppe" — the row's chips, said in one line.
+    private var facts: String {
+        var parts: [String] = []
+        if let seconds = recipe.elapsedTimeSeconds {
+            parts.append("\(seconds / 60) Min.")
+        }
+        if !recipe.categories.isEmpty {
+            parts.append(recipe.categories.joined(separator: ", "))
+        }
+        return parts.joined(separator: " · ")
+    }
+}
+#endif
