@@ -5,8 +5,8 @@ import Testing
 
 @Suite("Recipe store")
 struct RecipeStoreTests {
-    private func makeStore() throws -> SwiftDataRecipeStore {
-        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    private func makeStore(_ backend: StoreBackend) throws -> any RecipeStore {
+        try backend.makeStore()
     }
 
     private func sampleRecipe(title: String = "Zucchinipfanne") -> Recipe {
@@ -27,9 +27,9 @@ struct RecipeStoreTests {
         )
     }
 
-    @Test("A saved recipe comes back with its content and order intact")
-    func roundTrip() async throws {
-        let store = try makeStore()
+    @Test("A saved recipe comes back with its content and order intact", arguments: StoreBackend.allCases)
+    func roundTrip(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let recipe = sampleRecipe()
         try await store.save(recipe)
 
@@ -44,9 +44,9 @@ struct RecipeStoreTests {
         #expect(loaded.categories == ["Schnell", "Vegetarisch"])
     }
 
-    @Test("Searching by the parent name finds the recipe that only says the variety")
-    func searchReachesThroughTheVarietyRelation() async throws {
-        let store = try makeStore()
+    @Test("Searching by the parent name finds the recipe that only says the variety", arguments: StoreBackend.allCases)
+    func searchReachesThroughTheVarietyRelation(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(
             title: "Ofenkürbis", servings: 2,
             ingredientsText: "1 Hokkaido", instructionsText: "Backen."
@@ -75,9 +75,9 @@ struct RecipeStoreTests {
         #expect(Set(after.map(\.title)) == ["Ofenkürbis", "Herbstsuppe"])
     }
 
-    @Test("The store stamps updatedAt, not the caller")
-    func storeStampsUpdatedAt() async throws {
-        let store = try makeStore()
+    @Test("The store stamps updatedAt, not the caller", arguments: StoreBackend.allCases)
+    func storeStampsUpdatedAt(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         var recipe = sampleRecipe()
         recipe.updatedAt = Date(timeIntervalSince1970: 0)
 
@@ -109,9 +109,9 @@ struct RecipeStoreTests {
         #expect(try context.fetchCount(FetchDescriptor<StoredRecipe>()) == 1)
     }
 
-    @Test("Deleting tombstones instead of erasing, and restoring brings it back")
-    func deleteAndRestore() async throws {
-        let store = try makeStore()
+    @Test("Deleting tombstones instead of erasing, and restoring brings it back", arguments: StoreBackend.allCases)
+    func deleteAndRestore(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let recipe = sampleRecipe()
         try await store.save(recipe)
 
@@ -129,9 +129,9 @@ struct RecipeStoreTests {
         #expect(try await store.recipes(matching: .all).count == 1)
     }
 
-    @Test("Search matches title, category and ingredient name")
-    func search() async throws {
-        let store = try makeStore()
+    @Test("Search matches title, category and ingredient name", arguments: StoreBackend.allCases)
+    func search(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(sampleRecipe())
         try await store.save(
             Recipe(
@@ -148,9 +148,9 @@ struct RecipeStoreTests {
         #expect(try await store.recipes(matching: RecipeQuery(searchText: "  ")).count == 2)
     }
 
-    @Test("Filters for favorites, want-to-cook and category")
-    func filters() async throws {
-        let store = try makeStore()
+    @Test("Filters for favorites, want-to-cook and category", arguments: StoreBackend.allCases)
+    func filters(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         var favorite = sampleRecipe(title: "Favorit")
         favorite.isFavorite = true
         var planned = sampleRecipe(title: "Geplant")
@@ -165,9 +165,9 @@ struct RecipeStoreTests {
         #expect(try await store.recipes(matching: RecipeQuery(filters: [.category("Backen")])).map(\.title) == ["Geplant"])
     }
 
-    @Test("Sorting by title and by recency")
-    func sorting() async throws {
-        let store = try makeStore()
+    @Test("Sorting by title and by recency", arguments: StoreBackend.allCases)
+    func sorting(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(sampleRecipe(title: "Älpler Magronen"))
         try await store.save(sampleRecipe(title: "Brot"))
         try await store.save(sampleRecipe(title: "Auflauf"))
@@ -179,9 +179,9 @@ struct RecipeStoreTests {
         #expect(byRecency.first?.title == "Auflauf")
     }
 
-    @Test("Categories are deduplicated and exclude deleted recipes")
-    func categoryList() async throws {
-        let store = try makeStore()
+    @Test("Categories are deduplicated and exclude deleted recipes", arguments: StoreBackend.allCases)
+    func categoryList(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         let first = sampleRecipe(title: "A")
         var second = sampleRecipe(title: "B")
         second.categories = ["Vegetarisch", "Backen"]
@@ -198,13 +198,13 @@ struct RecipeStoreTests {
 
 @Suite("Recognized search filters")
 struct RecipeFilterTests {
-    private func makeStore() throws -> SwiftDataRecipeStore {
-        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    private func makeStore(_ backend: StoreBackend) throws -> any RecipeStore {
+        try backend.makeStore()
     }
 
-    @Test("Filtering by ingredient finds every spelling of it")
-    func ingredientFilterMatchesSpellings() async throws {
-        let store = try makeStore()
+    @Test("Filtering by ingredient finds every spelling of it", arguments: StoreBackend.allCases)
+    func ingredientFilterMatchesSpellings(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "Salat", ingredientsText: "300 g Cocktailtomaten"))
         try await store.save(Recipe(title: "Sauce", ingredientsText: "2 Tomate"))
         try await store.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
@@ -218,9 +218,9 @@ struct RecipeFilterTests {
         #expect(found.map(\.title) == ["Salat", "Sauce"])
     }
 
-    @Test("Several filters narrow rather than widen")
-    func filtersCombine() async throws {
-        let store = try makeStore()
+    @Test("Several filters narrow rather than widen", arguments: StoreBackend.allCases)
+    func filtersCombine(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(
             title: "Beides", ingredientsText: "2 Tomaten\n1 Zwiebel", categories: ["Schnell"]
         ))
@@ -307,13 +307,13 @@ struct RecipeFilterTests {
 
 @Suite("Managing categories")
 struct CategoryManagementTests {
-    private func makeStore() throws -> SwiftDataRecipeStore {
-        SwiftDataRecipeStore(modelContainer: try .sousContainer(inMemory: true))
+    private func makeStore(_ backend: StoreBackend) throws -> any RecipeStore {
+        try backend.makeStore()
     }
 
-    @Test("Categories are counted by how many recipes use them")
-    func counts() async throws {
-        let store = try makeStore()
+    @Test("Categories are counted by how many recipes use them", arguments: StoreBackend.allCases)
+    func counts(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "A", categories: ["Salate", "Schnell"]))
         try await store.save(Recipe(title: "B", categories: ["Salate"]))
 
@@ -322,9 +322,9 @@ struct CategoryManagementTests {
         #expect(counts.map(\.count) == [2, 1])
     }
 
-    @Test("Renaming reaches every recipe that used the old name")
-    func renaming() async throws {
-        let store = try makeStore()
+    @Test("Renaming reaches every recipe that used the old name", arguments: StoreBackend.allCases)
+    func renaming(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "A", categories: ["Salat"]))
         try await store.save(Recipe(title: "B", categories: ["Salat", "Schnell"]))
 
@@ -335,9 +335,9 @@ struct CategoryManagementTests {
         #expect(try await store.recipes(matching: RecipeQuery(filters: [.category("Salate")])).count == 2)
     }
 
-    @Test("Renaming onto an existing name merges the two")
-    func merging() async throws {
-        let store = try makeStore()
+    @Test("Renaming onto an existing name merges the two", arguments: StoreBackend.allCases)
+    func merging(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "Beides", categories: ["Salat", "Salate"]))
 
         try await store.renameCategory("Salat", to: "Salate")
@@ -347,9 +347,9 @@ struct CategoryManagementTests {
         #expect(recipe.categories == ["Salate"])
     }
 
-    @Test("Deleting takes the category off every recipe, leaving the rest")
-    func deleting() async throws {
-        let store = try makeStore()
+    @Test("Deleting takes the category off every recipe, leaving the rest", arguments: StoreBackend.allCases)
+    func deleting(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "A", categories: ["Salate", "Schnell"]))
 
         try await store.deleteCategory("Salate")
@@ -359,9 +359,9 @@ struct CategoryManagementTests {
         #expect(try await store.categoryCounts().map(\.name) == ["Schnell"])
     }
 
-    @Test("A renamed category is still findable by search")
-    func searchFollowsRename() async throws {
-        let store = try makeStore()
+    @Test("A renamed category is still findable by search", arguments: StoreBackend.allCases)
+    func searchFollowsRename(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
         try await store.save(Recipe(title: "A", categories: ["Salat"]))
 
         try await store.renameCategory("Salat", to: "Vorspeisen")
