@@ -79,10 +79,15 @@ struct RootView: View {
         @Bindable var session = session
 
         VStack(spacing: 0) {
+            // The Mac keeps the band above the window's content. On iOS it
+            // rides the tab bar instead — see `sections` — where it neither
+            // shortens every tab nor sits loose under the status bar.
+            #if os(macOS)
             if showsBanner {
                 ContinueCookingBanner()
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
+            #endif
             if !orphaned.isEmpty {
                 orphanBand
                     .transition(.move(edge: .top).combined(with: .opacity))
@@ -264,6 +269,15 @@ struct RootView: View {
         // holds the same three entries and nothing else: an offer with
         // nothing behind it.
         .tabViewStyle(.tabBarOnly)
+        // The way back to the hob, docked to the tab bar the way Musik
+        // docks its player: it floats with the bar and takes no height from
+        // the tabs, instead of the hand-made capsule that used to sit above
+        // everything.
+        .tabViewBottomAccessory {
+            if showsBanner {
+                ContinueCookingBanner()
+            }
+        }
     }
     #endif
 }

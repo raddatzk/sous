@@ -90,27 +90,34 @@ struct RecipeRow: View {
         .clipShape(.rect(cornerRadius: 14, style: .continuous))
     }
 
+    /// Labelled, not decorative: these four glyphs are the row's whole
+    /// status vocabulary, and without names VoiceOver reads a row with a
+    /// bookmark and a row without one identically.
     @ViewBuilder
     private var markers: some View {
         if recipe.isFavorite {
             Image(systemName: "star.fill")
                 .foregroundStyle(.yellow)
                 .imageScale(.small)
+                .accessibilityLabel("Favorit")
         }
         if recipe.wantToCook {
             Image(systemName: "bookmark.fill")
                 .foregroundStyle(.tint)
                 .imageScale(.small)
+                .accessibilityLabel("Will ich kochen")
         }
         if needsAmountReview {
             Image(systemName: "text.badge.checkmark")
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
+                .accessibilityLabel("Mengen zu prüfen")
         }
         if needsIngredientReview {
             Image(systemName: "text.book.closed")
                 .foregroundStyle(.secondary)
                 .imageScale(.small)
+                .accessibilityLabel("Unbekannte Zutaten")
         }
     }
 

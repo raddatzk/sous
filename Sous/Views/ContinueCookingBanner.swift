@@ -63,22 +63,13 @@ struct ContinueCookingBanner: View {
         .focusEffectDisabled()
         .foregroundStyle(.tint)
         // A bar with a hairline under it on the Mac, where the window is made
-        // of bars and that is what the band should be. On iOS 26 everything
-        // around it floats — the tab bar, the toolbar — and a flat strip
-        // pinned edge to edge under the status bar was the one thing on an
-        // iPad that looked stuck on rather than laid on.
+        // of bars and that is what the band should be. On iOS the band rides
+        // in the tab bar's bottom accessory, which draws its own glass
+        // capsule around whatever it is handed — a background of our own in
+        // there would be a capsule inside a capsule.
         #if os(macOS)
         .background(.bar)
         .overlay(alignment: .bottom) { Divider() }
-        #else
-        // Solid rather than a material: over the app's own pale background a
-        // material resolves to almost exactly that background, so the capsule
-        // was there and invisible. The floating tab bar beneath it is opaque
-        // for the same reason.
-        .background(.background, in: .capsule)
-        .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
         #endif
         .task(id: session.entries.map(\.recipeID)) { await resolveTitles() }
     }
@@ -119,6 +110,10 @@ struct ContinueCookingBanner: View {
             }
             .font(.caption)
             .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+            // The bell pulses for the eye; this is the same beat for the
+            // hand — only on the way to finished, never on appearing with a
+            // timer already rung.
+            .sensoryFeedback(.warning, trigger: finished) { old, new in !old && new }
         }
     }
 

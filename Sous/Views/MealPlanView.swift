@@ -361,6 +361,7 @@ struct MealPlanView: View {
         ToolbarItem(placement: .primaryAction) {
             Button("Essen planen", systemImage: "wand.and.stars") { isPlanning = true }
                 .labelStyle(.iconOnly)
+                .help("Essen planen")
         }
     }
 
@@ -377,6 +378,7 @@ struct MealPlanView: View {
             }
             .labelStyle(.iconOnly)
             .disabled(plan.entries.isEmpty && plan.pool.isEmpty)
+            .help("Auf die Einkaufsliste")
         }
     }
 

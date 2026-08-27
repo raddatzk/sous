@@ -143,6 +143,9 @@ struct PlanDinnersSheet: View {
             Toggle(isOn: isOn) { EmptyView() }
                 .labelsHidden()
                 .toggleStyle(.checkboxCircle)
+                // The visible label sits beside the toggle, not in it —
+                // without this, VoiceOver announces a nameless switch.
+                .accessibilityLabel(placement.candidate.title)
             if let imageID = planner.recipe(for: placement)?.imageIDs.first {
                 RecipeImageView(imageID: imageID, thumbnail: true)
                     .frame(width: 44, height: 44)
@@ -170,7 +173,8 @@ struct PlanDinnersSheet: View {
                         exhausted.insert(placement.id)
                     }
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
+                    Label("Austauschen", systemImage: "arrow.triangle.2.circlepath")
+                        .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
                 .disabled(exhausted.contains(placement.id))
