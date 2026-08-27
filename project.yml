@@ -1,6 +1,7 @@
 name: Sous
 options:
   bundleIdPrefix: me.raddatz
+  developmentLanguage: de
   deploymentTarget:
     iOS: "26.5"
     macOS: "26.0"
@@ -67,6 +68,14 @@ targets:
       properties:
         CFBundleDisplayName: Sous
         LSApplicationCategoryType: public.app-category.food-and-drink
+        # Without these two xcodegen writes its own defaults (1.0/1) into the
+        # plist, and the plist wins over MARKETING_VERSION — the upload would
+        # carry a different version than the project says.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # HTTPS only, so exempt from export compliance. Declared here so App
+        # Store Connect stops asking on every single build.
+        ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
         # Without this, tapping an invitation link tells the invitee the app
@@ -94,7 +103,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.raddatz.sous
         PRODUCT_NAME: Sous
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         # The Icon Composer file is `sous.icon`, so the compiler has to be
@@ -103,6 +112,11 @@ targets:
         # the home screen shows a blank tile. Set here so a regeneration
         # cannot lose it again.
         ASSETCATALOG_COMPILER_APPICON_NAME: sous
+        # The Mac demands what iOS has no notion of (the App Sandbox, without
+        # which App Store Connect refuses the build) and rejects what iOS
+        # requires (an app group without the team prefix). One shared file
+        # cannot satisfy both, so the Mac gets its own.
+        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: Sous/Supporting/Sous-macOS.entitlements
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         ENABLE_HARDENED_RUNTIME: YES
@@ -129,13 +143,17 @@ targets:
       path: SousWidgets/Info.plist
       properties:
         CFBundleDisplayName: Sous
+        # An extension whose version differs from the app it ships inside is
+        # rejected at upload, so both read the same setting.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.raddatz.sous.widgets
         PRODUCT_NAME: SousWidgets
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
@@ -183,6 +201,10 @@ targets:
       path: SousShare/Info.plist
       properties:
         CFBundleDisplayName: Sous
+        # An extension whose version differs from the app it ships inside is
+        # rejected at upload, so both read the same setting.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSExtension:
           NSExtensionPointIdentifier: com.apple.share-services
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
@@ -194,7 +216,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.raddatz.sous.share
         PRODUCT_NAME: SousShare
-        MARKETING_VERSION: "0.1"
+        MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
