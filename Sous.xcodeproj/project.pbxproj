@@ -66,6 +66,7 @@
 		B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */; };
 		B984C5734F5D6DA69B42AEFA /* DataUpdateNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */; };
 		BB7EFD38EA70A0036C04AEE2 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
+		BF52A9CCD152AC212F0B12C2 /* SousIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 686BFBAA9C3BCAE4BC273920 /* SousIntents.swift */; };
 		C08876653DCA69CB644ABD57 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
 		C34D8C291432A617C11A5D9A /* RecipeImportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B30F1C03B1F7A30595D32B1C /* RecipeImportView.swift */; };
 		C7D67E97E394DF1784194101 /* RecipeTextEditorStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13781E7C6571A8D114AB3CD7 /* RecipeTextEditorStyles.swift */; };
@@ -142,6 +143,7 @@
 		643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipePickerView.swift; sourceTree = "<group>"; };
 		6591D047592824004D26893B /* LibraryCommands.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryCommands.swift; sourceTree = "<group>"; };
 		6664D684C6558699AFE1C5B1 /* AmountReviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AmountReviewSheet.swift; sourceTree = "<group>"; };
+		686BFBAA9C3BCAE4BC273920 /* SousIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousIntents.swift; sourceTree = "<group>"; };
 		687730697B4B18B2BA873B0B /* IngredientReviewSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientReviewSheet.swift; sourceTree = "<group>"; };
 		6D4F0DD81CA3E6A2A0E5B849 /* SousAppearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousAppearance.swift; sourceTree = "<group>"; };
 		6D629FB2F5517CF39B9396A2 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
@@ -263,10 +265,19 @@
 			path = Cooking;
 			sourceTree = "<group>";
 		};
+		32E05357BCD2BF89080015B2 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				686BFBAA9C3BCAE4BC273920 /* SousIntents.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
 		385D7563B39635A740AE0A77 /* Sous */ = {
 			isa = PBXGroup;
 			children = (
 				16E4774220314313C4F7B5ED /* Cooking */,
+				32E05357BCD2BF89080015B2 /* Intents */,
 				E8ABAC23FD01EBA09CA4CCE5 /* Supporting */,
 				77A3933FE095081587E52DAC /* Timers */,
 				0B1D145DA0D7595B25BA6B4D /* Views */,
@@ -547,6 +558,7 @@
 				32869974DB3B7157938EF911 /* ShoppingListView.swift in Sources */,
 				4247A7980AD155610352A4AD /* SousApp.swift in Sources */,
 				3663B8C4161DE41FF6F48724 /* SousAppearance.swift in Sources */,
+				BF52A9CCD152AC212F0B12C2 /* SousIntents.swift in Sources */,
 				C08876653DCA69CB644ABD57 /* SousStyle.swift in Sources */,
 				D039F26CAA91B8EAF7A4A66A /* TimerSetupSheet.swift in Sources */,
 				F57D8BF30A466E29363D8D6D /* TrashView.swift in Sources */,
