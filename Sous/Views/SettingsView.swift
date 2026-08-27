@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsForm: View {
     @AppStorage(SousSetting.appearance, store: .sous)
     private var appearance: SousAppearance = .system
+    @Environment(\.households) private var households
 
     /// The shipped table speaking for itself. Reachable without any
     /// environment — which this form does not get on the Mac, where it is the
@@ -32,6 +33,10 @@ struct SettingsForm: View {
                 Text("Erscheinungsbild")
             } footer: {
                 Text("„System“ folgt der Einstellung des Geräts.")
+            }
+
+            if let households {
+                HouseholdSharingSection(households: households)
             }
 
             dataSources
