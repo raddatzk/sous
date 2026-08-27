@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Nothing leaves the device: the ingredient and meal-suitability models
+	     are FoundationModels, which runs on device, and the household's rows
+	     live in the user's own iCloud, which we cannot read. The only network
+	     call is the recipe importer fetching a page the user handed it. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<!-- UserDefaults. Without a declared reason the upload comes back
+			     as ITMS-91053. -->
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- The app and its extensions read the same suite out of the
+				     app group. -->
+				<string>1C8F.1</string>
+				<!-- On the Mac there is no group, so the same code reads the
+				     app's own defaults instead. -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

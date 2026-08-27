@@ -37,6 +37,7 @@
 		4247A7980AD155610352A4AD /* SousApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B651330E061A44821ADA43 /* SousApp.swift */; };
 		45172002B4442D3DD01976BC /* HighlightedTextEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8DD33E69332194FC5F92AFFD /* HighlightedTextEditor.swift */; };
 		4AE6476A1C8755668C220EA7 /* IngredientAliasPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA3A090222FEA0685769F99 /* IngredientAliasPickerView.swift */; };
+		4C4121828E62AB0A9E528E97 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 560216B54AB18B951EBB4FF8 /* PrivacyInfo.xcprivacy */; };
 		54E27685ECB3D7C4073717E2 /* CookTimerMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */; };
 		551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */; };
 		58B55AC7746A47C07A591E81 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
@@ -84,8 +85,10 @@
 		D001C854B40B28607A227366 /* RecipeExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E750DD65005E77F070E4A9 /* RecipeExportView.swift */; };
 		D039F26CAA91B8EAF7A4A66A /* TimerSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */; };
 		D46D78B4250B2773DF76BEBA /* SousWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */; };
+		DBA71FE99BF65FBF589A2A81 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */; };
 		E7BDB939A6B8E83F497FB16F /* CookTimerCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */; };
 		F0FF8EF8304D4773B9C3DB46 /* LibraryCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6591D047592824004D26893B /* LibraryCommands.swift */; };
+		F2FE5B65452C7BCBC2814E47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */; };
 		F57D8BF30A466E29363D8D6D /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5F5A49BEF93D3CFF7287EA /* TrashView.swift */; };
 		FC9975780EBE413A7F1F048E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17926632D910B9FEE5B9A8A3 /* RootView.swift */; };
 /* End PBXBuildFile section */
@@ -133,9 +136,11 @@
 		20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookAddSheet.swift; sourceTree = "<group>"; };
 		22368522EEB68B987EB6F862 /* NRFBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRFBadge.swift; sourceTree = "<group>"; };
 		2FB8435F0A0BC9D7BF7B1F7D /* SousWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookSwitcherBar.swift; sourceTree = "<group>"; };
 		368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerCenter.swift; sourceTree = "<group>"; };
 		3A4D64C09129B00714574B3E /* RecipeImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeImageView.swift; sourceTree = "<group>"; };
+		3D07D28EB489BF5BD6C340AA /* Sous-macOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "Sous-macOS.entitlements"; sourceTree = "<group>"; };
 		418DAD9168857583265E5CB4 /* OnboardingNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingNotice.swift; sourceTree = "<group>"; };
 		42B651330E061A44821ADA43 /* SousApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousApp.swift; sourceTree = "<group>"; };
 		43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataUpdateNotice.swift; sourceTree = "<group>"; };
@@ -144,6 +149,7 @@
 		4859FC7391F344B55EA7F447 /* PlanDinnersSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlanDinnersSheet.swift; sourceTree = "<group>"; };
 		4B6026111A4BDC9288A3121F /* CookSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookSession.swift; sourceTree = "<group>"; };
 		55F31777C34595DD4F836518 /* SousShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SousShare.entitlements; sourceTree = "<group>"; };
+		560216B54AB18B951EBB4FF8 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		6343A2B8A34CDA5210A8E4FF /* IngredientCatalogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientCatalogView.swift; sourceTree = "<group>"; };
 		638E37E83BF54BD476434C1F /* IngredientClarificationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientClarificationSheet.swift; sourceTree = "<group>"; };
 		643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipePickerView.swift; sourceTree = "<group>"; };
@@ -162,6 +168,7 @@
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSetupSheet.swift; sourceTree = "<group>"; };
 		874968D982EF7B9D954ECC27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
 		8DD33E69332194FC5F92AFFD /* HighlightedTextEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightedTextEditor.swift; sourceTree = "<group>"; };
 		90E750DD65005E77F070E4A9 /* RecipeExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeExportView.swift; sourceTree = "<group>"; };
@@ -296,6 +303,7 @@
 				0B1D145DA0D7595B25BA6B4D /* Views */,
 				E17F156912A3CDF5E6CA988B /* Assets.xcassets */,
 				6B34033D0C481DC0839E96DE /* HouseholdSwitcher.swift */,
+				87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */,
 				A39CB856BC89D3B54F7E2515 /* ShareInvitationDelegate.swift */,
 				E5991E77C580417358950F92 /* sous.icon */,
 				42B651330E061A44821ADA43 /* SousApp.swift */,
@@ -307,6 +315,7 @@
 			isa = PBXGroup;
 			children = (
 				4712F12086F7ADC2088261B3 /* Info.plist */,
+				2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */,
 				1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */,
 				71BCDE64C12AC53F29EAC9E7 /* SousWidgets.entitlements */,
 			);
@@ -327,6 +336,7 @@
 			isa = PBXGroup;
 			children = (
 				E02CEE8EA0D9984B1F91AEA1 /* Info.plist */,
+				560216B54AB18B951EBB4FF8 /* PrivacyInfo.xcprivacy */,
 				F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */,
 				55F31777C34595DD4F836518 /* SousShare.entitlements */,
 			);
@@ -366,6 +376,7 @@
 			isa = PBXGroup;
 			children = (
 				874968D982EF7B9D954ECC27 /* Info.plist */,
+				3D07D28EB489BF5BD6C340AA /* Sous-macOS.entitlements */,
 				7CBF4A5F5006626CFD84006A /* Sous.entitlements */,
 			);
 			path = Supporting;
@@ -402,6 +413,7 @@
 			buildConfigurationList = 694CFC9E7816CDA69CF91152 /* Build configuration list for PBXNativeTarget "SousShare" */;
 			buildPhases = (
 				1DBA99FCA12D585BCF2D42DE /* Sources */,
+				82D81E90F598A3A2570F72A7 /* Resources */,
 				485F783EBC63537D552EB375 /* Frameworks */,
 			);
 			buildRules = (
@@ -421,6 +433,7 @@
 			buildConfigurationList = 6E414A6350E8ABFB36634130 /* Build configuration list for PBXNativeTarget "SousWidgets" */;
 			buildPhases = (
 				9EA3111E15F4BC76E5CFE8DE /* Sources */,
+				FEA516A5A2253B31D002ECC4 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -457,11 +470,11 @@
 				};
 			};
 			buildConfigurationList = 13081AC38B098A3FE8D91D66 /* Build configuration list for PBXProject "Sous" */;
-			developmentRegion = en;
+			developmentRegion = de;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
-				en,
+				de,
 			);
 			mainGroup = B316E7D034C0C89FFA7827B8;
 			minimizedProjectReferenceProxies = 1;
@@ -481,12 +494,29 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		82D81E90F598A3A2570F72A7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4C4121828E62AB0A9E528E97 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9E627FB24BB1D9994DBE2209 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */,
+				F2FE5B65452C7BCBC2814E47 /* PrivacyInfo.xcprivacy in Resources */,
 				B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FEA516A5A2253B31D002ECC4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DBA71FE99BF65FBF589A2A81 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -677,6 +707,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = sous;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Sous/Supporting/Sous-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -687,7 +718,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous;
 				PRODUCT_NAME = Sous;
 				REGISTER_APP_GROUPS = YES;
@@ -715,7 +746,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.share;
 				PRODUCT_NAME = SousShare;
 				REGISTER_APP_GROUPS = YES;
@@ -744,7 +775,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.widgets;
 				PRODUCT_NAME = SousWidgets;
 				REGISTER_APP_GROUPS = YES;
@@ -773,7 +804,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.share;
 				PRODUCT_NAME = SousShare;
 				REGISTER_APP_GROUPS = YES;
@@ -802,7 +833,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous.widgets;
 				PRODUCT_NAME = SousWidgets;
 				REGISTER_APP_GROUPS = YES;
@@ -824,6 +855,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = sous;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Sous/Supporting/Sous-macOS.entitlements";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
@@ -834,7 +866,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1;
+				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = me.raddatz.sous;
 				PRODUCT_NAME = Sous;
 				REGISTER_APP_GROUPS = YES;

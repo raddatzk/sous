@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Hand-written rather than generated from project.yml: xcodegen writes
+	     one entitlements file per target, and the Mac needs a different one
+	     than iOS. Keep the two in step by hand. -->
+
+	<!-- Mandatory for anything distributed through App Store Connect on the
+	     Mac. Everything below exists because the sandbox took it away. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+
+	<!-- Fetching a recipe off the web, and talking to CloudKit. -->
+	<key>com.apple.security.network.client</key>
+	<true/>
+
+	<!-- The recipe import and export sheets, which is the only way the app
+	     touches a file the user picked. -->
+	<key>com.apple.security.files.user-selected.read-write</key>
+	<true/>
+
+	<key>com.apple.developer.icloud-container-identifiers</key>
+	<array>
+		<string>iCloud.me.raddatz.sous</string>
+	</array>
+	<key>com.apple.developer.icloud-services</key>
+	<array>
+		<string>CloudKit</string>
+	</array>
+	<key>aps-environment</key>
+	<string>development</string>
+
+	<!-- No app group on purpose. macOS only accepts one prefixed with the
+	     team identifier, and the Mac has no extensions to share it with:
+	     both extensions are iOS-only. The store already falls back to the
+	     app's own container when the group is unreachable, which is what the
+	     Mac has been doing all along — see SousPersistentContainer. -->
+</dict>
+</plist>

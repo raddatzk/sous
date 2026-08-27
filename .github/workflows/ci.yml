@@ -1,0 +1,80 @@
+name: CI
+
+# Every push to main and every pull request. Nothing here signs anything, so
+# it needs no secrets and keeps running even if the certificates expire.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch makes the first run pointless. macOS
+# minutes bill at ten times the rate of Linux, so cancel rather than queue.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The image ships several Xcodes. Take the newest and say out loud
+      # which one it was, because a runner image that quietly moves to an
+      # older Xcode would otherwise fail much later with a confusing SDK
+      # error — the deployment target is iOS 26.5.
+      - name: Select Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          sudo xcode-select -s "$latest"
+          xcodebuild -version
+          major=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
+          if [ "$major" -lt 26 ]; then
+            echo "::error::Xcode $major is too old — the project targets iOS 26.5 and needs Xcode 26 or newer."
+            exit 1
+          fi
+
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('SousKit/Package.resolved') }}
+          restore-keys: spm-${{ runner.os }}-
+
+      # The .xcodeproj is checked in, but project.yml is the source of truth
+      # and a stale pbxproj would test something other than what was pushed.
+      - name: Generate the project
+        run: |
+          brew install xcodegen xcbeautify
+          xcodegen generate
+
+      - name: Test SousKit
+        working-directory: SousKit
+        run: swift test
+
+      # Simulator destination, so no signing identity is needed at all.
+      - name: Build for iOS
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme Sous \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify --renderer github-actions
+        shell: bash
+
+      - name: Build for macOS
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -scheme Sous \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify --renderer github-actions
+        shell: bash
