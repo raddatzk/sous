@@ -316,15 +316,23 @@ extension ModelContainer {
 
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
+        // `cloudKitDatabase: .none` on every one of them, and it is not a
+        // formality: `.automatic` is the default, so the moment the app
+        // carries an iCloud entitlement SwiftData starts mirroring this store
+        // too — and this store is the BLS catalog at 1.9 MB, its synonyms at
+        // another 800 KB, and two caches keyed to a content hash. All of it
+        // rebuildable from the app bundle, all of it charged to the cook's
+        // iCloud quota, and none of it any use on a second device. The
+        // household's rows are the ones that sync, and they live in Core Data.
         let configuration: ModelConfiguration = if inMemory {
-            ModelConfiguration(isStoredInMemoryOnly: true)
+            ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)
         } else if let url = sharedStoreURL() {
-            ModelConfiguration(url: url)
+            ModelConfiguration(url: url, cloudKitDatabase: .none)
         } else {
             // No group container: the entitlement is missing, or this is a
             // test host. The app's own container still works — but nothing
             // the extension writes will show up in it.
-            ModelConfiguration()
+            ModelConfiguration(cloudKitDatabase: .none)
         }
 
         return try ModelContainer(
