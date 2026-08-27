@@ -1,3 +1,4 @@
+import CoreData
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -198,5 +199,93 @@ struct RecipeStoreMigrationTests {
         #expect(try await source.recipes(matching: .all).count == 1)
         #expect(try await source.recipe(id: saved.id)?.updatedAt == saved.updatedAt)
         #expect(try await sourceImages.image(id: imageID) != nil)
+    }
+}
+
+/// The one thing the in-memory tests cannot reach.
+///
+/// Every other store test runs against `/dev/null`, where Core Data has no
+/// directory to put external blobs in — so `allowsExternalBinaryDataStorage`,
+/// the attribute that makes a photo a file beside the database rather than a
+/// column in it, is never actually exercised there. That is also the setting
+/// that becomes a CKAsset under CloudKit, which makes it the last place worth
+/// leaving untested.
+@Suite("Pictures in a store on disk")
+struct RecipeImageOnDiskTests {
+    private func makeContainer(at url: URL) throws -> NSPersistentContainer {
+        let container = NSPersistentContainer(
+            name: "Sous",
+            managedObjectModel: SousManagedObjectModel.shared
+        )
+        container.persistentStoreDescriptions = [NSPersistentStoreDescription(url: url)]
+        var loadError: Error?
+        container.loadPersistentStores { _, error in loadError = error }
+        if let loadError { throw loadError }
+        return container
+    }
+
+    /// Large enough that Core Data has reason to put it outside the row.
+    private func makeLargeImage() throws -> Data {
+        let context = try #require(CGContext(
+            data: nil, width: 3000, height: 2000,
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ))
+        // Noise rather than a flat fill: a single colour compresses to almost
+        // nothing and would never leave the row.
+        for x in stride(from: 0, to: 3000, by: 7) {
+            for y in stride(from: 0, to: 2000, by: 7) {
+                context.setFillColor(CGColor(
+                    red: Double((x * y) % 255) / 255,
+                    green: Double(x % 255) / 255,
+                    blue: Double(y % 255) / 255,
+                    alpha: 1
+                ))
+                context.fill(CGRect(x: x, y: y, width: 7, height: 7))
+            }
+        }
+        let image = try #require(context.makeImage())
+        let output = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(
+            output, UTType.jpeg.identifier as CFString, 1, nil
+        ))
+        CGImageDestinationAddImage(destination, image, nil)
+        #expect(CGImageDestinationFinalize(destination))
+        return output as Data
+    }
+
+    @Test("A picture survives the store being closed and opened again")
+    func survivesReopening() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "sous-image-test-\(UUID().uuidString).sqlite")
+        defer {
+            for suffix in ["", "-wal", "-shm"] {
+                try? FileManager.default.removeItem(
+                    at: URL(fileURLWithPath: url.path + suffix)
+                )
+            }
+            try? FileManager.default.removeItem(
+                at: url.deletingLastPathComponent().appending(path: ".Sous_SUPPORT")
+            )
+        }
+
+        let recipeID = UUID()
+        let original = try makeLargeImage()
+
+        let imageID: UUID
+        do {
+            let store = CoreDataRecipeImageStore(container: try makeContainer(at: url))
+            imageID = try await store.add(original, to: recipeID)
+            #expect(try await store.image(id: imageID) != nil)
+        }
+
+        // A second container over the same file, the way the next launch
+        // opens it. An external blob whose file the store cannot find again
+        // reads as a recipe that lost its photo — silently.
+        let reopened = CoreDataRecipeImageStore(container: try makeContainer(at: url))
+        let readBack = try #require(try await reopened.image(id: imageID))
+        #expect(readBack.count > 0)
+        #expect(try await reopened.thumbnails(for: recipeID).map(\.id) == [imageID])
     }
 }
