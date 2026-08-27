@@ -21,7 +21,8 @@ struct MelaExportTests {
             source: RecipeSource(kind: .web, url: URL(string: "https://example.com/z"), name: "example.com"),
             prepTimeSeconds: 40 * 60,
             cookTimeSeconds: 50 * 60,
-            totalTimeSeconds: 3 * 3600
+            totalTimeSeconds: 3 * 3600,
+            suitableSlots: [.lunch, .dinner]
         )
     }
 
@@ -49,6 +50,7 @@ struct MelaExportTests {
         #expect(back.totalTimeSeconds == original.totalTimeSeconds)
         #expect(back.source.url == original.source.url)
         #expect(back.createdAt == original.createdAt)
+        #expect(back.suitableSlots == [.lunch, .dinner])
         #expect(imported.images == [picture])
     }
 
@@ -66,6 +68,8 @@ struct MelaExportTests {
         #expect(back.prepTimeSeconds == nil)
         #expect(back.totalTimeSeconds == nil)
         #expect(back.source.kind == .manual)
+        // Undecided stays undecided — a Mela file never carries the key.
+        #expect(back.suitableSlots == nil)
     }
 
     @Test("A library archive reads back as the library it was")

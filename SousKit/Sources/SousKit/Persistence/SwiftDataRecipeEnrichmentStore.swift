@@ -21,6 +21,27 @@ public actor SwiftDataRecipeEnrichmentStore: RecipeEnrichmentStore {
         try modelContext.save()
     }
 
+    public func suitabilityGuess(for recipeID: UUID, inputHash: String) async throws -> Set<MealSlot>? {
+        guard let stored = try stored(recipeID: recipeID),
+              stored.suitabilityInputHash == inputHash
+        else { return nil }
+        return stored.suitabilityGuess
+    }
+
+    public func saveSuitabilityGuess(_ guess: Set<MealSlot>, for recipeID: UUID, inputHash: String) async throws {
+        if let existing = try stored(recipeID: recipeID) {
+            existing.applySuitability(inputHash: inputHash, guess: guess)
+        } else {
+            // A row born for the guess alone: its claim hash stays empty,
+            // which can never match a real recipe, so the claims side keeps
+            // reading as "nothing cached".
+            let row = StoredRecipeEnrichment(recipeID: recipeID, contentHash: "", claims: [])
+            row.applySuitability(inputHash: inputHash, guess: guess)
+            modelContext.insert(row)
+        }
+        try modelContext.save()
+    }
+
     public func delete(recipeID: UUID) async throws {
         guard let existing = try stored(recipeID: recipeID) else { return }
         modelContext.delete(existing)

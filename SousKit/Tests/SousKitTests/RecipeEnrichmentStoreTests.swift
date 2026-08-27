@@ -65,6 +65,42 @@ struct RecipeEnrichmentStoreTests {
         #expect(read == replacement)
     }
 
+    @Test("A suitability guess comes back for the same inputs, and an empty guess is a real answer")
+    func suitabilityGuessRoundTrip() async throws {
+        let store = try makeStore()
+        let recipe = sampleRecipe()
+        let hash = MealSuitabilityClassifier.inputHash(for: recipe)
+
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == nil)
+
+        try await store.saveSuitabilityGuess([.breakfast], for: recipe.id, inputHash: hash)
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == [.breakfast])
+
+        // A dessert's guess: suits nothing — cached as an answer, not as
+        // absence.
+        try await store.saveSuitabilityGuess([], for: recipe.id, inputHash: hash)
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == [])
+
+        // A retitled dish is a different question.
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: "other") == nil)
+    }
+
+    @Test("The guess and the claims live side by side without disturbing each other")
+    func guessAndClaimsCoexist() async throws {
+        let store = try makeStore()
+        let recipe = sampleRecipe()
+        let hash = MealSuitabilityClassifier.inputHash(for: recipe)
+
+        // Guess first: the claims side still reads as never cached.
+        try await store.saveSuitabilityGuess([.dinner], for: recipe.id, inputHash: hash)
+        #expect(try await store.claims(for: recipe) == nil)
+
+        // Claims arriving later keep the guess.
+        try await store.save(sampleClaims(), for: recipe)
+        #expect(try await store.claims(for: recipe) == sampleClaims())
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == [.dinner])
+    }
+
     @Test("Deleting removes the cache; reading it back is the same as never having saved")
     func deleteRemovesTheCache() async throws {
         let store = try makeStore()

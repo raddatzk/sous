@@ -111,6 +111,7 @@ public enum MelaImport: RecipeImportFormat {
             // Mela usually records nothing but a total, and that is a
             // reading of its own — not cooking time by another name.
             totalTimeSeconds: total,
+            suitableSlots: suitableSlots(from: object),
             variantGroupID: group?.id,
             createdAt: date(object["date"]) ?? .nowInSyncPrecision,
             updatedAt: .nowInSyncPrecision
@@ -135,6 +136,14 @@ public enum MelaImport: RecipeImportFormat {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let title, !title.isEmpty else { return nil }
         return VariantGroup(id: id, title: title)
+    }
+
+    /// The meals the file says its recipe suits — Sous's own key, absent
+    /// from anything Mela wrote, so a Mela import stays undecided.
+    private static func suitableSlots(from object: [String: Any]) -> Set<MealSlot>? {
+        guard let raw = object["sousSuitableSlots"] as? [Any] else { return nil }
+        let slots = raw.compactMap { string($0).flatMap(MealSlot.init(rawValue:)) }
+        return slots.isEmpty ? nil : Set(slots)
     }
 
     private static func identifier(for object: [String: Any]) -> UUID {

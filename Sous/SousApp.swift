@@ -11,6 +11,7 @@ struct SousApp: App {
     @State private var shopping: ShoppingLibrary
     @State private var catalog: IngredientCatalogLibrary
     @State private var nutrition: NutritionLibrary
+    @State private var dinnerPlanner: DinnerPlannerLibrary
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -44,6 +45,7 @@ struct SousApp: App {
             orphanReconciliation = SwiftDataOrphanReconciliation(modelContainer: container)
             let recipes = SwiftDataRecipeStore(modelContainer: container)
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
+            let enrichmentStore = SwiftDataRecipeEnrichmentStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
                 store: SwiftDataVocabularyStore(modelContainer: container),
                 // Teaching the app a spelling, or confirming what a word
@@ -55,7 +57,7 @@ struct SousApp: App {
             _library = State(initialValue: RecipeLibrary(
                 store: recipes,
                 imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
+                enrichmentStore: enrichmentStore,
                 amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
                 nutritionStore: nutritionStore,
                 ingredientReviewStore: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
@@ -71,10 +73,17 @@ struct SousApp: App {
                 recipeStore: recipes,
                 catalogLibrary: catalogLibrary
             ))
-            _nutrition = State(initialValue: NutritionLibrary(
+            let nutritionLibrary = NutritionLibrary(
                 store: nutritionStore,
                 recipeStore: recipes,
                 catalogLibrary: catalogLibrary
+            )
+            _nutrition = State(initialValue: nutritionLibrary)
+            _dinnerPlanner = State(initialValue: DinnerPlannerLibrary(
+                recipeStore: recipes,
+                mealPlan: plan,
+                nutrition: nutritionLibrary,
+                enrichment: enrichmentStore
             ))
         } catch {
             // A recipe app without its database has nothing to show, and
@@ -132,6 +141,7 @@ struct SousApp: App {
                 .environment(shopping)
                 .environment(catalog)
                 .environment(nutrition)
+                .environment(dinnerPlanner)
                 .environment(timers)
                 .environment(session)
                 .environment(selection)

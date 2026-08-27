@@ -195,6 +195,34 @@ struct MealPlanLibraryTests {
         #expect(plan.plannedRecipes(from: Date(), through: nextTwoDays).map(\.recipe.title) == ["Heute"])
         #expect(plan.plannedRecipes(from: Date(), through: inThreeDays).count == 2)
     }
+
+    @Test("An accepted proposal is written in one go: pool meals move, new picks appear")
+    func applyingAProposal() async throws {
+        let (plan, recipes) = try makeLibrary()
+        let pooled = Recipe(title: "Vorgemerkt", servings: 2)
+        let fresh = Recipe(title: "Neu", servings: 2)
+        let undated = Recipe(title: "In die Sammlung", servings: 2)
+        for recipe in [pooled, fresh, undated] { try await recipes.save(recipe) }
+
+        await plan.add(pooled, to: nil, servings: 6)
+        let entry = try #require(plan.pool.first)
+        let tomorrow = try #require(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
+
+        await plan.apply([
+            (day: Date(), kind: .seatPoolEntry(entry)),
+            (day: tomorrow, kind: .addRecipe(fresh)),
+            (day: nil, kind: .addRecipe(undated)),
+        ])
+
+        // The pool meal kept its identity and its six servings on the move.
+        let seated = try #require(plan.plan(for: Date()).first)
+        #expect(seated.entry.id == entry.id)
+        #expect(seated.entry.servings == 6)
+        #expect(seated.entry.slot == .dinner)
+        #expect(plan.plan(for: tomorrow).map(\.recipe?.title) == ["Neu"])
+        // The seated entry left the pool; the undated pick arrived in it.
+        #expect(plan.pool.map(\.recipeID) == [undated.id])
+    }
 }
 
 @MainActor

@@ -32,6 +32,8 @@ public final class StoredRecipe {
     public var cookTimeSeconds: Int?
     public var totalTimeSeconds: Int?
     public var imageIDs: [UUID] = []
+    /// ``Recipe/suitableSlots`` as raw values; `nil` where nobody chose.
+    public var suitableSlotsRaw: [String]?
     /// The ``StoredVariantGroup`` this recipe is one version of. A plain id
     /// rather than a relationship: the group owns nothing, and a member that
     /// outlives its group row reads as ungrouped rather than as a broken
@@ -89,6 +91,9 @@ public final class StoredRecipe {
         cookTimeSeconds = recipe.cookTimeSeconds
         totalTimeSeconds = recipe.totalTimeSeconds
         imageIDs = recipe.imageIDs
+        suitableSlotsRaw = recipe.suitableSlots.map { slots in
+            slots.map(\.rawValue).sorted()
+        }
         variantGroupID = recipe.variantGroupID
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
@@ -119,6 +124,9 @@ public final class StoredRecipe {
             cookTimeSeconds: cookTimeSeconds,
             totalTimeSeconds: totalTimeSeconds,
             imageIDs: imageIDs,
+            suitableSlots: suitableSlotsRaw.map { raw in
+                Set(raw.compactMap(MealSlot.init(rawValue:)))
+            },
             variantGroupID: variantGroupID,
             createdBy: createdBy,
             createdAt: createdAt,

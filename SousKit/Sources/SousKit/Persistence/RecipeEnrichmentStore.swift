@@ -15,4 +15,12 @@ public protocol RecipeEnrichmentStore: Sendable {
     /// against `recipe`'s current text.
     func save(_ claims: [StoredAmountClaim], for recipe: Recipe) async throws
     func delete(recipeID: UUID) async throws
+
+    /// The meal-suitability guess cached for this recipe, or `nil` if none
+    /// is, or the one there is was made against a different `inputHash`
+    /// than the recipe currently produces. An empty set is a real answer:
+    /// the dish suits no meal on its own.
+    func suitabilityGuess(for recipeID: UUID, inputHash: String) async throws -> Set<MealSlot>?
+    /// Caches a guess, stamped with the hash of what it was derived from.
+    func saveSuitabilityGuess(_ guess: Set<MealSlot>, for recipeID: UUID, inputHash: String) async throws
 }

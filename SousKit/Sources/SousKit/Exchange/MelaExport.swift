@@ -95,6 +95,9 @@ public enum MelaExport {
                 "title": variantGroup.title,
             ]
         }
+        if let slots = recipe.suitableSlots {
+            object["sousSuitableSlots"] = slots.map(\.rawValue).sorted()
+        }
         return object
     }
 

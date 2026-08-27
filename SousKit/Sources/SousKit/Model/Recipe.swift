@@ -44,6 +44,15 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// ``RecipeImageStore`` for why they live outside the aggregate.
     public var imageIDs: [UUID]
 
+    /// The meals this recipe suits, where somebody said so.
+    ///
+    /// `nil` means nobody has: the planner falls back to a cached AI guess
+    /// and, failing that, treats the recipe as dinner-eligible — main dishes
+    /// are the majority, and the proposal sheet catches the strays. There is
+    /// no explicit empty state: unticking every chip reads as "decide for
+    /// me", so an empty set normalizes to `nil` at the door.
+    public var suitableSlots: Set<MealSlot>?
+
     /// The ``VariantGroup`` this recipe is one version of, if it is.
     ///
     /// On the member rather than as a list on the group, so that dissolving
@@ -78,6 +87,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         cookTimeSeconds: Int? = nil,
         totalTimeSeconds: Int? = nil,
         imageIDs: [UUID] = [],
+        suitableSlots: Set<MealSlot>? = nil,
         variantGroupID: UUID? = nil,
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
@@ -99,6 +109,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.cookTimeSeconds = cookTimeSeconds
         self.totalTimeSeconds = totalTimeSeconds
         self.imageIDs = imageIDs
+        self.suitableSlots = suitableSlots.flatMap { $0.isEmpty ? nil : $0 }
         self.variantGroupID = variantGroupID
         self.createdBy = createdBy
         self.createdAt = createdAt
