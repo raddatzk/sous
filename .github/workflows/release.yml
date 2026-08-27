@@ -1,9 +1,5 @@
 name: Release to TestFlight
 
-# Tag a commit to ship it: `git tag v1.0 && git push origin v1.0` builds both
-# archives and hands them to App Store Connect. The tag names the marketing
-# version; the build number is the run number, which never repeats — App Store
-# Connect rejects a build number it has already seen.
 # Run it by hand for every TestFlight build: Actions -> Release to TestFlight
 # -> Run workflow. The marketing version comes from project.yml and the build
 # number from the run number, so repeated runs are new builds of the same
