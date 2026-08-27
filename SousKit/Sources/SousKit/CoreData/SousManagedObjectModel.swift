@@ -31,12 +31,13 @@ enum SousManagedObjectModel {
     /// closure returns.
     nonisolated(unsafe) static let shared: NSManagedObjectModel = {
         let model = NSManagedObjectModel()
-        model.entities = [recipeEntity(), variantGroupEntity()]
+        model.entities = [recipeEntity(), variantGroupEntity(), recipeImageEntity()]
         return model
     }()
 
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
+    static let recipeImageEntityName = "CDRecipeImage"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -98,6 +99,35 @@ enum SousManagedObjectModel {
             attribute("updatedAt", .dateAttributeType),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
+        return entity
+    }
+
+    private static func recipeImageEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = recipeImageEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDRecipeImage.self)
+
+        // The one attribute in the whole schema that is not a scalar. Kept out
+        // of the row itself the way `@Attribute(.externalStorage)` keeps it out
+        // of the SwiftData store: a list that draws thumbnails must not drag
+        // megabytes of full-size photo along behind it. Under CloudKit this is
+        // also what makes the picture a CKAsset rather than a field.
+        let data = attribute("data", .binaryDataAttributeType, optional: true)
+        data.allowsExternalBinaryDataStorage = true
+
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("recipeID", .UUIDAttributeType),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("createdAt", .dateAttributeType),
+            data,
+            // Small enough to live in the row and be read for every list cell.
+            attribute("thumbnail", .binaryDataAttributeType, optional: true),
+        ]
+        entity.indexes = [
+            index(named: "byRecipeID", on: entity, properties: ["recipeID"]),
+            index(named: "byID", on: entity, properties: ["id"]),
+        ]
         return entity
     }
 

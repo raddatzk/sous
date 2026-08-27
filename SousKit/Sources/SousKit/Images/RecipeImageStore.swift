@@ -18,9 +18,9 @@ public struct RecipeImage: Identifiable, Sendable, Hashable {
 /// Storage for recipe pictures, separate from the recipe itself.
 ///
 /// Images live in their own rows rather than inside the recipe aggregate:
-/// they are large, they rarely change, and the sync layer will encrypt each
-/// one as its own blob. Keeping them inline would mean re-encrypting and
-/// re-uploading every photo whenever a word of the text changes.
+/// they are large, they rarely change, and CloudKit mirrors each one as its
+/// own CKAsset. Keeping them inline would mean re-uploading every photo
+/// whenever a word of the text changes.
 public protocol RecipeImageStore: Sendable {
     /// Thumbnails only — enough to draw a list without loading full images.
     func thumbnails(for recipeID: UUID) async throws -> [(id: UUID, data: Data)]
