@@ -23,9 +23,7 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
     private let entityName: String
 
     init(container: NSPersistentContainer, entityName: String) {
-        context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.automaticallyMergesChangesFromParent = true
+        context = SousPersistentContainer.backgroundContext(for: container)
         self.entityName = entityName
     }
 
@@ -36,8 +34,9 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
     func markReviewed(_ recipe: Recipe) async throws {
         let hash = RecipeContentHash.hash(for: recipe)
         try await context.perform {
-            let row = try self.stored(recipeID: recipe.id)
-                ?? CDReviewMark(context: self.context, entityName: self.entityName)
+            guard let row = try self.stored(recipeID: recipe.id)
+                ?? CDReviewMark.make(in: self.context, entityName: self.entityName)
+            else { return }
             row.recipeID = recipe.id
             row.reviewedContentHash = hash
             row.updatedAt = .nowInSyncPrecision
@@ -64,9 +63,15 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
 private extension CDReviewMark {
     /// Inserting into one of two entities that share this class, which the
     /// ordinary `init(context:)` cannot express.
-    convenience init(context: NSManagedObjectContext, entityName: String) {
-        let entity = NSEntityDescription.entity(forEntityName: entityName, in: context)!
-        self.init(entity: entity, insertInto: context)
+    ///
+    /// Returns `nil` rather than forcing the entity: a lookup that fails
+    /// means the model does not describe this store, and crashing on it turns
+    /// a mark nobody would have missed into a launch that never finishes.
+    static func make(in context: NSManagedObjectContext, entityName: String) -> CDReviewMark? {
+        guard let entity = NSEntityDescription.entity(forEntityName: entityName, in: context) else {
+            return nil
+        }
+        return CDReviewMark(entity: entity, insertInto: context)
     }
 }
 

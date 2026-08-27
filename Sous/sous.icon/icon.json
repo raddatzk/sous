@@ -1,120 +1,156 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.00000,0.53333,1.00000,1.00000"
   },
-  "groups" : [
+  "fill-specializations": [
     {
-      "blur-material" : null,
-      "layers" : [
+      "appearance": "dark",
+      "value": {
+        "automatic-gradient": "extended-srgb:0.04000,0.10000,0.20000,1.00000"
+      }
+    }
+  ],
+  "groups": [
+    {
+      "blur-material": null,
+      "layers": [
         {
-          "blend-mode" : "hard-light",
-          "fill" : "automatic",
-          "image-name" : "03_sous_path.svg",
-          "name" : "03_sous_path",
-          "opacity" : 0.63,
-          "position" : {
-            "scale" : 0.85,
-            "translation-in-points" : [
+          "blend-mode": "hard-light",
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.18824,0.22745,0.13333,1.00000"
+              }
+            }
+          ],
+          "image-name": "03_sous_path.svg",
+          "name": "03_sous_path",
+          "opacity": 0.63,
+          "position": {
+            "scale": 0.85,
+            "translation-in-points": [
               0.4432622499999752,
               -17.78399617752325
             ]
           }
         },
         {
-          "image-name" : "02_pot 2.svg",
-          "name" : "02_pot 2",
-          "position" : {
-            "scale" : 1.21,
-            "translation-in-points" : [
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.96863,0.94118,0.88627,1.00000"
+              }
+            }
+          ],
+          "image-name": "02_pot 2.svg",
+          "name": "02_pot 2",
+          "position": {
+            "scale": 1.21,
+            "translation-in-points": [
               0,
               -73.53733617752312
             ]
           }
         }
       ],
-      "lighting" : "combined",
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "lighting": "combined",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "specular" : true,
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "specular": true,
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
       }
     },
     {
-      "layers" : [
+      "layers": [
         {
-          "image-name" : "04_lid.svg",
-          "name" : "04_lid",
-          "position" : {
-            "scale" : 1.2100000000000002,
-            "translation-in-points" : [
+          "fill-specializations": [
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "extended-srgb:0.96863,0.94118,0.88627,1.00000"
+              }
+            }
+          ],
+          "image-name": "04_lid.svg",
+          "name": "04_lid",
+          "position": {
+            "scale": 1.2100000000000002,
+            "translation-in-points": [
               0,
               -102.73733617752316
             ]
           }
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.45
+      "translucency": {
+        "enabled": true,
+        "value": 0.45
       }
     },
     {
-      "layers" : [
+      "layers": [
         {
-          "image-name" : "05_steam.svg",
-          "name" : "05_steam",
-          "position" : {
-            "scale" : 1,
-            "translation-in-points" : [
+          "image-name": "05_steam.svg",
+          "name": "05_steam",
+          "position": {
+            "scale": 1,
+            "translation-in-points": [
               154.8671875,
               -36.23029735504633
             ]
           }
         }
       ],
-      "lighting" : "individual",
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "lighting": "individual",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.41
+      "translucency": {
+        "enabled": true,
+        "value": 0.41
       }
     },
     {
-      "blur-material" : 0.5,
-      "layers" : [
+      "blur-material": 0.5,
+      "layers": [
         {
-          "blend-mode" : "normal",
-          "glass" : false,
-          "hidden" : false,
-          "image-name" : "01_background.svg",
-          "name" : "01_background"
+          "blend-mode": "normal",
+          "glass": false,
+          "hidden-specializations": [
+            {
+              "appearance": "dark",
+              "value": true
+            }
+          ],
+          "image-name": "01_background.svg",
+          "name": "01_background"
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.43
+      "translucency": {
+        "enabled": true,
+        "value": 0.43
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
+  "supported-platforms": {
+    "circles": [
       "watchOS"
     ],
-    "squares" : "shared"
+    "squares": "shared"
   }
 }

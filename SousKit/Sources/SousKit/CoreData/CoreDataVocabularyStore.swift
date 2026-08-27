@@ -80,9 +80,7 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     private let context: NSManagedObjectContext
 
     public init(container: NSPersistentContainer) {
-        context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.automaticallyMergesChangesFromParent = true
+        context = SousPersistentContainer.backgroundContext(for: container)
     }
 
     public func entries() async throws -> [IngredientVocabularyEntry] {

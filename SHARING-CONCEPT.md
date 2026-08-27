@@ -134,15 +134,22 @@ when they already have recipes of their own. Their library is simply another
 entry beside "WG" and "Familie". Nothing has to be merged into the
 collection they joined, and nothing of theirs becomes visible to it.
 
-**Every household is a shared zone from the first day, including the one
-nobody else is in.** Sharing cannot be switched on afterwards for free:
-`share(_:to:)` moves the objects into the share's record zone, so promoting
-a private library would relocate every recipe and every image through
-iCloud, with new record identities, at exactly the wrong moment — the one
-where somebody is waiting to send an invitation. A `CKShare` whose only
-participant is its owner is an ordinary state and costs nothing to hold, so
-the library is created inside one and inviting is reduced to opening the
-sharing sheet. The relocation is paid once, on an empty store.
+**The zone is made when somebody is invited — not at launch.** The first
+version of this document argued the opposite, and the argument still holds
+on paper: `share(_:to:)` moves objects into the share's record zone, so a
+library promoted later is relocated through iCloud at the moment somebody is
+waiting to send an invitation, and a `CKShare` with only its owner in it
+costs nothing to hold. What that reasoning missed is what making a zone at
+launch collides with.
+
+On a fresh install the local store is empty, so the app creates a household
+and — under the old rule — immediately gave it a zone, while CloudKit was
+still fetching the household that already existed. The mirroring delegate
+then found its previous zone gone, reported `ZoneDeleted`, and reset the
+entire sync state, which killed the import of the existing library before it
+could deliver anything. The library did not come back, on every reinstall,
+and nothing said why. Measured against that, one relocation at the first
+invitation is cheap.
 
 Two consequences worth stating. Moving a recipe between households is a copy
 into a different zone rather than an edited field, because the zone is what

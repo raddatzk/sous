@@ -20,9 +20,7 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
     private let context: NSManagedObjectContext
 
     public init(container: NSPersistentContainer) {
-        context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.automaticallyMergesChangesFromParent = true
+        context = SousPersistentContainer.backgroundContext(for: container)
     }
 
     public func snapshot() async throws -> ShoppingListSnapshot {

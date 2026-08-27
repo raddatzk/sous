@@ -23,6 +23,8 @@ struct HouseholdTests {
     func insertsJoinTheHousehold() async throws {
         let container = try makeContainer()
         let store = CoreDataRecipeStore(container: container)
+        // A household exists, the way it does from the first launch onwards.
+        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
 
         try await store.save(Recipe(title: "Brot"))
 
@@ -51,7 +53,18 @@ struct HouseholdTests {
 
         // One library, one zone: several households would mean rows that can
         // never be shared together.
+        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
         #expect(try households(in: container).count == 1)
+
+        let context = container.newBackgroundContext()
+        try await context.perform {
+            for entity in SousManagedObjectModel.memberEntityNames {
+                let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+                for row in try context.fetch(request) {
+                    #expect(row.value(forKey: "household") != nil)
+                }
+            }
+        }
     }
 
     @Test("Rows written before the household existed are taken in")
@@ -79,12 +92,76 @@ struct HouseholdTests {
         }
     }
 
-    @Test("Without an iCloud account there is no zone, and that is not an error")
-    func sharingIsQuietWhenItCannotHappen() async throws {
-        // The in-memory container is a plain NSPersistentContainer, which is
-        // the same answer a device without an account gives: no share, no
-        // complaint, and a library that still works.
-        let shared = try await CoreDataHouseholds(container: try makeContainer()).ensureShared()
-        #expect(!shared)
+    @Test("A second household is folded into the first, and takes its rows along")
+    func mergesDuplicates() async throws {
+        let container = try makeContainer()
+        let store = CoreDataRecipeStore(container: container)
+        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
+        try await store.save(Recipe(title: "Brot"))
+
+        // What a reinstall used to leave behind, and what an import can still
+        // deliver: a second household, with a recipe of its own hanging off it.
+        let context = container.newBackgroundContext()
+        try await context.perform {
+            let second = CDHousehold(context: context)
+            second.id = UUID()
+            second.name = "Zweiter"
+            second.createdAt = .nowInSyncPrecision
+            second.updatedAt = .nowInSyncPrecision
+            let stray = CDRecipe(context: context)
+            stray.id = UUID()
+            stray.title = "Suppe"
+            stray.createdAt = .nowInSyncPrecision
+            stray.updatedAt = .nowInSyncPrecision
+            stray.household = second
+            try context.save()
+        }
+
+        let folded = try await CoreDataHouseholds(container: container).mergeDuplicates()
+
+        #expect(folded == 1)
+        #expect(try households(in: container).count == 1)
+        // Both recipes survive, under the household that was there first.
+        let titles = try await store.recipes(matching: .all).map(\.title).sorted()
+        #expect(titles == ["Brot", "Suppe"])
+        try await context.perform {
+            for row in try context.fetch(CDRecipe.fetchRequest()) {
+                #expect(row.household != nil)
+            }
+        }
+    }
+
+    @Test("An insert does not invent a household of its own")
+    func insertsDoNotCreateHouseholds() async throws {
+        let container = try makeContainer()
+        let context = SousPersistentContainer.backgroundContext(for: container)
+
+        // A row written before any household exists — which is what a fresh
+        // install looks like while the import is still on its way.
+        try await context.perform {
+            let row = CDRecipe(context: context)
+            row.id = UUID()
+            row.title = "Brot"
+            try context.save()
+        }
+
+        // No household was conjured up to hold it.
+        #expect(try households(in: container).isEmpty)
+
+        // And it is picked up once there is one.
+        let adopted = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
+        #expect(adopted == 1)
+        #expect(try households(in: container).count == 1)
+    }
+
+    @Test("Asking to invite without CloudKit fails with a sentence, not silence")
+    func invitingWithoutCloudKitSaysWhy() async throws {
+        // The in-memory container is a plain NSPersistentContainer — the same
+        // shape a device without the entitlement gets. A person who taps
+        // "Haushalt teilen" there has asked for something, and the answer has
+        // to be an error they can read, not a button that does nothing.
+        await #expect(throws: HouseholdSharingError.self) {
+            _ = try await CoreDataHouseholds(container: try makeContainer()).shareForInviting()
+        }
     }
 }

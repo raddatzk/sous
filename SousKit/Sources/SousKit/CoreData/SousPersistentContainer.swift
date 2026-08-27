@@ -23,13 +23,24 @@ public enum SousPersistentContainer {
     /// for `NSPersistentCloudKitContainer`'s own event notifications.
     public private(set) nonisolated(unsafe) static var isConfiguredForCloudKit = false
 
-    /// - Parameter inMemory: for tests, and for the migration's dry run. Never
-    ///   mirrored: a test that reached iCloud would be a test that depends on
-    ///   an account.
-    public static func make(inMemory: Bool = false) throws -> NSPersistentContainer {
-        if inMemory {
+    /// - Parameters:
+    ///   - inMemory: for tests, and for the migration's dry run. Never
+    ///     mirrored: a test that reached iCloud would be a test that depends
+    ///     on an account.
+    ///   - mirroring: whether this process talks to CloudKit at all. The app
+    ///     passes the default; the share extension passes `false`, because
+    ///     two processes each mirroring the same store files means two sync
+    ///     engines racing over one set of books — and an extension lives
+    ///     under a memory ceiling that a CloudKit import is happy to blow
+    ///     through. What the extension writes reaches iCloud anyway: it lands
+    ///     in the store's history, and the app exports it on its next run.
+    public static func make(
+        inMemory: Bool = false,
+        mirroring: Bool = true
+    ) throws -> NSPersistentContainer {
+        if inMemory || !mirroring {
             isConfiguredForCloudKit = false
-            return try makeLocal(inMemory: true)
+            return try makeLocal(inMemory: inMemory)
         }
 
         do {
@@ -40,8 +51,9 @@ public enum SousPersistentContainer {
             // The entitlement is missing, the container identifier is not in
             // the account, or the device cannot reach iCloud at all. None of
             // those is a reason to leave the cook without their recipes, so
-            // the same store opens without mirroring — the file is identical
-            // either way, and a later launch that can mirror picks it up.
+            // the same stores open without mirroring — the files are
+            // identical either way, and a later launch that can mirror picks
+            // them up.
             isConfiguredForCloudKit = false
             return try makeLocal(inMemory: false)
         }
@@ -80,6 +92,7 @@ public enum SousPersistentContainer {
         }
         if let loadError { throw loadError }
 
+        container.viewContext.transactionAuthor = appTransactionAuthor
         configure(container.viewContext)
         return container
     }
@@ -89,14 +102,24 @@ public enum SousPersistentContainer {
             name: "Sous",
             managedObjectModel: SousManagedObjectModel.shared
         )
-        container.persistentStoreDescriptions = [
-            description(at: inMemory ? URL(fileURLWithPath: "/dev/null") : storeURL()),
-        ]
+        // Both files, not just the private one. Households this person was
+        // invited into live in the shared store, and a fallback that leaves
+        // that file closed makes every one of them vanish from the app for
+        // exactly as long as iCloud is unreachable — which is when nothing
+        // could explain where they went.
+        container.persistentStoreDescriptions = if inMemory {
+            [description(at: URL(fileURLWithPath: "/dev/null"))]
+        } else {
+            [description(at: storeURL()), description(at: sharedStoreURL())]
+        }
 
         var loadError: Error?
-        container.loadPersistentStores { _, error in loadError = error }
+        container.loadPersistentStores { _, error in
+            if loadError == nil { loadError = error }
+        }
         if let loadError { throw loadError }
 
+        container.viewContext.transactionAuthor = appTransactionAuthor
         configure(container.viewContext)
         return container
     }
@@ -122,6 +145,29 @@ public enum SousPersistentContainer {
         description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
         description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         return description
+    }
+
+    /// What this app writes under, as opposed to what CloudKit's mirroring
+    /// writes under when it imports.
+    ///
+    /// The distinction matters because a row attaches itself to the household
+    /// on insert, and an insert is not always the app's doing: importing a
+    /// record creates managed objects too. A row arriving from somebody
+    /// else's household must keep the household it came with — not be given
+    /// this device's, which would rewrite their library on the next export.
+    public static let appTransactionAuthor = "me.raddatz.sous.app"
+
+    /// A background context for a store to work on, marked as this app's.
+    ///
+    /// Every store used to make its own and configure it identically; this is
+    /// that, said once, plus the author that tells our writes from CloudKit's.
+    public static func backgroundContext(
+        for container: NSPersistentContainer
+    ) -> NSManagedObjectContext {
+        let context = container.newBackgroundContext()
+        context.transactionAuthor = appTransactionAuthor
+        configure(context)
+        return context
     }
 
     private static func configure(_ context: NSManagedObjectContext) {

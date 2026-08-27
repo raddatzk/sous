@@ -27,6 +27,9 @@ struct SousApp: App {
     private let migrationDestination: RecipeStoreMigration.Destination
     /// The household every row hangs off, and the object the share sits on.
     private let households: CoreDataHouseholds
+    /// Says in the console whether anything is actually reaching iCloud,
+    /// which nothing else in the app would reveal.
+    private let cloudKitLog = CloudKitEventLog()
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -168,9 +171,83 @@ struct SousApp: App {
     /// Silent either way. Without an iCloud account there is no zone to make,
     /// and a library that syncs to nobody is still a library — the next
     /// launch on a signed-in device makes one.
+    /// Asks the system to accept CloudKit's silent pushes.
+    ///
+    /// `NSPersistentCloudKitContainer` creates the subscriptions itself, but
+    /// iOS only hands a push to an app that has registered for them — so
+    /// without this the container is subscribed to news it never hears, and
+    /// syncing waits for the next launch.
+    ///
+    /// No permission is asked of anybody: the prompt belongs to *visible*
+    /// notifications, and these are silent ones the cook never sees.
+    private func registerForCloudKitPushes() {
+        #if os(iOS)
+        UIApplication.shared.registerForRemoteNotifications()
+        #elseif os(macOS)
+        NSApplication.shared.registerForRemoteNotifications()
+        #endif
+    }
+
+    /// Reloads what the screens show when the store changes underneath them.
+    ///
+    /// The notification arrives per batch and an import arrives in many, so
+    /// the pause at the end of the loop throttles rather than coalesces: at
+    /// most one pass a second, which is slower than anybody notices and
+    /// faster than an import fills a screen.
+    private func watchForRemoteChanges() async {
+        // Conflated to a single pending signal, because the notification
+        // sequence itself buffers without limit: an import arrives in dozens
+        // of batches, and reloading once per batch would repeat the same full
+        // pass for a minute after the data was already on screen. Buffering
+        // the newest one means "something changed since the last pass" — the
+        // only thing the loop needs to know.
+        let changes = AsyncStream<Void>(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            let task = Task {
+                for await _ in NotificationCenter.default.notifications(
+                    named: .NSPersistentStoreRemoteChange
+                ) {
+                    continuation.yield()
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+
+        for await _ in changes {
+            // Let the burst finish; whatever arrives meanwhile folds into the
+            // one buffered signal and triggers exactly one more pass.
+            try? await Task.sleep(for: .seconds(1))
+            // An import can carry a household this device did not know about,
+            // and then there are two. Same rule as at launch, same reason.
+            _ = try? await households.mergeDuplicates()
+            _ = try? await households.adoptOrphanedRows()
+            await library.reload()
+            await mealPlan.reload()
+            await shopping.reload()
+            await catalog.reload()
+        }
+    }
+
+    /// Attaches anything the migration brought over to the household.
+    ///
+    /// It does **not** make the shared zone any more, and that is a
+    /// correction rather than an omission. Doing it at launch raced the
+    /// initial import for the same question — which household is the real
+    /// one. On a fresh install the store is empty, so a new household was
+    /// created and given a new zone within a second of starting, while
+    /// CloudKit was still fetching the one that already existed. It then
+    /// found its old zone gone, reported `ZoneDeleted`, and reset the entire
+    /// sync state, taking the import of the existing library with it. The
+    /// library never came back, on every reinstall.
+    ///
+    /// The zone is now made when somebody is actually invited, which is what
+    /// `shareForInviting()` does. The cost is the one the sharing concept
+    /// warned about — the first invitation moves the library into a new zone
+    /// — and it is the smaller cost by a wide margin.
     private func joinTheHousehold() async {
+        // Folding first: adopting orphans into one of two households would
+        // only deepen the split it is about to undo.
+        _ = try? await households.mergeDuplicates()
         _ = try? await households.adoptOrphanedRows()
-        _ = try? await households.ensureShared()
     }
 
     /// Stamps the cook's name-keyed rows with their SBLS code, then folds
@@ -261,7 +338,17 @@ struct SousApp: App {
                 .environment(navigation)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
+                // What another device changed has to reach the screen.
+                // Without this the import lands in the store and nothing
+                // notices: after a reinstall the library stayed empty until
+                // the cook saved something themselves, at which point the
+                // reload brought the whole synced collection along — looking
+                // for all the world as though saving one recipe had restored
+                // the others.
+                .task { registerForCloudKitPushes() }
+                .task { await watchForRemoteChanges() }
                 .task {
+                    cloudKitLog.start()
                     // In this order, and the order is the whole point. The
                     // fold works on the old store and has to happen while
                     // anything still reads it; the move then carries its

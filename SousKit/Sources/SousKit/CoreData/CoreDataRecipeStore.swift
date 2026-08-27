@@ -18,13 +18,7 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
     private let context: NSManagedObjectContext
 
     public init(container: NSPersistentContainer) {
-        context = container.newBackgroundContext()
-        // Last writer wins on a per-property basis. The store is about to be
-        // synced, where two devices editing different fields of one recipe is
-        // ordinary rather than exceptional, and refusing the merge would
-        // surface as a save that fails for reasons the cook cannot act on.
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.automaticallyMergesChangesFromParent = true
+        context = SousPersistentContainer.backgroundContext(for: container)
     }
 
     // MARK: - Recipes
