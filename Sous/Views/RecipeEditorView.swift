@@ -39,14 +39,21 @@ struct RecipeEditorView: View {
         var id: String { rawValue }
     }
 
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
     /// Whether editor-related actions ("Rezept verlinken", unknown
     /// ingredients) belong in the keyboard accessory bar instead of as
-    /// `Form` rows below the editor — true only on iPhone, where the
-    /// growing editor otherwise buries them behind a long recipe. iPad and
-    /// Mac have room to keep them below the editor as before.
+    /// `Form` rows below the editor — true wherever the window is
+    /// phone-narrow, where the growing editor otherwise buries them behind
+    /// a long recipe. The size class rather than the device: an iPad in
+    /// Slide Over is exactly the window this branch exists for, and asking
+    /// what the hardware is would give it the roomy layout in a narrow
+    /// strip.
     private var isCompactPhone: Bool {
         #if os(iOS)
-        UIDevice.current.userInterfaceIdiom == .phone
+        horizontalSizeClass == .compact
         #else
         false
         #endif

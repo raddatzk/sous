@@ -186,6 +186,10 @@ struct RootView: View {
         // the list and the page have both named — either way a word in the
         // title bar that nothing needed.
         .toolbar(removing: .title)
+        // Below this the list column and a recipe page stop being readable
+        // side by side — and without a stated minimum the window can be
+        // dragged down to a title bar.
+        .frame(minWidth: 760, minHeight: 520)
         // And no way to collapse the sidebar. In a mail client the sidebar is
         // a place you can put away once you are reading; here it is the only
         // way into anything — collapse it and the window is a recipe with no

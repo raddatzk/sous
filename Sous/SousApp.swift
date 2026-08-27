@@ -177,6 +177,9 @@ struct SousApp: App {
                 }
         }
         .defaultSize(width: 1180, height: 800)
+        #if os(macOS)
+        .windowResizability(.contentMinSize)
+        #endif
         .commands {
             CommandGroup(after: .newItem) {
                 Button("Neues Rezept") { library.startNewRecipe() }
