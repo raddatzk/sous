@@ -1,3 +1,4 @@
+import CoreData
 import SousKit
 import SwiftData
 import SwiftUI
@@ -115,11 +116,12 @@ struct ShareRootView: View {
             // Saving into the extension's own container would look like
             // success and put the recipe where the app never looks.
             let container = try ModelContainer.sousContainer()
+            let coreData = try SousPersistentContainer.make()
             guard ModelContainer.hasSharedContainer else {
                 message = "Sous kann den gemeinsamen Speicher nicht öffnen."
                 return
             }
-            let made = Libraries(container: container)
+            let made = Libraries(container: container, coreData: coreData)
             await made.recipes.importFromWeb(url)
             guard made.recipes.editing != nil else {
                 message = made.recipes.errorMessage
@@ -165,11 +167,16 @@ final class Libraries {
     /// editor, so the extension has to be able to answer it too.
     let nutrition: NutritionLibrary
 
-    init(container: ModelContainer) {
+    /// Two containers, because a recipe now lands in Core Data while the
+    /// catalog it is checked against stays in SwiftData. Both sit in the app
+    /// group: saving into the extension's own would look like success and put
+    /// the recipe where the app never looks.
+    init(container: ModelContainer, coreData: NSPersistentContainer) {
         let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
+        let recipeStore = CoreDataRecipeStore(container: coreData)
         recipes = RecipeLibrary(
-            store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            store: recipeStore,
+            imageStore: CoreDataRecipeImageStore(container: coreData),
             enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
             amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
         )
@@ -184,7 +191,7 @@ final class Libraries {
         )
         nutrition = NutritionLibrary(
             store: nutritionStore,
-            recipeStore: SwiftDataRecipeStore(modelContainer: container),
+            recipeStore: recipeStore,
             catalogLibrary: catalog
         )
     }

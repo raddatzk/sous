@@ -35,7 +35,7 @@ struct RecipeEntity: AppEntity, IndexedEntity {
 }
 
 struct RecipeEntityQuery: EntityStringQuery {
-    @Dependency private var recipeStore: SwiftDataRecipeStore
+    @Dependency private var recipeStore: CoreDataRecipeStore
 
     func entities(for identifiers: [UUID]) async throws -> [RecipeEntity] {
         var found: [RecipeEntity] = []
@@ -121,7 +121,7 @@ struct StartCookingIntent: AppIntent {
     @Parameter(title: "Rezept")
     var recipe: RecipeEntity
 
-    @Dependency private var recipeStore: SwiftDataRecipeStore
+    @Dependency private var recipeStore: CoreDataRecipeStore
     @Dependency private var session: CookSession
 
     @MainActor
@@ -143,7 +143,7 @@ struct OpenRecipeIntent: AppIntent, OpenIntent {
     @Parameter(title: "Rezept")
     var target: RecipeEntity
 
-    @Dependency private var recipeStore: SwiftDataRecipeStore
+    @Dependency private var recipeStore: CoreDataRecipeStore
     @Dependency private var navigation: SousNavigation
     @Dependency private var selection: RecipeSelection
 

@@ -19,7 +19,13 @@ struct SousApp: App {
     @State private var navigation = SousNavigation()
     /// Held by the app for the Spotlight index, which wants every recipe
     /// and not whatever the list is currently filtered to.
-    private let recipeStore: SwiftDataRecipeStore
+    private let recipeStore: CoreDataRecipeStore
+    /// The stores the recipes used to live in, kept only so the migration
+    /// has something to read. Everything else still writes to SwiftData —
+    /// the catalog and the caches never sync and have no reason to move.
+    private let legacyRecipes: SwiftDataRecipeStore
+    private let legacyImages: SwiftDataRecipeImageStore
+    private let recipeImages: CoreDataRecipeImageStore
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -48,10 +54,19 @@ struct SousApp: App {
     init() {
         do {
             let container = try ModelContainer.sousContainer()
+            // Recipes and their pictures live in Core Data because they are
+            // what gets shared: CloudKit's shared database is reachable only
+            // through NSPersistentCloudKitContainer. Everything else stays
+            // where it is — see SHARING-CONCEPT.md for which is which.
+            let coreData = try SousPersistentContainer.make()
             migration = SwiftDataBundledDataMigration(modelContainer: container)
             vocabularyMigration = SwiftDataVocabularyMigration(modelContainer: container)
             orphanReconciliation = SwiftDataOrphanReconciliation(modelContainer: container)
-            let recipes = SwiftDataRecipeStore(modelContainer: container)
+            let recipes = CoreDataRecipeStore(container: coreData)
+            let images = CoreDataRecipeImageStore(container: coreData)
+            legacyRecipes = SwiftDataRecipeStore(modelContainer: container)
+            legacyImages = SwiftDataRecipeImageStore(modelContainer: container)
+            recipeImages = images
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let enrichmentStore = SwiftDataRecipeEnrichmentStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
@@ -64,7 +79,7 @@ struct SousApp: App {
             _catalog = State(initialValue: catalogLibrary)
             _library = State(initialValue: RecipeLibrary(
                 store: recipes,
-                imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+                imageStore: images,
                 enrichmentStore: enrichmentStore,
                 amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
                 nutritionStore: nutritionStore,
@@ -117,6 +132,25 @@ struct SousApp: App {
         AppDependencyManager.shared.add(dependency: cookSession)
         AppDependencyManager.shared.add(dependency: recipeSelection)
         AppDependencyManager.shared.add(dependency: sousNavigation)
+    }
+
+    /// Moves recipes and pictures out of the SwiftData store, if any are
+    /// still there.
+    ///
+    /// No marker guarding it and no progress shown, because there is no
+    /// installed base to migrate: on a fresh device the source is empty and
+    /// this is two fetches against empty tables. What it does cover is a
+    /// development device that has been in use, where the library would
+    /// otherwise appear to have been lost.
+    ///
+    /// Failure is silent on purpose. The source is never modified, so a run
+    /// that goes wrong leaves the old store intact to try again from.
+    private func migrateRecipeStore() async {
+        _ = try? await RecipeStoreMigration.run(
+            from: legacyRecipes, images: legacyImages,
+            to: recipeStore, images: recipeImages
+        )
+        await library.reload()
     }
 
     /// Stamps the cook's name-keyed rows with their SBLS code, then folds
@@ -185,6 +219,9 @@ struct SousApp: App {
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 .task {
+                    // Before anything reads a recipe: the library the views
+                    // are bound to is the Core Data one now.
+                    await migrateRecipeStore()
                     // Before the catalogs are read: the cook's own rows have
                     // to carry their SBLS code, or the first thing that looks
                     // one up joins by name and caches the answer.
