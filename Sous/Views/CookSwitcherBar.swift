@@ -1,59 +1,11 @@
 import SousKit
 import SwiftUI
 
-/// The row along the bottom of cook mode: one chip per pot, and a way to put
-/// another one on.
+/// One chip per pot on the hob, for cook mode's toolbars.
 ///
-/// It sits at the bottom rather than the top because that is where the hand
-/// already is — switching pots is a one-handed move made with the phone
-/// propped against something, in the middle of doing something else.
-struct CookSwitcherBar: View {
-    @Environment(CookTimerCenter.self) private var timers
-
-    let entries: [CookSessionEntry]
-    /// Recipe names by id, resolved by the screen that owns the session.
-    let titles: [UUID: String]
-    let activeRecipeID: UUID?
-    let onSelect: (UUID) -> Void
-    let onAdd: () -> Void
-
-    var body: some View {
-        HStack(spacing: 8) {
-            ScrollView(.horizontal) {
-                chips
-                    .padding(.vertical, 8)
-            }
-            .scrollIndicators(.hidden)
-
-            Button("Rezept dazunehmen", systemImage: "plus") { onAdd() }
-                .labelStyle(.iconOnly)
-                .font(.headline)
-                .frame(width: 34, height: 34)
-                .background(Color.sousField, in: .capsule)
-                .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 12)
-        .background(.bar)
-    }
-
-    @ViewBuilder
-    private var chips: some View {
-        CookSwitcherChips(
-            entries: entries,
-            titles: titles,
-            activeRecipeID: activeRecipeID,
-            onSelect: onSelect
-        )
-    }
-}
-
-/// The chips on their own, without the bar around them — the Mac puts them in
-/// the toolbar, where the bar would be a second one.
-///
-/// A view of its own rather than a property on ``CookSwitcherBar``, because a
-/// property reached from outside is evaluated before SwiftUI has installed the
-/// struct it belongs to: the timers would be read from an `@Environment` that
-/// has nothing in it yet.
+/// Both platforms put them in a real bar now — the Mac in the title bar, the
+/// phone in the bottom toolbar, where the hand already is: switching pots is
+/// a one-handed move made with the phone propped against something.
 struct CookSwitcherChips: View {
     /// Where the chips are standing, which decides how the active one is
     /// marked.
@@ -132,6 +84,8 @@ struct CookSwitcherChips: View {
             }
             .font(.caption)
             .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+            // Same beat as the banner's bell: felt once, when it rings.
+            .sensoryFeedback(.warning, trigger: finished) { old, new in !old && new }
         }
     }
 

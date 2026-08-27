@@ -186,6 +186,7 @@ struct SousApp: App {
             // as well — see the note there.
             CommandGroup(replacing: .importExport) {
                 Button("Rezepte importieren…") { commands.isImporting = true }
+                    .keyboardShortcut("i", modifiers: [.command, .shift])
                 Button("Alle Rezepte exportieren…") {
                     Task {
                         guard let data = await library.exportedLibrary() else { return }
@@ -196,13 +197,32 @@ struct SousApp: App {
                         )
                     }
                 }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
             }
             // Managing the library rather than a recipe. Its own menu because
             // none of the standard groups is about this, and on both platforms
             // because the iPad has a menu bar too since iPadOS 26.
             CommandMenu("Bibliothek") {
+                // The app's primary action, reachable without the mouse: the
+                // recipe the window is showing goes on the hob. ⌘⏎ rather
+                // than a letter, the way "do the thing" reads elsewhere.
+                Button("Rezept kochen") {
+                    if case .recipe(let recipe) = selection.target, !recipe.isDeleted {
+                        // `start` presents cook mode itself, same as the
+                        // page's own button.
+                        session.start(recipe, servings: recipe.servings)
+                    }
+                }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled({
+                    guard case .recipe(let recipe) = selection.target else { return true }
+                    return recipe.isDeleted || recipe.steps.isEmpty
+                }())
+                Divider()
                 Button("Zutaten verwalten…") { commands.panel = .catalog }
+                    .keyboardShortcut("l", modifiers: [.command, .shift])
                 Button("Kategorien verwalten…") { commands.panel = .categories }
+                    .keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
             }
@@ -217,6 +237,10 @@ struct SousApp: App {
         // window needs nothing but the same environment.
         Window("Kochen", id: Self.cookWindow) {
             CookModeView()
+                // Below this the steps column and the ingredient column
+                // stop being readable side by side — and without a stated
+                // minimum the window can be dragged down to a title bar.
+                .frame(minWidth: 560, minHeight: 420)
                 .environment(library)
                 .environment(mealPlan)
                 .environment(shopping)
@@ -234,6 +258,7 @@ struct SousApp: App {
                 .onDisappear { session.isPresented = false }
         }
         .defaultSize(width: 940, height: 720)
+        .windowResizability(.contentMinSize)
 
         // Cmd-, is where a Mac user looks; the sheet in the "Mehr" menu is
         // for the phone, and both write the same defaults.

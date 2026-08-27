@@ -34,75 +34,42 @@ struct CookModeView: View {
     private let formatter = QuantityFormatter(locale: .sous)
 
     var body: some View {
-        VStack(spacing: 0) {
-            // The Mac puts all of this in the title bar: the name and the step
-            // as title and subtitle, "Fertig" as a toolbar button, and closing
-            // to the red traffic light, which is what it is for.
-            #if os(iOS)
-            header
-            Divider()
-            #endif
+        // The Mac puts the chrome in the title bar: the name and the step as
+        // title and subtitle, "Fertig" as a toolbar button, and closing to
+        // the red traffic light, which is what it is for. The phone gets the
+        // same things as real bars of its own — the system's floating glass
+        // top and bottom bars instead of the hand-drawn strips that used to
+        // stand in for them, which also lets the steps scroll under them.
+        #if os(iOS)
+        NavigationStack {
+            core
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { iosToolbar }
+        }
+        #else
+        core
+            // No title: the chips in the toolbar name the recipe, and the
+            // window keeps the name the scene gave it. The subtitle says how
+            // far along the pot is, which the step numbers alone cannot.
+            .navigationSubtitle(activeSubtitle)
+            .toolbar { macToolbar }
+        #endif
+    }
+
+    /// The pages and everything that hangs off them, shared by both
+    /// platforms' chrome.
+    private var core: some View {
+        Group {
             if let entry = session.activeEntry, let recipe = recipes[entry.recipeID] {
                 pages(entry, recipe)
                     // A fresh page view per recipe: the swipe between steps
                     // and ingredients belongs to the recipe being cooked.
                     .id(entry.recipeID)
             } else {
-                Spacer()
                 ProgressView()
-                Spacer()
-            }
-            // Along the bottom on the phone, where the hand already is. The
-            // Mac has no thumb resting there and a title bar going spare, so
-            // the pots ride in it instead.
-            #if os(iOS)
-            Divider()
-            switcher
-            #endif
-        }
-        #if os(macOS)
-        // No title: the chips in the toolbar name the recipe, and the window
-        // keeps the name the scene gave it. The subtitle says how far along
-        // the pot is, which the step numbers alone cannot.
-        .navigationSubtitle(activeSubtitle)
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button("Fertig") {
-                    if let entry = session.activeEntry { finish(entry) }
-                }
-                .disabled(session.activeEntry == nil)
-            }
-            ToolbarItem(placement: .principal) {
-                CookSwitcherChips(
-                    entries: session.entries,
-                    titles: recipes.mapValues(\.title),
-                    activeRecipeID: session.activeEntry?.recipeID,
-                    onSelect: { session.show($0) },
-                    presentation: .toolbar
-                )
-            }
-            ToolbarItem(placement: .primaryAction) {
-                Button("Rezept dazunehmen", systemImage: "plus") { isPicking = true }
-            }
-            // A pot that turns out to be for four rather than two should not
-            // need the cook to leave the kitchen. On the phone this hangs off
-            // the header's serving count; here it needs a button of its own.
-            if let entry = session.activeEntry, let recipe = activeRecipe {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("\(entry.servings) Portionen", systemImage: "person.2") {
-                        isSettingServings = true
-                    }
-                    // With the icon alone the count is invisible until the
-                    // button is pressed — and it was taken out of the
-                    // subtitle on the promise that this would show it.
-                    .labelStyle(.titleAndIcon)
-                    .popover(isPresented: $isSettingServings) {
-                        servingsPopover(entry: entry, recipe: recipe)
-                    }
-                }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        #endif
         .background(Color.sousCookBackground)
         // Cook mode is presented over the app, and a sheet does not pick up
         // a change to the window's scheme — so it names the same one again.
@@ -189,46 +156,107 @@ struct CookModeView: View {
     }
 
     #if os(iOS)
-    @ViewBuilder
-    private var header: some View {
-        let entry = session.activeEntry
-        let recipe = entry.flatMap { recipes[$0.recipeID] }
-        HStack {
+    @ToolbarContentBuilder
+    private var iosToolbar: some ToolbarContent {
+        ToolbarItem(placement: .topBarLeading) {
             Button("Fertig") {
-                if let entry { finish(entry) }
+                if let entry = session.activeEntry { finish(entry) }
             }
-            .disabled(entry == nil)
-            Spacer()
-            VStack(spacing: 2) {
-                Text(recipe?.title ?? "Kochen")
-                    .font(.headline)
-                    .lineLimit(1)
-                if let entry, let recipe {
-                    HStack(spacing: 4) {
-                        Text("\(stepPosition(entry: entry, recipe: recipe)) ·")
-                            .foregroundStyle(.secondary)
-                        // The serving count is also the way to change it:
-                        // a pot that turns out to be for four rather than two
-                        // should not need the cook to leave the kitchen.
-                        Button("\(entry.servings) Portionen") { isSettingServings = true }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.tint)
-                    }
-                    .font(.caption)
-                    .popover(isPresented: $isSettingServings) {
-                        servingsPopover(entry: entry, recipe: recipe)
-                    }
-                }
-            }
-            Spacer()
-            // Puts cook mode away without taking anything off the hob — the
-            // band at the top of the app brings it back.
+            .disabled(session.activeEntry == nil)
+        }
+        ToolbarItem(placement: .principal) { principalTitle }
+        // Puts cook mode away without taking anything off the hob — the
+        // band on the tab bar brings it back.
+        ToolbarItem(placement: .topBarTrailing) {
             Button("Kochsicht schließen", systemImage: "chevron.down") {
                 session.isPresented = false
             }
-            .labelStyle(.iconOnly)
         }
-        .padding()
+        // The pots along the foot, where the hand already is — switching is
+        // a one-handed move made with the phone propped against something.
+        ToolbarItem(placement: .bottomBar) {
+            ScrollView(.horizontal) {
+                CookSwitcherChips(
+                    entries: session.entries,
+                    titles: recipes.mapValues(\.title),
+                    activeRecipeID: session.activeEntry?.recipeID,
+                    onSelect: { session.show($0) },
+                    presentation: .toolbar
+                )
+            }
+            .scrollIndicators(.hidden)
+        }
+        ToolbarSpacer(.flexible, placement: .bottomBar)
+        ToolbarItem(placement: .bottomBar) {
+            Button("Rezept dazunehmen", systemImage: "plus") { isPicking = true }
+        }
+    }
+
+    /// Name, step and servings in the title's place — the serving count is
+    /// also the way to change it: a pot that turns out to be for four
+    /// rather than two should not need the cook to leave the kitchen.
+    @ViewBuilder
+    private var principalTitle: some View {
+        let entry = session.activeEntry
+        let recipe = entry.flatMap { recipes[$0.recipeID] }
+        VStack(spacing: 1) {
+            Text(recipe?.title ?? "Kochen")
+                .font(.headline)
+                .lineLimit(1)
+            if let entry, let recipe {
+                HStack(spacing: 4) {
+                    Text("\(stepPosition(entry: entry, recipe: recipe)) ·")
+                        .foregroundStyle(.secondary)
+                    Button("\(entry.servings) Portionen") { isSettingServings = true }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                }
+                .font(.caption)
+                .popover(isPresented: $isSettingServings) {
+                    servingsPopover(entry: entry, recipe: recipe)
+                }
+            }
+        }
+    }
+
+    #else
+    @ToolbarContentBuilder
+    private var macToolbar: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button("Fertig") {
+                if let entry = session.activeEntry { finish(entry) }
+            }
+            .disabled(session.activeEntry == nil)
+        }
+        ToolbarItem(placement: .principal) {
+            CookSwitcherChips(
+                entries: session.entries,
+                titles: recipes.mapValues(\.title),
+                activeRecipeID: session.activeEntry?.recipeID,
+                onSelect: { session.show($0) },
+                presentation: .toolbar
+            )
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button("Rezept dazunehmen", systemImage: "plus") { isPicking = true }
+        }
+        // A pot that turns out to be for four rather than two should not
+        // need the cook to leave the kitchen. On the phone this hangs off
+        // the title's serving count; here it needs a button of its own.
+        if let entry = session.activeEntry, let recipe = activeRecipe {
+            ToolbarItem(placement: .primaryAction) {
+                Button("\(entry.servings) Portionen", systemImage: "person.2") {
+                    isSettingServings = true
+                }
+                // With the icon alone the count is invisible until the
+                // button is pressed — and it was taken out of the
+                // subtitle on the promise that this would show it.
+                .labelStyle(.titleAndIcon)
+                .popover(isPresented: $isSettingServings) {
+                    servingsPopover(entry: entry, recipe: recipe)
+                }
+            }
+        }
     }
     #endif
 
@@ -271,17 +299,6 @@ struct CookModeView: View {
     }
 
     @ViewBuilder
-    private var switcher: some View {
-        CookSwitcherBar(
-            entries: session.entries,
-            titles: recipes.mapValues(\.title),
-            activeRecipeID: session.activeEntry?.recipeID,
-            onSelect: { session.show($0) },
-            onAdd: { isPicking = true }
-        )
-    }
-
-    @ViewBuilder
     private func pages(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
         #if os(macOS)
         HStack(spacing: 0) {
@@ -317,33 +334,49 @@ struct CookModeView: View {
         let resolution = StepAmountResolver.resolve(
             recipe, toServings: entry.servings, formatter: formatter
         )
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 32) {
-                ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
-                    stepCard(
-                        step,
-                        number: number(for: step, at: index, in: steps),
-                        entry: entry,
-                        recipe: recipe,
-                        resolution: resolution
-                    )
-                    .id(step.id)
-                    .opacity(step.id == focused ? 1 : 0.4)
-                    .animation(.easeInOut(duration: 0.2), value: focused)
-                    .onTapGesture { focus(step.id, entry: entry, steps: steps) }
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 32) {
+                    ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
+                        stepCard(
+                            step,
+                            number: number(for: step, at: index, in: steps),
+                            entry: entry,
+                            recipe: recipe,
+                            resolution: resolution
+                        )
+                        .id(step.id)
+                        .opacity(step.id == focused ? 1 : 0.4)
+                        .animation(.easeInOut(duration: 0.2), value: focused)
+                        .onTapGesture {
+                            focus(step.id, entry: entry, steps: steps)
+                            withAnimation { proxy.scrollTo(step.id, anchor: .top) }
+                        }
+                    }
+                    Color.clear.frame(height: 200)
                 }
-                Color.clear.frame(height: 200)
+                .scrollTargetLayout()
+                .padding(24)
+                .frame(maxWidth: 640, alignment: .leading)
+                // Centred in the rest. Capped and pinned left, the steps sat
+                // against the window's edge with the width of a Mac window
+                // empty beside them.
+                .frame(maxWidth: .infinity)
             }
-            .scrollTargetLayout()
-            .padding(24)
-            .frame(maxWidth: 640, alignment: .leading)
-            // Centred in the rest. Capped and pinned left, the steps sat
-            // against the window's edge with the width of a Mac window empty
-            // beside them.
+            // The scroll is never steered while a hand is on it. A two-way
+            // `scrollPosition` binding did that: every focus change redrew
+            // the cards, and the scroll view re-aligned the bound step hard
+            // against the top anchor mid-gesture. Focus now only *follows*
+            // the scroll — the topmost step still meaningfully on screen is
+            // the one at full strength — and the scroll is only ever moved
+            // deliberately: tapping a step, or coming back to the session.
+            .onScrollTargetVisibilityChange(idType: UUID.self, threshold: 0.3) { visible in
+                guard let top = visible.first, top != focusedStep(entry, steps: steps) else { return }
+                focus(top, entry: entry, steps: steps)
+            }
+            .onAppear { proxy.scrollTo(focused, anchor: .top) }
             .frame(maxWidth: .infinity)
         }
-        .scrollPosition(id: focusBinding(entry, steps: steps), anchor: .top)
-        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -490,6 +523,10 @@ struct CookModeView: View {
                                 }
                             }
                             .buttonStyle(.plain)
+                            // Ticked with wet hands and half a glance — the
+                            // same felt confirmation the shopping list gives.
+                            .sensoryFeedback(.impact(flexibility: .soft), trigger: isChecked)
+                            .accessibilityAddTraits(isChecked ? .isSelected : [])
                         }
                     }
                 }
@@ -569,16 +606,6 @@ struct CookModeView: View {
     /// ids — starts at the top instead of pointing at nothing. Writes of
     /// `nil` are dropped: the scroll view reports one while it is settling,
     /// and taking it at face value would forget where the cook is.
-    private func focusBinding(_ entry: CookSessionEntry, steps: [RecipeStep]) -> Binding<UUID?> {
-        Binding(
-            get: { focusedStep(entry, steps: steps) },
-            set: { newValue in
-                guard let newValue else { return }
-                focus(newValue, entry: entry, steps: steps)
-            }
-        )
-    }
-
     private func focus(_ stepID: UUID, entry: CookSessionEntry, steps: [RecipeStep]) {
         guard var current = session.entry(for: entry.recipeID) else { return }
         current.focusedStepID = stepID

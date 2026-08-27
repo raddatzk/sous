@@ -359,6 +359,7 @@ struct IngredientFormView: View {
                         }
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
+                        .help("Sorten-Zuordnung lösen")
                     }
                 }
                 ForEach(children) { child in
@@ -407,6 +408,7 @@ struct IngredientFormView: View {
                     }
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
+                    .help("Schreibweise entfernen")
                 }
             }
             HStack {
@@ -416,6 +418,7 @@ struct IngredientFormView: View {
                     .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
                     .disabled(newAlias.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .help("Schreibweise hinzufügen")
             }
         } header: {
             Text("Andere Schreibweisen")

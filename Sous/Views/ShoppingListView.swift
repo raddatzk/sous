@@ -311,6 +311,11 @@ struct ShoppingListView: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        // Ticking is done one-handed in a shop with the eyes on the shelf —
+        // the tap should be felt, not checked. And VoiceOver has to hear the
+        // difference between bought and still open.
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: item.isChecked)
+        .accessibilityAddTraits(item.isChecked ? .isSelected : [])
         .swipeActions { actions(for: item) }
         // The same actions again, because a swipe needs a trackpad to exist
         // at all and gives no sign that it is there.

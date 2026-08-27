@@ -151,6 +151,10 @@ struct RecipeDetailView: View {
             recipe.imageIDs.isEmpty || showsToolbarTitle ? .automatic : .hidden,
             for: .navigationBar
         )
+        // While the bar's own background is hidden over the hero image, the
+        // soft edge keeps its buttons legible over a light photo — a
+        // progressive fade instead of a hard bar edge once it returns.
+        .scrollEdgeEffectStyle(.soft, for: .top)
         #endif
         .toolbar { detailToolbar }
         .recipeExporter($export)
@@ -691,7 +695,7 @@ struct RecipeDetailView: View {
                 .frame(maxWidth: isWide ? nil : .infinity)
                 .padding(.horizontal, isWide ? 8 : 0)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.glassProminent)
         .disabled(recipe.steps.isEmpty)
     }
 
@@ -702,7 +706,8 @@ struct RecipeDetailView: View {
             Label("Einplanen", systemImage: "calendar.badge.plus")
                 .labelStyle(.iconOnly)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.glass)
+        .help("Einplanen")
     }
 
     private var shoppingButton: some View {
@@ -717,8 +722,9 @@ struct RecipeDetailView: View {
             // without wrapping mid-word.
             .labelStyle(.iconOnly)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.glass)
         .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
+        .help(didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste")
     }
 
     /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
@@ -759,7 +765,9 @@ struct RecipeDetailView: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(Color.sousField, in: .capsule)
+        // The same glass the buttons beside it wear, so the action row
+        // reads as one family instead of two.
+        .glassEffect(in: .capsule)
     }
 
     /// Scales the page for reading either way, and — when this recipe came
