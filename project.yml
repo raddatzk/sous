@@ -55,6 +55,13 @@ targets:
           - iCloud.me.raddatz.sous
         com.apple.developer.icloud-services:
           - CloudKit
+        # CloudKit tells the app about other devices' changes through a silent
+        # push, and iOS only delivers those to an app entitled to receive
+        # them. Without this the sync happens at launch and whenever the
+        # framework next asks — which for a shared shopping list is far too
+        # late. "development" for a debug build; the App Store build is
+        # re-signed with the production value automatically.
+        aps-environment: development
     info:
       path: Sous/Supporting/Info.plist
       properties:

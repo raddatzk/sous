@@ -116,7 +116,11 @@ struct ShareRootView: View {
             // Saving into the extension's own container would look like
             // success and put the recipe where the app never looks.
             let container = try ModelContainer.sousContainer()
-            let coreData = try SousPersistentContainer.make()
+            // Local only, no mirroring: two processes syncing the same
+            // store files would be two engines racing over one set of books,
+            // inside a memory ceiling an import is happy to blow through.
+            // The save lands in the store's history and the app exports it.
+            let coreData = try SousPersistentContainer.make(mirroring: false)
             guard ModelContainer.hasSharedContainer else {
                 message = "Sous kann den gemeinsamen Speicher nicht öffnen."
                 return

@@ -1,6 +1,7 @@
 import CloudKit
 import CoreData
 import Foundation
+import os
 
 /// One household — the row every other row hangs off, and the object a share
 /// is placed on.
@@ -29,7 +30,17 @@ class CDHouseholdMember: NSManagedObject {
     override func awakeFromInsert() {
         super.awakeFromInsert()
         guard let managedObjectContext else { return }
-        household = try? CoreDataHouseholds.current(in: managedObjectContext)
+        // Only when this app is the one inserting. Importing a record from
+        // CloudKit creates managed objects too, and a row arriving from
+        // somebody else's household has to keep the household it came with —
+        // giving it this device's would rewrite their library on the next
+        // export.
+        guard managedObjectContext.transactionAuthor == SousPersistentContainer.appTransactionAuthor
+        else { return }
+        // `existing`, never `findOrCreate`: an insert must not decide that
+        // this device needs a household of its own. A row that arrives before
+        // there is one is picked up by `adoptOrphanedRows` afterwards.
+        household = try? CoreDataHouseholds.existing(in: managedObjectContext)
     }
 }
 
@@ -45,6 +56,8 @@ class CDHouseholdMember: NSManagedObject {
 /// One per container, because the identity that matters is the row in the
 /// store, not this object.
 public final class CoreDataHouseholds: @unchecked Sendable {
+    private static let log = Logger(subsystem: "me.raddatz.sous", category: "household")
+
     /// What the cook's own household is called until anybody renames it.
     public static let defaultName = "Mein Haushalt"
 
@@ -58,18 +71,39 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     ///
     /// Called inside the caller's own `perform`, so it takes the context it
     /// is already on rather than opening another.
-    static func current(in context: NSManagedObjectContext) throws -> CDHousehold {
+    /// This device's household, or `nil` if it does not have one yet.
+    ///
+    /// The oldest wins, and that rule is what keeps two devices agreeing:
+    /// both see the same rows and both pick the same one, without asking
+    /// each other.
+    static func existing(in context: NSManagedObjectContext) throws -> CDHousehold? {
+        try households(in: context).first
+    }
+
+    /// Every household this person owns, oldest first.
+    ///
+    /// Only their own store. Households they joined live in the shared one,
+    /// and the oldest row across both could easily be somebody else's —
+    /// which would make tonight's recipe a contribution to their library
+    /// rather than to this one.
+    private static func households(in context: NSManagedObjectContext) throws -> [CDHousehold] {
         let request = NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName)
         request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
-        request.fetchLimit = 1
-        // Only this person's own store. Households they joined live in the
-        // shared one, and the oldest row across both could easily be
-        // somebody else's — which would make tonight's recipe a contribution
-        // to their library rather than to this one.
         request.affectedStores = ownStores(for: context)
-        if let existing = try context.fetch(request).first {
-            return existing
-        }
+        return try context.fetch(request)
+    }
+
+    /// This device's household, made if there is none.
+    ///
+    /// Deliberately **not** what an insert calls. A fresh install has an
+    /// empty store and an import on the way, and creating a household in that
+    /// second means creating a second one — the copy already in iCloud
+    /// arrives moments later, and from then on the library is split between
+    /// two households that can never be shared together. So a row joins the
+    /// household that exists, and making one is a decision taken once, at
+    /// launch, after the import has had its chance.
+    static func findOrCreate(in context: NSManagedObjectContext) throws -> CDHousehold {
+        if let existing = try existing(in: context) { return existing }
 
         let made = CDHousehold(context: context)
         made.id = UUID()
@@ -91,59 +125,80 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         return SousPersistentContainer.privateStore(in: coordinator).map { [$0] }
     }
 
-    /// Puts the household into a shared CloudKit zone, if it is not in one
-    /// already.
+    /// Creates the share, through the completion API rather than the `async`
+    /// one Swift generates for it.
     ///
-    /// This is the "shared from the first day" rule made real. Sharing is not
-    /// a flag that can be set later: `shareManagedObjects` moves the objects
-    /// into the share's record zone, so promoting a grown library would
-    /// relocate every recipe and every picture through iCloud, with new
-    /// record identities, at the moment somebody is waiting to send an
-    /// invitation. A share whose only participant is its owner costs nothing
-    /// to hold, so the library is created inside one and inviting is reduced
-    /// to opening the sharing sheet.
-    ///
-    /// The traversal does the rest: the header promises that related objects
-    /// are shared along with the ones handed over, and everything in this
-    /// store is related to the household. Rows written afterwards join by
-    /// being attached to it.
-    ///
-    /// Returns `false` when the device cannot share right now — no iCloud
-    /// account, no entitlement, mirroring never initialized. That is not an
-    /// error to show anybody: the library works, it simply has no zone yet,
-    /// and the next launch that can will make one.
-    @discardableResult
-    public func ensureShared() async throws -> Bool {
-        guard let cloudContainer = container as? NSPersistentCloudKitContainer else { return false }
-
-        let context = container.newBackgroundContext()
-        let household: CDHousehold = try await context.perform {
-            let household = try CoreDataHouseholds.current(in: context)
-            // A share needs a permanent object id, which an unsaved insert
-            // does not have.
-            if context.hasChanges { try context.save() }
-            return household
+    /// The generated version returns a non-optional tuple, because Swift
+    /// assumes an Objective-C completion that reports no error reports
+    /// values. This one does not: all four of its parameters are nullable,
+    /// and while the mirroring delegate is still starting up it calls back
+    /// with no error *and* no share. The generated wrapper then force-
+    /// unwraps that nil, and the app dies inside a framework bridge with a
+    /// message that names nothing.
+    private static func makeShare(
+        for object: NSManagedObject,
+        in container: NSPersistentCloudKitContainer
+    ) async throws -> CKShare {
+        try await withCheckedThrowingContinuation { continuation in
+            container.share([object], to: nil) { _, share, _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let share {
+                    continuation.resume(returning: share)
+                } else {
+                    // No error and no share: not ready, and not saying so.
+                    continuation.resume(throwing: HouseholdSharingError.notAvailable)
+                }
+            }
         }
+    }
 
-        let alreadyShared = try? cloudContainer.fetchShares(matching: [household.objectID])
-        guard alreadyShared?.isEmpty ?? true else { return true }
+    /// Waits for the mirroring delegate to report that it has set itself up.
+    ///
+    /// Returns `false` on timeout, which is the ordinary case offline: there
+    /// is nothing to wait for and nothing to report.
+    private static func waitForCloudKitSetup(timeout: Duration) async -> Bool {
+        let events = NotificationCenter.default.notifications(
+            named: NSPersistentCloudKitContainer.eventChangedNotification
+        )
 
-        do {
-            _ = try await cloudContainer.share([household], to: nil)
-            return true
-        } catch {
-            return false
+        return await withTaskGroup(of: Bool.self) { group in
+            group.addTask {
+                for await note in events {
+                    guard let event = note.userInfo?[
+                        NSPersistentCloudKitContainer.eventNotificationUserInfoKey
+                    ] as? NSPersistentCloudKitContainer.Event else { continue }
+                    // `endDate` distinguishes "setup finished" from "setup
+                    // started" — both arrive as the same event type.
+                    guard event.type == .setup, event.endDate != nil else { continue }
+                    return event.succeeded
+                }
+                return false
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return false
+            }
+
+            let first = await group.next() ?? false
+            group.cancelAll()
+            return first
         }
     }
 
     /// The share to hand to the system's sharing sheet, made if there is
     /// none yet.
     ///
-    /// Inviting somebody is meant to be nothing more than opening that sheet,
-    /// which is only true when the zone already exists — and it does, because
-    /// `ensureShared` ran at launch. This is the same call once more for the
-    /// case where it could not: a first launch offline, or an account signed
-    /// in afterwards.
+    /// This is where the zone comes into being — deliberately not at launch,
+    /// where making one raced the initial import and reset the sync. The
+    /// first invitation therefore pays for the move into the shared zone,
+    /// and every later one just reopens the sheet.
+    ///
+    /// If the first attempt fails, it waits for the mirroring delegate to
+    /// finish setting up and tries once more: the sheet is opened by a person
+    /// standing there, often seconds after launch, and "try again in half a
+    /// minute" is not an answer a button should give when waiting quietly
+    /// does the same job.
     ///
     /// Throws where sharing is impossible rather than returning nothing: at
     /// this point a person has asked to invite somebody, and silence would
@@ -153,9 +208,9 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             throw HouseholdSharingError.notAvailable
         }
 
-        let context = container.newBackgroundContext()
+        let context = SousPersistentContainer.backgroundContext(for: container)
         let (householdID, householdName) = try await context.perform {
-            let household = try CoreDataHouseholds.current(in: context)
+            let household = try CoreDataHouseholds.findOrCreate(in: context)
             if context.hasChanges { try context.save() }
             return (household.objectID, household.name)
         }
@@ -168,14 +223,63 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             return (existing, ckContainer)
         }
 
-        let household = try context.existingObject(with: householdID)
-        let (_, share, sharedContainer) = try await cloudContainer.share([household], to: nil)
+        let household = try await context.perform { try context.existingObject(with: householdID) }
+        let share: CKShare
+        do {
+            share = try await Self.makeShare(for: household, in: cloudContainer)
+        } catch {
+            // Usually "not ready yet": the mirroring delegate is still
+            // setting up, which it very much is in the first seconds after
+            // launch. Wait for it to say so, then ask once more.
+            guard await Self.waitForCloudKitSetup(timeout: .seconds(30)) else { throw error }
+            share = try await Self.makeShare(for: household, in: cloudContainer)
+        }
         // What the invitation calls the thing being shared. Left unset, the
         // sheet offers to share something unnamed, which is a poor way to ask
         // somebody to join a kitchen. The sharing controller saves the share
         // when participants are added, and carries this along.
         share[CKShare.SystemFieldKey.title] = householdName
-        return (share, sharedContainer)
+        return (share, ckContainer)
+    }
+
+    /// Folds several of this person's households into one.
+    ///
+    /// They can appear despite `awakeFromInsert` never making one: an older
+    /// build made them per install, two devices can decide at the same
+    /// moment that there is none, and an import can deliver one just after
+    /// this device concluded there was not. Left alone, the library ends up
+    /// split between households that can never be shared as a whole — and
+    /// nothing about that looks wrong on screen, because every recipe is
+    /// still there.
+    ///
+    /// The oldest wins, which is the same rule `existing` applies, so two
+    /// devices doing this independently reach the same answer without
+    /// talking to each other.
+    ///
+    /// Returns how many were folded away.
+    @discardableResult
+    public func mergeDuplicates() async throws -> Int {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            let all = try CoreDataHouseholds.households(in: context)
+            guard let survivor = all.first, all.count > 1 else { return 0 }
+
+            for doomed in all.dropFirst() {
+                for entity in SousManagedObjectModel.memberEntityNames {
+                    let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+                    request.predicate = NSPredicate(format: "household == %@", doomed)
+                    for row in try context.fetch(request) {
+                        row.setValue(survivor, forKey: "household")
+                    }
+                }
+                context.delete(doomed)
+            }
+
+            if context.hasChanges { try context.save() }
+            let folded = all.count - 1
+            Self.log.info("Folded \(folded, privacy: .public) duplicate household(s) into one.")
+            return folded
+        }
     }
 
     /// Attaches everything that has no household yet to the one this device
@@ -188,9 +292,9 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// quietly rather than reporting.
     @discardableResult
     public func adoptOrphanedRows() async throws -> Int {
-        let context = container.newBackgroundContext()
+        let context = SousPersistentContainer.backgroundContext(for: container)
         return try await context.perform {
-            let household = try CoreDataHouseholds.current(in: context)
+            let household = try CoreDataHouseholds.findOrCreate(in: context)
             var adopted = 0
             for entity in SousManagedObjectModel.memberEntityNames {
                 let request = NSFetchRequest<NSManagedObject>(entityName: entity)

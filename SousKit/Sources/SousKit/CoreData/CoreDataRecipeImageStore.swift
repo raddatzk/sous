@@ -23,9 +23,7 @@ public final class CoreDataRecipeImageStore: RecipeImageStore, @unchecked Sendab
     private let context: NSManagedObjectContext
 
     public init(container: NSPersistentContainer) {
-        context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
-        context.automaticallyMergesChangesFromParent = true
+        context = SousPersistentContainer.backgroundContext(for: container)
     }
 
     public func thumbnails(for recipeID: UUID) async throws -> [(id: UUID, data: Data)] {
