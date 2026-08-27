@@ -278,10 +278,12 @@ struct RootView: View {
         // docks its player: it floats with the bar and takes no height from
         // the tabs, instead of the hand-made capsule that used to sit above
         // everything.
-        .tabViewBottomAccessory {
-            if showsBanner {
-                ContinueCookingBanner()
-            }
+        // `isEnabled:`, not an `if` inside the builder: the glass capsule
+        // is drawn by the tab bar for the accessory itself, so a builder
+        // that produces nothing still leaves an empty capsule floating
+        // above the tabs of an idle app.
+        .tabViewBottomAccessory(isEnabled: showsBanner) {
+            ContinueCookingBanner()
         }
     }
     #endif

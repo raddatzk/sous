@@ -8,6 +8,7 @@ import SwiftUI
 struct SousApp: App {
     /// The cooking window's id, shared with whoever opens it.
     static let cookWindow = "cook"
+    @Environment(\.scenePhase) private var scenePhase
     @State private var library: RecipeLibrary
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
@@ -206,6 +207,16 @@ struct SousApp: App {
                     // recipe, which is far better than none.
                     SousAppShortcuts.updateAppShortcutParameters()
                     await indexRecipesForSpotlight()
+                }
+                // The launch task above runs once — and on iOS a launch
+                // can be days ago while the app lived in memory. Without
+                // this, the 12-hour grace never fires again and last
+                // night's roast greets this morning's breakfast after all,
+                // "Weiter kochen" band and all.
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    timers.forgetStale()
+                    session.forgetStale()
                 }
                 // A page shared from Safari arrives as sous://import?url=…
                 .onOpenURL { url in
