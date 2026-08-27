@@ -293,6 +293,10 @@ struct RecipeEditorView: View {
                 isFocused: $isEditingIngredients,
                 restyle: RecipeTextEditorStyle.ingredients
             )
+            // Room for a few lines even while empty, so the three text
+            // fields of the form read as siblings instead of the empty
+            // ones collapsing to a slit.
+            .frame(minHeight: 70, alignment: .top)
             if !isCompactPhone {
                 ingredientLinkAndUnknowns
             }
@@ -511,6 +515,7 @@ struct RecipeEditorView: View {
                 isFocused: $isEditingInstructions,
                 restyle: RecipeTextEditorStyle.instructions
             )
+            .frame(minHeight: 70, alignment: .top)
             if !isCompactPhone {
                 instructionLinkButton
                 if amountSuggestionCount > 0 {
@@ -550,8 +555,11 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var notesSection: some View {
         Section {
-            TextField("Notizen", text: optional(\.notes), axis: .vertical)
+            // No placeholder: the section is already called Notizen, and
+            // neither of its two siblings above carries one either.
+            TextField("", text: optional(\.notes), axis: .vertical)
                 .lineLimit(3...)
+                .accessibilityLabel("Notizen")
         } header: {
             sectionHeader("Notizen")
         }
