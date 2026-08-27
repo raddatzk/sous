@@ -586,6 +586,31 @@ struct AmountSuggestionTests {
         #expect(names == ["Kartoffeln", "Butter"])
     }
 
+    @Test("A unit word never claims an ingredient as its compound head")
+    func unitWordIsNotACompoundHead() {
+        // "EL" is capitalized like a noun and "Zwiebel" ends in "el" — the
+        // compound tier read every written "(2 EL)" as a mention of the
+        // recipe's one "-el" ingredient and offered it on steps that never
+        // name it. Found on a real Ajvar soup, where the onion turned up
+        // in the frying and the deglazing step alike.
+        let recipe = Recipe(
+            title: "Ajvar-Suppe",
+            servings: 4,
+            ingredientsText: """
+            1 Zwiebel, rot
+            2 EL Rapsöl
+            2 EL Hefeflocken
+            """,
+            instructionsText: """
+            Rapsöl (2 EL) erhitzen.
+            Hefeflocken (2 EL) hinzugeben.
+            """
+        )
+        let resolution = StepAmountResolver.resolve(recipe, toServings: 4, formatter: formatter)
+        #expect(resolution.suggestions(for: recipe.steps[0]).isEmpty)
+        #expect(resolution.suggestions(for: recipe.steps[1]).isEmpty)
+    }
+
     @Test("An ingredient never named in the step gets no suggestion")
     func nameNotPresent() {
         let recipe = Recipe(

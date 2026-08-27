@@ -608,6 +608,11 @@ public enum StepAmountResolver {
     private static func compoundHeadPot(
         claiming word: Substring, pots: [Pot], stepGroup: String?, catalog: IngredientCatalog
     ) -> Int? {
+        // A unit word is never the noun of a compound. "EL" passes the
+        // capitalized-word filter and the two-letter minimum, and "Zwiebel"
+        // happens to end in "el" — without this, every "(2 EL)" in a step
+        // hands the recipe's one "-el" ingredient a phantom mention.
+        guard case .custom = IngredientUnit(symbol: String(word)) else { return nil }
         let canonical = IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))
         guard !pots.contains(where: { $0.canonicalName == canonical || $0.headCanonicalName == canonical })
         else { return nil }
