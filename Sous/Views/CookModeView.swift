@@ -26,6 +26,10 @@ struct CookModeView: View {
     @State private var isSettingServings = false
     /// A recipe about to be taken off the hob with a timer still running.
     @State private var confirmingFinish: UUID?
+    #if os(macOS)
+    /// The system activity holding the display awake while cooking is up.
+    @State private var awakeActivity: NSObjectProtocol?
+    #endif
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -637,6 +641,17 @@ struct CookModeView: View {
     private func keepDisplayAwake(_ enabled: Bool) {
         #if os(iOS)
         UIApplication.shared.isIdleTimerDisabled = enabled
+        #elseif os(macOS)
+        if enabled {
+            guard awakeActivity == nil else { return }
+            awakeActivity = ProcessInfo.processInfo.beginActivity(
+                options: .idleDisplaySleepDisabled,
+                reason: "Cook mode is on screen"
+            )
+        } else if let activity = awakeActivity {
+            ProcessInfo.processInfo.endActivity(activity)
+            awakeActivity = nil
+        }
         #endif
     }
 }
