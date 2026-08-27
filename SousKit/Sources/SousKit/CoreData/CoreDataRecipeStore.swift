@@ -201,6 +201,39 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
         }
     }
 
+    // MARK: - Migration
+
+    /// Writes a recipe exactly as it stands, timestamps and all.
+    ///
+    /// The one way into this store that does not stamp `updatedAt`, and it
+    /// exists for the migration alone. `save` owns that field on purpose —
+    /// "set by the store, never by the caller" — but a migration is not an
+    /// edit: a library copied across with every row marked as changed just
+    /// now would, on the first sync, upload itself wholesale from whichever
+    /// device migrated first, and `updatedAt` is the field that decides which
+    /// of two devices wins. So it is carried over untouched.
+    ///
+    /// What is *not* carried over is `searchText`, which is derived and gets
+    /// rebuilt here — which is why groups have to be adopted before their
+    /// members, or the members go in without the group's name in their index.
+    public func adopt(_ recipe: Recipe) async throws {
+        try await context.perform {
+            let groupTitle = try recipe.variantGroupID.flatMap { try self.storedGroup(id: $0) }?.title
+            let row = try self.stored(id: recipe.id) ?? CDRecipe(context: self.context)
+            row.apply(recipe, variantGroupTitle: groupTitle)
+            try self.context.save()
+        }
+    }
+
+    /// The same for a group. See ``adopt(_:)``.
+    public func adoptVariantGroup(_ group: VariantGroup) async throws {
+        try await context.perform {
+            let row = try self.storedGroup(id: group.id) ?? CDVariantGroup(context: self.context)
+            row.apply(group)
+            try self.context.save()
+        }
+    }
+
     // MARK: - Variant groups
 
     public func variantGroups() async throws -> [(group: VariantGroup, liveMembers: Int)] {

@@ -90,6 +90,35 @@ public final class CoreDataRecipeImageStore: RecipeImageStore, @unchecked Sendab
         }
     }
 
+    /// Writes a picture that already exists, keeping its id and its place.
+    ///
+    /// The counterpart to `CoreDataRecipeStore.adopt(_:)`, and it skips the
+    /// downsizing `add` does: these bytes were downsized when they were first
+    /// picked, and running them through it again would re-encode a photo for
+    /// no reason on every recipe in the library.
+    ///
+    /// `createdAt` is stamped fresh rather than carried, because the source
+    /// row's copy of it cannot be read through `RecipeImageStore` and nothing
+    /// anywhere reads the field.
+    public func adopt(
+        id: UUID,
+        recipeID: UUID,
+        data: Data,
+        thumbnail: Data,
+        sortOrder: Int
+    ) async throws {
+        try await context.perform {
+            let image = try self.stored(id: id) ?? CDRecipeImage(context: self.context)
+            image.id = id
+            image.recipeID = recipeID
+            image.sortOrder = Int64(sortOrder)
+            image.createdAt = .nowInSyncPrecision
+            image.data = data
+            image.thumbnail = thumbnail
+            try self.context.save()
+        }
+    }
+
     private func images(of recipeID: UUID) throws -> [CDRecipeImage] {
         let request = CDRecipeImage.fetchRequest()
         request.predicate = NSPredicate(format: "recipeID == %@", recipeID as NSUUID)
