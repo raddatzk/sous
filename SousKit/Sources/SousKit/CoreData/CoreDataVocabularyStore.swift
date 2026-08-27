@@ -142,6 +142,29 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
         }
     }
 
+    /// Writes an entry as it stands, timestamp and all. See
+    /// `CoreDataRecipeStore.adopt(_:)` for why the migration needs a door of
+    /// its own.
+    ///
+    /// The parent join is resolved the same way `save` does it, because a
+    /// parent is named rather than pointed at: the entry knows the word, and
+    /// only the store can turn it into the row's id.
+    public func adopt(_ entry: IngredientVocabularyEntry) async throws {
+        guard !entry.key.isEmpty else { return }
+        try await context.perform {
+            let row = try self.row(key: entry.key) ?? {
+                let made = CDVocabularyEntry(context: self.context)
+                made.id = entry.id
+                made.createdAt = .nowInSyncPrecision
+                return made
+            }()
+            row.apply(entry)
+            row.updatedAt = entry.updatedAt
+            row.parentID = try entry.parentName.flatMap { try self.parentID(named: $0, of: row) }
+            try self.context.save()
+        }
+    }
+
     /// The id of the entry `name` refers to, creating a bare row for it if
     /// the cook has never said anything else about it.
     ///

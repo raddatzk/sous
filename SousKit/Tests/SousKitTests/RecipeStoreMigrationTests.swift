@@ -10,19 +10,30 @@ import UniformTypeIdentifiers
 @Suite("Migrating a library between stores")
 struct RecipeStoreMigrationTests {
     /// The SwiftData side, the way a device that has been in use holds it.
-    private func makeSource() throws -> (any RecipeStore, any RecipeImageStore) {
+    /// The SwiftData side, the way a device that has been in use holds it.
+    private func makeSource() throws -> RecipeStoreMigration.Source {
         let container = try ModelContainer.sousContainer(inMemory: true)
-        return (
-            SwiftDataRecipeStore(modelContainer: container),
-            SwiftDataRecipeImageStore(modelContainer: container)
+        return RecipeStoreMigration.Source(
+            recipes: SwiftDataRecipeStore(modelContainer: container),
+            images: SwiftDataRecipeImageStore(modelContainer: container),
+            mealPlan: SwiftDataMealPlanStore(modelContainer: container),
+            vocabulary: SwiftDataVocabularyStore(modelContainer: container),
+            shopping: SwiftDataShoppingListStore(modelContainer: container),
+            amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
+            ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
         )
     }
 
-    private func makeDestination() throws -> (CoreDataRecipeStore, CoreDataRecipeImageStore) {
+    private func makeDestination() throws -> RecipeStoreMigration.Destination {
         let container = try SousPersistentContainer.make(inMemory: true)
-        return (
-            CoreDataRecipeStore(container: container),
-            CoreDataRecipeImageStore(container: container)
+        return RecipeStoreMigration.Destination(
+            recipes: CoreDataRecipeStore(container: container),
+            images: CoreDataRecipeImageStore(container: container),
+            mealPlan: CoreDataMealPlanStore(container: container),
+            vocabulary: CoreDataVocabularyStore(container: container),
+            shopping: CoreDataShoppingListStore(container: container),
+            amountReviews: CoreDataRecipeAmountReviewStore(container: container),
+            ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container)
         )
     }
 
@@ -49,50 +60,44 @@ struct RecipeStoreMigrationTests {
 
     @Test("A library arrives whole — recipes, groups, pictures and the trash")
     func copiesEverything() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let group = try await source.saveVariantGroup(VariantGroup(title: "Chili"))
-        let withGroup = try await source.save(Recipe(
+        let group = try await source.recipes.saveVariantGroup(VariantGroup(title: "Chili"))
+        let withGroup = try await source.recipes.save(Recipe(
             title: "Chili con Carne",
             ingredientsText: "400 g Hackfleisch",
             variantGroupID: group.id
         ))
-        let plain = try await source.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
-        let binned = try await source.save(Recipe(title: "Alter Auflauf"))
-        try await source.delete(id: binned.id)
-        let imageID = try await sourceImages.add(try makeImage(), to: plain.id)
+        let plain = try await source.recipes.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
+        let binned = try await source.recipes.save(Recipe(title: "Alter Auflauf"))
+        try await source.recipes.delete(id: binned.id)
+        let imageID = try await source.images.add(try makeImage(), to: plain.id)
 
-        let report = try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        let report = try await RecipeStoreMigration.run(from: source, to: destination)
 
         #expect(report.recipesCopied == 3)
         #expect(report.groupsCopied == 1)
         #expect(report.imagesCopied == 1)
 
-        #expect(try await destination.recipe(id: withGroup.id)?.variantGroupID == group.id)
-        #expect(try await destination.variantGroup(id: group.id)?.title == "Chili")
-        #expect(try await destination.recipe(id: plain.id)?.ingredientsText == "500 g Mehl")
+        #expect(try await destination.recipes.recipe(id: withGroup.id)?.variantGroupID == group.id)
+        #expect(try await destination.recipes.variantGroup(id: group.id)?.title == "Chili")
+        #expect(try await destination.recipes.recipe(id: plain.id)?.ingredientsText == "500 g Mehl")
         // The trash comes along: a deletion nobody has synced yet is still
         // news, and one that can be undone is still the cook's.
-        #expect(try await destination.recipe(id: binned.id)?.deletedAt != nil)
-        #expect(try await destinationImages.image(id: imageID) != nil)
+        #expect(try await destination.recipes.recipe(id: binned.id)?.deletedAt != nil)
+        #expect(try await destination.images.image(id: imageID) != nil)
     }
 
     @Test("The timestamps are carried over, not restamped")
     func preservesTimestamps() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let saved = try await source.save(Recipe(title: "Brot"))
-        try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        let saved = try await source.recipes.save(Recipe(title: "Brot"))
+        try await RecipeStoreMigration.run(from: source, to: destination)
 
-        let migrated = try #require(try await destination.recipe(id: saved.id))
+        let migrated = try #require(try await destination.recipes.recipe(id: saved.id))
         // The whole point: `save` would stamp this to now, and a library that
         // arrives marked as changed just now uploads itself wholesale on the
         // first sync — from whichever device happened to migrate first.
@@ -102,103 +107,159 @@ struct RecipeStoreMigrationTests {
 
     @Test("Running it twice changes nothing the second time")
     func isIdempotent() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let saved = try await source.save(Recipe(title: "Brot"))
-        _ = try await sourceImages.add(try makeImage(), to: saved.id)
+        let saved = try await source.recipes.save(Recipe(title: "Brot"))
+        _ = try await source.images.add(try makeImage(), to: saved.id)
 
-        try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
-        let second = try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        try await RecipeStoreMigration.run(from: source, to: destination)
+        let second = try await RecipeStoreMigration.run(from: source, to: destination)
 
         #expect(second.isEmpty)
         #expect(second.recipesAlreadyCurrent == 1)
         #expect(second.imagesAlreadyThere == 1)
-        #expect(try await destination.recipes(matching: .all).count == 1)
+        #expect(try await destination.recipes.recipes(matching: .all).count == 1)
     }
 
     @Test("A run that stopped halfway finishes on the next attempt")
     func resumesAfterAnInterruption() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let first = try await source.save(Recipe(title: "Brot"))
-        let second = try await source.save(Recipe(title: "Suppe"))
+        let first = try await source.recipes.save(Recipe(title: "Brot"))
+        let second = try await source.recipes.save(Recipe(title: "Suppe"))
         // What a crash between two rows leaves behind: one there, one not.
-        try await destination.adopt(first)
+        try await destination.recipes.adopt(first)
 
-        let report = try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        let report = try await RecipeStoreMigration.run(from: source, to: destination)
 
         #expect(report.recipesCopied == 1)
         #expect(report.recipesAlreadyCurrent == 1)
-        #expect(try await destination.recipe(id: second.id)?.title == "Suppe")
+        #expect(try await destination.recipes.recipe(id: second.id)?.title == "Suppe")
     }
 
     @Test("Work done in the old store after a migration still comes across")
     func newerSourceWins() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        var recipe = try await source.save(Recipe(title: "Brot"))
-        try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        var recipe = try await source.recipes.save(Recipe(title: "Brot"))
+        try await RecipeStoreMigration.run(from: source, to: destination)
 
         recipe.title = "Brot mit Nüssen"
-        _ = try await source.save(recipe)
-        let report = try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        _ = try await source.recipes.save(recipe)
+        let report = try await RecipeStoreMigration.run(from: source, to: destination)
 
         #expect(report.recipesCopied == 1)
-        #expect(try await destination.recipe(id: recipe.id)?.title == "Brot mit Nüssen")
+        #expect(try await destination.recipes.recipe(id: recipe.id)?.title == "Brot mit Nüssen")
     }
 
     @Test("A migrated member is findable by the name of its group")
     func groupTitleReachesTheIndex() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let group = try await source.saveVariantGroup(VariantGroup(title: "Ajvar-Suppe"))
-        try await source.save(Recipe(title: "Vegane Variante", variantGroupID: group.id))
+        let group = try await source.recipes.saveVariantGroup(VariantGroup(title: "Ajvar-Suppe"))
+        try await source.recipes.save(Recipe(title: "Vegane Variante", variantGroupID: group.id))
 
-        try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
-        )
+        try await RecipeStoreMigration.run(from: source, to: destination)
 
         // Which only works because groups are adopted before their members.
-        let found = try await destination.recipes(matching: RecipeQuery(searchText: "Ajvar"))
+        let found = try await destination.recipes.recipes(matching: RecipeQuery(searchText: "Ajvar"))
         #expect(found.map(\.title) == ["Vegane Variante"])
     }
 
     @Test("The old store is left exactly as it was")
     func sourceIsUntouched() async throws {
-        let (source, sourceImages) = try makeSource()
-        let (destination, destinationImages) = try makeDestination()
+        let source = try makeSource()
+        let destination = try makeDestination()
 
-        let saved = try await source.save(Recipe(title: "Brot"))
-        let imageID = try await sourceImages.add(try makeImage(), to: saved.id)
+        let saved = try await source.recipes.save(Recipe(title: "Brot"))
+        let imageID = try await source.images.add(try makeImage(), to: saved.id)
 
-        try await RecipeStoreMigration.run(
-            from: source, images: sourceImages,
-            to: destination, images: destinationImages
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        #expect(try await source.recipes.recipes(matching: .all).count == 1)
+        #expect(try await source.recipes.recipe(id: saved.id)?.updatedAt == saved.updatedAt)
+        #expect(try await source.images.image(id: imageID) != nil)
+    }
+
+    @Test("The plan, the vocabulary and the shopping list come across too")
+    func copiesTheRestOfTheLibrary() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+
+        let recipe = try await source.recipes.save(Recipe(title: "Linsensuppe", servings: 2))
+        let plan = try #require(source.mealPlan)
+        try await plan.save(MealPlanEntry(day: Date().startOfDay, slot: .dinner, recipeID: recipe.id))
+        try await plan.save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
+        _ = try await source.vocabulary?.save(IngredientVocabularyEntry(
+            name: "Ajvar", aliases: ["Aivar"], isOwnIngredient: true, isPantry: true
+        ))
+        try await source.shopping?.addManual(
+            key: "linsen", name: "Linsen", category: .legumes, quantities: [Quantity(500, .gram)]
         )
 
-        #expect(try await source.recipes(matching: .all).count == 1)
-        #expect(try await source.recipe(id: saved.id)?.updatedAt == saved.updatedAt)
-        #expect(try await sourceImages.image(id: imageID) != nil)
+        let report = try await RecipeStoreMigration.run(from: source, to: destination)
+
+        #expect(report.planEntriesCopied == 2)
+        #expect(report.vocabularyCopied == 1)
+        #expect(report.shoppingItemsCopied == 1)
+
+        let migratedPool = try await destination.mealPlan?.poolEntries() ?? []
+        #expect(migratedPool.count == 1)
+        let ajvar = try #require(try await destination.vocabulary?.entries().first { $0.key == "ajvar" })
+        #expect(ajvar.isPantry)
+        #expect(ajvar.aliases == ["Aivar"])
+        let list = try #require(try await destination.shopping?.snapshot())
+        #expect(list.items.map(\.name) == ["Linsen"])
+    }
+
+    @Test("A checked-off item arrives still checked")
+    func shoppingKeepsItsCheckMarks() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+
+        try await source.shopping?.addManual(
+            key: "mehl", name: "Mehl", category: .grains, quantities: [Quantity(1, .kilogram)]
+        )
+        let before = try #require(try await source.shopping?.snapshot())
+        let item = try #require(before.items.first)
+        try await source.shopping?.setChecked(true, itemID: item.itemID)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        // Through `add` this would have come back open — which is the whole
+        // reason the list has a door of its own.
+        let migrated = try #require(try await destination.shopping?.snapshot().items.first)
+        #expect(migrated.isChecked)
+        #expect(migrated.itemID == item.itemID)
+    }
+
+    @Test("A settled review stays settled; one whose recipe changed does not")
+    func reviewMarksFollowTheirText() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+
+        var settled = try await source.recipes.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
+        try await source.amountReviews?.markReviewed(settled)
+
+        // Reviewed, then edited: the question reopened before the migration
+        // ever ran, and must not arrive answered.
+        var reopened = try await source.recipes.save(Recipe(title: "Suppe", ingredientsText: "1 Zwiebel"))
+        try await source.ingredientReviews?.markReviewed(reopened)
+        reopened.ingredientsText = "2 Zwiebeln"
+        reopened = try await source.recipes.save(reopened)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        settled = try #require(try await destination.recipes.recipe(id: settled.id))
+        #expect(try await destination.amountReviews?.reviewedHash(for: settled.id)
+            == RecipeContentHash.hash(for: settled))
+        let migratedReopened = try #require(try await destination.recipes.recipe(id: reopened.id))
+        #expect(try await destination.ingredientReviews?.reviewedHash(for: migratedReopened.id)
+            != RecipeContentHash.hash(for: migratedReopened))
     }
 }
 

@@ -106,7 +106,7 @@ struct UpdateReconciliationTests {
 
         // And decision D's other half: the reconciliation has nothing to say
         // about it. Only vanished codes are ever reported.
-        let report = try await SwiftDataOrphanReconciliation(modelContainer: container).run(bls: new)
+        let report = try await VocabularyOrphanReconciliation(store: SwiftDataVocabularyStore(modelContainer: container)).run(bls: new)
         #expect(report.orphanedNames.isEmpty)
         #expect(!report.didChangeAnything)
     }
@@ -147,7 +147,7 @@ struct UpdateReconciliationTests {
         let container = try await storeWithOneOrphan()
         let table = bls([("SURVIVES", "Kartoffel geschält, gekocht", 70)])
 
-        let report = try await SwiftDataOrphanReconciliation(modelContainer: container).run(bls: table)
+        let report = try await VocabularyOrphanReconciliation(store: SwiftDataVocabularyStore(modelContainer: container)).run(bls: table)
 
         #expect(report.orphanedNames == ["Schmelzkäse"])
         #expect(report.flagged == 1)
@@ -165,7 +165,7 @@ struct UpdateReconciliationTests {
     func secondRunIsANoOp() async throws {
         let container = try await storeWithOneOrphan()
         let table = bls([("SURVIVES", "Kartoffel geschält, gekocht", 70)])
-        let pass = SwiftDataOrphanReconciliation(modelContainer: container)
+        let pass = VocabularyOrphanReconciliation(store: SwiftDataVocabularyStore(modelContainer: container))
 
         _ = try await pass.run(bls: table)
         let second = try await pass.run(bls: table)
@@ -184,7 +184,7 @@ struct UpdateReconciliationTests {
             ("VANISHED", "Schmelzkäse, mind. 45 % Fett i. Tr.", 280),
         ])
 
-        let report = try await SwiftDataOrphanReconciliation(modelContainer: container).run(bls: table)
+        let report = try await VocabularyOrphanReconciliation(store: SwiftDataVocabularyStore(modelContainer: container)).run(bls: table)
 
         #expect(report.orphanedNames.isEmpty)
         #expect(report.flagged == 0)
@@ -197,7 +197,7 @@ struct UpdateReconciliationTests {
     func mergesRatherThanAssumingItIsFirst() async throws {
         let container = try await storeWithOneOrphan()
         let table = bls([("SURVIVES", "Kartoffel geschält, gekocht", 70)])
-        let pass = SwiftDataOrphanReconciliation(modelContainer: container)
+        let pass = VocabularyOrphanReconciliation(store: SwiftDataVocabularyStore(modelContainer: container))
         _ = try await pass.run(bls: table)
 
         // The extension runs no migration and can be the first writer after

@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 /// The pass that runs when the shipped data has changed under the cook's
 /// vocabulary — the concept's §7 reconciliation, and the last thing phase 6
@@ -55,42 +54,47 @@ public enum OrphanReconciliation {
     }
 }
 
-/// Runs the reconciliation against a SwiftData store.
+/// Runs the reconciliation against any vocabulary store.
 ///
-/// Deliberately built like the two passes before it — a `@ModelActor` with a
-/// `run` returning a report — and deliberately working on the store rather
-/// than through `IngredientCatalogLibrary`: every `setBasis` there drops the
-/// whole nutrition cache twice and rebuilds the vocabulary once, so a hundred
+/// Written against the protocol rather than one framework, because the
+/// vocabulary now has two stores and this pass has to keep working after it
+/// moves. It reads and writes through `VocabularyStore` — deliberately not
+/// through `IngredientCatalogLibrary`: every `setBasis` there drops the whole
+/// nutrition cache twice and rebuilds the vocabulary once, so a hundred
 /// orphaned words would mean two hundred table deletes and a hundred reloads
 /// to set a hundred booleans.
 ///
-/// It merges by key like the others rather than assuming it is the first
-/// writer: the share extension runs no migration at all and can perfectly
-/// well have written a vocabulary row after the update and before the app was
-/// next opened.
-@ModelActor
-public actor SwiftDataOrphanReconciliation {
+/// It merges by key like the passes before it rather than assuming it is the
+/// first writer: the share extension runs no migration at all and can
+/// perfectly well have written a vocabulary row after the update and before
+/// the app was next opened.
+public struct VocabularyOrphanReconciliation: Sendable {
+    private let store: any VocabularyStore
+
+    public init(store: any VocabularyStore) {
+        self.store = store
+    }
+
     /// Idempotent: an entry already carrying the review flag is counted as
     /// orphaned but not written again, so a second run changes nothing.
-    public func run(bls: BLSCatalog = .bundled) throws -> OrphanReconciliation.Report {
+    @discardableResult
+    public func run(bls: BLSCatalog = .bundled) async throws -> OrphanReconciliation.Report {
         var report = OrphanReconciliation.Report()
 
-        for row in try modelContext.fetch(FetchDescriptor<StoredIngredientVocabulary>()) {
-            // Read the blob once: the accessor decodes on every get.
-            let bases = row.bases
-            guard bases.values.contains(where: { $0.isOrphaned(in: bls) }) else { continue }
-            report.orphanedNames.append(row.name)
+        for entry in try await store.entries() {
+            guard entry.bases.values.contains(where: { $0.isOrphaned(in: bls) }) else { continue }
+            report.orphanedNames.append(entry.name)
             // Already on the list — from an earlier run, or from the phase-3
             // stamp for a name that never mapped anywhere. Either way the
             // question is open and asking it twice writes nothing new.
-            guard !row.needsBasisReview else { continue }
-            row.needsBasisReview = true
-            row.updatedAt = .nowInSyncPrecision
+            guard !entry.needsBasisReview else { continue }
+            var flagged = entry
+            flagged.needsBasisReview = true
+            _ = try await store.save(flagged)
             report.flagged += 1
         }
 
         report.orphanedNames.sort()
-        if report.didChangeAnything { try modelContext.save() }
         return report
     }
 }

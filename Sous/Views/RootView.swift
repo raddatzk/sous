@@ -154,7 +154,10 @@ struct RootView: View {
         NavigationSplitView {
             Group {
                 switch navigation.section {
-                case .recipes: RecipeListView()
+                // Search is the phone's fourth tab; here it can only arrive
+                // by state synced from elsewhere, and the recipes list with
+                // the sidebar's search field is what it means.
+                case .recipes, .search: RecipeListView()
                 case .mealPlan: MealPlanView()
                 case .shopping: ShoppingListView()
                 }
@@ -258,14 +261,27 @@ struct RootView: View {
     private var sections: some View {
         @Bindable var navigation = navigation
         TabView(selection: $navigation.section) {
-            ForEach(SousSection.allCases) { section in
+            ForEach(SousSection.mainSections) { section in
                 Tab(section.title, systemImage: section.symbol, value: section) {
                     switch section {
-                    case .recipes: RecipeListView()
+                    // The recipes tab reads; searching lives in the search
+                    // tab. Keeping `searchable` off this instance is what
+                    // lets its collapsed title sit centered like every
+                    // other native bar — a nav-bar search field pushes it
+                    // into the leading edge.
+                    case .recipes: RecipeListView(showsSearch: false)
                     case .mealPlan: MealPlanView()
                     case .shopping: ShoppingListView()
+                    case .search: RecipeListView()
                     }
                 }
+            }
+            // The system search circle beside the tab bar — where a tabbed
+            // app's search lives on iOS 26, instead of a magnifier crammed
+            // into the recipes bar. The tab holds the same list; its
+            // `searchable` field rises from the tab bar itself.
+            Tab(value: SousSection.search, role: .search) {
+                RecipeListView()
             }
         }
         // The floating bar along the top of an iPad, the bar along the foot
@@ -336,14 +352,25 @@ enum SousSection: String, CaseIterable, Identifiable {
     case recipes
     case mealPlan
     case shopping
+    /// The phone's fourth tab, and only the phone's: the system search
+    /// circle beside the tab bar (`Tab(role: .search)`), the way every
+    /// tabbed Apple app carries its search since iOS 26. The Mac and iPad
+    /// search in the sidebar's own field and never show this section.
+    case search
 
     var id: String { rawValue }
+
+    /// The sections that are destinations of their own — what the Mac's
+    /// sidebar and the phone's main tabs list. Search is not among them:
+    /// it is a mode over the recipes, not a fourth place.
+    static let mainSections: [SousSection] = [.recipes, .mealPlan, .shopping]
 
     var title: String {
         switch self {
         case .recipes: "Rezepte"
         case .mealPlan: "Essensplan"
         case .shopping: "Einkaufsliste"
+        case .search: "Suchen"
         }
     }
 
@@ -352,6 +379,7 @@ enum SousSection: String, CaseIterable, Identifiable {
         case .recipes: "book.closed"
         case .mealPlan: "calendar"
         case .shopping: "cart"
+        case .search: "magnifyingglass"
         }
     }
 }

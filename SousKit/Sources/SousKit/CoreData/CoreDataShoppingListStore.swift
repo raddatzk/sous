@@ -197,6 +197,60 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
         }
     }
 
+    // MARK: - Migration
+
+    /// Writes a whole list as it stands — items, their demands, and the
+    /// recipes they were captured from.
+    ///
+    /// `add(_:)` cannot do this: it is the door for *new* demand and would
+    /// re-derive positions, re-decide what counts as a late addition, and
+    /// know nothing of what is already ticked off or swept away. A list
+    /// arriving through it would come back open, reordered, and with the
+    /// shopping done twice.
+    ///
+    /// Positions come from the order of the snapshot itself, which is how
+    /// both stores hand it over — the sort order is not part of the domain
+    /// value, and does not need to be.
+    public func adopt(_ snapshot: ShoppingListSnapshot) async throws {
+        try await context.perform {
+            for (position, plan) in snapshot.planEntries.enumerated() {
+                guard try self.planEntry(id: plan.id) == nil else { continue }
+                let row = CDShoppingPlanEntry(context: self.context)
+                row.apply(plan)
+                row.sortOrder = Int64(position)
+            }
+
+            var demandPosition = 0
+            for (position, item) in snapshot.items.enumerated() {
+                guard try self.entry(itemID: item.itemID) == nil else {
+                    demandPosition += item.demands.count
+                    continue
+                }
+                let row = CDShoppingEntry(context: self.context)
+                row.itemID = item.itemID
+                row.key = item.key
+                row.name = item.name
+                row.categoryRaw = item.category?.rawValue
+                row.manualQuantities = item.manualQuantities
+                row.isChecked = item.isChecked
+                row.isLateAddition = item.isLateAddition
+                // The sweep is remembered as a date, but the domain value
+                // only carries that it happened — which is all anything reads.
+                row.clearedAt = item.isCleared ? .nowInSyncPrecision : nil
+                row.sortOrder = Int64(position)
+                row.addedAt = .nowInSyncPrecision
+                row.updatedAt = .nowInSyncPrecision
+
+                for demand in item.demands {
+                    CDShoppingDemand(context: self.context)
+                        .apply(demand, itemID: item.itemID, sortOrder: demandPosition)
+                    demandPosition += 1
+                }
+            }
+            try self.context.save()
+        }
+    }
+
     // MARK: - Re-scaling
 
     /// Brings the difference rows in line with the dial: demand on open
