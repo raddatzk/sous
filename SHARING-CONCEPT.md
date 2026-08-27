@@ -103,6 +103,16 @@ so an edit reopens the question for everybody at once.
 content hash), and the two legacy rows kept only so a migration can read
 them, `StoredIngredientAliasOverride` and `StoredCatalogNutrition`.
 
+The nutrition cache deserves its own sentence, because "it is only a cache"
+is the weaker half of the reason. `RecipeContentHash` covers the recipe's
+text and the recipes it links to — not the BLS version the figures were
+computed against, which ships with the app and may differ between two
+devices. A synced cache would therefore carry numbers from a device with a
+newer catalog to one with an older, where the same aggregator would never
+have produced them, and the stale hash would match all the while. Recomputing
+costs milliseconds; that kind of silent disagreement costs trust in every
+figure on the screen.
+
 The container therefore splits in two regardless of Core Data, and that
 split — not the entitlement — is the actual work in the first step.
 
