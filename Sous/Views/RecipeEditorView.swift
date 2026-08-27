@@ -182,11 +182,52 @@ struct RecipeEditorView: View {
                 .sousFieldBox()
             }
             .padding(.vertical, 4)
+            suitabilityRow
         } header: {
             sectionHeader("Angaben")
         }
 
         timesSection
+    }
+
+    /// Which meals the recipe suits, as three toggle chips. All off means
+    /// nobody has said — the planner then decides for itself — so there is
+    /// no fourth chip and nothing to reset.
+    private var suitabilityRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Passt als", systemImage: "fork.knife")
+                .font(.subheadline.weight(.medium))
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                ForEach(MealSlot.allCases, id: \.self) { slot in
+                    let isOn = draft.suitableSlots?.contains(slot) == true
+                    Button {
+                        var slots = draft.suitableSlots ?? []
+                        if isOn { slots.remove(slot) } else { slots.insert(slot) }
+                        draft.suitableSlots = slots.isEmpty ? nil : slots
+                    } label: {
+                        // A hand-built label: inside this row's flow layout,
+                        // `Label` answers an unspecified proposal with its
+                        // stacked form and the capsule grows around it.
+                        HStack(spacing: 4) {
+                            Image(systemName: slot.symbolName)
+                            Text(slot.title)
+                        }
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
+                    .buttonStyle(.plain)
+                    .modifier(SuitabilityChip(isOn: isOn))
+                }
+                if draft.suitableSlots == nil {
+                    Text("Automatisch")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private var categoriesBinding: Binding<String> {
@@ -610,6 +651,22 @@ struct RecipeEditorView: View {
             get: { draft[keyPath: keyPath] ?? "" },
             set: { draft[keyPath: keyPath] = $0.isEmpty ? nil : $0 }
         )
+    }
+}
+
+/// A toggle chip: tinted while it holds, neutral while it merely offers —
+/// the same two states the suggestion chips under the fields already use.
+private struct SuitabilityChip: ViewModifier {
+    let isOn: Bool
+
+    func body(content: Content) -> some View {
+        if isOn {
+            content.sousChip()
+        } else {
+            content
+                .sousSuggestionChip()
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

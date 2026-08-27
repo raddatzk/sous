@@ -19,6 +19,7 @@ struct MealPlanView: View {
     @State private var isPickingForPool = false
     @State private var movingEntry: MealPlanEntry?
     @State private var openedRecipe: OpenedRecipe?
+    @State private var isPlanning = false
 
     enum PlanMode: String {
         case calendar
@@ -94,6 +95,11 @@ struct MealPlanView: View {
         }
         .sheet(item: $movingEntry) { entry in
             MoveToDaySheet(entry: entry, title: plan.recipes[entry.recipeID]?.title ?? "Gericht")
+        }
+        .sheet(isPresented: $isPlanning) {
+            // The proposal's default destination follows the door: the
+            // calendar plans onto days, the Sammlung into itself.
+            PlanDinnersSheet(defaultMode: mode == .calendar ? .days : .pool)
         }
     }
 
@@ -335,6 +341,7 @@ struct MealPlanView: View {
 
     @ToolbarContentBuilder
     private var calendarToolbar: some ToolbarContent {
+        planButton
         shoppingListButton
     }
 
@@ -343,7 +350,18 @@ struct MealPlanView: View {
         ToolbarItem(placement: .primaryAction) {
             Button("Gericht vormerken", systemImage: "plus") { isPickingForPool = true }
         }
+        planButton
         shoppingListButton
+    }
+
+    /// Always enabled: the sheet itself explains when there is nothing to
+    /// plan, which beats a mysteriously grey wand.
+    @ToolbarContentBuilder
+    private var planButton: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button("Essen planen", systemImage: "wand.and.stars") { isPlanning = true }
+                .labelStyle(.iconOnly)
+        }
     }
 
     @ToolbarContentBuilder

@@ -142,6 +142,53 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// One accepted placement out of a planner proposal.
+    public enum PlanPlacementKind {
+        /// An undated entry taking its seat — moved, not copied, so its
+        /// identity and servings travel with it.
+        case seatPoolEntry(MealPlanEntry)
+        /// A recipe newly planned, at its own serving count.
+        case addRecipe(Recipe)
+    }
+
+    /// Writes an accepted proposal in one go: every placement saved, then
+    /// one reload. `add` and `move` each reload for themselves, which is
+    /// right for a single tap and would be seven round trips for a plan.
+    public func apply(_ placements: [(day: Date?, kind: PlanPlacementKind)]) async {
+        // The loop sees no reload, so the counts it would read stay stale —
+        // this hands each destination its next free slot instead.
+        var counts: [Date?: Int] = [:]
+        func nextSortOrder(for day: Date?) -> Int {
+            let current = counts[day] ?? day.map { plan(for: $0).count } ?? pool.count
+            counts[day] = current + 1
+            return current
+        }
+        do {
+            for placement in placements {
+                let day = placement.day?.startOfDay
+                switch placement.kind {
+                case .seatPoolEntry(let entry):
+                    var moved = entry
+                    moved.day = day
+                    moved.slot = .dinner
+                    moved.sortOrder = nextSortOrder(for: day)
+                    try await store.save(moved)
+                case .addRecipe(let recipe):
+                    try await store.save(MealPlanEntry(
+                        day: day,
+                        slot: .dinner,
+                        recipeID: recipe.id,
+                        sortOrder: nextSortOrder(for: day)
+                    ))
+                }
+                if let day { extend(through: day) }
+            }
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Changes how many people an already-planned meal is cooked for.
     ///
     /// The same entry rather than a new one, for the same reason `move` keeps
