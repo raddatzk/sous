@@ -7,7 +7,7 @@ import Foundation
 /// One class for both marks: the amount review and the ingredient review hold
 /// the same three fields and differ only in which question they answer.
 @objc(CDReviewMark)
-final class CDReviewMark: NSManagedObject {
+final class CDReviewMark: CDHouseholdMember {
     @NSManaged var recipeID: UUID?
     @NSManaged var reviewedContentHash: String
     @NSManaged var updatedAt: Date?

@@ -4,7 +4,7 @@ import Foundation
 /// The Core Data form of a plan entry — the counterpart to
 /// ``StoredMealPlanEntry``.
 @objc(CDMealPlanEntry)
-final class CDMealPlanEntry: NSManagedObject {
+final class CDMealPlanEntry: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var day: Date?
     @NSManaged var slotRaw: String

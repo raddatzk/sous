@@ -132,6 +132,24 @@ public enum SousPersistentContainer {
         context.automaticallyMergesChangesFromParent = true
     }
 
+    /// The store holding what this person owns, as opposed to households
+    /// they were invited into.
+    ///
+    /// Needed by name, because "which household do I write into" must never
+    /// be answered by a fetch across both stores: a fetch like that can
+    /// return somebody else's household, and then a recipe written tonight
+    /// lands in their library instead of this one.
+    public static func privateStore(
+        in coordinator: NSPersistentStoreCoordinator
+    ) -> NSPersistentStore? {
+        let url = storeURL()
+        let stores = coordinator.persistentStores
+        // By URL rather than by position: the order the coordinator lists
+        // them in is not promised, and picking the wrong one here is exactly
+        // the mistake this function exists to prevent.
+        return stores.first { $0.url == url } ?? stores.first
+    }
+
     /// Beside the SwiftData store in the app group, under its own name. The
     /// app and its share extension both read from there, and a recipe saved
     /// from Safari has to land where the app looks.

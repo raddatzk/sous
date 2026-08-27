@@ -8,7 +8,7 @@ import Foundation
 /// one, because the migration from SwiftData to Core Data reads the old store
 /// and writes the new.
 @objc(CDRecipe)
-final class CDRecipe: NSManagedObject {
+final class CDRecipe: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var title: String
     @NSManaged var summary: String?
@@ -123,7 +123,7 @@ final class CDRecipe: NSManagedObject {
 
 /// The Core Data form of a ``VariantGroup``.
 @objc(CDVariantGroup)
-final class CDVariantGroup: NSManagedObject {
+final class CDVariantGroup: CDHouseholdMember {
     @NSManaged var id: UUID?
     @NSManaged var title: String
     @NSManaged var createdAt: Date?
