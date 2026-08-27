@@ -8,6 +8,10 @@ struct RecipeDetailView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(NutritionLibrary.self) private var nutritionLibrary
     @Environment(RecipeSelection.self) private var selection
+    /// Restoring from the trash leaves this page behind — the recipe is
+    /// back in the collection, and the reader came from the trash list.
+    /// A no-op where the view is not presented, like the Mac's detail column.
+    @Environment(\.dismiss) private var dismiss
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
@@ -520,7 +524,10 @@ struct RecipeDetailView: View {
                 .font(.subheadline.weight(.medium))
             Spacer()
             Button("Wiederherstellen") {
-                Task { await library.restore(recipe) }
+                Task {
+                    await library.restore(recipe)
+                    dismiss()
+                }
             }
             .buttonStyle(.borderedProminent)
         }
@@ -1173,7 +1180,10 @@ struct RecipeDetailView: View {
             Menu("Mehr", systemImage: "ellipsis.circle") {
                 if recipe.isDeleted {
                     Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
-                        Task { await library.restore(recipe) }
+                        Task {
+                            await library.restore(recipe)
+                            dismiss()
+                        }
                     }
                 }
                 // Editing stays: a recipe in the trash is an ordinary recipe
@@ -1226,6 +1236,16 @@ struct RecipeDetailView: View {
                         systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
                     ) {
                         Task { await library.toggleWantToCook(recipe) }
+                    }
+                    Divider()
+                    // The same soft delete the list offers — into the trash,
+                    // not gone — and the page leaves with the recipe: what
+                    // it shows is no longer part of the collection.
+                    Button("Löschen", systemImage: "trash", role: .destructive) {
+                        Task {
+                            await library.delete(recipe)
+                            dismiss()
+                        }
                     }
                 }
             }
