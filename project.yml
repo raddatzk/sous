@@ -78,6 +78,17 @@ targets:
         ITSAppUsesNonExemptEncryption: false
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: true
+        # The iPad has to offer all four, or the upload is rejected outright:
+        # a window that cannot rotate cannot be a multitasking window. The
+        # phone stays upright, which is how a recipe is read while cooking
+        # and the only orientation the layouts have been seen in.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         # Without this, tapping an invitation link tells the invitee the app
         # does not support sharing — before any of our code runs.
         CKSharingSupported: true
