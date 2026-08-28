@@ -120,6 +120,11 @@ private struct RepresentableTextView: UIViewRepresentable {
         context.coordinator.syncIfNeeded(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
         if isFocused?.wrappedValue == true, !textView.isFirstResponder {
             textView.becomeFirstResponder()
+        } else if isFocused?.wrappedValue == false, textView.isFirstResponder {
+            // The mirror reads both ways: the editor's keyboard bar closes
+            // the keyboard by clearing this, and a text view that only ever
+            // heard "become" would keep it up.
+            textView.resignFirstResponder()
         }
     }
 

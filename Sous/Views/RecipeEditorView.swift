@@ -31,6 +31,11 @@ struct RecipeEditorView: View {
     /// state so a keystroke re-renders without re-resolving inline.
     @State private var amountSuggestionCount = 0
     @State private var isReviewingAmounts = false
+    /// Which of the plain fields is being typed in, so that "Fertig" above
+    /// the keyboard has something to let go of. The two big editors are not
+    /// in here: they are a `UITextView` and mirror their focus separately,
+    /// through `isEditingIngredients` / `isEditingInstructions`.
+    @FocusState private var focusedField: EditorField?
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -82,6 +87,13 @@ struct RecipeEditorView: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar { editorToolbar }
+            #if os(iOS)
+            // Two ways out of the keyboard, because the fields here offer
+            // none of their own: the number pads have no return key at all,
+            // and the wrapping fields spend theirs on a line break.
+            .toolbar { keyboardToolbar }
+            .scrollDismissesKeyboard(.interactively)
+            #endif
             // Sits above the keyboard while an ingredient is being typed.
             .safeAreaInset(edge: .bottom) { completionBar }
             .sheet(item: $linkTarget) { target in
@@ -160,13 +172,36 @@ struct RecipeEditorView: View {
     @ViewBuilder
     private var titleSection: some View {
         Section {
+            // Wrapping (`axis: .vertical`), because a long title should be
+            // readable while it is written — but not *broken*: a title is
+            // one line however many it takes to draw. See `flattenTitle`.
             TextField("Titel", text: $draft.title, axis: .vertical)
                 .font(SousStyle.recipeTitle)
                 .lineLimit(1...3)
+                .focused($focusedField, equals: .title)
+                .onChange(of: draft.title) { _, title in flattenTitle(title) }
             TextField("Kurzbeschreibung", text: optional(\.summary), axis: .vertical)
                 .foregroundStyle(.secondary)
                 .lineLimit(1...4)
+                .focused($focusedField, equals: .summary)
         }
+    }
+
+    /// Keeps the title to one line.
+    ///
+    /// The field wraps, so it takes a return key rather than a "Fertig" —
+    /// and a title with a line break in it is nothing anywhere else in the
+    /// app can show: the row, the page's hero and the plan all draw it as
+    /// one line. So the break is taken out again, and the return does what
+    /// it does in every single-line field instead: it ends the typing.
+    ///
+    /// A pasted-in break becomes a space rather than being dropped, or the
+    /// words on either side of it would be glued together.
+    private func flattenTitle(_ title: String) {
+        guard title.contains(where: \.isNewline) else { return }
+        let endsWithReturn = title.last?.isNewline == true
+        draft.title = title.split(whereSeparator: \.isNewline).joined(separator: " ")
+        if endsWithReturn { focusedField = nil }
     }
 
     @ViewBuilder
@@ -187,6 +222,7 @@ struct RecipeEditorView: View {
                 )
                 .textFieldStyle(.plain)
                 .sousFieldBox()
+                .focused($focusedField, equals: .categories)
             }
             .padding(.vertical, 4)
             suitabilityRow
@@ -224,7 +260,7 @@ struct RecipeEditorView: View {
                         .fixedSize()
                     }
                     .buttonStyle(.plain)
-                    .modifier(SuitabilityChip(isOn: isOn))
+                    .sousToggleChip(isOn: isOn)
                 }
                 if draft.suitableSlots == nil {
                     Text("Automatisch")
@@ -270,17 +306,17 @@ struct RecipeEditorView: View {
     private var timesSection: some View {
         Section {
             LabeledContent {
-                MinutesField(seconds: $draft.prepTimeSeconds)
+                MinutesField(seconds: $draft.prepTimeSeconds, field: .prepTime, focus: $focusedField)
             } label: {
                 Label("Vorbereitung", systemImage: "clock")
             }
             LabeledContent {
-                MinutesField(seconds: $draft.cookTimeSeconds)
+                MinutesField(seconds: $draft.cookTimeSeconds, field: .cookTime, focus: $focusedField)
             } label: {
                 Label("Zubereitung", systemImage: "flame")
             }
             LabeledContent {
-                MinutesField(seconds: $draft.totalTimeSeconds)
+                MinutesField(seconds: $draft.totalTimeSeconds, field: .totalTime, focus: $focusedField)
             } label: {
                 Label("Gesamt", systemImage: "hourglass")
             }
@@ -362,6 +398,22 @@ struct RecipeEditorView: View {
         .scrollIndicators(.hidden)
     }
 
+    #if os(iOS)
+    /// "Fertig" over the keyboard, for the fields that have no way of their
+    /// own to end: the number pads, and the wrapping ones whose return key
+    /// writes a line break.
+    ///
+    /// It only ever appears over SwiftUI's own fields — the two big editors
+    /// are a `UITextView` and get their own, in `completionBar`.
+    @ToolbarContentBuilder
+    private var keyboardToolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Fertig") { focusedField = nil }
+        }
+    }
+    #endif
+
     /// The bar docked above the keyboard, drawn as a bottom safe-area inset
     /// so SwiftUI lifts it clear of the keyboard for us.
     ///
@@ -380,7 +432,12 @@ struct RecipeEditorView: View {
     private var completionBar: some View {
         if isCompactPhone {
             if isEditingIngredients {
-                keyboardBarChrome { ingredientAccessoryBar }
+                keyboardBarChrome {
+                    HStack(spacing: 12) {
+                        ingredientAccessoryBar
+                        dismissEditorButton { isEditingIngredients = false }
+                    }
+                }
             } else if isEditingInstructions {
                 keyboardBarChrome {
                     HStack(spacing: 16) {
@@ -388,6 +445,8 @@ struct RecipeEditorView: View {
                         if amountSuggestionCount > 0 {
                             amountLintButton
                         }
+                        Spacer(minLength: 0)
+                        dismissEditorButton { isEditingInstructions = false }
                     }
                     .font(.callout)
                 }
@@ -395,6 +454,19 @@ struct RecipeEditorView: View {
         } else if !completions.isEmpty {
             keyboardBarChrome { completionChips(compact: false) }
         }
+    }
+
+    /// The way out of the two big editors. Their return key writes a step or
+    /// an ingredient and cannot also mean "done", and they are the one place
+    /// in this form where scrolling the keyboard away is awkward — the
+    /// editor grows under the finger as the recipe does.
+    private func dismissEditorButton(_ close: @escaping () -> Void) -> some View {
+        Button("Tastatur schließen", systemImage: "keyboard.chevron.compact.down") {
+            close()
+        }
+        .labelStyle(.iconOnly)
+        .font(.title3)
+        .buttonStyle(.plain)
     }
 
     /// One opaque strip, hairline-separated from the form behind it. Opaque
@@ -567,6 +639,7 @@ struct RecipeEditorView: View {
             TextField("", text: optional(\.notes), axis: .vertical)
                 .lineLimit(3...)
                 .accessibilityLabel("Notizen")
+                .focused($focusedField, equals: .notes)
         } header: {
             sectionHeader("Notizen")
         }
@@ -669,31 +742,34 @@ struct RecipeEditorView: View {
     }
 }
 
-/// A toggle chip: tinted while it holds, neutral while it merely offers —
-/// the same two states the suggestion chips under the fields already use.
-private struct SuitabilityChip: ViewModifier {
-    let isOn: Bool
-
-    func body(content: Content) -> some View {
-        if isOn {
-            content.sousChip()
-        } else {
-            content
-                .sousSuggestionChip()
-                .foregroundStyle(.secondary)
-        }
-    }
+/// The fields the editor can be typing in — the plain ones, which SwiftUI's
+/// focus can address. Named at file scope because `MinutesField` is a view of
+/// its own and has to speak the same language.
+enum EditorField: Hashable {
+    case title
+    case summary
+    case categories
+    case notes
+    case prepTime
+    case cookTime
+    case totalTime
 }
 
 /// A minutes field over a seconds-based property.
 private struct MinutesField: View {
     @Binding var seconds: Int?
+    /// Which field this is, and where the editor keeps its focus — a number
+    /// pad has no return key, so without a "Fertig" that can let go of it
+    /// this field is a keyboard nobody can close.
+    let field: EditorField
+    @FocusState.Binding var focus: EditorField?
 
     var body: some View {
         HStack(spacing: 4) {
             TextField("–", text: minutes)
                 .frame(width: 56)
                 .multilineTextAlignment(.trailing)
+                .focused($focus, equals: field)
             #if os(iOS)
                 .keyboardType(.numberPad)
             #endif
