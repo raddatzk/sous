@@ -388,10 +388,15 @@ enum SousSection: String, CaseIterable, Identifiable {
     case recipes
     case mealPlan
     case shopping
-    /// The phone's fourth tab, and only the phone's: the system search
-    /// circle beside the tab bar (`Tab(role: .search)`), the way every
-    /// tabbed Apple app carries its search since iOS 26. The Mac and iPad
-    /// search in the sidebar's own field and never show this section.
+    /// The search tab: the system search circle beside the tab bar
+    /// (`Tab(role: .search)`), the way every tabbed Apple app carries its
+    /// search since iOS 26.
+    ///
+    /// The phone and the iPad both have it, since both carry the tab bar —
+    /// on the iPad the circle sits at the end of the floating bar along the
+    /// top and opens its field there. Only the Mac never shows this section:
+    /// it searches in the sidebar's own field, and a section arriving there
+    /// by synced state means the recipe list.
     case search
 
     var id: String { rawValue }
