@@ -5,7 +5,7 @@ import Foundation
 /// Makes the Core Data container the household's library lives in, and
 /// mirrors it into iCloud.
 public enum SousPersistentContainer {
-    public static let appGroup = "group.me.raddatz.sous"
+    public static let appGroup = SousAppGroup.identifier
 
     /// The iCloud container the household's rows are mirrored into. It has to
     /// exist in the developer account; a build signed without it cannot use
@@ -219,8 +219,17 @@ public enum SousPersistentContainer {
         containerDirectory().appending(path: "Sous-shared.sqlite")
     }
 
+    /// The app group where there is one, and the app's own Application
+    /// Support where there is not — the Mac, and any test host.
+    ///
+    /// Created if missing, because a sandboxed app's Application Support
+    /// directory does not exist until somebody makes it, and Core Data given
+    /// a URL under a directory that is not there reports a store that failed
+    /// to open rather than making the path itself.
     private static func containerDirectory() -> URL {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-            ?? URL.applicationSupportDirectory
+        if let group = SousAppGroup.url { return group }
+        let support = URL.applicationSupportDirectory
+        try? FileManager.default.createDirectory(at: support, withIntermediateDirectories: true)
+        return support
     }
 }
