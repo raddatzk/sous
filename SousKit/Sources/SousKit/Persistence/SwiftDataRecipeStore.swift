@@ -34,6 +34,12 @@ public actor SwiftDataRecipeStore: RecipeStore {
                 results = results.filter { recipe in
                     recipe.categories.contains { $0.lowercased() == filter.key }
                 }
+            case .slot:
+                // The recipe's own word only; the guess that stands in for
+                // "Automatisch" is the library's to add.
+                results = results.filter { recipe in
+                    recipe.suitableSlotsRaw?.contains(filter.key) == true
+                }
             }
         }
         return results.map(\.domainValue)

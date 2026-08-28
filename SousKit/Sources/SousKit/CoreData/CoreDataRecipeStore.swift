@@ -49,6 +49,13 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
                     results = results.filter { recipe in
                         recipe.categories.contains { $0.lowercased() == filter.key }
                     }
+                case .slot:
+                    // What the recipe itself says. The guess that fills in
+                    // "Automatisch" lives in the enrichment cache, which is
+                    // a floor above this one — see ``RecipeLibrary``.
+                    results = results.filter { recipe in
+                        recipe.statedSlots.contains(filter.key)
+                    }
                 }
             }
             return results.compactMap(\.domainValue)

@@ -36,6 +36,64 @@ struct RecipeLibraryTests {
         #expect(library.query.onlyWantToCook)
     }
 
+    @Test("A meal filter reads the recipe first and the cached guess second")
+    func slotFilterUsesStatedMealsThenTheGuess() async throws {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let store = SwiftDataRecipeStore(modelContainer: container)
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
+        let library = RecipeLibrary(
+            store: store,
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: enrichment,
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        )
+
+        let stated = try await store.save(Recipe(title: "Porridge", suitableSlots: [.breakfast]))
+        let guessed = try await store.save(Recipe(title: "Overnight Oats"))
+        let unjudged = try await store.save(Recipe(title: "Unentschieden"))
+        try await enrichment.saveSuitabilityGuess(
+            [.breakfast],
+            for: guessed.id,
+            inputHash: MealSuitabilityClassifier.inputHash(for: guessed)
+        )
+
+        let breakfast = await library.findRecipes(matching: "", filters: [.slot(.breakfast)])
+
+        // The one that says so and the one that was guessed — and not the one
+        // nobody has judged, which is why this filter is "what is known"
+        // rather than "what is likely".
+        #expect(breakfast.map(\.title) == ["Overnight Oats", "Porridge"])
+        #expect(!breakfast.contains { $0.id == unjudged.id })
+        #expect(breakfast.contains { $0.id == stated.id })
+    }
+
+    @Test("A guess made against older words does not answer for the new ones")
+    func staleGuessesAreNotUsed() async throws {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let store = SwiftDataRecipeStore(modelContainer: container)
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
+        let library = RecipeLibrary(
+            store: store,
+            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
+            enrichmentStore: enrichment,
+            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+        )
+
+        var recipe = try await store.save(Recipe(title: "Overnight Oats", ingredientsText: "Haferflocken"))
+        try await enrichment.saveSuitabilityGuess(
+            [.breakfast],
+            for: recipe.id,
+            inputHash: MealSuitabilityClassifier.inputHash(for: recipe)
+        )
+        // Rewritten into something else entirely: the old judgment was about
+        // words that are gone.
+        recipe.ingredientsText = "Rinderhack, Tomaten"
+        _ = try await store.save(recipe)
+
+        let breakfast = await library.findRecipes(matching: "", filters: [.slot(.breakfast)])
+        #expect(breakfast.isEmpty)
+    }
+
     @Test("Saving a recipe puts it into the list and its categories")
     func saveAppears() async throws {
         let (library, _) = try makeLibrary()

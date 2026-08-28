@@ -240,6 +240,33 @@ struct RecipeFilterTests {
         #expect(withCategory.map(\.title) == ["Beides"])
     }
 
+    @Test("Filtering by meal goes by what the recipe states", arguments: StoreBackend.allCases)
+    func slotFilterMatchesStatedMeals(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        try await store.save(Recipe(title: "Porridge", suitableSlots: [.breakfast]))
+        try await store.save(Recipe(title: "Eintopf", suitableSlots: [.lunch, .dinner]))
+        // "Automatisch": nobody has said, so the store has nothing to go on.
+        // Filling that in is the library's job, out of the planner's cache.
+        try await store.save(Recipe(title: "Unentschieden"))
+
+        let breakfast = try await store.recipes(matching: RecipeQuery(filters: [.slot(.breakfast)]))
+        #expect(breakfast.map(\.title) == ["Porridge"])
+
+        let dinner = try await store.recipes(matching: RecipeQuery(filters: [.slot(.dinner)]))
+        #expect(dinner.map(\.title) == ["Eintopf"])
+    }
+
+    @Test("Typed text is offered as the meal it names")
+    func mealsAreSuggested() throws {
+        let suggestions = RecipeFilter.suggestions(
+            for: "früh",
+            catalog: .bundled,
+            categories: []
+        )
+
+        #expect(suggestions.contains { $0.slot == .breakfast })
+    }
+
     @Test("Typed text is offered as the filters it could be")
     func suggestions() throws {
         let suggestions = RecipeFilter.suggestions(
