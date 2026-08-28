@@ -50,20 +50,91 @@ struct MealPlanView: View {
 
     @Environment(RecipeSelection.self) private var selection
 
+    /// Below this the plan and a recipe stop fitting beside each other, and a
+    /// tapped meal opens as a page of its own instead.
+    ///
+    /// Derived rather than picked. The day rows need 380 — the width the
+    /// Mac's column settled on, after 320 left the weekday, the date and the
+    /// menu that adds a meal fighting over one line — and the recipe page
+    /// needs 740 to keep its own two columns rather than being squeezed back
+    /// into one. The sum lands between an iPad's two ways up: every iPad,
+    /// from the mini to the 13-inch, is under it in portrait and over it in
+    /// landscape, which is the shape this was asked for. Measured rather than
+    /// asked of the orientation, so a wide shared window gets it too and a
+    /// narrow one does not.
+    private static let splitWidth: CGFloat = 1120
+    private static let planWidth: CGFloat = 380
+
     var body: some View {
         // The Mac has one split view for the whole window, so this is only
-        // its first column; the phone brings its own stack and pushes.
+        // its first column.
         #if os(macOS)
         planColumn
         #else
-        NavigationStack {
-            planColumn
-                .navigationDestination(item: $openedRecipe) { opened in
-                    RecipeDetailView(recipe: opened.recipe, plannedEntryID: opened.entryID)
+        GeometryReader { screen in
+            if screen.size.width >= Self.splitWidth {
+                // Planning a week is a back and forth between the plan and
+                // the recipe being considered for it, and pushing a page over
+                // the plan loses the place in the week on every look. Beside
+                // it, the week stays put while the recipes change.
+                NavigationSplitView {
+                    planColumn
+                        .navigationSplitViewColumnWidth(
+                            min: Self.planWidth, ideal: 420, max: 560
+                        )
+                        // No way to collapse the column, for the reason the
+                        // Mac's window gives: it is the only way to another
+                        // meal. Collapsed, the tab is a recipe with no plan
+                        // to get back to — and the tab bar cannot help,
+                        // since this *is* the tab. On the column rather than
+                        // on the split view: the button belongs to the bar
+                        // the first column brings, and asking the split view
+                        // to drop it left it sitting there.
+                        .toolbar(removing: .sidebarToggle)
+                } detail: {
+                    openedDetail
                 }
+                // Both columns at once. The plan is the reason this screen
+                // exists; an overlaid sidebar would put it behind a button.
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                // The phone's shape, and the iPad's upright: one column, and
+                // a tapped meal pushes over it.
+                NavigationStack {
+                    planColumn
+                        .navigationDestination(item: $openedRecipe) { opened in
+                            RecipeDetailView(
+                                recipe: opened.recipe, plannedEntryID: opened.entryID
+                            )
+                        }
+                }
+            }
         }
         #endif
     }
+
+    #if os(iOS)
+    /// What stands beside the plan: the meal last opened from it, or the
+    /// reason there is nothing there yet.
+    ///
+    /// The selection belongs to this tab rather than to the app. A tab is a
+    /// place you leave and come back to, and coming back to the shopping list
+    /// to find a recipe from twenty minutes ago still open beside it would be
+    /// a leftover rather than a context — which is the difference between
+    /// three tabs and the Mac's one window with a switch in it.
+    @ViewBuilder
+    private var openedDetail: some View {
+        if let opened = openedRecipe {
+            RecipeDetailView(recipe: opened.recipe, plannedEntryID: opened.entryID)
+        } else {
+            ContentUnavailableView(
+                "Kein Gericht ausgewählt",
+                systemImage: "calendar",
+                description: Text("Wähle links ein geplantes Gericht aus.")
+            )
+        }
+    }
+    #endif
 
     @ViewBuilder
     private var planColumn: some View {
@@ -130,6 +201,20 @@ struct MealPlanView: View {
         .padding(.bottom, 8)
     }
 
+    /// Which of the two the plan is showing.
+    ///
+    /// The list style is left to the platform on purpose, though it means the
+    /// week wears two skins: inset-grouped cards standing in a tab, flat
+    /// sidebar rows standing in a split view's first column.
+    ///
+    /// Forcing the card look into the column was tried and given up. A first
+    /// column is drawn at the elevated interface level, where
+    /// `systemGroupedBackground` and the row's own colour swap places — so
+    /// `.insetGrouped` there produced grey cards on white, the two tones of
+    /// the upright plan exactly the wrong way round. Naming both colours by
+    /// hand would mean compensating for that swap here and not on the phone,
+    /// in both schemes, against a system rule that is not ours to keep. A
+    /// skin that changes with the shape is the smaller price.
     @ViewBuilder
     private var content: some View {
         switch mode {
