@@ -120,8 +120,10 @@ struct RecipeListView: View {
         #endif
     }
 
+    /// One recipe per line, the picture beside the name. What a phone gets,
+    /// what a narrow window gets, and what the Mac's first column is.
     @ViewBuilder
-    private var list: some View {
+    private var listBody: some View {
         @Bindable var library = library
 
         List(selection: $selected) {
@@ -168,7 +170,162 @@ struct RecipeListView: View {
         // half a title below the field. The list keeps its own spacing.
         .contentMargins(.top, 0, for: .scrollContent)
         #endif
-        .sousReadableList()
+    }
+
+    #if os(iOS)
+    /// Where the library stops being a list and becomes a shelf.
+    ///
+    /// Two cards of a readable width with a gap between them — the same
+    /// number the other lists cap at, and deliberately so: exactly where a
+    /// row stops being able to use the width, the shelf starts using it.
+    private static let shelfWidth: CGFloat = 700
+    /// The narrowest a card may be before its name stops fitting on two
+    /// lines. `adaptive` fills the rest: two columns upright, three or four
+    /// on a wide iPad, without anyone counting.
+    private static let cardWidth: CGFloat = 260
+
+    /// A run of the library that the shelf draws in one go.
+    ///
+    /// The list nests a group's versions under its heading by indenting them.
+    /// A grid has no indent, so the nesting becomes blocks instead: the loose
+    /// recipes flow together, and each group gets a heading of its own with
+    /// its versions under it.
+    private enum ShelfBlock: Identifiable {
+        case recipes([Recipe])
+        case group(VariantGroup, members: [Recipe])
+
+        var id: UUID {
+            switch self {
+            case .recipes(let recipes): recipes.first?.id ?? UUID()
+            case .group(let group, _): group.id
+            }
+        }
+    }
+
+    /// Chunks the library's entries into those blocks, keeping their order.
+    private var shelfBlocks: [ShelfBlock] {
+        var blocks: [ShelfBlock] = []
+        var loose: [Recipe] = []
+        for entry in library.entries {
+            switch entry {
+            case .recipe(let recipe):
+                loose.append(recipe)
+            case .group(let group, let members):
+                if !loose.isEmpty {
+                    blocks.append(.recipes(loose))
+                    loose = []
+                }
+                blocks.append(.group(group, members: members))
+            }
+        }
+        if !loose.isEmpty { blocks.append(.recipes(loose)) }
+        return blocks
+    }
+
+    /// The library as a shelf of cards.
+    @ViewBuilder
+    private var shelf: some View {
+        @Bindable var library = library
+
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 24) {
+                filterBar
+                ForEach(shelfBlocks) { block in
+                    switch block {
+                    case .recipes(let recipes):
+                        cardGrid(recipes)
+                    case .group(let group, let members):
+                        VStack(alignment: .leading, spacing: 12) {
+                            groupHeading(group, members: members)
+                            cardGrid(members)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        // The page the cards stand on. A `ScrollView` brings the plain
+        // background, and white cards on white is no card at all — the list
+        // gets this from its grouped style without asking, and the shelf has
+        // to ask.
+        .background(Color(uiColor: .systemGroupedBackground))
+    }
+
+    private func cardGrid(_ recipes: [Recipe]) -> some View {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: Self.cardWidth), spacing: 16)],
+            alignment: .leading,
+            spacing: 16
+        ) {
+            ForEach(recipes) { recipe in
+                card(for: recipe)
+            }
+        }
+    }
+
+    /// One recipe as a card.
+    ///
+    /// No swipe actions, unlike the row: a card has no edge to swipe from,
+    /// and the two judgments a thumb passes while scrolling — favourite,
+    /// want to cook — stay on the long-press menu, which already carries
+    /// them. The gesture belongs to the shape it was designed for, and that
+    /// shape is still what a phone gets.
+    private func card(for recipe: Recipe) -> some View {
+        Button {
+            selected = .recipe(recipe.id)
+        } label: {
+            RecipeRow(recipe: recipe, layout: .card)
+        }
+        .buttonStyle(.plain)
+        .matchedTransitionSource(id: recipe.id, in: zoomNamespace)
+        .contextMenu {
+            contextActions(for: recipe)
+        } preview: {
+            RecipePreviewCard(recipe: recipe)
+                .environment(library)
+        }
+    }
+
+    /// A group's heading above its versions — the same row the list draws,
+    /// opening the same comparison.
+    private func groupHeading(_ group: VariantGroup, members: [Recipe]) -> some View {
+        Button {
+            selected = .group(group.id)
+        } label: {
+            VariantGroupRow(
+                group: group,
+                shown: members.count,
+                total: library.variantMemberCounts[group.id] ?? members.count
+            )
+        }
+        .buttonStyle(.plain)
+        .contextMenu { groupActions(for: group) }
+    }
+    #endif
+
+    /// The library, as whichever shape the width can carry.
+    ///
+    /// No readable-width cap on this one, unlike the other two lists: where a
+    /// row would start wasting the width, this screen has a better answer for
+    /// it than a margin.
+    @ViewBuilder
+    private var entries: some View {
+        #if os(macOS)
+        listBody
+        #else
+        GeometryReader { screen in
+            if screen.size.width >= Self.shelfWidth {
+                shelf
+            } else {
+                listBody
+            }
+        }
+        #endif
+    }
+
+    private var list: some View {
+        entries
         // The joined household's name when one is active — the list is its
         // library then, and calling it by the generic name would hide the
         // one fact that matters about what is on screen.

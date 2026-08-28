@@ -10,7 +10,23 @@ import SwiftUI
 /// to cook tonight — and separate lines for each would make every row tall
 /// enough that only a handful fit on screen.
 struct RecipeRow: View {
+    /// Which of the two shapes a recipe takes.
+    ///
+    /// Both live here rather than in two views, because the four status
+    /// glyphs, the time and the categories are what a recipe is allowed to
+    /// say about itself in a library — and two views would drift apart on
+    /// that. Only the arrangement differs: the row lays it out beside the
+    /// picture, the card under it.
+    enum Layout {
+        /// Picture at the left, everything else beside it.
+        case row
+        /// Picture on top, everything else under it — the shelf a wide
+        /// library becomes.
+        case card
+    }
+
     let recipe: Recipe
+    var layout: Layout = .row
 
     @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
@@ -31,20 +47,12 @@ struct RecipeRow: View {
     private static let visibleCategories = 3
 
     var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            thumbnail
-            VStack(alignment: .leading, spacing: 7) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(recipe.title)
-                        .font(SousStyle.recipeName)
-                        .lineLimit(2)
-                    Spacer(minLength: 0)
-                    markers
-                }
-                attributes
+        Group {
+            switch layout {
+            case .row: rowShape
+            case .card: cardShape
             }
         }
-        .padding(.vertical, 6)
         .task(id: recipe.id) {
             needsAmountReview = await library.needsAmountReview(recipe)
         }
@@ -62,6 +70,76 @@ struct RecipeRow: View {
         }
         .task(id: recipe.id) {
             needsIngredientReview = await library.needsIngredientReview(recipe)
+        }
+    }
+
+    private var rowShape: some View {
+        HStack(alignment: .center, spacing: 14) {
+            thumbnail
+            VStack(alignment: .leading, spacing: 7) {
+                titleLine
+                attributes
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    /// The picture first and large, then the name under it.
+    ///
+    /// Which is what a shelf is: you recognise the dish before you read it.
+    /// Four to three rather than square — a photographed plate is wider than
+    /// it is tall, and a square crop cuts the ends off it.
+    private var cardShape: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Color.clear
+                .aspectRatio(4 / 3, contentMode: .fit)
+                .overlay { picture }
+                .clipped()
+            VStack(alignment: .leading, spacing: 7) {
+                titleLine
+                attributes
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+        }
+        // Filling the cell rather than the content, so a row of cards has one
+        // bottom edge: a name that wraps to two lines would otherwise leave
+        // its neighbours' cards short, and the shelf ended up ragged along
+        // every row.
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Color.sousBackground)
+        .clipShape(.rect(cornerRadius: 18, style: .continuous))
+    }
+
+    /// The name, and what the four glyphs have to say beside it.
+    private var titleLine: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(recipe.title)
+                .font(SousStyle.recipeName)
+                .lineLimit(2)
+            Spacer(minLength: 0)
+            markers
+        }
+    }
+
+    /// The stored picture, or the same empty plate the row shows.
+    ///
+    /// The full image rather than the stored thumbnail, which is 400 pixels
+    /// across — right for a 68-point row and soft blown up to a card three
+    /// hundred points wide. A grid is lazy, so this is the handful on screen
+    /// rather than the whole library.
+    @ViewBuilder
+    private var picture: some View {
+        if let imageID = recipe.imageIDs.first {
+            RecipeImageView(imageID: imageID)
+        } else {
+            Rectangle()
+                .fill(.quaternary)
+                .overlay {
+                    Image(systemName: "fork.knife")
+                        .font(.largeTitle)
+                        .foregroundStyle(.secondary)
+                }
         }
     }
 
