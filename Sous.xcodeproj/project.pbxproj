@@ -51,6 +51,7 @@
 		6C5FA0AB80DD4FE2DDB088EF /* VariantGroupRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */; };
 		7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
 		7498D7DCB5309FD2CF3FD819 /* UnknownIngredientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 973AC4B5EEA5A0B69F7D77B6 /* UnknownIngredientButton.swift */; };
+		7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */; };
 		7CA93220F39B649A2D0550AC /* AmountReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6664D684C6558699AFE1C5B1 /* AmountReviewSheet.swift */; };
 		7FE551E7D5F216F63382DB37 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
 		878E08450A4FD9165E9F4569 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
@@ -202,6 +203,7 @@
 		EAC937BDCB94723ECECBF2FF /* IngredientMeasurePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientMeasurePicker.swift; sourceTree = "<group>"; };
 		F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariantGroupRow.swift; sourceTree = "<group>"; };
 		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMirror.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -305,6 +307,7 @@
 				77A3933FE095081587E52DAC /* Timers */,
 				0B1D145DA0D7595B25BA6B4D /* Views */,
 				E17F156912A3CDF5E6CA988B /* Assets.xcassets */,
+				F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */,
 				6B34033D0C481DC0839E96DE /* HouseholdSwitcher.swift */,
 				87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */,
 				A39CB856BC89D3B54F7E2515 /* ShareInvitationDelegate.swift */,
@@ -565,6 +568,7 @@
 			files = (
 				6AB353F80688690CFEC6D30A /* AddVariantSheet.swift in Sources */,
 				3E9A127EA10F36151721E2D5 /* AmountReviewSheet.swift in Sources */,
+				7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */,
 				0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */,
 				B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */,
 				027DB14287C4B8F7C448B5C6 /* CookAddSheet.swift in Sources */,

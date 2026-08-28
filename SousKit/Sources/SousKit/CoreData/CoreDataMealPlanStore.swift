@@ -109,6 +109,23 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
         }
     }
 
+    /// Every dated entry on or after `day`, across **all** households.
+    ///
+    /// Deliberately unscoped, unlike everything else in this store: the
+    /// calendar projection answers "what am I eating", and the answer spans
+    /// the own household and every joined one — Tuesday's WG dinner belongs
+    /// on the same calendar as Sunday's family lunch.
+    public func allDatedEntries(onOrAfter day: Date) async throws -> [MealPlanEntry] {
+        try await context.perform {
+            let request = CDMealPlanEntry.fetchRequest()
+            request.predicate = NSPredicate(
+                format: "deletedAt == nil AND day >= %@", day as NSDate
+            )
+            request.sortDescriptors = [NSSortDescriptor(key: "day", ascending: true)]
+            return try self.context.fetch(request).compactMap(\.domainValue)
+        }
+    }
+
     /// Writes an entry as it stands, timestamps and all. See
     /// `CoreDataRecipeStore.adopt(_:)`.
     public func adopt(_ entry: MealPlanEntry) async throws {

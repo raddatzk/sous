@@ -40,6 +40,8 @@ struct SousApp: App {
     private let cloudKitLog = CloudKitEventLog()
     /// Which household the screens show, and the switch between them.
     private let switcher: HouseholdSwitcher
+    /// The meal plan, projected into the Apple calendar.
+    private let calendarMirror: CalendarMirror
     /// Timers outlive the screen they were started from, so they are held by
     /// the app rather than by cook mode.
     @State private var timers = CookTimerCenter()
@@ -150,6 +152,8 @@ struct SousApp: App {
                 enrichment: enrichmentStore
             ))
             recipeStore = recipes
+
+            calendarMirror = CalendarMirror(mealPlan: plan, recipes: recipes)
 
             // The switch reloads what the screens hold, because the stores
             // now answer for a different household than the one the
@@ -267,6 +271,10 @@ struct SousApp: App {
             await mealPlan.reload()
             await shopping.reload()
             await catalog.reload()
+            // The same conflated signal drives the calendar: a plan changed
+            // here, on another device, or in a joined household all lands as
+            // the same store change, and one pass mirrors it.
+            await calendarMirror.syncIfEnabled()
         }
     }
 
@@ -375,6 +383,7 @@ struct SousApp: App {
             RootView()
                 .environment(\.households, households)
                 .environment(\.householdSwitcher, switcher)
+                .environment(\.calendarMirror, calendarMirror)
                 .environment(library)
                 .environment(mealPlan)
                 .environment(shopping)
@@ -410,6 +419,7 @@ struct SousApp: App {
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()
+                    await calendarMirror.syncIfEnabled()
                     // Here rather than in the view, and here rather than
                     // earlier: the library has just been read for the
                     // household this session belongs to, so "is there

@@ -39,6 +39,8 @@
 	<string>public.app-category.food-and-drink</string>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Damit ein Küchentimer klingelt, auch wenn das Gerät stumm geschaltet ist oder ein Fokus läuft.</string>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>Damit dein Essensplan als Termine in deinem Kalender steht. Sous schreibt nur in seinen eigenen Kalender.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

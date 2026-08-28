@@ -202,6 +202,23 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
         }
     }
 
+    /// Titles by recipe id, across **all** households — for the calendar
+    /// projection, which reads the plan unscoped and needs names for
+    /// whatever it finds there.
+    public func titles(byIDs ids: [UUID]) async throws -> [UUID: String] {
+        guard !ids.isEmpty else { return [:] }
+        return try await context.perform {
+            let request = CDRecipe.fetchRequest()
+            request.predicate = NSPredicate(format: "id IN %@", ids as [NSUUID])
+            var titles: [UUID: String] = [:]
+            for row in try self.context.fetch(request) {
+                guard let id = row.id else { continue }
+                titles[id] = row.title
+            }
+            return titles
+        }
+    }
+
     // MARK: - Migration
 
     /// Writes a recipe exactly as it stands, timestamps and all.
