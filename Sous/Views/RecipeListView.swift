@@ -168,6 +168,7 @@ struct RecipeListView: View {
         // half a title below the field. The list keeps its own spacing.
         .contentMargins(.top, 0, for: .scrollContent)
         #endif
+        .sousReadableList()
         // The joined household's name when one is active — the list is its
         // library then, and calling it by the generic name would hide the
         // one fact that matters about what is on screen.

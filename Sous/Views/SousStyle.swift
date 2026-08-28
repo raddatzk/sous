@@ -21,6 +21,13 @@ enum SousStyle {
     /// A recipe name on a chip: the switcher at the foot of cook mode.
     static let recipeChip = Font.system(.subheadline, design: .serif, weight: .semibold)
 
+    /// How wide a list of single-line rows may grow before the width stops
+    /// helping and starts separating a row's two ends from each other.
+    ///
+    /// The recipe page's number for a readable single column, reused rather
+    /// than guessed again: it is the same question asked of the same eyes.
+    static let readableList: CGFloat = 700
+
     /// How much accent a tinted chip carries behind its label. One value
     /// so a filter chip and a recipe's category chip look like siblings.
     static let chipTint = 0.15
@@ -229,4 +236,46 @@ extension Color {
         })
         #endif
     }
+}
+
+/// Keeps a list readable when the window is far wider than a row needs.
+///
+/// A row that grows without limit puts the thing on its right — a recipe's
+/// badges, the button that adds a meal to a day — an entire iPad away from
+/// the name it belongs to, and the eye has to cross the gap to pair them up.
+/// So the rows stop growing at the width the recipe page already settled on
+/// for a single readable column, and what is left over becomes margin.
+///
+/// The margin goes on the scroll content rather than on the rows, so the
+/// separators and the grouped background come in with them; insetting the
+/// rows alone would leave a card the full width of the window with its
+/// contents huddled in the middle of it.
+///
+/// All of it on the trailing side, so the list stays where it starts. Split
+/// evenly it would centre the rows under a large navigation title that no
+/// content inset reaches — the title stayed against the leading edge while
+/// everything below it moved in, which reads as a mistake. Left where it is,
+/// the list lines up with the title and with the filter chips above it, which
+/// have been capped and pinned left for the same reason all along.
+///
+/// A no-op wherever the window is narrower than the cap, which is every
+/// phone, the Mac's list column, and an iPad sharing its screen — the
+/// measurement is of the list, not of the device.
+private struct ReadableListWidth: ViewModifier {
+    @State private var width: CGFloat = 0
+
+    func body(content: Content) -> some View {
+        content
+            .contentMargins(
+                .trailing,
+                max(0, width - SousStyle.readableList),
+                for: .scrollContent
+            )
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+    }
+}
+
+extension View {
+    /// See ``ReadableListWidth``.
+    func sousReadableList() -> some View { modifier(ReadableListWidth()) }
 }

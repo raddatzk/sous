@@ -58,6 +58,7 @@ struct ShoppingListView: View {
             case .recipe: byRecipe
             }
         }
+        .sousReadableList()
         .navigationTitle("Einkaufsliste")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
