@@ -456,8 +456,16 @@ struct SousApp: App {
                     Task { await library.importFromWeb(target) }
                 }
         }
-        .defaultSize(width: 1180, height: 800)
+        // The Mac's only, and deliberately so. On iPadOS this reaches the
+        // scene as a size restriction with the minimum and the maximum both
+        // set to 1180 — the window then claims it can only ever be that one
+        // width. The system still draws it at whatever the split or the
+        // window drag asked for, while the app goes on laying out for 1180,
+        // so everything past the window's edge is simply cut off: the meal
+        // plan's "+" for each day lands outside the window and cannot be
+        // reached at all. An iPad window has no business naming a size.
         #if os(macOS)
+        .defaultSize(width: 1180, height: 800)
         .windowResizability(.contentMinSize)
         #endif
         .commands {
