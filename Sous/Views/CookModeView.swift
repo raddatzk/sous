@@ -298,24 +298,60 @@ struct CookModeView: View {
         .presentationCompactAdaptation(.popover)
     }
 
+    /// Below this the steps and the ingredients stop being readable side by
+    /// side, and the ingredients go back to being a page of their own.
+    ///
+    /// The same number the recipe page arrived at, reached differently: there
+    /// the two halves need 280 and 400. Here an ingredient line carries a
+    /// tick box in front of it and wants 320, while a step gives up 60 points
+    /// to its number before the text starts, so the reading half wants 420.
+    private static let splitWidth: CGFloat = 740
+    /// Wider than the recipe page's column, for that tick box.
+    private static let ingredientColumn: CGFloat = 320
+
     @ViewBuilder
     private func pages(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
         #if os(macOS)
+        // Always: the window cannot be dragged narrower than both columns
+        // need — see the minimum on the cooking window.
+        splitPages(entry, recipe)
+        #elseif os(iOS)
+        // Both at once wherever both fit, which on an iPad is either way up.
+        // A cook halfway through step four should not have to swipe the step
+        // away to find out whether it was four cloves of garlic or six — that
+        // is a paging deck's price, and it is only worth paying on a screen
+        // that genuinely cannot hold both.
+        //
+        // Measured rather than asked of the device: an iPad sharing its
+        // screen with another app has a phone's width and wants a phone's
+        // answer. `GeometryReader` rather than the size class for the same
+        // reason, and rather than `onGeometryChange` because both branches
+        // fill whatever they are given — there is nothing here for a stale
+        // first frame to get wrong.
+        GeometryReader { screen in
+            if screen.size.width >= Self.splitWidth {
+                splitPages(entry, recipe)
+            } else {
+                TabView(selection: binding(entry, \.page)) {
+                    stepsPage(entry, recipe)
+                        .tag(CookSessionEntry.Page.steps)
+                    ingredientsPage(entry, recipe)
+                        .tag(CookSessionEntry.Page.ingredients)
+                }
+                .tabViewStyle(.page)
+                .indexViewStyle(.page(backgroundDisplayMode: .always))
+            }
+        }
+        #endif
+    }
+
+    /// What to do next and what to reach for, beside each other.
+    private func splitPages(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
         HStack(spacing: 0) {
             stepsPage(entry, recipe)
             Divider()
-            ingredientsPage(entry, recipe).frame(width: 320)
+            ingredientsPage(entry, recipe).frame(width: Self.ingredientColumn)
         }
-        #elseif os(iOS)
-        TabView(selection: binding(entry, \.page)) {
-            stepsPage(entry, recipe)
-                .tag(CookSessionEntry.Page.steps)
-            ingredientsPage(entry, recipe)
-                .tag(CookSessionEntry.Page.ingredients)
-        }
-        .tabViewStyle(.page)
-        .indexViewStyle(.page(backgroundDisplayMode: .always))
-        #endif
     }
 
     // MARK: - Steps
