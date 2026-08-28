@@ -209,7 +209,7 @@ struct RecipeEditorView: View {
         Section {
             
             Stepper(value: $draft.servings, in: Recipe.servingsRange) {
-                Label("\(draft.servings) Portionen", systemImage: "person.2")
+                Label(Servings.text(draft.servings), systemImage: "person.2")
             }
             // The label sits above rather than beside: chips wrap onto as
             // many lines as they need, which no trailing-aligned row can hold.

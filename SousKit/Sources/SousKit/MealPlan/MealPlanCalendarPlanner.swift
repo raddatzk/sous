@@ -55,7 +55,7 @@ public enum MealPlanCalendarPlanner {
 
         var notes = "Geplant mit Sous"
         if let servings = entry.servings {
-            notes = "\(servings) Portionen · " + notes
+            notes = Servings.text(servings) + " · " + notes
         }
 
         return PlannedCalendarEvent(

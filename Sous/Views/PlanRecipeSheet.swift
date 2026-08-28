@@ -52,11 +52,11 @@ struct PlanRecipeSheet: View {
 
                 Section {
                     Stepper(value: $plannedServings, in: Recipe.servingsRange) {
-                        Label("\(plannedServings) Portionen", systemImage: "person.2")
+                        Label(Servings.text(plannedServings), systemImage: "person.2")
                     }
                 } footer: {
                     if plannedServings != recipe.servings {
-                        Text("Das Rezept ist für \(recipe.servings) Portionen geschrieben; die Mengen werden umgerechnet.")
+                        Text("Das Rezept ist für \(Servings.text(recipe.servings)) geschrieben; die Mengen werden umgerechnet.")
                     }
                 }
             }
