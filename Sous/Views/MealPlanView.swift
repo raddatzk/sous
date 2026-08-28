@@ -160,6 +160,7 @@ struct MealPlanView: View {
                 .onAppear { Task { await plan.loadMore() } }
         }
         .toolbar { calendarToolbar }
+        .sousReadableList()
     }
 
     @ViewBuilder
@@ -265,6 +266,7 @@ struct MealPlanView: View {
             }
         }
         .toolbar { poolToolbar }
+        .sousReadableList()
     }
 
     // MARK: - Shared parts
