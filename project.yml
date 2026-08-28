@@ -92,6 +92,9 @@ targets:
         # Without this, tapping an invitation link tells the invitee the app
         # does not support sharing — before any of our code runs.
         CKSharingSupported: true
+        NSCalendarsFullAccessUsageDescription: >-
+          Damit dein Essensplan als Termine in deinem Kalender steht.
+          Sous schreibt nur in seinen eigenen Kalender.
         # How CloudKit says that another device changed something.
         UIBackgroundModes:
           - remote-notification

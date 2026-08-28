@@ -6,6 +6,7 @@ struct SettingsForm: View {
     @AppStorage(SousSetting.appearance, store: .sous)
     private var appearance: SousAppearance = .system
     @Environment(\.households) private var households
+    @Environment(\.calendarMirror) private var calendarMirror
 
     /// The shipped table speaking for itself. Reachable without any
     /// environment — which this form does not get on the Mac, where it is the
@@ -37,6 +38,10 @@ struct SettingsForm: View {
 
             if let households {
                 HouseholdSharingSection(households: households)
+            }
+
+            if let calendarMirror {
+                CalendarMirrorSection(mirror: calendarMirror)
             }
 
             dataSources
@@ -139,5 +144,55 @@ struct SettingsView: View {
         // then keeps it.
         .sousAppearance()
         .sousSheetSizing(.form)
+    }
+}
+
+/// The meal plan in the Apple calendar — a projection the cook opts into.
+private struct CalendarMirrorSection: View {
+    let mirror: CalendarMirror
+
+    @State private var isOn = false
+    @State private var wasDeclined = false
+
+    var body: some View {
+        Section {
+            Toggle("Essensplan im Kalender", systemImage: "calendar", isOn: $isOn)
+                .onChange(of: isOn) { _, wanted in
+                    Task { await apply(wanted) }
+                }
+            if wasDeclined {
+                Text("""
+                Sous darf nicht auf den Kalender zugreifen. Erlaube den \
+                Zugriff in den Systemeinstellungen unter Datenschutz.
+                """)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Kalender")
+        } footer: {
+            Text("""
+            Geplante Rezepte erscheinen als Termine in einem eigenen Kalender \
+            „Sous“ — den du wie jeden Kalender teilen kannst, auch mit Leuten \
+            ohne die App. Der Plan bleibt die Wahrheit: Änderungen am Termin \
+            wandern nicht zurück.
+            """)
+        }
+        .task { isOn = mirror.isEnabled }
+    }
+
+    private func apply(_ wanted: Bool) async {
+        guard wanted != mirror.isEnabled else { return }
+        if wanted {
+            let granted = await mirror.enable()
+            if !granted {
+                // The system prompt was declined; the toggle falls back and
+                // says why rather than pretending.
+                isOn = false
+                wasDeclined = true
+            }
+        } else {
+            await mirror.disable()
+        }
     }
 }
