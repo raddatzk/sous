@@ -1,6 +1,20 @@
 import CloudKit
 import SousKit
 import SwiftUI
+import os
+
+/// Says so when the system refuses to register this build for pushes.
+///
+/// There is no success side to this on purpose — the token is CloudKit's
+/// business and the app never touches it. Only the failure is worth a line,
+/// and it is worth one because the app has already been shipped once unable
+/// to receive a push and unable to say so: the Mac's entitlement is spelled
+/// `com.apple.developer.aps-environment`, the file said `aps-environment`,
+/// and a signature without it fails this call rather than the build.
+private func report(_ failure: Error) {
+    Logger(subsystem: "me.raddatz.sous", category: "push")
+        .error("Not registered for remote notifications: \(failure.localizedDescription, privacy: .public)")
+}
 
 /// The hand-off between the system's delegate callbacks and the app's
 /// households.
@@ -33,6 +47,13 @@ final class SousAppDelegate: NSObject, UIApplicationDelegate {
         configuration.delegateClass = SousSceneDelegate.self
         return configuration
     }
+
+    func application(
+        _ application: UIApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        report(error)
+    }
 }
 
 final class SousSceneDelegate: NSObject, UIWindowSceneDelegate {
@@ -64,6 +85,13 @@ final class SousAppDelegate: NSObject, NSApplicationDelegate {
         userDidAcceptCloudKitShareWith metadata: CKShare.Metadata
     ) {
         ShareInvitationHandOff.accept?(metadata)
+    }
+
+    func application(
+        _ application: NSApplication,
+        didFailToRegisterForRemoteNotificationsWithError error: Error
+    ) {
+        report(error)
     }
 }
 #endif
