@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 extension UserDefaults {
     /// Settings the app and its share extension share, so a recipe checked in
@@ -11,6 +10,5 @@ extension UserDefaults {
     /// own it because the suite is not a view's business: it is the app
     /// group's, which is this module's — and since phase 6 the kit itself
     /// writes to it (see ``BundledDataMarker``).
-    nonisolated(unsafe) public static let sous =
-        UserDefaults(suiteName: ModelContainer.appGroup) ?? .standard
+    nonisolated(unsafe) public static let sous = SousAppGroup.defaults
 }

@@ -318,7 +318,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
 extension ModelContainer {
     /// The app group the app and its share extension both read the store
     /// from. A recipe saved from Safari has to land where the app looks.
-    public static let appGroup = "group.me.raddatz.sous"
+    public static let appGroup = SousAppGroup.identifier
 
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
@@ -335,9 +335,9 @@ extension ModelContainer {
         } else if let url = sharedStoreURL() {
             ModelConfiguration(url: url, cloudKitDatabase: .none)
         } else {
-            // No group container: the entitlement is missing, or this is a
-            // test host. The app's own container still works — but nothing
-            // the extension writes will show up in it.
+            // No group container: this is the Mac, where there is none by
+            // design, or a test host. The app's own container still works —
+            // but nothing an extension writes will show up in it.
             ModelConfiguration(cloudKitDatabase: .none)
         }
 
@@ -355,15 +355,13 @@ extension ModelContainer {
     /// Whether the shared container is reachable at all. The extension asks
     /// before it promises to save anything.
     public static var hasSharedContainer: Bool {
-        FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) != nil
+        SousAppGroup.url != nil
     }
 
     /// Where the shared store lives, moving an older private one across the
     /// first time it is asked for.
     private static func sharedStoreURL() -> URL? {
-        guard let container = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroup)
-        else { return nil }
+        guard let container = SousAppGroup.url else { return nil }
 
         let shared = container.appending(path: "Sous.store")
         migratePrivateStore(to: shared)
