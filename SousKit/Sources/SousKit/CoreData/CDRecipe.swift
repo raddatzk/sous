@@ -75,6 +75,9 @@ final class CDRecipe: CDHouseholdMember {
     }
 
     var categories: [String] { JSONField.decode(categoriesJSON) }
+    /// The meals the recipe itself names, as raw values — empty where nobody
+    /// chose, which is not the same as "suits nothing".
+    var statedSlots: [String] { suitableSlotsJSON.map { JSONField.decode($0) } ?? [] }
     var ingredientKeys: [String] { JSONField.decode(ingredientKeysJSON) }
 
     /// `nil` for a row without an id.

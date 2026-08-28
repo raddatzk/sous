@@ -140,7 +140,11 @@ public final class RecipeLibrary {
     public var query: RecipeQuery {
         RecipeQuery(
             searchText: searchText.isEmpty ? nil : searchText,
-            filters: activeFilters,
+            // Without the meal filters: the store can only answer those from
+            // what a recipe states, and most state nothing. They are applied
+            // afterwards, here, where the planner's cached guess can stand in
+            // — see ``narrowedToSlots(_:filters:)``.
+            filters: activeFilters.filter { $0.kind != .slot },
             onlyFavorites: filter == .favorites,
             onlyWantToCook: filter == .wantToCook
         )
@@ -196,7 +200,10 @@ public final class RecipeLibrary {
         isLoading = true
         defer { isLoading = false }
         do {
-            recipes = try await store.recipes(matching: query)
+            recipes = try await narrowedToSlots(
+                store.recipes(matching: query),
+                filters: activeFilters
+            )
             categories = try await store.categories()
             // Two is what makes a group. Below that there is nothing to
             // stand beside, and an indented list of one is a rule the reader
@@ -233,17 +240,61 @@ public final class RecipeLibrary {
         }
     }
 
-    /// Searches the whole library, independent of the current filter. Used by
-    /// the picker that inserts a link to another recipe.
-    public func findRecipes(matching text: String) async -> [Recipe] {
+    /// Searches the whole library, independent of the current filter.
+    ///
+    /// Used by the picker that inserts a link to another recipe, and by the
+    /// search tab — which asks its questions here rather than through
+    /// ``searchText`` precisely so that they leave the list alone: that one
+    /// belongs to the reader in the recipes tab, standing where they left it.
+    public func findRecipes(
+        matching text: String,
+        filters: [RecipeFilter] = []
+    ) async -> [Recipe] {
         do {
-            return try await store.recipes(
-                matching: RecipeQuery(searchText: text.isEmpty ? nil : text)
+            let found = try await store.recipes(
+                matching: RecipeQuery(
+                    searchText: text.isEmpty ? nil : text,
+                    filters: filters.filter { $0.kind != .slot }
+                )
             )
+            return await narrowedToSlots(found, filters: filters)
         } catch {
             report(error)
             return []
         }
+    }
+
+    /// Keeps only the recipes that suit every meal named in `filters`.
+    ///
+    /// Two sources, in the order the planner already reads them: what the
+    /// recipe itself says, and — where it says "Automatisch" — the guess
+    /// cached against its current text. Nothing is classified here: a filter
+    /// that ran the model over a library would be a search that thinks for a
+    /// minute, so a recipe nobody has judged yet is simply not claimed to
+    /// suit anything.
+    private func narrowedToSlots(
+        _ recipes: [Recipe],
+        filters: [RecipeFilter]
+    ) async -> [Recipe] {
+        let wanted = Set(filters.compactMap(\.slot))
+        guard !wanted.isEmpty else { return recipes }
+
+        var kept: [Recipe] = []
+        for recipe in recipes {
+            guard let slots = await knownSlots(of: recipe) else { continue }
+            if wanted.isSubset(of: slots) { kept.append(recipe) }
+        }
+        return kept
+    }
+
+    /// The meals a recipe is known to suit, or `nil` where nobody has said
+    /// and nothing was guessed. `nil` rather than an empty set, because the
+    /// two are different answers: "suits nothing" is a judgment, "unknown"
+    /// is the absence of one.
+    private func knownSlots(of recipe: Recipe) async -> Set<MealSlot>? {
+        if let stated = recipe.suitableSlots { return stated }
+        let hash = MealSuitabilityClassifier.inputHash(for: recipe)
+        return try? await enrichmentStore.suitabilityGuess(for: recipe.id, inputHash: hash)
     }
 
     /// Rebuilds the store's denormalized search index against the current

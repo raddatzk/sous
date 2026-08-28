@@ -58,6 +58,18 @@ extension View {
             .padding(.vertical, 5)
             .background(Color.sousField, in: .capsule)
     }
+
+    /// A chip that is both at once: tinted while it holds, neutral while it
+    /// merely offers. The two states of anything that can be switched on and
+    /// off by tapping it — a meal in the editor, a filter in the search.
+    @ViewBuilder
+    func sousToggleChip(isOn: Bool) -> some View {
+        if isOn {
+            sousChip()
+        } else {
+            sousSuggestionChip().foregroundStyle(.secondary)
+        }
+    }
 }
 
 /// How much room a sheet needs, said once so that ten sheets do not each

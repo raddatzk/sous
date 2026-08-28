@@ -301,23 +301,23 @@ struct RootView: View {
                 Tab(section.title, systemImage: section.symbol, value: section) {
                     switch section {
                     // The recipes tab reads; searching lives in the search
-                    // tab. Keeping `searchable` off this instance is what
-                    // lets its collapsed title sit centered like every
-                    // other native bar — a nav-bar search field pushes it
-                    // into the leading edge.
+                    // tab and has a view of its own. Keeping `searchable`
+                    // off this instance is what lets its collapsed title sit
+                    // centered like every other native bar — a nav-bar
+                    // search field pushes it into the leading edge.
                     case .recipes: RecipeListView(showsSearch: false)
                     case .mealPlan: MealPlanView()
                     case .shopping: ShoppingListView()
-                    case .search: RecipeListView()
+                    case .search: RecipeSearchView()
                     }
                 }
             }
             // The system search circle beside the tab bar — where a tabbed
             // app's search lives on iOS 26, instead of a magnifier crammed
-            // into the recipes bar. The tab holds the same list; its
-            // `searchable` field rises from the tab bar itself.
+            // into the recipes bar. What stands behind it is a search, not
+            // the library again: see ``RecipeSearchView``.
             Tab(value: SousSection.search, role: .search) {
-                RecipeListView()
+                RecipeSearchView()
             }
         }
         // The floating bar along the top of an iPad, the bar along the foot

@@ -2,12 +2,13 @@ import SousKit
 import SwiftUI
 
 struct RecipeListView: View {
-    /// Whether this instance carries the search field. The phone shows the
-    /// list twice — as the recipes tab, which reads, and inside the search
-    /// tab, which searches — and only the second may attach `searchable`:
-    /// a search field in the nav bar shoves the collapsed title into the
-    /// leading edge, which is exactly the broken-looking bar this splits
-    /// apart. Everywhere else the field is the sidebar's own and stays.
+    /// Whether this instance carries the search field.
+    ///
+    /// The Mac's sidebar does: its field is part of the sidebar and filters
+    /// the list under it in place. The phone's does not — searching there is
+    /// its own tab and its own view (``RecipeSearchView``), because a search
+    /// field in the nav bar shoves the collapsed title into the leading edge,
+    /// which is exactly the broken-looking bar this splits apart.
     var showsSearch = true
 
     @Environment(RecipeLibrary.self) private var library
@@ -530,11 +531,12 @@ private struct RecipePreviewCard: View {
 }
 #endif
 
-/// The search field, attached only where searching is this instance's job.
+/// The search field, attached only where searching is this instance's job —
+/// which since the phone's search became a tab of its own means the Mac's
+/// sidebar, where the field filters the list under it in place.
 ///
 /// A `ViewModifier` rather than an `if` around the chain so the list itself
-/// keeps one identity per instance; `shows` never changes at run time — the
-/// recipes tab is built without the field, the search tab with it.
+/// keeps one identity per instance; `shows` never changes at run time.
 private struct RecipeSearchField: ViewModifier {
     let shows: Bool
     let tokens: Binding<[RecipeFilter]>
@@ -546,23 +548,19 @@ private struct RecipeSearchField: ViewModifier {
     func body(content: Content) -> some View {
         if shows {
             @Bindable var library = library
-            // `.automatic` everywhere now: the Mac and iPad resolve it to
-            // the sidebar's own field, and on the phone the field belongs
-            // to the search tab (`Tab(role: .search)`), which raises it
-            // from the tab bar. The old `.toolbar` placement was an attempt
-            // to reach the bottom edge from inside a regular tab — what it
+            // `.automatic`, which here resolves to the sidebar's own
+            // field. The old `.toolbar` placement was an attempt to reach
+            // the phone's bottom edge from inside a regular tab — what it
             // actually did was cram a magnifier circle into the nav bar and
-            // shove the collapsed title out of center.
+            // shove the collapsed title out of center. The phone reaches
+            // that edge the way iOS 26 means it to: `Tab(role: .search)`.
             content
                 .searchable(
                     text: $library.searchText,
                     tokens: tokens,
                     prompt: "Titel, Zutat, Kategorie"
                 ) { filter in
-                    Label(
-                        filter.title,
-                        systemImage: filter.kind == .ingredient ? "carrot" : "tag"
-                    )
+                    Label(filter.title, systemImage: filter.symbolName)
                 }
                 .searchSuggestions { suggestions }
         } else {
@@ -582,10 +580,7 @@ private struct RecipeSearchField: ViewModifier {
                 Task { await library.apply(filter) }
             } label: {
                 HStack(spacing: 6) {
-                    Label(
-                        filter.title,
-                        systemImage: filter.kind == .ingredient ? "carrot" : "tag"
-                    )
+                    Label(filter.title, systemImage: filter.symbolName)
                     if let matched = filter.matchedAs {
                         Text(matched)
                             .foregroundStyle(.secondary)

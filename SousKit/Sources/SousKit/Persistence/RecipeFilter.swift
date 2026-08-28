@@ -10,6 +10,12 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
     public enum Kind: Hashable, Sendable {
         case ingredient
         case category
+        /// A meal the dish suits — see ``MealSlot``. Unlike the other two,
+        /// this is not written on the recipe in every case: most recipes say
+        /// "Automatisch", and what fills that in is the guess the planner
+        /// caches. Which is why a slot filter is answered by
+        /// ``RecipeLibrary``, where that cache is, rather than by the store.
+        case slot
     }
 
     public let kind: Kind
@@ -46,6 +52,25 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         RecipeFilter(kind: .category, key: name.lowercased(), title: name)
     }
 
+    public static func slot(_ slot: MealSlot) -> RecipeFilter {
+        RecipeFilter(kind: .slot, key: slot.rawValue, title: slot.title)
+    }
+
+    /// The meal this filter stands for, where it stands for one.
+    public var slot: MealSlot? {
+        kind == .slot ? MealSlot(rawValue: key) : nil
+    }
+
+    /// What the chip wears — said here so that every field drawing these
+    /// tokens agrees, rather than each spelling out the same conditional.
+    public var symbolName: String {
+        switch kind {
+        case .ingredient: "carrot"
+        case .category: "tag"
+        case .slot: slot?.symbolName ?? "fork.knife"
+        }
+    }
+
     /// What the typed text could be filtered by.
     ///
     /// Ingredients and categories are ranked together rather than one after
@@ -69,6 +94,13 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         for category in categories {
             guard let rank = rank(of: category, matching: query) else { continue }
             candidates.append((.category(category), rank))
+        }
+
+        // "Früh" offers the meal as readily as a category would: the three
+        // are a closed set, so this costs a comparison each.
+        for slot in MealSlot.allCases {
+            guard let rank = rank(of: slot.title, matching: query) else { continue }
+            candidates.append((.slot(slot), rank))
         }
 
         for ingredient in catalog.ingredients {
