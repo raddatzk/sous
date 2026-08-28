@@ -5,6 +5,12 @@ import SwiftUI
 /// shop, or split by dish — where each recipe keeps its portion dial.
 struct ShoppingListView: View {
     @Environment(ShoppingLibrary.self) private var shopping
+    /// Only to look a recipe up by id when its heading is tapped — the list
+    /// itself is built from the snapshot, not from the library.
+    @Environment(RecipeLibrary.self) private var library
+    #if os(macOS)
+    @Environment(RecipeSelection.self) private var selection
+    #endif
 
     @State private var grouping: Grouping = .aisle
     @State private var newItem = ""
@@ -13,6 +19,18 @@ struct ShoppingListView: View {
     /// "I am standing in this shop" — the aisle view narrowed to one
     /// store's errands. `nil` is the whole list.
     @State private var storeFilter: String?
+    #if os(iOS)
+    /// The dish whose heading was tapped, pushed over the list. The Mac has
+    /// no such state: it hands the recipe to the window's detail column.
+    @State private var openedRecipe: Recipe?
+    #endif
+    /// The recipe the bin was pressed on, waiting to be confirmed.
+    ///
+    /// The dial's last press is a single tap on a key that was a minus a
+    /// moment earlier, and four quick presses down from four land on it — so
+    /// that one asks. The context menu's entry does not: a long press and a
+    /// pick from a red menu item is already the deliberate way round.
+    @State private var removalCandidate: ShoppingPlanEntry?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -34,7 +52,12 @@ struct ShoppingListView: View {
         #if os(macOS)
         list
         #else
-        NavigationStack { list }
+        NavigationStack {
+            list
+                .navigationDestination(item: $openedRecipe) { recipe in
+                    RecipeDetailView(recipe: recipe)
+                }
+        }
         #endif
     }
 
@@ -93,6 +116,26 @@ struct ShoppingListView: View {
             }
         }
         .overlay { emptyState }
+        .confirmationDialog(
+            "Rezept von der Liste nehmen?",
+            isPresented: Binding(
+                get: { removalCandidate != nil },
+                set: { if !$0 { removalCandidate = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: removalCandidate
+        ) { entry in
+            Button("Von der Liste nehmen", role: .destructive) {
+                Task { await shopping.remove(planEntry: entry) }
+            }
+        } message: { entry in
+            Text(
+                """
+                „\(entry.title)“ verschwindet mit allem, was dafür noch offen \
+                ist. Abgehaktes bleibt stehen und wird als entfallen vermerkt.
+                """
+            )
+        }
         .task { await shopping.reload() }
         .refreshable { await shopping.reload() }
     }
@@ -274,18 +317,9 @@ struct ShoppingListView: View {
     private func recipeHeader(for group: ShoppingRecipeGroup) -> some View {
         if let planEntry = group.planEntry {
             HStack {
-                sectionHeader(group.title)
+                recipeTitle(group)
                 Spacer()
-                Stepper {
-                    Text("\(planEntry.servingsCurrent) Portionen")
-                        .font(.caption)
-                        .monospacedDigit()
-                } onIncrement: {
-                    Task { await shopping.setServings(planEntry.servingsCurrent + 1, for: planEntry) }
-                } onDecrement: {
-                    Task { await shopping.setServings(planEntry.servingsCurrent - 1, for: planEntry) }
-                }
-                .fixedSize()
+                servingsDial(for: planEntry)
             }
             .contextMenu {
                 Button("Rezept von der Liste nehmen", systemImage: "trash", role: .destructive) {
@@ -293,8 +327,119 @@ struct ShoppingListView: View {
                 }
             }
         } else {
+            recipeTitle(group)
+        }
+    }
+
+    /// The heading, as the way back to the dish underneath it.
+    ///
+    /// Read by recipe, the list is a set of decisions already taken, and the
+    /// question it raises at the shelf — how much of this did it actually
+    /// want, and what for — is answered on the recipe page rather than here.
+    /// A chevron, because a section heading is not somewhere a tap is
+    /// expected to lead anywhere.
+    ///
+    /// Only where the entry still names a recipe: migrated rows and the
+    /// lapsed remains of a removed dish keep the title they were written
+    /// with and have nothing to open.
+    @ViewBuilder
+    private func recipeTitle(_ group: ShoppingRecipeGroup) -> some View {
+        if let recipeID = group.planEntry?.recipeID {
+            Button {
+                Task { await open(recipeID) }
+            } label: {
+                HStack(spacing: 4) {
+                    sectionHeader(group.title)
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+        } else {
             sectionHeader(group.title)
         }
+    }
+
+    /// Opens the dish this stretch of the list came from — beside the list on
+    /// the Mac, pushed over it on the phone.
+    ///
+    /// Looked up rather than carried along: the list holds the snapshot taken
+    /// when the recipe was put on it, and the page has to show the recipe as
+    /// it stands now. No plan entry rides along either — the shopping dial is
+    /// this list's own scale and has nothing to say about the meal plan's.
+    /// A recipe deleted since simply does not open.
+    private func open(_ recipeID: UUID) async {
+        guard let recipe = await library.recipe(id: recipeID) else { return }
+        #if os(macOS)
+        selection.recipe = recipe
+        selection.plannedEntryID = nil
+        #else
+        openedRecipe = recipe
+        #endif
+    }
+
+    /// The portion dial, built by hand rather than taken from `Stepper`.
+    ///
+    /// At one portion the minus has nothing left to take away — the store
+    /// floors the value there, so the press was simply swallowed. What it
+    /// means at that point is "then not this recipe either", and the glyph
+    /// says so before it is pressed rather than after. `Stepper` has no say
+    /// over its two glyphs, which is why it is gone.
+    private func servingsDial(for planEntry: ShoppingPlanEntry) -> some View {
+        let removes = planEntry.servingsCurrent <= 1
+        return HStack(spacing: 8) {
+            Text(Servings.text(planEntry.servingsCurrent))
+                .font(.caption)
+                .monospacedDigit()
+                .textCase(nil)
+            HStack(spacing: 0) {
+                Button {
+                    guard !removes else {
+                        removalCandidate = planEntry
+                        return
+                    }
+                    Task {
+                        await shopping.setServings(
+                            planEntry.servingsCurrent - 1, for: planEntry
+                        )
+                    }
+                } label: {
+                    dialGlyph(removes ? "trash" : "minus")
+                }
+                .foregroundStyle(removes ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+                .accessibilityLabel(
+                    removes ? "Rezept von der Liste nehmen" : "Eine Portion weniger"
+                )
+
+                Divider().frame(height: 16)
+
+                Button {
+                    Task {
+                        await shopping.setServings(planEntry.servingsCurrent + 1, for: planEntry)
+                    }
+                } label: {
+                    dialGlyph("plus")
+                }
+                .accessibilityLabel("Eine Portion mehr")
+            }
+            .foregroundStyle(.tint)
+            .buttonStyle(.plain)
+            .background(.quaternary, in: .capsule)
+        }
+        // The moment the minus turns into a bin is the moment the next press
+        // stops being reversible, so the hand is told about it too.
+        .sensoryFeedback(.impact(flexibility: .rigid), trigger: removes)
+    }
+
+    /// One key of the dial, at a size a thumb can hit in a shop.
+    private func dialGlyph(_ name: String) -> some View {
+        Image(systemName: name)
+            .font(.footnote.weight(.semibold))
+            .contentTransition(.symbolEffect(.replace))
+            .frame(width: 36, height: 28)
+            .contentShape(.rect)
     }
 
     @ViewBuilder
