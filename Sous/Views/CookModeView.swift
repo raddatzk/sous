@@ -207,7 +207,7 @@ struct CookModeView: View {
                 HStack(spacing: 4) {
                     Text("\(stepPosition(entry: entry, recipe: recipe)) ·")
                         .foregroundStyle(.secondary)
-                    Button("\(entry.servings) Portionen") { isSettingServings = true }
+                    Button(Servings.text(entry.servings)) { isSettingServings = true }
                         .buttonStyle(.plain)
                         .foregroundStyle(.tint)
                 }
@@ -245,7 +245,7 @@ struct CookModeView: View {
         // the title's serving count; here it needs a button of its own.
         if let entry = session.activeEntry, let recipe = activeRecipe {
             ToolbarItem(placement: .primaryAction) {
-                Button("\(entry.servings) Portionen", systemImage: "person.2") {
+                Button(Servings.text(entry.servings), systemImage: "person.2") {
                     isSettingServings = true
                 }
                 // With the icon alone the count is invisible until the
@@ -273,7 +273,7 @@ struct CookModeView: View {
     private func servingsPopover(entry: CookSessionEntry, recipe: Recipe) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             Stepper(value: binding(entry, \.servings), in: Recipe.servingsRange) {
-                Label("\(entry.servings) Portionen", systemImage: "person.2")
+                Label(Servings.text(entry.servings), systemImage: "person.2")
                     .font(.headline)
             }
             if entry.servings != recipe.servings {

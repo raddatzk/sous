@@ -108,11 +108,11 @@ struct CookAddSheet: View {
                 Form {
                     Section {
                         Stepper(value: $servings, in: Recipe.servingsRange) {
-                            Label("\(servings) Portionen", systemImage: "person.2")
+                            Label(Servings.text(servings), systemImage: "person.2")
                         }
                     } footer: {
                         if servings != recipe.servings {
-                            Text("Das Rezept ist für \(recipe.servings) Portionen geschrieben; die Mengen werden umgerechnet.")
+                            Text("Das Rezept ist für \(Servings.text(recipe.servings)) geschrieben; die Mengen werden umgerechnet.")
                         }
                     }
                 }
