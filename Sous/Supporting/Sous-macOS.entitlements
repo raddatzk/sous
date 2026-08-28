@@ -28,7 +28,17 @@
 	<array>
 		<string>CloudKit</string>
 	</array>
-	<key>aps-environment</key>
+	<!-- CloudKit's silent pushes, without which the Mac only ever syncs at
+	     launch. Spelled with the `com.apple.developer.` prefix, which is the
+	     Mac's name for it: iOS reads the bare `aps-environment` and macOS
+	     does not, so the bare one is not in the Mac's provisioning profile
+	     and Xcode dropped it on the way to the signature. The build then
+	     registered for pushes it was never entitled to receive.
+
+	     `development` is what the file says on both platforms and neither
+	     ships it: signing takes the value from the profile, so an archive
+	     for App Store Connect is signed `production`. -->
+	<key>com.apple.developer.aps-environment</key>
 	<string>development</string>
 
 	<!-- No app group on purpose. macOS only accepts one prefixed with the
