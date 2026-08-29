@@ -45,7 +45,7 @@ struct RecipeDetailView: View {
     /// Whether the page's own title has scrolled up behind the navigation
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
-    @State private var didAddToShoppingList = false
+    @State private var isPickingForShoppingList = false
     @State private var isPlanning = false
     @State private var export: RecipeExport?
     @State private var isResolvingWithAI = false
@@ -168,7 +168,6 @@ struct RecipeDetailView: View {
             // as the plan hands it one planned recipe after another, and
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
-            didAddToShoppingList = false
             amountReviewResolution = nil
             needsAmountReview = false
             needsIngredientReview = false
@@ -210,6 +209,14 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
+        }
+        // The checkmark is read off the list, so the list has to have been
+        // read — this page can be the first thing opened after a launch.
+        .task { await shopping.loadIfNeeded() }
+        .sheet(isPresented: $isPickingForShoppingList) {
+            ShoppingPickSheet(recipe: recipe, servings: servings) { lines in
+                addToShoppingList(lines: lines)
+            }
         }
         .sheet(isPresented: $isReviewingAmounts) {
             if let amountReviewResolution {
@@ -712,19 +719,32 @@ struct RecipeDetailView: View {
 
     private var shoppingButton: some View {
         Button {
-            addToShoppingList()
+            isPickingForShoppingList = true
         } label: {
             Label(
-                didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
-                systemImage: didAddToShoppingList ? "checkmark" : "cart.badge.plus"
+                isOnShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
+                systemImage: isOnShoppingList ? "cart.badge.checkmark" : "cart.badge.plus"
             )
             // Icons only: three labelled buttons do not fit a phone
             // without wrapping mid-word.
             .labelStyle(.iconOnly)
         }
         .buttonStyle(.glass)
-        .disabled(recipe.ingredients.isEmpty || didAddToShoppingList)
-        .help(didAddToShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste")
+        .disabled(recipe.ingredients.isEmpty)
+        .help(isOnShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste")
+    }
+
+    /// Whether this recipe is on the shopping list right now.
+    ///
+    /// Read off the list rather than remembered from the tap that put it
+    /// there. The remembered version was wrong in both directions: it
+    /// survived taking the recipe back off the list, and it was absent on a
+    /// recipe that had been on the list since yesterday. It also disabled the
+    /// button, which the store does not want — a recipe added again has its
+    /// new demands marked as arriving late, so the list can say what turned
+    /// up after the cook had already been shopping.
+    private var isOnShoppingList: Bool {
+        shopping.planEntries.contains { $0.recipeID == recipe.id }
     }
 
     /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
@@ -1260,13 +1280,10 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Puts the ingredients on the list at the serving count on screen, so
-    /// what is bought matches what was just read.
-    private func addToShoppingList() {
-        Task {
-            await shopping.add(recipe, servings: servings)
-            didAddToShoppingList = true
-        }
+    /// Puts the picked ingredients on the list at the serving count on
+    /// screen, so what is bought matches what was just read.
+    private func addToShoppingList(lines: Set<UUID>) {
+        Task { await shopping.add(recipe, servings: servings, lines: lines) }
     }
 
     /// Renders inline markdown, falling back to the raw text if it does not
