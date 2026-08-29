@@ -226,6 +226,10 @@ struct RecipeEditorView: View {
             }
             .padding(.vertical, 4)
             suitabilityRow
+            // Beside "Passt als": both are judgements about the dish rather
+            // than facts of it, and both fall back to something the app
+            // works out when nobody says.
+            effortRow
         } header: {
             sectionHeader("Angaben")
         }
@@ -271,6 +275,62 @@ struct RecipeEditorView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    /// How much work the dish is, as three chips over a derived default.
+    ///
+    /// Unlike "Passt als" above, the automatic case has something to say:
+    /// the structure always implies an answer, so "Automatisch" names it.
+    /// A cook overruling it should see what they are overruling — and the
+    /// commonest reason to overrule is that the structure genuinely misses
+    /// the point, which for effort it can: a croissant is five ingredients
+    /// and a hard afternoon.
+    ///
+    /// Tapping the chip that is already on takes the override back, the same
+    /// way unticking every meal above means "decide for me".
+    private var effortRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Aufwand", systemImage: "gauge.with.dots.needle.50percent")
+                .font(.subheadline.weight(.medium))
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                ForEach(RecipeEffort.Level.allCases, id: \.self) { level in
+                    let isOn = draft.effortOverride == level
+                    Button {
+                        draft.effortOverride = isOn ? nil : level
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: level.symbolName)
+                            Text(level.title)
+                        }
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
+                    .buttonStyle(.plain)
+                    .sousToggleChip(isOn: isOn)
+                }
+                if draft.effortOverride == nil {
+                    Text(derivedEffortNote)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize()
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    /// What the structure makes of the recipe as it currently stands in the
+    /// editor — recomputed as it is typed, since that is when it changes.
+    ///
+    /// A recipe with nothing to go on says so instead of naming a rung: one
+    /// block of prose and no times is not an easy recipe, it is one nothing
+    /// can be read off yet.
+    private var derivedEffortNote: String {
+        guard let level = draft.effort()?.level else {
+            return "Automatisch — noch zu wenig Struktur"
+        }
+        return "Automatisch: \(level.title)"
     }
 
     private var categoriesBinding: Binding<String> {
