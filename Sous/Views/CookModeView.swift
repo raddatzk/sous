@@ -110,21 +110,25 @@ struct CookModeView: View {
         // cancel button on iOS 26, which would leave "take it off the hob"
         // as the only thing on screen to press.
         .alert(
-            "Es läuft noch ein Timer für dieses Rezept.",
+            "Rezept vom Herd nehmen?",
             isPresented: Binding(
                 get: { confirmingFinish != nil },
                 set: { if !$0 { confirmingFinish = nil } }
             )
         ) {
             Button("Weiterkochen", role: .cancel) { confirmingFinish = nil }
-            Button("Trotzdem fertig", role: .destructive) {
+            Button("Fertig", role: .destructive) {
                 if let id = confirmingFinish, let entry = session.entry(for: id) {
                     complete(entry)
                 }
                 confirmingFinish = nil
             }
         } message: {
-            Text("Der Timer wird mit dem Rezept beendet.")
+            Text(
+                confirmingHasRunningTimer
+                    ? "Es läuft noch ein Timer für dieses Rezept; er wird mit beendet."
+                    : "Der Fortschritt und die abgehakten Zutaten gehen verloren."
+            )
         }
         #if os(macOS)
         // The last pot off the hob takes the window with it. Closed here
@@ -389,6 +393,13 @@ struct CookModeView: View {
                             withAnimation { proxy.scrollTo(step.id, anchor: .top) }
                         }
                     }
+                    // The way out that is meant to be taken: it stands
+                    // where a cook arrives after the last step, and getting
+                    // here is already the deliberate act. So it does not
+                    // ask, where the toolbar's button — which sits beside
+                    // "Kochsicht schließen" and gets caught on the way past
+                    // — does.
+                    finishCard(entry)
                     Color.clear.frame(height: 200)
                 }
                 .scrollTargetLayout()
@@ -413,6 +424,39 @@ struct CookModeView: View {
             .onAppear { proxy.scrollTo(focused, anchor: .top) }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// The end of the recipe, as the last thing in the column.
+    ///
+    /// Reaching it counts as having cooked the dish, the same as scrolling
+    /// the last step into focus does: a cook who pressed this walked the
+    /// whole way down, and the recipe should not stay on the hob or go
+    /// uncounted because focus was still resting a card higher.
+    private func finishCard(_ entry: CookSessionEntry) -> some View {
+        Button {
+            guard var current = session.entry(for: entry.recipeID) else { return }
+            current.didReachLastStep = true
+            session.update(current)
+            complete(current)
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 16) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 34, weight: .bold))
+                    .frame(minWidth: 44, alignment: .trailing)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Fertig")
+                        .font(.title3.weight(.semibold))
+                    Text("Nimmt das Rezept vom Herd.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(.tint)
+            .padding(.vertical, 8)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -594,18 +638,23 @@ struct CookModeView: View {
         recipes = resolved
         // A recipe deleted while it was on the hob cannot be cooked from.
         session.prune(toRecipes: Set(resolved.keys))
+
     }
 
     /// Takes a recipe off the hob — asking first if something is still
     /// counting down, because a timer whose recipe is gone would ring for
     /// nothing.
     private func finish(_ entry: CookSessionEntry) {
-        let running = timers.timers(forRecipe: entry.recipeID)
-        if running.contains(where: { !$0.isFinished() }) {
-            confirmingFinish = entry.recipeID
-        } else {
-            complete(entry)
-        }
+        confirmingFinish = entry.recipeID
+    }
+
+    /// Whether a timer for the recipe being asked about is still counting.
+    /// Folded into the one dialog rather than asked as a second question
+    /// after it — two alerts in a row for one press is a worse warning than
+    /// one that says both things.
+    private var confirmingHasRunningTimer: Bool {
+        guard let id = confirmingFinish else { return false }
+        return timers.timers(forRecipe: id).contains { !$0.isFinished() }
     }
 
     /// Cooking through to the last step counts as having cooked the dish;
