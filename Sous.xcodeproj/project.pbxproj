@@ -49,6 +49,7 @@
 		68B5CCCF0C9037ECAB349D48 /* IngredientCatalogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6343A2B8A34CDA5210A8E4FF /* IngredientCatalogView.swift */; };
 		6AB353F80688690CFEC6D30A /* AddVariantSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E59C696E9B502CE1433926B5 /* AddVariantSheet.swift */; };
 		6C5FA0AB80DD4FE2DDB088EF /* VariantGroupRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */; };
+		6EF999347DFB45C4AD188FCF /* ShoppingPickSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016DCB9A57A20D413B827E18 /* ShoppingPickSheet.swift */; };
 		7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
 		7498D7DCB5309FD2CF3FD819 /* UnknownIngredientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 973AC4B5EEA5A0B69F7D77B6 /* UnknownIngredientButton.swift */; };
 		7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */; };
@@ -128,6 +129,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		016DCB9A57A20D413B827E18 /* ShoppingPickSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingPickSheet.swift; sourceTree = "<group>"; };
 		027C4D97EB668FD81EEF6515 /* RecipeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRow.swift; sourceTree = "<group>"; };
 		0C70498384AEDCBCE42346CB /* IngredientLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineView.swift; sourceTree = "<group>"; };
 		13781E7C6571A8D114AB3CD7 /* RecipeTextEditorStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeTextEditorStyles.swift; sourceTree = "<group>"; };
@@ -269,6 +271,7 @@
 				17926632D910B9FEE5B9A8A3 /* RootView.swift */,
 				7209502695EB1AED927F3B9B /* SettingsView.swift */,
 				CAEFB6DFD6E7D9654258ACDA /* ShoppingListView.swift */,
+				016DCB9A57A20D413B827E18 /* ShoppingPickSheet.swift */,
 				6D4F0DD81CA3E6A2A0E5B849 /* SousAppearance.swift */,
 				D9726B813A724D39D4FE79CB /* SousStyle.swift */,
 				8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */,
@@ -614,6 +617,7 @@
 				30F10695B40D3C51CC2EF538 /* SettingsView.swift in Sources */,
 				CCE02926527574C21EFEA0F3 /* ShareInvitationDelegate.swift in Sources */,
 				32869974DB3B7157938EF911 /* ShoppingListView.swift in Sources */,
+				6EF999347DFB45C4AD188FCF /* ShoppingPickSheet.swift in Sources */,
 				4247A7980AD155610352A4AD /* SousApp.swift in Sources */,
 				3663B8C4161DE41FF6F48724 /* SousAppearance.swift in Sources */,
 				BF52A9CCD152AC212F0B12C2 /* SousIntents.swift in Sources */,
