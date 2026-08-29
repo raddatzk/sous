@@ -1,0 +1,884 @@
+# Kandidaten für die Küchenliste
+#
+# BLS-Namen, die nach Küchensprache aussehen und noch nicht in
+# kitchen_words.json stehen. Streich weg, was Tabellensprache ist;
+# der Rest geht mit:  ./adopt_words.py --from <synonyms.json> --file diese-datei
+#
+# 844 Vorschläge, aus 2442 BLS-Wörtern gefiltert.
+
+# --- bakery (6) ---
+Roggenmischbrot
+Weizenbaguette
+Weizenbrötchen
+Weizenfladenbrot
+Weizentoastbrot
+Weizentortilla
+
+# --- baking (29) ---
+Apfeldicksaft
+Apfelkraut
+Birnendicksaft
+Birnenkraut
+Bitterschokolade
+Fruchtaufstrich
+Fruchtsirup
+Gelatine
+Gelee extra
+Glukosesirup maltosehaltig
+Invertzuckercreme
+Kakaomasse
+Konfitüre extra
+Maronenkrem
+Marzipan
+Marzipan Rohmasse
+Milchschokolade
+Nugat
+Nuss-Nougat Rohmasse
+Nuss-Nougat-Creme
+Orangeat
+Pflaumenmus
+Sahneschokolade
+Sahnestandmittel
+Schoko-Nuss-Creme
+Schokolade weiß
+Traubendicksaft
+Vanillinzucker
+Zitronat
+
+# --- canned (14) ---
+Brotaufstrich Ei-Kräuter
+Brotaufstrich Tomate-Mozzarella
+Curry-Gewürzketchup
+Doppelte Rinderkraftbrühe
+Fischbrühe
+Fischkraftbrühe
+Kalbsbrühe
+Rinderkraftbrühe
+Senf mittelscharf
+Senf scharf
+Senf süß
+Tomatenketchup
+Wildbrühe
+Wildkraftbrühe
+
+# --- dairy (20) ---
+Butter gesalzen
+Entenei
+Gänseei
+Halbfettbutter
+Halloumi Grillkäse
+Hühnerei Eigelb
+Hühnerei Eiklar
+Joghurtbutter
+Kakaobutter
+Knoblauchbutter
+Putenei
+Sauermolke
+Sauerrahmbutter
+Schafjoghurt
+Sheabutter
+Soja-Joghurtalternative ungesüßt
+Sojakochcreme
+Süßmolke
+Süßrahmbutter
+Wachtelei
+
+# --- drinks (35) ---
+Apfelwein
+Arrak
+Calvados
+Cognac
+Eierlikör
+Gin
+Glühwein
+Madeirawein
+Mandeldrink ungesüßt
+Mandellikör
+Most
+Obstbrand
+Obstgeist
+Pilsner Bier
+Portwein
+Rosewein süß
+Rosewein trocken
+Rotwein halbtrocken
+Rotwein lieblich
+Rotwein süß
+Rotwein trocken
+Sherry cream
+Sherry dry
+Sherry sweet
+Sojadrink ungesüßt
+Trinkwasser
+Weinbrand
+Weißwein halbtrocken
+Weißwein lieblich
+Weißwein süß
+Weißwein trocken
+Wermutwein süß
+Wermutwein trocken
+Whisky
+Wodka
+
+# --- fish (88) ---
+Aal
+Alaska-Pollack
+Bachsaibling
+Bachsaibling geräuchert
+Barsch
+Blei
+Brosme
+Buckellachs
+Dornhai
+Dornhai geräuchert
+Dorschleber
+Edelkrebs
+Europäische Auster
+Felchen
+Flunder
+Flunder geräuchert
+Forelle geräuchert
+Forelle gesalzen
+Gelbflossen-Thun
+Goldbutt
+Graved Lachs
+Grenadier
+Große Sandklaffmuschel
+Hecht
+Heilbutt
+Hering
+Hering gesalzen
+Heringsrogen
+Heringsrogen gesalzen
+Hornfisch
+Hummer
+Kabeljaurogen
+Kabeljaurogen gesalzen
+Karpfen
+Karpfen geräuchert
+Karpfen gesalzen
+Katfisch
+Kaviarcreme
+Köhler
+Königslachs
+Königslachs geräuchert
+Lachs gesalzen
+Lachsrogen
+Lachsrogen gesalzen
+Languste
+Leng
+Makrele
+Makrele geräuchert
+Meerbarbe
+Meeresfrüchtemischung
+Meerforelle
+Meeräsche
+Merlan
+Pangasius
+Pelamide
+Pilgermuschel
+Rotbarsch
+Rotzunge
+Sardelle gesalzen
+Sardellenpaste
+Sardine
+Schellfisch
+Schellfisch geräuchert
+Schildmakrele
+Schleie
+Schleie geräuchert
+Schleie gesalzen
+Schwarzer Heilbutt
+Schwertfisch
+Seehecht
+Seeteufel
+Seezunge
+Sprotte
+Sprotte geräuchert
+Steinbutt
+Stint
+Tintenfisch
+Venusmuschel
+Weißer Thun
+Wels
+Wels geräuchert
+Wels gesalzen
+Wildlachs
+Wildlachs geräuchert
+Wildlachs gesalzen
+Zander
+Zander geräuchert
+Zander gesalzen
+
+# --- frozen (1) ---
+Blätterteig eifrei
+
+# --- fruit (110) ---
+Acerola
+Acerolasaft
+Ananassaft
+Apfelnektar
+Apfelsaft
+Aprikosensaft
+Bananennektar
+Birnensaft
+Boysenbeere
+Brombeere
+Brombeersaft
+Brotfrucht
+Cashewnussmus
+Cherimoya
+Clementinensaft
+Eberesche süß
+Erdbeersaft
+Feijoa
+Fruchtmischung gezuckert
+Fruchtmischung ungesüßt
+Fruchtschnitte
+Grapefruit
+Grapefruitsaft
+Guave
+Hagebutte
+Heidelbeersaft
+Himbeersaft
+Holunderbeere
+Holundersaft
+Honigmelonensaft
+Jackfrucht
+Johannisbeere rot
+Johannisbeere schwarz
+Johannisbeere weiß
+Johannisbeernektar schwarz
+Johannisbeersaft rot
+Johannisbeersaft schwarz
+Kaki
+Kakisaft
+Kaktusfeige
+Kapstachelbeere
+Kapstachelbeersaft
+Karambole
+Kiwisaft
+Kochbanane
+Kokos Fruchtfleisch
+Kumquat
+Limettensaft Konzentrat
+Litschi
+Litschisaft
+Loganbeere
+Lulo
+Mandarinensaft
+Mangonektar
+Mangosaft
+Mangostane
+Mangostanesaft
+Maracuja
+Maracujanektar
+Maracujasaft
+Maulbeere
+Maulbeersaft
+Mehrfruchtnektar
+Mehrfruchtsaft
+Mirabelle
+Mispel
+Moltebeere
+Moosbeere
+Netzmelone
+Orangennektar
+Orangensaft
+Pampelmuse
+Pampelmusensaft
+Papaya
+Pfirsichnektar
+Pflaumensaft
+Preiselbeere
+Preiselbeersaft
+Quitte
+Quittensaft
+Rambutan
+Reineclaude
+Rhabarber
+Rhabarbersaft
+Roter Mehrfruchtsaft
+Sanddornbeere
+Sanddornsaft
+Satsuma
+Satsumasaft
+Sauerkirsche
+Sauerkirschnektar
+Sauerkirschsaft
+Schlehe
+Schlehensaft
+Stachelbeere
+Süßkirsche
+Süßkirschsaft
+Tamarillo
+Tangerine
+Tangerinensaft
+Traubensaft
+Traubensaft rot
+Traubensaft weiß
+Wald-Brombeere
+Wald-Erdbeere
+Wald-Himbeere
+Weintraube
+Weintraube rot
+Weintraube weiß
+Zitronensaft Konzentrat
+
+# --- grains (103) ---
+Amaranth
+Braunhirse Mehl
+Buchweizen
+Buchweizen Grieß
+Buchweizen Grütze
+Buchweizen Mehl
+Buchweizen Schrot
+Buchweizen Vollkornmehl
+Böhmische Knödel
+Cornflakes gesüßt
+Cornflakes ungesüßt
+Dinkel Flocken
+Dinkel Grieß
+Dinkel Kleie
+Dinkel Vollkornmehl
+Dinkel Vollkornschrot
+Dinkeleierteigwaren
+Dinkelteigwaren eifrei
+Dinkelvollkorneierteigwaren
+Dinkelvollkornteigwaren eifrei
+Eier-Frischteigwaren
+Eierteigwaren
+Eierteigwaren glutenfrei
+Einkorn Flocken
+Einkorn Vollkornmehl
+Emmer Flocken
+Emmer Vollkornmehl
+Frischteigwaren eifrei
+Gerste Flocken
+Gerste Graupen
+Gerste Grieß
+Gerste Grütze
+Gerste Mehl
+Gerste Schrot
+Gerstenmalzextrakt
+Getreideflakes gesüßt
+Gnocchi
+Grießklößchen
+Grünkern Grütze
+Grünkern Vollkornmehl
+Grünkern Vollkornschrot
+Hafer Flocken
+Hafer Grieß
+Hafer Grütze
+Hafer Kleie
+Hafer Mehl
+Hafer Schrot
+Haferdrink ungesüßt
+Hartweizen Grieß
+Hartweizen Vollkorngrieß
+Hartweizen Vollkornmehl
+Hirse
+Hirse Flocken
+Hirse Mehl
+Hirse Schrot
+Kartoffel-Schupfnudeln
+Mais Grieß
+Mais Grütze
+Mais Mehl
+Mais Stärke
+Maiswaffeln gesalzen
+Mehlmischung glutenfrei
+Mehrkornflocken
+Mehrkornschrot
+Pfeilwurzelmehl
+Popcorn gesalzen
+Popcorn gesüßt
+Popcorn ungesüßt
+Quinoa tricolore
+Quinoa weiß
+Reis Grieß
+Reis Kleie
+Reis Mehl
+Reis Stärke
+Reis poliert
+Reis unpoliert
+Reisdrink ungesüßt
+Reisnudeln
+Reiswaffeln gesalzen
+Reiswaffeln schokoliert
+Reiswaffeln ungesalzen
+Roggen Flocken
+Roggen Grieß
+Roggen Vollkornmehl
+Roggen Vollkornschrot
+Schupfnudeln eifrei
+Schupfnudeln schwäbisch
+Semmelknödel
+Tapioka
+Teigwaren eifrei
+Vollkorneierteigwaren
+Vollkornteigwaren eifrei
+Weichweizen Grieß
+Weizen Dunst
+Weizen Flocken
+Weizen Grütze
+Weizen Keim
+Weizen Kleie
+Weizen Stärke
+Weizen Vollkornmehl
+Weizen Vollkornschrot
+Weizenkleber
+Wildreis
+
+# --- legumes (24) ---
+Alfalfasprossen
+Augenbohne reif
+Erbsenmehl
+Gartenbohne reif
+Hummus
+Kastanienmehl
+Kichererbsenmehl
+Kidneybohne reif
+Linse reif
+Linsenmehl
+Linsensprossen
+Lupinenmehl
+Miso
+Mungbohne reif
+Mungbohnensprossen
+Seidentofu
+Seidentofu gargezogen
+Sojabohnensprossen
+Sojalecithin
+Sojamehl vollfett
+Sojaproteinisolat
+Sojawürstchen
+Tofu
+Tofu gargezogen
+
+# --- meat (278) ---
+Aalrauchmettwurst
+Bauernbratwurst
+Bauernleberwurst
+Berner Würstchen
+Bierschinken
+Bierwurst
+Blutbregenwurst
+Blutpresssack
+Bockwurst
+Bockwurst gargezogen
+Bratwurst geräuchert
+Bratwurst mittelgrob
+Cabanossi gebrüht
+Champignonleberwurst
+Champignonpastete
+Corned Beef
+Currybratwurst
+Debrecziner
+Debreziner Würstchen
+Delikatesswürstchen
+Eierpastete
+Ente Innereien
+Ente Leber
+Entenpastete
+Erbswurst
+Filet-Blutwurst
+Fleischkäse grob
+Fleischkäse weiß
+Fleischwurst
+Frankfurter Leberwurst
+Französische Schweinefleischterrine
+Fränkischer Fleischpresssack
+Frühlingspastete
+Frühstücksfleisch
+Gans Innereien
+Gans Leber
+Geflügel Dönerfleisch
+Geflügel Frikadelle
+Geflügel-Wiener Würstchen
+Geflügelbratwurst
+Geflügelleberwurst
+Geflügelmortadella
+Gefüllter Schinken
+Gefüllter Schweinebauch
+Gefüllter Schweinekamm
+Gelbwurst
+Gemüsesülze
+Gerauchte Schinkenwurst
+Geselchte
+Gesülzter Hackbraten
+Graupenblutwurst
+Grobe Mettwurst
+Grützblutwurst
+Göttinger Schinkenwurst
+Hammel Brust
+Hammel Herz
+Hammel Hirn
+Hammel Keule
+Hammel Kotelett
+Hammel Leber
+Hammel Lunge
+Hammel Milz
+Hammel Muskelfleisch
+Hammel Niere
+Hammel Zunge
+Hannoversche Weißwurst
+Hase Fleisch
+Haselnusspastete
+Hausmacher Blutwurst
+Helle Zungenwurst
+Herzwurst
+Hessische Landrotwurst
+Hirsch Fleisch
+Hirsch Rücken
+Hähnchen Brustfilet
+Hähnchen Herz
+Hähnchen Innereien
+Hähnchen Leber
+Hähnchen Magen
+Hähnchenpastete
+Jagdwurst
+Kabanossi
+Kalb Bries
+Kalb Brust
+Kalb Filetsteak
+Kalb Hackfleisch
+Kalb Haxe
+Kalb Herz
+Kalb Hirn
+Kalb Keule
+Kalb Leber
+Kalb Lunge
+Kalb Milz
+Kalb Muskelfleisch
+Kalb Niere
+Kalb Rücken
+Kalb Zunge
+Kalbfleischgalantine
+Kalbfleischkäse
+Kalbfleischsülze
+Kalbsbrust gefüllt
+Kalbsleberwurst
+Kaninchen Fleisch
+Kartoffelwurst
+Katenrauchwurst
+Knackwurst
+Knoblauchwurst
+Knoblauchwurst einfach
+Kochsalami
+Kolbacz
+Krakauer
+Krakauer Schinkenwurst
+Kräuterleberwurst
+Käsekrainer
+Käseschinkenwurst
+Käsewiener
+Käsewiener gargezogen
+Lachsschinkenpastete
+Lamm Bries
+Lamm Brust
+Lamm Herz
+Lamm Kotelett
+Lamm Leber
+Lamm Milz
+Lamm Muskelfleisch
+Lamm Niere
+Lamm Nuss
+Lamm Zunge
+Lammfleisch-Salami
+Lammfleisch-Zervelatwurst
+Landjäger
+Landmettwurst
+Leberkäse
+Leberpastete
+Leberpresssack einfach
+Leberrolle
+Leberrotwurst
+Leberwurst einfach
+Lyoner
+Lyoner grob
+Lyoner weiß
+Mettwurst
+Mettwurst einfach
+Milzwurst
+Mortadella
+Mortadella süddeutsch
+Mosaikroulade
+Mosaikumrandung
+Münchner Weißwurst
+Norddeutsche Kochmettwurst
+Olivenpastete
+Paprikaspeckwurst
+Pferd Fleisch
+Pfälzer Saumagen
+Plockwurst
+Plockwurst einfach
+Presssäckel
+Presswurst
+Pute Innereien
+Rebhuhn Fleisch
+Reh Keule
+Reh Rücken
+Reiswurst
+Rentier Fleisch
+Rheinische Bratwurst
+Rind Bindegewebe
+Rind Blut
+Rind Filetsteak
+Rind Frikadelle
+Rind Hackfleisch
+Rind Herz
+Rind Hinterhesse
+Rind Hochrippe
+Rind Hüfte
+Rind Keule
+Rind Knochenmark
+Rind Leber
+Rind Leberhack
+Rind Lunge
+Rind Milz
+Rind Muskelfleisch
+Rind Niere
+Rind Oberschale
+Rind Ochsenschwanz
+Rind Rostbraten
+Rind Vorderhesse
+Rind Zunge
+Rinderbierschinken
+Rindersalami
+Rindsbratwurst
+Rostbratwurst
+Rostbratwurst gargezogen
+Roter Presskopf
+Salami
+Salami Ia
+Schaf Bries
+Schaf Filetmedaillon
+Schaf Filetsteak
+Schaf Herz
+Schaf Hirn
+Schaf Kotelett
+Schaf Leber
+Schaf Lunge
+Schaf Milz
+Schaf Muskelfleisch
+Schaf Niere
+Schaf Rücken
+Schaf Zunge
+Schinken-Käse-Sülze
+Schinken-Käsepastete
+Schinkenmettwurst
+Schinkenplockwurst
+Schinkenpresskopf
+Schinkenroulade
+Schinkentorte
+Schinkenwurst
+Schlackwurst
+Schmierwurst fettreich
+Schnecken
+Schwartenmagen
+Schwarze Graupenwürstchen
+Schwarzwälder Bauernwürstle
+Schwein Blut
+Schwein Brustspitze
+Schwein Brät
+Schwein Filetmedaillon
+Schwein Frikadelle
+Schwein Grillbauch
+Schwein Hackfleisch
+Schwein Herz
+Schwein Hirn
+Schwein Kamm
+Schwein Kammbraten
+Schwein Kammsteak
+Schwein Lachsbraten
+Schwein Ladenbauch
+Schwein Leber
+Schwein Lunge
+Schwein Magen
+Schwein Milz
+Schwein Muskelfleisch
+Schwein Niere
+Schwein Nuss
+Schwein Schmetterlingssteak
+Schwein Schwarte
+Schwein Stielkotelett
+Schwein Zunge
+Schweinefleischsülze
+Schweinekümmelmagen
+Schweineroulade
+Schweinezungensülze
+Schweinskopfwurst
+Schweinskäse weiß
+Sternpastete
+Stockwurst
+Streichmettwurst
+Stuttgarter Leberkäse
+Suppenhuhn Innereien
+Sülzkotelett
+Sülzwurst
+Thüringer Rotwurst
+Tiroler
+Trüffelleberwurst
+Trüffelmosaikpastete
+Weiße Graupenwurst
+Weißer Presskopf
+Wiener Würstchen
+Wildbretgalantine
+Wildkaninchen Fleisch
+Wildschwein Fleisch
+Wollwurst
+Wurstsülze
+Würfelpastete
+Zervelatwurst
+Zervelatwurst Ia
+Ziege Fleisch
+Zungenblutwurst
+Zungenpresskopf
+
+# --- nuts (21) ---
+Cashewkern
+Chia-Samen
+Edelkastanie
+Erdnussmus
+Haselnuss gemahlen
+Haselnussmus
+Kürbiskern
+Leinsamen
+Leinsamen geschrotet
+Macadamianuss
+Mandel bitter
+Mandel süß
+Mandelmus
+Mohn
+Mohn gemahlen
+Paranuss
+Pekannuss
+Pinienkern
+Sonnenblumenkern
+Studentenfutter
+Walnuss gemahlen
+
+# --- oils (28) ---
+Backmargarine
+Branntweinessig
+Distelöl
+Entenfett
+Fischleberöl
+Gänsefett
+Hammelfett
+Hanföl
+Haselnussöl
+Hühnerfett
+Kokosfett gehärtet
+Kokosöl desodoriert
+Kräuteressig
+Kürbiskernöl
+Leinöl
+Maiskeimöl
+Mandelöl
+Mohnöl
+Palmfett gehärtet
+Palmkernfett
+Rinderfett
+Schweinefett
+Sojaöl
+Traubenkernöl
+Walnussöl
+Weinessig
+Weizenkeimöl
+Ziehmargarine
+
+# --- other (3) ---
+Soja-Bratlinge
+Tofu-Bratlinge
+Veganes Schnitzel
+
+# --- spices (5) ---
+Gewürzsalz
+Glutamat
+Nitritpökelsalz
+Nitritpökelsalz jodiert
+Steinsalz
+
+# --- vegetables (79) ---
+Austernpilz
+Bambussprossen
+Batate
+Birkenpilz
+Bleichsellerie
+Bohne grün
+Brennnessel
+Butterpilz
+Bärlauch
+Chayote
+Chicoree
+Chinakohl
+Edel-Reizker
+Eisbergsalat
+Endivie
+Erbse grün
+Erbse reif
+Fenchelblatt
+Gartenkresse
+Gemüseamaranth
+Gemüseartischocke
+Gemüsefenchel
+Gemüsemischung Erbsen-Karotten
+Gemüsemischung Kaisergemüse
+Gemüsepaprika gelb
+Gemüsepaprika grün
+Gemüsepaprika rot
+Grünkohl
+Hallimasch
+Kartoffel ungeschält
+Kichererbse reif
+Kohlrabi
+Kohlrübe
+Kopfsalat
+Löwenzahn
+Mangold
+Maniok
+Meerrettich
+Mischpilze
+Morchel
+Neuseeländer Spinat
+Okra
+Pak Choi
+Palmenherz
+Perlzwiebel
+Petersilienblatt
+Pfefferschote grün
+Pfefferschote rot
+Pfifferling
+Portulak
+Radicchio
+Radieschen
+Rettich
+Romanesco
+Rosenkohl
+Rotkappe
+Rucola
+Sauerampfer
+Schnittsalat
+Schwarzwurzel
+Shiitakepilz
+Silberzwiebel
+Sojabohne reif
+Spargel
+Speisezwiebel
+Spitzkohl
+Steinpilz
+Stielmus
+Topinambur
+Trüffel
+Wachsbohne
+Wasabi
+Weinsauerkraut
+Wirsing
+Wurzelpetersilie
+Yamswurzel
+Zuckererbse
+Zuckerhutsalat
+Zuckermais
+
