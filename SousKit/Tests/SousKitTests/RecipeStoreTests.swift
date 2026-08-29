@@ -9,6 +9,30 @@ struct RecipeStoreTests {
         try backend.makeStore()
     }
 
+    @Test(
+        "The cook's word on how much work it is survives both stores",
+        arguments: StoreBackend.allCases
+    )
+    func effortOverrideRoundTrips(_ backend: StoreBackend) async throws {
+        // A field added to Recipe compiles whether or not the two stores map
+        // it, and an unmapped one is not an error but a silent loss: saved,
+        // read back, gone. So each new field earns a round trip.
+        let store = try makeStore(backend)
+        var recipe = sampleRecipe()
+        recipe.effortOverride = .involved
+        try await store.save(recipe)
+
+        let read = try #require(try await store.recipe(id: recipe.id))
+        #expect(read.effortOverride == .involved)
+
+        // And clearing it is a value too — "nobody said" has to be storable,
+        // or an override could never be taken back.
+        var cleared = read
+        cleared.effortOverride = nil
+        try await store.save(cleared)
+        #expect(try await store.recipe(id: recipe.id)?.effortOverride == nil)
+    }
+
     private func sampleRecipe(title: String = "Zucchinipfanne") -> Recipe {
         Recipe(
             title: title,

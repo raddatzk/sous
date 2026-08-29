@@ -53,6 +53,21 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// me", so an empty set normalizes to `nil` at the door.
     public var suitableSlots: Set<MealSlot>?
 
+    /// The cook's own word on how much work this is, where they gave one.
+    ///
+    /// `nil` means nobody has said, and then ``RecipeEffort`` reads it off
+    /// the recipe's structure instead — the same shape as `suitableSlots`
+    /// above, and for the same reason: a judgment that is usually worth
+    /// deriving and occasionally worth overruling.
+    ///
+    /// A rung rather than a number, because that is what a person has an
+    /// opinion about. Nobody looks at a dish and thinks "twenty-three"; they
+    /// think "that is a Saturday". And overruling is not a correction of the
+    /// arithmetic — the structure really is what it is — it is the cook
+    /// saying the structure missed the point, which for effort it can: a
+    /// croissant is five ingredients and hard.
+    public var effortOverride: RecipeEffort.Level?
+
     /// The ``VariantGroup`` this recipe is one version of, if it is.
     ///
     /// On the member rather than as a list on the group, so that dissolving
@@ -88,6 +103,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         totalTimeSeconds: Int? = nil,
         imageIDs: [UUID] = [],
         suitableSlots: Set<MealSlot>? = nil,
+        effortOverride: RecipeEffort.Level? = nil,
         variantGroupID: UUID? = nil,
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
@@ -110,6 +126,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.totalTimeSeconds = totalTimeSeconds
         self.imageIDs = imageIDs
         self.suitableSlots = suitableSlots.flatMap { $0.isEmpty ? nil : $0 }
+        self.effortOverride = effortOverride
         self.variantGroupID = variantGroupID
         self.createdBy = createdBy
         self.createdAt = createdAt

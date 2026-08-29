@@ -144,7 +144,7 @@ public final class RecipeLibrary {
             // what a recipe states, and most state nothing. They are applied
             // afterwards, here, where the planner's cached guess can stand in
             // — see ``narrowedToSlots(_:filters:)``.
-            filters: activeFilters.filter { $0.kind != .slot },
+            filters: activeFilters.filter { $0.kind != .slot && $0.kind != .effort },
             onlyFavorites: filter == .favorites,
             onlyWantToCook: filter == .wantToCook
         )
@@ -200,8 +200,11 @@ public final class RecipeLibrary {
         isLoading = true
         defer { isLoading = false }
         do {
-            recipes = try await narrowedToSlots(
-                store.recipes(matching: query),
+            recipes = narrowedToEffort(
+                try await narrowedToSlots(
+                    store.recipes(matching: query),
+                    filters: activeFilters
+                ),
                 filters: activeFilters
             )
             categories = try await store.categories()
@@ -254,10 +257,12 @@ public final class RecipeLibrary {
             let found = try await store.recipes(
                 matching: RecipeQuery(
                     searchText: text.isEmpty ? nil : text,
-                    filters: filters.filter { $0.kind != .slot }
+                    filters: filters.filter { $0.kind != .slot && $0.kind != .effort }
                 )
             )
-            return await narrowedToSlots(found, filters: filters)
+            return narrowedToEffort(
+                await narrowedToSlots(found, filters: filters), filters: filters
+            )
         } catch {
             report(error)
             return []
@@ -285,6 +290,34 @@ public final class RecipeLibrary {
             if wanted.isSubset(of: slots) { kept.append(recipe) }
         }
         return kept
+    }
+
+    /// Keeps the recipes whose effort matches every rung asked for.
+    ///
+    /// Like the slot narrowing above and for the same reason: the value is
+    /// mostly not written on the recipe but read off its structure, so the
+    /// store cannot answer it. A recipe with too little structure to judge
+    /// drops out rather than being counted as easy — an unread dish is not a
+    /// simple one, and a filter that guessed otherwise would fill "Einfach"
+    /// with everything nobody has written properly.
+    ///
+    /// Linked recipes resolve against the recipes in hand rather than the
+    /// store. A filter that went back to the store per link would turn one
+    /// question into a hundred; the effect is only that a sub-recipe outside
+    /// the current result counts as a step rather than as its own work.
+    private func narrowedToEffort(
+        _ recipes: [Recipe], filters: [RecipeFilter]
+    ) -> [Recipe] {
+        let wanted = Set(filters.compactMap(\.effort))
+        guard !wanted.isEmpty else { return recipes }
+
+        let athand = Dictionary(recipes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return recipes.filter { recipe in
+            guard let level = recipe.effortOverride
+                ?? recipe.effort(resolve: { athand[$0] })?.level
+            else { return false }
+            return wanted.contains(level)
+        }
     }
 
     /// The meals a recipe is known to suit, or `nil` where nobody has said

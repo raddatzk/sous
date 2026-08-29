@@ -56,6 +56,12 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
                     results = results.filter { recipe in
                         recipe.statedSlots.contains(filter.key)
                     }
+                case .effort:
+                    // Never asked of the store: effort is read off the recipe's
+                    // structure, which is not indexed and could not be. The
+                    // library strips these before querying and applies them
+                    // afterwards — see ``RecipeLibrary.narrowedToEffort``.
+                    break
                 }
             }
             return results.compactMap(\.domainValue)
