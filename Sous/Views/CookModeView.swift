@@ -20,6 +20,15 @@ struct CookModeView: View {
 
     /// The recipes on the hob, looked up from the ids the session keeps.
     @State private var recipes: [UUID: Recipe] = [:]
+    /// The recipes those on the hob refer to — a curry's naan — whether or
+    /// not they are on the hob themselves. Kept apart from `recipes` so that
+    /// "what is cooking" stays exactly the session's list.
+    @State private var linkedRecipes: [UUID: Recipe] = [:]
+    /// Offers the cook has waved away this run. Not stored with the session:
+    /// "I bought the naan" is true for tonight, not for the recipe, and a
+    /// reopened cook mode asking once more is cheaper than a dismissal that
+    /// outlives the reason for it.
+    @State private var dismissedOffers: Set<UUID> = []
     /// The step whose duration is being set, if the sheet is open.
     @State private var settingTimer: TimerDraft?
     @State private var isPicking = false
@@ -91,7 +100,13 @@ struct CookModeView: View {
             }
         }
         .sheet(isPresented: $isPicking) {
-            CookAddSheet(excluding: Set(session.entries.map(\.recipeID))) { picked, servings in
+            CookAddSheet(
+                excluding: Set(session.entries.map(\.recipeID)),
+                // What the pots already on the hob refer to, offered first:
+                // somebody who opened this sheet after waving the card away
+                // should not have to search for the naan by name.
+                suggesting: recipes.values.flatMap { offers(for: $0) }
+            ) { picked, servings in
                 session.start(picked, servings: servings)
             }
         }
@@ -377,6 +392,14 @@ struct CookModeView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 32) {
+                    // Before the first step, because a naan wants an hour to
+                    // prove and finding it out at step four is finding it out
+                    // too late. It scrolls away with the rest: the question
+                    // belongs to the beginning of the evening, and a bar
+                    // pinned over the steps would outstay it.
+                    ForEach(offers(for: recipe)) { linked in
+                        offerCard(linked, from: recipe)
+                    }
                     ForEach(Array(steps.enumerated()), id: \.element.id) { index, step in
                         stepCard(
                             step,
@@ -424,6 +447,40 @@ struct CookModeView: View {
             .onAppear { proxy.scrollTo(focused, anchor: .top) }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    /// An offer to put a recipe this one refers to on the hob as well.
+    ///
+    /// Not a question asked before cooking starts: "Kochen" is one tap by
+    /// design, and a dialog in front of it would be paid for every time,
+    /// including the times the naan was bought.
+    private func offerCard(_ linked: Recipe, from parent: Recipe) -> some View {
+        let servings = portions(of: linked, in: parent)
+        return HStack(alignment: .firstTextBaseline, spacing: 16) {
+            Image(systemName: "link")
+                .font(.title3)
+                .frame(minWidth: 44, alignment: .trailing)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Dieses Rezept enthält „\(linked.title)“.")
+                    .font(.headline)
+                HStack(spacing: 16) {
+                    Button("Mit auf den Herd") {
+                        session.start(linked, servings: servings)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    Button("Nein danke") {
+                        dismissedOffers.insert(linked.id)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+                Text(Servings.text(servings))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 12)
     }
 
     /// The end of the recipe, as the last thing in the column.
@@ -639,6 +696,46 @@ struct CookModeView: View {
         // A recipe deleted while it was on the hob cannot be cooked from.
         session.prune(toRecipes: Set(resolved.keys))
 
+        var links: [UUID: Recipe] = [:]
+        for recipe in resolved.values {
+            for id in recipe.linkedRecipeIDs where links[id] == nil {
+                if let linked = await library.recipe(id: id), !linked.isDeleted {
+                    links[id] = linked
+                }
+            }
+        }
+        linkedRecipes = links
+    }
+
+    /// What `recipe` refers to that is not already cooking, and that the
+    /// cook has not waved away.
+    ///
+    /// A recipe can name another for two quite different reasons — it is
+    /// part of the dish, or it is a suggestion of what to serve alongside —
+    /// and this cannot tell them apart. It offers rather than assumes, which
+    /// is the same reason the shopping list asks which ingredients rather
+    /// than taking them all.
+    private func offers(for recipe: Recipe) -> [Recipe] {
+        recipe.linkedRecipeIDs.compactMap { id in
+            guard !dismissedOffers.contains(id),
+                  session.entry(for: id) == nil,
+                  let linked = linkedRecipes[id]
+            else { return nil }
+            return linked
+        }
+    }
+
+    /// The portions the parent asks for — "2 Portionen Naan" — falling back
+    /// to what the linked recipe is written for where the line names no
+    /// count of its own.
+    private func portions(of linked: Recipe, in parent: Recipe) -> Int {
+        let line = parent.ingredients.first {
+            RecipeLink.referencedIDs(in: $0.name).contains(linked.id)
+        }
+        guard let quantity = line?.quantity, quantity.unit == .portion else {
+            return linked.servings
+        }
+        return max(1, Int(quantity.amount.rounded())).clamped(to: Recipe.servingsRange)
     }
 
     /// Takes a recipe off the hob — asking first if something is still

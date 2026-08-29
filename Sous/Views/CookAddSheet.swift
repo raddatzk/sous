@@ -15,6 +15,12 @@ struct CookAddSheet: View {
     /// What is already on the hob. Offering it again would either do nothing
     /// or quietly reset the pot that is already cooking.
     let excluding: Set<Recipe.ID>
+    /// Recipes the pots already on the hob refer to. Offered above the
+    /// library, because somebody adding a second pot while a curry cooks is
+    /// far likelier to want its naan than anything else they own — and
+    /// because they may be here precisely after waving that offer away in
+    /// cook mode.
+    var suggesting: [Recipe] = []
     let onAdd: (Recipe, Int) -> Void
 
     @State private var searchText = ""
@@ -22,20 +28,50 @@ struct CookAddSheet: View {
     /// The recipe whose servings are being set, if that sheet is open.
     @State private var picked: Recipe?
 
+    /// The suggestions worth showing: not already cooking, and not repeated
+    /// where two pots refer to the same recipe.
+    private var offered: [Recipe] {
+        var seen = Set<Recipe.ID>()
+        return suggesting.filter {
+            !excluding.contains($0.id) && seen.insert($0.id).inserted
+        }
+    }
+
+    /// One pickable recipe.
+    ///
+    /// A button rather than a tap gesture: the pointer changes over it, the
+    /// keyboard reaches it, and the Mac gets the click it expects.
+    private func row(_ recipe: Recipe) -> some View {
+        Button {
+            picked = recipe
+        } label: {
+            RecipeRow(recipe: recipe)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         NavigationStack {
-            List(results) { recipe in
-                // A button rather than a tap gesture: the pointer changes
-                // over it, the keyboard reaches it, and the Mac gets the
-                // click it expects.
-                Button {
-                    picked = recipe
-                } label: {
-                    RecipeRow(recipe: recipe)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(.rect)
+            List {
+                // Only while nobody is searching: a cook who typed a name is
+                // looking for that one, and a section above the answer would
+                // be in the way of it.
+                if searchText.isEmpty, !offered.isEmpty {
+                    Section {
+                        ForEach(offered) { recipe in
+                            row(recipe)
+                        }
+                    } header: {
+                        Text("Gehört zu dem, was schon kocht")
+                    }
                 }
-                .buttonStyle(.plain)
+                Section {
+                    ForEach(results) { recipe in
+                        row(recipe)
+                    }
+                }
             }
             .navigationTitle("Rezept dazunehmen")
             #if os(iOS)
