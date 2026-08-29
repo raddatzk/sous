@@ -46,6 +46,12 @@ struct RecipeDetailView: View {
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
     @State private var isPickingForShoppingList = false
+    /// How much work this is: the cook's word, or what the structure says.
+    ///
+    /// `nil` where the recipe has too little structure to judge, and then
+    /// the row simply has one fewer column — an unread dish is not an easy
+    /// one, and the page does not claim otherwise.
+    @State private var effort: RecipeEffort.Level?
     @State private var isPlanning = false
     @State private var export: RecipeExport?
     @State private var isResolvingWithAI = false
@@ -213,6 +219,7 @@ struct RecipeDetailView: View {
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
         .task { await shopping.loadIfNeeded() }
+        .task(id: recipe.id) { await recomputeEffort() }
         .sheet(isPresented: $isPickingForShoppingList) {
             ShoppingPickSheet(recipe: recipe, servings: servings) { lines in
                 addToShoppingList(lines: lines)
@@ -459,7 +466,7 @@ struct RecipeDetailView: View {
             // it can differ from what the recipe is written for and a
             // second, unscaled number beside it would just read as a
             // mismatch.
-            if !timeItems.isEmpty || nutrition?.coverage.isComplete == true {
+            if !timeItems.isEmpty || effort != nil || nutrition?.coverage.isComplete == true {
                 HStack(spacing: 16) {
                     // Leads the row: the rating is the one fact here worth
                     // seeing before anything else, times included. Only with
@@ -478,10 +485,37 @@ struct RecipeDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    // Last, and in the same shape as the times: it belongs
+                    // with them, because the two together are what a cook
+                    // weighs on a weekday evening — how long it takes and
+                    // how much of that is standing at the counter.
+                    if let effort {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(effort.title).font(.footnote.weight(.medium))
+                            Text("Aufwand")
+                                .font(.caption2)
+                                .textCase(.uppercase)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
                 .padding(.top, 2)
             }
         }
+    }
+
+    /// Works out the effort, with the linked recipes fetched first.
+    ///
+    /// The list cannot afford this — a row per link would be a query per row
+    /// — but this page can, and this is where it matters: a curry that
+    /// bakes its own naan is a different evening from one that does not, and
+    /// with no resolver the naan counts as the single line it looks like.
+    private func recomputeEffort() async {
+        var linked: [UUID: Recipe] = [:]
+        for id in recipe.linkedRecipeIDs {
+            if let found = await library.recipe(id: id) { linked[id] = found }
+        }
+        effort = recipe.effortOverride ?? recipe.effort { linked[$0] }?.level
     }
 
     /// Re-reads the figure after a basis decision. Confirming a mapping

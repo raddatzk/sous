@@ -42,6 +42,15 @@ struct RecipeRow: View {
     /// Whether the catalog is missing any of this recipe's ingredients —
     /// the list-wide view of the same check the detail page's banner runs.
     @State private var needsIngredientReview = false
+    /// How much work the dish is: the cook's word where they gave one, and
+    /// otherwise what its structure implies. `nil` where the recipe has too
+    /// little structure to judge, and then the row says nothing rather than
+    /// calling it easy.
+    ///
+    /// Worked out once per recipe rather than in `body`: it parses the
+    /// ingredients and the steps, which is cheap on its own and not cheap
+    /// once per redraw of a scrolling list.
+    @State private var effort: RecipeEffort.Level?
 
     /// Enough to say what a recipe is; more would push the rows apart.
     private static let visibleCategories = 3
@@ -55,6 +64,12 @@ struct RecipeRow: View {
         }
         .task(id: recipe.id) {
             needsAmountReview = await library.needsAmountReview(recipe)
+        }
+        .task(id: recipe.id) {
+            // Without a resolver for linked recipes: a row would have to go
+            // back to the store per link, and the only difference is that a
+            // sub-recipe counts as the one line it looks like from here.
+            effort = recipe.effortOverride ?? recipe.effort()?.level
         }
         .task(id: recipe.id) {
             let nutrition = await nutritionLibrary.nutrition(for: recipe)
@@ -205,7 +220,7 @@ struct RecipeRow: View {
     private var attributes: some View {
         let shown = recipe.categories.prefix(Self.visibleCategories)
         let hidden = recipe.categories.count - shown.count
-        if totalMinutes != nil || kcalPerPortion != nil || !shown.isEmpty {
+        if totalMinutes != nil || kcalPerPortion != nil || effort != nil || !shown.isEmpty {
             FlowLayout(spacing: 5, lineSpacing: 5) {
                 if let minutes = totalMinutes {
                     chip("\(minutes) Min.", systemImage: "clock")
@@ -218,6 +233,12 @@ struct RecipeRow: View {
                         kcalIsComplete ? "\(kcalPerPortion) kcal" : "≈ \(kcalPerPortion) kcal",
                         systemImage: kcalIsComplete ? nil : "circle.dashed"
                     )
+                }
+                // After the two numbers and before the categories: it is a
+                // judgement about the dish like a category is, but one the
+                // app made, so it keeps the plain chip rather than a colour.
+                if let effort {
+                    chip(effort.title, systemImage: effort.symbolName)
                 }
                 // Each category keeps its own colour rather than sharing the
                 // app's one accent — with several shown at once, a reader
