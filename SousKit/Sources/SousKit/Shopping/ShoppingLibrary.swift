@@ -102,6 +102,9 @@ public final class ShoppingLibrary {
     /// Every line still on the list, swept rows already left out.
     public private(set) var items: [ShoppingItem] = []
     public private(set) var planEntries: [ShoppingPlanEntry] = []
+    /// Whether the list has ever been read. An empty list and a list not yet
+    /// read look the same from outside, and they are not the same answer.
+    public private(set) var hasLoaded = false
     public var errorMessage: String?
     /// Set after something was added, so the interface can say what happened.
     public var lastAddition: String?
@@ -131,15 +134,49 @@ public final class ShoppingLibrary {
             let snapshot = try await store.snapshot()
             items = snapshot.items.filter { !$0.isCleared }
             planEntries = snapshot.planEntries
+            hasLoaded = true
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
+    /// Reads the list once, for a screen that asks a question about it
+    /// without being the screen that shows it.
+    ///
+    /// The recipe page needs to know whether the recipe it is showing is
+    /// already on the list, and until the list has been opened at least once
+    /// `planEntries` is empty for want of a read rather than for want of
+    /// errands. A failed read leaves the flag down, so the next screen to
+    /// ask tries again.
+    public func loadIfNeeded() async {
+        guard !hasLoaded else { return }
+        await reload()
+    }
+
     /// Puts a recipe's ingredients on the list, at the servings it is being
     /// cooked for. Linked recipes contribute what they are made of.
-    public func add(_ recipe: Recipe, servings: Int? = nil) async {
-        await add([(recipe, servings ?? recipe.servings)], describing: recipe.title)
+    ///
+    /// `lines` narrows it to some of the recipe's ingredient lines, named by
+    /// `RecipeIngredient.id`; `nil` — the default — is the whole recipe. The
+    /// picked lines become the capture, and that is the whole of it: the
+    /// portion dial on the list scales the demands it finds and never reads
+    /// the recipe again, so what was left out stays left out however far the
+    /// dial is turned afterwards.
+    public func add(_ recipe: Recipe, servings: Int? = nil, lines: Set<UUID>? = nil) async {
+        let servings = servings ?? recipe.servings
+        do {
+            var known: [UUID: Recipe] = [recipe.id: recipe]
+            try await resolveLinks(of: recipe, into: &known)
+            let capture = ShoppingListBuilder.build(
+                from: recipe,
+                servings: servings,
+                selecting: lines,
+                catalog: catalog
+            ) { known[$0] }
+            try await commit(capture, describing: recipe.title)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Puts everything planned for a set of days on the list.
@@ -160,12 +197,17 @@ public final class ShoppingLibrary {
                 catalog: catalog
             ) { known[$0] }
 
-            try await store.add(capture)
-            await reload()
-            lastAddition = description
+            try await commit(capture, describing: description)
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Writes a capture and lets the list catch up.
+    private func commit(_ capture: ShoppingCapture, describing description: String) async throws {
+        try await store.add(capture)
+        await reload()
+        lastAddition = description
     }
 
     /// Follows links a level at a time so the builder can resolve them.
