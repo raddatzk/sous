@@ -541,6 +541,11 @@ def main():
     measures = load(args.measures)
     aisles = build_aisles(group_codes)
 
+    # The builder no longer writes anything: its name analysis was how the
+    # kitchen words used to find their codes, and those are written down in
+    # `curation.json` now. What it is still good for is the checking - that
+    # every code the curation names survives the group filter, that no word
+    # it names is missing from the kitchen's list - so it runs and reports.
     stats = builder.stats
     print("=== extract ===")
     print(f"Source rows: {extract_stats['total_source_rows']}")
@@ -551,8 +556,15 @@ def main():
         print(f"  {code} {name}")
     print(f"bls.json entries: {len(bls['entries'])}")
 
-    print("\n=== synonyms ===")
-    print(f"Words total: {len(synonyms)}")
+    print("\n=== the two lists ===")
+    print(f"Kitchen words (offered while typing): {len(catalog)}")
+    print(f"Curation entries (kitchen word -> rows): {len(curation['words'])}")
+    kitchen_names = {entry["name"] for entry in catalog}
+    unmapped = sorted(kitchen_names - set(curation["words"]))
+    print(f"Kitchen words carrying no values on purpose: {len(unmapped)}")
+
+    print("\n=== name analysis (reported, no longer shipped) ===")
+    print(f"Words the old merge would produce: {len(synonyms)}")
     print(f"  curated (kitchen_words.json): {stats['curated_words']}")
     print(f"  from BLS names: {stats['bls_words']}")
     print(f"Words without any target (identity only, no nutrition): "
@@ -582,10 +594,19 @@ def main():
         return
 
     dump_json(bls, args.resources / "bls.json")
-    dump_json({"words": synonyms}, args.resources / "synonyms.json")
+    # The two curated files ship as they are written. They used to be melted
+    # together with the BLS row names into one `synonyms.json`, and that merge
+    # is what put a food table's spellings - "Bohne, grün", "Speisezwiebel
+    # tiefgefroren, geschmort ohne Fett" - in front of a cook typing an
+    # ingredient. The lists stay two lists now: `kitchen_words.json` is what
+    # the app offers, `bls.json` is what it looks things up in, and
+    # `curation.json` is the link. Nothing here joins them.
+    dump_json(catalog, args.resources / "kitchen_words.json")
+    dump_json(curation, args.resources / "curation.json")
     dump_json(measures, args.resources / "measures.json")
     dump_json(aisles, args.resources / "aisles.json")
-    print(f"\nWrote bls.json, synonyms.json, measures.json, aisles.json to {args.resources}")
+    print(f"\nWrote bls.json, kitchen_words.json, curation.json, measures.json, "
+          f"aisles.json to {args.resources}")
 
 
 if __name__ == "__main__":
