@@ -65,10 +65,16 @@ struct IngredientCompletionTests {
 
     @Test("A suggestion whose name carries a comma survives being read back")
     func acceptedCommaNameStaysKnown() throws {
-        // "Schmand" is a spelling of this row rather than its name since the
-        // slashed BLS names were split — the word is "Sauerrahm, mind. 20 %
-        // Fett" and "Sauerrahm/Schmand, mind. 20 % Fett" still reaches it.
-        // What this test is about is the comma in the middle of it.
+        // Built rather than taken from the bundled catalog: the kitchen's own
+        // list holds no name with a comma in it, and the names that do look
+        // like this are the ones a cook writes down themselves. The rule
+        // under test is the round trip, not who is in the list.
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(
+                name: "Sauerrahm, mind. 20 % Fett", aliases: ["Schmand, mind. 20 % Fett"],
+                category: .dairy
+            ),
+        ])
         let schmand = try #require(catalog.ingredient(for: "Schmand, mind. 20 % Fett"))
         #expect(schmand.name.contains(","))
         let completed = IngredientCompletion.completed(line: "schmand", with: schmand)

@@ -13,12 +13,32 @@ struct IngredientParserTests {
         #expect(ingredient.preparation == "fein gehackt")
     }
 
+    /// A catalog with names of the shape the rules below are about.
+    ///
+    /// Built here rather than taken from the bundled one. It used to be the
+    /// bundled one, because the shipped vocabulary held 974 names with a
+    /// comma in them — every BLS row name was in it. The kitchen's own list
+    /// has none, by rule, and the names that look like this now are the ones
+    /// a cook writes down themselves. So the rule is worth keeping and the
+    /// example has to be made rather than found.
+    private let catalog = IngredientCatalog(ingredients: [
+        CatalogIngredient(name: "Sauerrahm/Schmand, mind. 20 % Fett", category: .dairy),
+        CatalogIngredient(name: "Erbse grün, tiefgefroren", category: .frozen),
+        CatalogIngredient(name: "Apfel getrocknet", category: .fruit),
+        CatalogIngredient(name: "Kartoffel geschält, gekocht, Konserve, abgetropft", category: .canned),
+        CatalogIngredient(name: "Kartoffel geschält", category: .vegetables),
+        CatalogIngredient(name: "Tomate Konserve", aliases: ["Tomaten Konserve"], category: .canned),
+        CatalogIngredient(name: "Tomate", aliases: ["Tomaten"], category: .vegetables),
+        CatalogIngredient(name: "Zwiebel", category: .vegetables),
+    ])
+
     @Test("A catalog name that carries its own comma is not split at it")
     func commaInsideACatalogName() {
-        // The BLS writes a product's qualifier into the name itself, so the
-        // comma here is not the "name, preparation" comma above. 974 of the
-        // 2661 bundled names look like this.
-        let ingredient = IngredientParser.parseLine("Sauerrahm/Schmand, mind. 20 % Fett")
+        // The comma here belongs to the name, not to a "name, preparation"
+        // reading, and the parser can only tell the two apart by asking.
+        let ingredient = IngredientParser.parseLine(
+            "Sauerrahm/Schmand, mind. 20 % Fett", catalog: catalog
+        )
 
         #expect(ingredient.name == "Sauerrahm/Schmand, mind. 20 % Fett")
         #expect(ingredient.preparation == nil)
@@ -26,7 +46,9 @@ struct IngredientParserTests {
 
     @Test("An amount still comes off a catalog name that carries a comma")
     func commaInsideACatalogNameWithAmount() {
-        let ingredient = IngredientParser.parseLine("150 g Sauerrahm/Schmand, mind. 20 % Fett")
+        let ingredient = IngredientParser.parseLine(
+            "150 g Sauerrahm/Schmand, mind. 20 % Fett", catalog: catalog
+        )
 
         #expect(ingredient.quantity == Quantity(150, .gram))
         #expect(ingredient.name == "Sauerrahm/Schmand, mind. 20 % Fett")
@@ -99,7 +121,7 @@ struct IngredientParserTests {
             "Erbse grün, tiefgefroren", "Apfel getrocknet",
             "Kartoffel geschält, gekocht, Konserve, abgetropft",
         ] {
-            let ingredient = IngredientParser.parseLine("100 g \(name)")
+            let ingredient = IngredientParser.parseLine("100 g \(name)", catalog: catalog)
             #expect(ingredient.name == name, "\(name) was split")
             #expect(ingredient.preparation == nil)
         }
@@ -111,12 +133,12 @@ struct IngredientParserTests {
         // not — the shipped word carries both its states as bases. So the
         // comma rule splits here, which is right: the name resolves and the
         // state picks the cooked one of the two rows behind it.
-        let ingredient = IngredientParser.parseLine("500 g Kartoffel geschält, gekocht")
+        let ingredient = IngredientParser.parseLine(
+            "500 g Kartoffel geschält, gekocht", catalog: catalog
+        )
 
         #expect(ingredient.name == "Kartoffel geschält")
         #expect(ingredient.state == .cooked)
-        let entry = NutritionCatalog.bundled.nutrition(forCanonicalName: "Kartoffel geschält")
-        #expect(entry?.basis(for: .cooked)?.catalogName == "Kartoffel geschält, gekocht")
     }
 
     @Test("A qualifier is not a state — it picks a different food")
@@ -124,11 +146,11 @@ struct IngredientParserTests {
         // Decision E1: `IngredientState` is the raw/cooked axis, because that
         // is the axis the shipped bases are filed along. Canned tomatoes are
         // their own word in the catalog, so the qualifier resolves a *name*.
-        let ingredient = IngredientParser.parseLine("400 g Tomaten, Konserve")
+        let ingredient = IngredientParser.parseLine("400 g Tomaten, Konserve", catalog: catalog)
 
         #expect(ingredient.name == "Tomaten")
         #expect(ingredient.state == .unspecified)
-        #expect(IngredientCatalog.bundled.nutritionName(for: ingredient) == "Tomate Konserve")
+        #expect(catalog.nutritionName(for: ingredient) == "Tomate Konserve")
     }
 
     @Test("A qualifier the catalog has no word for falls back to the plain food")

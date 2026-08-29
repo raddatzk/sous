@@ -96,10 +96,6 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
 /// which is why nothing the cook owns may ever point *into* it by object
 /// reference — only by code, stored as a value.
 public struct SynonymTable: Sendable {
-    private struct File: Codable {
-        var words: [SynonymEntry]
-    }
-
     public private(set) var entries: [SynonymEntry]
     private var byKey: [String: SynonymEntry]
 
@@ -121,17 +117,50 @@ public struct SynonymTable: Sendable {
         byKey[IngredientCatalog.normalize(word)]
     }
 
-    /// The table shipped with the app.
+    /// The table shipped with the app: the kitchen's words, each carrying
+    /// what the curation says it means.
+    ///
+    /// Not a file of its own any more. It used to be one — a build-time merge
+    /// of the kitchen words and all 2461 BLS row names into a single
+    /// vocabulary — and that merge is what put a food table's spellings in
+    /// front of a cook typing an ingredient. The two lists stay two lists;
+    /// this joins the kitchen's to its mapping and never touches the other.
+    ///
+    /// A BLS row is reachable only where somebody went looking for one, and a
+    /// word this list does not know now arrives without values rather than
+    /// with the table's own name attached to it — which is a question the app
+    /// already knows how to ask, the same one it asks about any ingredient
+    /// whose nutrition is unconfirmed.
     public static let bundled: SynonymTable = {
-        guard let url = Bundle.module.url(forResource: "synonyms", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else {
-            assertionFailure("The bundled synonym table is missing or unreadable")
-            return SynonymTable(entries: [])
-        }
-        return SynonymTable(entries: file.words)
+        SynonymTable(kitchen: .bundled, curation: .bundled)
     }()
+
+    /// Joins the kitchen's list to the mapping. Weights are positional: the
+    /// first code a state names is its basis, the rest are alternatives, and
+    /// that is the whole of the ranking the curation needs to express.
+    public init(kitchen: KitchenWords, curation: IngredientCuration) {
+        self.init(entries: kitchen.words.map { word in
+            let entry = curation.entry(for: word.name)
+            let targets = (entry?.targets ?? [:]).flatMap { state, codes in
+                codes.enumerated().compactMap { index, code in
+                    IngredientState(rawValue: state).map {
+                        SynonymTarget(
+                            code: code, state: $0,
+                            weight: index == 0 ? 1 : 0.8
+                        )
+                    }
+                }
+            }
+            return SynonymEntry(
+                word: word.name,
+                aliases: word.aliases,
+                category: word.category,
+                targets: targets,
+                candidates: entry?.candidates ?? [],
+                parent: word.parent
+            )
+        })
+    }
 
     /// The catalog entries this table describes — the identity half of it,
     /// which is what `IngredientCatalog` is built from.

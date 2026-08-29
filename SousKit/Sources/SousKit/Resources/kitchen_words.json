@@ -1,0 +1,1823 @@
+[
+ {
+  "name": "Agavendicksaft",
+  "aliases": [
+   "Agavensirup"
+  ],
+  "category": "baking"
+ },
+ {
+  "name": "Ahornsirup",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Ajvar",
+  "aliases": [
+   "Ajvar Konserve"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Ananas",
+  "aliases": [],
+  "category": "fruit"
+ },
+ {
+  "name": "Apfel",
+  "aliases": [
+   "Äpfel"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Apfelessig",
+  "aliases": [],
+  "category": "oils",
+  "parent": "Essig"
+ },
+ {
+  "name": "Aprikose",
+  "aliases": [
+   "Aprikosen",
+   "Marille",
+   "Marillen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Artischocke",
+  "aliases": [
+   "Artischocken"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Aubergine",
+  "aliases": [
+   "Auberginen"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Avocado",
+  "aliases": [
+   "Avocados"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Backpulver",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Baguette",
+  "aliases": [],
+  "category": "bakery"
+ },
+ {
+  "name": "Balsamico",
+  "aliases": [
+   "Balsamicoessig",
+   "Aceto Balsamico"
+  ],
+  "category": "oils"
+ },
+ {
+  "name": "Banane",
+  "aliases": [
+   "Bananen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Basilikum",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Basmatireis",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Bauernbrot",
+  "aliases": [],
+  "category": "bakery",
+  "parent": "Brot"
+ },
+ {
+  "name": "Belugalinsen",
+  "aliases": [],
+  "category": "legumes",
+  "parent": "Linsen"
+ },
+ {
+  "name": "Bergkäse",
+  "aliases": [
+   "Emmentaler",
+   "Gruyere"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Berglinsen",
+  "aliases": [],
+  "category": "legumes",
+  "parent": "Linsen"
+ },
+ {
+  "name": "Bier",
+  "aliases": [],
+  "category": "drinks"
+ },
+ {
+  "name": "Birne",
+  "aliases": [
+   "Birnen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Blattsalat",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Salat"
+ },
+ {
+  "name": "Blattspinat",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Spinat"
+ },
+ {
+  "name": "Blaubeere",
+  "aliases": [
+   "Blaubeeren",
+   "Heidelbeere",
+   "Heidelbeeren"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Blumenkohl",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Blätterteig",
+  "aliases": [],
+  "category": "frozen"
+ },
+ {
+  "name": "Bohne",
+  "aliases": [
+   "Bohnen"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Bratwurst",
+  "aliases": [],
+  "category": "meat"
+ },
+ {
+  "name": "Brauner Champignon",
+  "aliases": [
+   "Braune Champignons"
+  ],
+  "category": "vegetables",
+  "parent": "Champignon"
+ },
+ {
+  "name": "Brauner Zucker",
+  "aliases": [
+   "Rohrzucker"
+  ],
+  "category": "baking"
+ },
+ {
+  "name": "Brokkoli",
+  "aliases": [
+   "Broccoli"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Brot",
+  "aliases": [],
+  "category": "bakery"
+ },
+ {
+  "name": "Brötchen",
+  "aliases": [
+   "Semmel",
+   "Semmeln",
+   "Brotchen"
+  ],
+  "category": "bakery"
+ },
+ {
+  "name": "Bulgur",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Buschbohne",
+  "aliases": [
+   "Buschbohnen"
+  ],
+  "category": "vegetables",
+  "parent": "Bohne"
+ },
+ {
+  "name": "Butter",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Buttermilch",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Butternut",
+  "aliases": [
+   "Butternusskürbis"
+  ],
+  "category": "vegetables",
+  "parent": "Kürbis"
+ },
+ {
+  "name": "Butterschmalz",
+  "aliases": [
+   "Ghee"
+  ],
+  "category": "oils"
+ },
+ {
+  "name": "Cashew",
+  "aliases": [
+   "Cashewkerne",
+   "Cashews"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Cayennepfeffer",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Champignon",
+  "aliases": [
+   "Champignons"
+  ],
+  "category": "vegetables",
+  "parent": "Pilz"
+ },
+ {
+  "name": "Cheddar",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Chiasamen",
+  "aliases": [],
+  "category": "nuts"
+ },
+ {
+  "name": "Chili",
+  "aliases": [
+   "Chilischote",
+   "Chilischoten",
+   "Peperoni"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Chiliflocken",
+  "aliases": [
+   "Chilipulver"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Chorizo",
+  "aliases": [],
+  "category": "meat"
+ },
+ {
+  "name": "Clementine",
+  "aliases": [],
+  "category": "fruit"
+ },
+ {
+  "name": "Cocktailtomate",
+  "aliases": [
+   "Cocktailtomaten"
+  ],
+  "category": "vegetables",
+  "parent": "Tomate"
+ },
+ {
+  "name": "Couscous",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Creme fraiche",
+  "aliases": [
+   "Crème fraîche",
+   "Creme fraîche"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Currypulver",
+  "aliases": [
+   "Curry"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Dattel",
+  "aliases": [
+   "Datteln"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Dijonsenf",
+  "aliases": [],
+  "category": "canned",
+  "parent": "Senf"
+ },
+ {
+  "name": "Dill",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Dinkelmehl",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Mehl"
+ },
+ {
+  "name": "Ei",
+  "aliases": [
+   "Eier",
+   "Hühnerei",
+   "Hühnereier",
+   "Eigelb",
+   "Eiweiß"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Erbse",
+  "aliases": [
+   "Erbsen",
+   "Zuckerschoten"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Erdbeere",
+  "aliases": [
+   "Erdbeeren"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Erdnuss",
+  "aliases": [
+   "Erdnüsse",
+   "Erdnussbutter"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Erdnussöl",
+  "aliases": [],
+  "category": "oils"
+ },
+ {
+  "name": "Essig",
+  "aliases": [],
+  "category": "oils"
+ },
+ {
+  "name": "Estragon",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Feige",
+  "aliases": [
+   "Feigen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Feldsalat",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Fenchel",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Fenchelsamen",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Festkochende Kartoffeln",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Kartoffel"
+ },
+ {
+  "name": "Feta",
+  "aliases": [
+   "Schafskäse",
+   "Hirtenkäse"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Filoteig",
+  "aliases": [
+   "Yufka"
+  ],
+  "category": "frozen"
+ },
+ {
+  "name": "Fladenbrot",
+  "aliases": [],
+  "category": "bakery"
+ },
+ {
+  "name": "Forelle",
+  "aliases": [
+   "Forellenfilet"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Frischhefe",
+  "aliases": [],
+  "category": "baking",
+  "parent": "Hefe"
+ },
+ {
+  "name": "Frischkäse",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Frühlingszwiebel",
+  "aliases": [
+   "Frühlingszwiebeln",
+   "Lauchzwiebel",
+   "Lauchzwiebeln"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Fusilli",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Garam Masala",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Garnele",
+  "aliases": [
+   "Garnelen",
+   "Shrimps",
+   "Scampi"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Gehackte Tomaten",
+  "aliases": [
+   "Dosentomaten",
+   "Tomatenstücke"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Gelbe Paprika",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Paprika"
+ },
+ {
+  "name": "Gemahlene Mandeln",
+  "aliases": [],
+  "category": "nuts",
+  "parent": "Mandel"
+ },
+ {
+  "name": "Gemüsebrühe",
+  "aliases": [
+   "Gemüsebrühe Pulver",
+   "Brühe",
+   "Gemüsefond"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Gemüsezwiebel",
+  "aliases": [
+   "Gemüsezwiebeln"
+  ],
+  "category": "vegetables",
+  "parent": "Zwiebel"
+ },
+ {
+  "name": "Gouda",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Granatapfel",
+  "aliases": [
+   "Granatapfelkerne"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Griechischer Joghurt",
+  "aliases": [],
+  "category": "dairy",
+  "parent": "Joghurt"
+ },
+ {
+  "name": "Grieß",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Grüne Bohne",
+  "aliases": [
+   "Grüne Bohnen"
+  ],
+  "category": "vegetables",
+  "parent": "Bohne"
+ },
+ {
+  "name": "Gurke",
+  "aliases": [
+   "Gurken"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Hackfleisch",
+  "aliases": [
+   "Rinderhack",
+   "Gemischtes Hack",
+   "Hack"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Haferflocken",
+  "aliases": [
+   "Hafer"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Halloumi",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Hartweizengrieß",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Grieß"
+ },
+ {
+  "name": "Haselnuss",
+  "aliases": [
+   "Haselnüsse"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Hefe",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Hefeflocken",
+  "aliases": [
+   "Nährhefe",
+   "Edelhefeflocken"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Himbeere",
+  "aliases": [
+   "Himbeeren"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Hokkaido",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Kürbis"
+ },
+ {
+  "name": "Honig",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Honigmelone",
+  "aliases": [],
+  "category": "fruit",
+  "parent": "Melone"
+ },
+ {
+  "name": "Hähnchenbrust",
+  "aliases": [
+   "Hähnchenbrustfilet",
+   "Hühnerbrust",
+   "Hähnchenbrüste"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Hähnchenschenkel",
+  "aliases": [
+   "Hähnchenkeule",
+   "Hähnchenkeulen"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Hühnerbrühe",
+  "aliases": [
+   "Hühnerfond"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Ingwer",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Jasminreis",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Joghurt",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Johannisbeere",
+  "aliases": [
+   "Johannisbeeren"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Kabeljau",
+  "aliases": [
+   "Dorsch"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Kaffee",
+  "aliases": [],
+  "category": "drinks"
+ },
+ {
+  "name": "Kakao",
+  "aliases": [
+   "Kakaopulver"
+  ],
+  "category": "baking"
+ },
+ {
+  "name": "Kardamom",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Karotte",
+  "aliases": [
+   "Karotten",
+   "Möhre",
+   "Möhren",
+   "Mohrrübe",
+   "Mohrrüben"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Kartoffel",
+  "aliases": [
+   "Kartoffeln",
+   "Salzkartoffeln"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Ketchup",
+  "aliases": [],
+  "category": "canned"
+ },
+ {
+  "name": "Kichererbsen",
+  "aliases": [],
+  "category": "legumes"
+ },
+ {
+  "name": "Kidneybohnen",
+  "aliases": [],
+  "category": "legumes"
+ },
+ {
+  "name": "Kirsche",
+  "aliases": [
+   "Kirschen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Kirschtomate",
+  "aliases": [
+   "Kirschtomaten",
+   "Cherrytomate",
+   "Cherrytomaten"
+  ],
+  "category": "vegetables",
+  "parent": "Tomate"
+ },
+ {
+  "name": "Kiwi",
+  "aliases": [
+   "Kiwis"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Knoblauch",
+  "aliases": [
+   "Knoblauchzehe",
+   "Knoblauchzehen"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Knollensellerie",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Sellerie"
+ },
+ {
+  "name": "Kochschinken",
+  "aliases": [],
+  "category": "meat",
+  "parent": "Schinken"
+ },
+ {
+  "name": "Kokosmilch",
+  "aliases": [],
+  "category": "canned"
+ },
+ {
+  "name": "Kokosraspeln",
+  "aliases": [
+   "Kokosflocken"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Kokosöl",
+  "aliases": [],
+  "category": "oils"
+ },
+ {
+  "name": "Koriander",
+  "aliases": [
+   "Koriandergrün"
+  ],
+  "category": "herbs"
+ },
+ {
+  "name": "Koriandersamen",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Kreuzkümmel",
+  "aliases": [
+   "Kumin",
+   "Cumin"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Kurkuma",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Kuvertüre",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Kürbis",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Kürbiskerne",
+  "aliases": [],
+  "category": "nuts"
+ },
+ {
+  "name": "Lachs",
+  "aliases": [
+   "Lachsfilet"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Lammfleisch",
+  "aliases": [
+   "Lammkeule",
+   "Lammfilet"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Langkornreis",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Reis"
+ },
+ {
+  "name": "Lauch",
+  "aliases": [
+   "Porree",
+   "Stangenlauch"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Limette",
+  "aliases": [
+   "Limetten",
+   "Limettensaft"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Linsen",
+  "aliases": [],
+  "category": "legumes"
+ },
+ {
+  "name": "Lorbeerblatt",
+  "aliases": [
+   "Lorbeerblätter",
+   "Lorbeer"
+  ],
+  "category": "herbs"
+ },
+ {
+  "name": "Magerquark",
+  "aliases": [],
+  "category": "dairy",
+  "parent": "Quark"
+ },
+ {
+  "name": "Mais",
+  "aliases": [
+   "Maiskolben"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Mandarine",
+  "aliases": [
+   "Mandarinen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Mandel",
+  "aliases": [
+   "Mandeln"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Mandelblättchen",
+  "aliases": [],
+  "category": "nuts",
+  "parent": "Mandel"
+ },
+ {
+  "name": "Mango",
+  "aliases": [
+   "Mangos"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Marmelade",
+  "aliases": [
+   "Konfitüre"
+  ],
+  "category": "baking"
+ },
+ {
+  "name": "Mascarpone",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Mayonnaise",
+  "aliases": [
+   "Mayo"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Meersalz",
+  "aliases": [],
+  "category": "spices",
+  "parent": "Salz"
+ },
+ {
+  "name": "Mehl",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Mehl Type 405",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Mehl"
+ },
+ {
+  "name": "Mehl Type 550",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Mehl"
+ },
+ {
+  "name": "Melasse",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Melone",
+  "aliases": [],
+  "category": "fruit"
+ },
+ {
+  "name": "Miesmuschel",
+  "aliases": [
+   "Miesmuscheln"
+  ],
+  "category": "fish",
+  "parent": "Muschel"
+ },
+ {
+  "name": "Milch",
+  "aliases": [
+   "Frischmilch"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Mineralwasser",
+  "aliases": [],
+  "category": "drinks",
+  "parent": "Wasser"
+ },
+ {
+  "name": "Minze",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Mittelscharfer Senf",
+  "aliases": [],
+  "category": "canned",
+  "parent": "Senf"
+ },
+ {
+  "name": "Mozzarella",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Muschel",
+  "aliases": [
+   "Muscheln"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Muskatnuss",
+  "aliases": [
+   "Muskat"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Naan",
+  "aliases": [],
+  "category": "bakery"
+ },
+ {
+  "name": "Natives Olivenöl",
+  "aliases": [],
+  "category": "oils",
+  "parent": "Olivenöl"
+ },
+ {
+  "name": "Natron",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Naturjoghurt",
+  "aliases": [],
+  "category": "dairy",
+  "parent": "Joghurt"
+ },
+ {
+  "name": "Nektarine",
+  "aliases": [],
+  "category": "fruit"
+ },
+ {
+  "name": "Nelke",
+  "aliases": [
+   "Nelken",
+   "Gewürznelken"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Nudeln",
+  "aliases": [
+   "Pasta"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Olive",
+  "aliases": [
+   "Oliven"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Olivenöl",
+  "aliases": [
+   "Olivenoel"
+  ],
+  "category": "oils"
+ },
+ {
+  "name": "Orange",
+  "aliases": [
+   "Orangen",
+   "Apfelsine",
+   "Apfelsinen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Oregano",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Paprika",
+  "aliases": [
+   "Paprikaschote",
+   "Paprikaschoten"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Paprikapulver",
+  "aliases": [
+   "Paprika edelsüß",
+   "Paprikapulver edelsüß",
+   "Rosenpaprika"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Parmaschinken",
+  "aliases": [],
+  "category": "meat",
+  "parent": "Schinken"
+ },
+ {
+  "name": "Parmesan",
+  "aliases": [
+   "Parmigiano",
+   "Grana Padano"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Passierte Tomaten",
+  "aliases": [
+   "Tomatenpassata",
+   "Passata"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Pastinake",
+  "aliases": [
+   "Pastinaken"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Penne",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Petersilie",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Pfeffer",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Pfefferkörner",
+  "aliases": [],
+  "category": "spices",
+  "parent": "Pfeffer"
+ },
+ {
+  "name": "Pfefferminze",
+  "aliases": [],
+  "category": "herbs",
+  "parent": "Minze"
+ },
+ {
+  "name": "Pfirsich",
+  "aliases": [
+   "Pfirsiche"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Pflaume",
+  "aliases": [
+   "Pflaumen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Pilz",
+  "aliases": [
+   "Pilze"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Pinienkerne",
+  "aliases": [],
+  "category": "nuts"
+ },
+ {
+  "name": "Pistazie",
+  "aliases": [
+   "Pistazien"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Pita",
+  "aliases": [],
+  "category": "bakery"
+ },
+ {
+  "name": "Polenta",
+  "aliases": [
+   "Maisgrieß"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Puderzucker",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Quark",
+  "aliases": [
+   "Speisequark"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Quinoa",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Rapsöl",
+  "aliases": [
+   "Rapsoel"
+  ],
+  "category": "oils"
+ },
+ {
+  "name": "Reis",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Ricotta",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Rindfleisch",
+  "aliases": [
+   "Rindersteak",
+   "Rinderfilet"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Risottoreis",
+  "aliases": [
+   "Arborio",
+   "Carnaroli"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Rosine",
+  "aliases": [
+   "Rosinen",
+   "Sultaninen"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Rosmarin",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Rote Bete",
+  "aliases": [
+   "Rote Beete",
+   "Randen"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Rote Linsen",
+  "aliases": [],
+  "category": "legumes"
+ },
+ {
+  "name": "Rote Paprika",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Paprika"
+ },
+ {
+  "name": "Rote Zwiebel",
+  "aliases": [
+   "Rote Zwiebeln"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Rotkohl",
+  "aliases": [
+   "Blaukraut"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Rotwein",
+  "aliases": [],
+  "category": "drinks"
+ },
+ {
+  "name": "Rotweinessig",
+  "aliases": [],
+  "category": "oils",
+  "parent": "Essig"
+ },
+ {
+  "name": "Räucherlachs",
+  "aliases": [],
+  "category": "fish",
+  "parent": "Lachs"
+ },
+ {
+  "name": "Räucherspeck",
+  "aliases": [],
+  "category": "meat",
+  "parent": "Speck"
+ },
+ {
+  "name": "Römersalat",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Safran",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Sahne",
+  "aliases": [
+   "Schlagobers",
+   "Süße Sahne"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Salat",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Salatgurke",
+  "aliases": [
+   "Salatgurken"
+  ],
+  "category": "vegetables",
+  "parent": "Gurke"
+ },
+ {
+  "name": "Salbei",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Salz",
+  "aliases": [
+   "Speisesalz",
+   "Tafelsalz"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Sardelle",
+  "aliases": [
+   "Sardellen",
+   "Anchovis"
+  ],
+  "category": "fish"
+ },
+ {
+  "name": "Sauerteigbrot",
+  "aliases": [],
+  "category": "bakery",
+  "parent": "Brot"
+ },
+ {
+  "name": "Saure Sahne",
+  "aliases": [
+   "Sauerrahm"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Schalotte",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Schinken",
+  "aliases": [],
+  "category": "meat"
+ },
+ {
+  "name": "Schlagsahne",
+  "aliases": [],
+  "category": "dairy",
+  "parent": "Sahne"
+ },
+ {
+  "name": "Schmand",
+  "aliases": [],
+  "category": "dairy"
+ },
+ {
+  "name": "Schmelzkäse",
+  "aliases": [
+   "Schmelzkäsescheiben"
+  ],
+  "category": "dairy"
+ },
+ {
+  "name": "Schnittlauch",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Schokolade",
+  "aliases": [],
+  "category": "baking"
+ },
+ {
+  "name": "Schwarze Bohnen",
+  "aliases": [],
+  "category": "legumes"
+ },
+ {
+  "name": "Schwarzer Pfeffer",
+  "aliases": [],
+  "category": "spices",
+  "parent": "Pfeffer"
+ },
+ {
+  "name": "Schweinefleisch",
+  "aliases": [
+   "Schweinefilet",
+   "Schnitzel"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Sellerie",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Semmelbrösel",
+  "aliases": [
+   "Paniermehl"
+  ],
+  "category": "bakery"
+ },
+ {
+  "name": "Senf",
+  "aliases": [],
+  "category": "canned"
+ },
+ {
+  "name": "Senfkörner",
+  "aliases": [],
+  "category": "spices"
+ },
+ {
+  "name": "Serranoschinken",
+  "aliases": [],
+  "category": "meat",
+  "parent": "Schinken"
+ },
+ {
+  "name": "Sesam",
+  "aliases": [
+   "Sesamsamen",
+   "Tahini"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Sesamöl",
+  "aliases": [],
+  "category": "oils"
+ },
+ {
+  "name": "Sojahack",
+  "aliases": [
+   "Sojaschnetzel",
+   "Sojagranulat",
+   "Sojahackfleisch",
+   "Soja-Hack"
+  ],
+  "category": "legumes"
+ },
+ {
+  "name": "Sojasauce",
+  "aliases": [
+   "Sojasoße",
+   "Soja Sauce"
+  ],
+  "category": "canned"
+ },
+ {
+  "name": "Sonnenblumenkerne",
+  "aliases": [],
+  "category": "nuts"
+ },
+ {
+  "name": "Sonnenblumenöl",
+  "aliases": [],
+  "category": "oils"
+ },
+ {
+  "name": "Spaghetti",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Speck",
+  "aliases": [
+   "Bacon"
+  ],
+  "category": "meat"
+ },
+ {
+  "name": "Speisestärke",
+  "aliases": [
+   "Maisstärke"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Spinat",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Staudensellerie",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Sellerie"
+ },
+ {
+  "name": "Strauchtomate",
+  "aliases": [
+   "Strauchtomaten"
+  ],
+  "category": "vegetables",
+  "parent": "Tomate"
+ },
+ {
+  "name": "Suppengrün",
+  "aliases": [
+   "Suppenkraut"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Süßkartoffel",
+  "aliases": [
+   "Süßkartoffeln"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Tagliatelle",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Tee",
+  "aliases": [],
+  "category": "drinks"
+ },
+ {
+  "name": "Thunfisch",
+  "aliases": [],
+  "category": "fish"
+ },
+ {
+  "name": "Thymian",
+  "aliases": [],
+  "category": "herbs"
+ },
+ {
+  "name": "Tiefkühlerbsen",
+  "aliases": [
+   "TK-Erbsen"
+  ],
+  "category": "frozen"
+ },
+ {
+  "name": "Toast",
+  "aliases": [
+   "Toastbrot"
+  ],
+  "category": "bakery"
+ },
+ {
+  "name": "Tomate",
+  "aliases": [
+   "Tomaten"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Tomatenmark",
+  "aliases": [],
+  "category": "canned"
+ },
+ {
+  "name": "Tortellini",
+  "aliases": [],
+  "category": "grains"
+ },
+ {
+  "name": "Tortilla",
+  "aliases": [
+   "Tortillas",
+   "Wraps"
+  ],
+  "category": "bakery"
+ },
+ {
+  "name": "Traube",
+  "aliases": [
+   "Trauben",
+   "Weintrauben"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Trockenhefe",
+  "aliases": [],
+  "category": "baking",
+  "parent": "Hefe"
+ },
+ {
+  "name": "Vanille",
+  "aliases": [
+   "Vanilleschote",
+   "Vanilleschoten",
+   "Vanillezucker"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Vollkornbrot",
+  "aliases": [],
+  "category": "bakery",
+  "parent": "Brot"
+ },
+ {
+  "name": "Vollkornmehl",
+  "aliases": [
+   "Weizenvollkornmehl"
+  ],
+  "category": "grains"
+ },
+ {
+  "name": "Vollmilch",
+  "aliases": [],
+  "category": "dairy",
+  "parent": "Milch"
+ },
+ {
+  "name": "Vollmilchschokolade",
+  "aliases": [],
+  "category": "baking",
+  "parent": "Schokolade"
+ },
+ {
+  "name": "Waldpilze",
+  "aliases": [],
+  "category": "vegetables",
+  "parent": "Pilz"
+ },
+ {
+  "name": "Walnuss",
+  "aliases": [
+   "Walnüsse"
+  ],
+  "category": "nuts"
+ },
+ {
+  "name": "Wasser",
+  "aliases": [],
+  "category": "drinks"
+ },
+ {
+  "name": "Wassermelone",
+  "aliases": [],
+  "category": "fruit",
+  "parent": "Melone"
+ },
+ {
+  "name": "Weizenmehl",
+  "aliases": [],
+  "category": "grains",
+  "parent": "Mehl"
+ },
+ {
+  "name": "Weiße Bohnen",
+  "aliases": [
+   "Cannellini"
+  ],
+  "category": "legumes"
+ },
+ {
+  "name": "Weißkohl",
+  "aliases": [
+   "Weisskohl"
+  ],
+  "category": "vegetables"
+ },
+ {
+  "name": "Weißwein",
+  "aliases": [
+   "Weisswein"
+  ],
+  "category": "drinks"
+ },
+ {
+  "name": "Weißweinessig",
+  "aliases": [],
+  "category": "oils",
+  "parent": "Essig"
+ },
+ {
+  "name": "Wurst",
+  "aliases": [],
+  "category": "meat"
+ },
+ {
+  "name": "Zartbitterschokolade",
+  "aliases": [],
+  "category": "baking",
+  "parent": "Schokolade"
+ },
+ {
+  "name": "Zimt",
+  "aliases": [
+   "Zimtstange",
+   "Zimtstangen"
+  ],
+  "category": "spices"
+ },
+ {
+  "name": "Zitrone",
+  "aliases": [
+   "Zitronen",
+   "Zitronensaft",
+   "Zitronenschale"
+  ],
+  "category": "fruit"
+ },
+ {
+  "name": "Zucchini",
+  "aliases": [],
+  "category": "vegetables"
+ },
+ {
+  "name": "Zucker",
+  "aliases": [
+   "Kristallzucker",
+   "Haushaltszucker"
+  ],
+  "category": "baking"
+ },
+ {
+  "name": "Zwetschge",
+  "aliases": [],
+  "category": "fruit"
+ },
+ {
+  "name": "Zwiebel",
+  "aliases": [
+   "Zwiebeln",
+   "Speisezwiebel"
+  ],
+  "category": "vegetables"
+ }
+]
