@@ -27,6 +27,78 @@ struct ShoppingListTests {
         return capture.demands.compactMap { seen.insert($0.key).inserted ? $0.displayName : nil }
     }
 
+    /// The capture for one recipe with only some of its lines picked.
+    private func build(
+        _ recipe: Recipe, _ servings: Int, picking lines: Set<UUID>?, recipes: [Recipe] = []
+    ) -> ShoppingCapture {
+        ShoppingListBuilder.build(from: recipe, servings: servings, selecting: lines) { id in
+            recipes.first { $0.id == id }
+        }
+    }
+
+    @Test("Only the picked lines land on the list")
+    func picksSomeLines() {
+        let recipe = Recipe(
+            title: "Salat", servings: 2,
+            ingredientsText: "300 g Tomaten\n1 Zwiebel\n2 EL Öl"
+        )
+        let picked = Set(recipe.ingredients.filter { $0.name != "Zwiebel" }.map(\.id))
+
+        let capture = build(recipe, 2, picking: picked)
+        #expect(names(capture) == ["Tomate", "Öl"])
+        // The recipe is on the list either way — a plan entry with a dial,
+        // scaling what was picked.
+        #expect(capture.planEntries.count == 1)
+        #expect(capture.planEntries[0].servingsCaptured == 2)
+    }
+
+    @Test("Picking nothing is not the same as picking everything")
+    func emptyPickIsNotEverything() {
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
+
+        #expect(build(recipe, 2, picking: []).demands.isEmpty)
+        #expect(build(recipe, 2, picking: nil).demands.count == 1)
+    }
+
+    @Test("A picked line that is a recipe brings that recipe along entire")
+    func pickedLinkKeepsItsWholeRecipe() {
+        let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "300 g Mehl\n7 g Hefe")
+        let curry = Recipe(
+            title: "Curry", servings: 2,
+            ingredientsText: "400 ml Kokosmilch\n2 Portionen \(RecipeLink.markdown(title: "Naan", id: naan.id))"
+        )
+        let link = try! #require(curry.ingredients.last)
+
+        // Only the naan line picked: its own two ingredients arrive, the
+        // coconut milk does not.
+        let capture = build(curry, 2, picking: [link.id], recipes: [naan])
+        #expect(names(capture) == ["Mehl", "Hefe"])
+    }
+
+    @Test("A line left out stays out however far the dial is turned")
+    func unpickedLinesDoNotComeBack() {
+        let recipe = Recipe(
+            title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n1 Zwiebel"
+        )
+        let picked = Set(recipe.ingredients.filter { $0.name == "Tomaten" }.map(\.id))
+
+        // The dial scales the captured demands and never reads the recipe
+        // again, so the onion has no way back.
+        let capture = build(recipe, 2, picking: picked)
+        var turned = capture.planEntries[0]
+        turned.servingsCurrent = 4
+        let effective = capture.demands.map {
+            ShoppingDemandScaling.effectiveQuantity(
+                captured: $0.demand.quantity,
+                scales: $0.demand.scales,
+                isScaleDiff: false,
+                checkedAtServings: nil,
+                planEntry: turned
+            )
+        }
+        #expect(effective == [Quantity(600, .gram)])
+    }
+
     @Test("Amounts of the same ingredient bundle at display, as separate demands")
     func amountsAddUp() throws {
         let first = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")

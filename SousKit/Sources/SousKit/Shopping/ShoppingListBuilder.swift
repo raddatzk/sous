@@ -21,22 +21,11 @@ public enum ShoppingListBuilder {
         resolve: (UUID) -> Recipe?
     ) -> ShoppingCapture {
         var capture = ShoppingCapture()
-
         for entry in planned {
-            let planEntry = ShoppingPlanEntry(
-                recipeID: entry.recipe.id,
-                title: entry.recipe.title,
-                servingsCaptured: entry.servings
-            )
-            capture.planEntries.append(planEntry)
-            collect(
+            append(
                 recipe: entry.recipe,
                 servings: entry.servings,
-                origin: entry.recipe.title,
-                planEntryID: planEntry.id,
-                scales: true,
-                depth: 0,
-                visited: [],
+                selecting: nil,
                 catalog: catalog,
                 resolve: resolve,
                 into: &capture
@@ -45,11 +34,73 @@ public enum ShoppingListBuilder {
         return capture
     }
 
+    /// Builds the capture for one recipe, with only some of its lines on it.
+    ///
+    /// `selected` names lines by `RecipeIngredient.id`, which survives the
+    /// round trip from a picker: the parser derives it from the line's text
+    /// and its position, so the same list parsed again names them the same.
+    /// `nil` is the whole recipe, and the two are not the same thing — an
+    /// empty set is a recipe nothing was picked from.
+    ///
+    /// The choice reaches the recipe's own lines and stops there. A chosen
+    /// line that refers to another recipe brings that one along entire,
+    /// because what was picked was the line — "2 Portionen Naan" — and not
+    /// the flour it turns out to be made of.
+    public static func build(
+        from recipe: Recipe,
+        servings: Int,
+        selecting selected: Set<UUID>?,
+        catalog: IngredientCatalog = .bundled,
+        resolve: (UUID) -> Recipe?
+    ) -> ShoppingCapture {
+        var capture = ShoppingCapture()
+        append(
+            recipe: recipe,
+            servings: servings,
+            selecting: selected,
+            catalog: catalog,
+            resolve: resolve,
+            into: &capture
+        )
+        return capture
+    }
+
+    /// One recipe's plan entry and everything it demands.
+    private static func append(
+        recipe: Recipe,
+        servings: Int,
+        selecting selected: Set<UUID>?,
+        catalog: IngredientCatalog,
+        resolve: (UUID) -> Recipe?,
+        into capture: inout ShoppingCapture
+    ) {
+        let planEntry = ShoppingPlanEntry(
+            recipeID: recipe.id,
+            title: recipe.title,
+            servingsCaptured: servings
+        )
+        capture.planEntries.append(planEntry)
+        collect(
+            recipe: recipe,
+            servings: servings,
+            origin: recipe.title,
+            planEntryID: planEntry.id,
+            selecting: selected,
+            scales: true,
+            depth: 0,
+            visited: [],
+            catalog: catalog,
+            resolve: resolve,
+            into: &capture
+        )
+    }
+
     private static func collect(
         recipe: Recipe,
         servings: Int,
         origin: String,
         planEntryID: UUID,
+        selecting selected: Set<UUID>?,
         scales: Bool,
         depth: Int,
         visited: Set<UUID>,
@@ -61,6 +112,10 @@ public enum ShoppingListBuilder {
         seen.insert(recipe.id)
 
         for ingredient in recipe.scaledIngredients(toServings: servings) {
+            // Only where a choice was made, and only over this recipe's own
+            // lines — the recursion below hands its children `nil`.
+            if let selected, !selected.contains(ingredient.id) { continue }
+
             // A linked recipe contributes what it is made of, not itself.
             if depth < maxLinkDepth,
                let linkedID = RecipeLink.referencedIDs(in: ingredient.name).first,
@@ -73,6 +128,7 @@ public enum ShoppingListBuilder {
                     servings: portions(of: ingredient) ?? linked.servings,
                     origin: linked.title,
                     planEntryID: planEntryID,
+                    selecting: nil,
                     // A naan wanted "as written" does not grow with the
                     // curry, and neither does anything a non-scaling line
                     // pulled in.
