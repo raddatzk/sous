@@ -1,0 +1,2532 @@
+{
+ "note": "Küchenwort → SBLS-Codes. Diese Datei IST die Handarbeit, die vor dieser Pipeline-Version nur als fertige Zahlen in nutrition.json lag und die ein Neulauf zerstört hätte: die 120 kuratierten Namen, für die ein reiner Namensabgleich keinen BLS-Treffer findet. Sie ist Eingabe, nicht Ausgabe — ein Neulauf liest sie und kann sie nicht überschreiben. Seit der Listentrennung ist sie vollständig: die 57 Wörter, deren Codes vorher nur aus dem Namensabgleich des Builds fielen, stehen jetzt hier. Der Build leitet keine Zuordnung mehr her.",
+ "targetOrder": "Innerhalb eines Zustands ist der ERSTE Code die Basis (die Zahlen, die die App zeigt); die weiteren sind Kandidaten für den Picker aus Phase 4. Gemittelt wird nichts mehr (Entscheidung O2). `candidates` sind weitere Zeilen, die dasselbe Wort meinen können: der Picker bietet sie an, gerechnet wird nie mit ihnen.",
+ "words": {
+  "Ahornsirup": {
+   "targets": {
+    "unspecified": [
+     "S151100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Ajvar": {
+   "targets": {
+    "unspecified": [
+     "G898400"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Ananas": {
+   "targets": {
+    "cooked": [
+     "F501152"
+    ],
+    "raw": [
+     "F501100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Apfel": {
+   "targets": {
+    "cooked": [
+     "F110152"
+    ],
+    "raw": [
+     "F110100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F110400",
+    "F119902",
+    "F120100",
+    "F120152",
+    "F120400"
+   ]
+  },
+  "Apfelessig": {
+   "targets": {
+    "unspecified": [
+     "R123100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Aprikose": {
+   "targets": {
+    "cooked": [
+     "F201152"
+    ],
+    "raw": [
+     "F201100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F201400",
+    "F201902",
+    "F2A1902",
+    "F2B1902",
+    "F2C1902"
+   ]
+  },
+  "Artischocke": {
+   "targets": {
+    "cooked": [
+     "G410132"
+    ],
+    "raw": [
+     "G410100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G410702",
+    "G410732",
+    "G410902"
+   ]
+  },
+  "Aubergine": {
+   "targets": {
+    "cooked": [
+     "G510132",
+     "G510152",
+     "G510162",
+     "G510172",
+     "G510182"
+    ],
+    "raw": [
+     "G510100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G510142",
+    "G510702"
+   ]
+  },
+  "Avocado": {
+   "targets": {
+    "raw": [
+     "F502100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Backpulver": {
+   "targets": {
+    "unspecified": [
+     "R421100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Baguette": {
+   "targets": {
+    "unspecified": [
+     "B781200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizenbaguette\""
+  },
+  "Balsamico": {
+   "targets": {
+    "unspecified": [
+     "R125000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Banane": {
+   "targets": {
+    "raw": [
+     "F503100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F503400"
+   ]
+  },
+  "Basilikum": {
+   "targets": {
+    "raw": [
+     "G061000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "R231000"
+   ]
+  },
+  "Basmatireis": {
+   "targets": {
+    "raw": [
+     "C352000"
+    ],
+    "cooked": [
+     "C352032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Bergkäse": {
+   "targets": {
+    "unspecified": [
+     "M302600",
+     "M302700"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Bier": {
+   "targets": {
+    "unspecified": [
+     "P163000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Pilsner Bier\""
+  },
+  "Birne": {
+   "targets": {
+    "cooked": [
+     "F130152"
+    ],
+    "raw": [
+     "F130100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F130400",
+    "F130902",
+    "F131902",
+    "F133902",
+    "F134902"
+   ]
+  },
+  "Blaubeere": {
+   "targets": {
+    "cooked": [
+     "F304152"
+    ],
+    "raw": [
+     "F304100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Blumenkohl": {
+   "targets": {
+    "cooked": [
+     "G311132",
+     "G311142",
+     "G311152",
+     "G311162",
+     "G311182"
+    ],
+    "raw": [
+     "G311100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Blätterteig": {
+   "targets": {
+    "raw": [
+     "D072000"
+    ],
+    "cooked": [
+     "D072062"
+    ]
+   },
+   "via": "BLS-Gruppe \"Blätterteig eifrei\""
+  },
+  "Bohne": {
+   "targets": {
+    "raw": [
+     "G710100"
+    ],
+    "cooked": [
+     "G710132",
+     "G710152",
+     "G710182",
+     "G710162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Bohne grün\"",
+   "candidates": [
+    "G710042",
+    "G710142",
+    "G710200",
+    "G710232",
+    "G710252",
+    "G710262",
+    "G710282",
+    "G710802",
+    "G710902",
+    "G880402"
+   ]
+  },
+  "Bratwurst": {
+   "targets": {
+    "cooked": [
+     "W222182",
+     "W222172"
+    ],
+    "unspecified": [
+     "W222100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Bratwurst mittelgrob\"",
+   "candidates": [
+    "W184000",
+    "W221100"
+   ]
+  },
+  "Brauner Zucker": {
+   "targets": {
+    "unspecified": [
+     "S112000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Zucker braun (Kandisfarin/Rohzucker)\""
+  },
+  "Brokkoli": {
+   "targets": {
+    "cooked": [
+     "G312132",
+     "G312152",
+     "G312162",
+     "G312182"
+    ],
+    "raw": [
+     "G312100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Brot": {
+   "targets": {
+    "unspecified": [
+     "B271000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Roggenmischbrot\""
+  },
+  "Brötchen": {
+   "targets": {
+    "unspecified": [
+     "B511000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizenbrötchen\""
+  },
+  "Bulgur": {
+   "targets": {
+    "raw": [
+     "C119100"
+    ],
+    "cooked": [
+     "C119132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Bulgur (Hartweizen)\""
+  },
+  "Butter": {
+   "targets": {
+    "unspecified": [
+     "Q611000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Butter mild gesäuert\"",
+   "candidates": [
+    "Q6A4000"
+   ]
+  },
+  "Buttermilch": {
+   "targets": {
+    "unspecified": [
+     "M150000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Butternut": {
+   "targets": {
+    "raw": [
+     "G581100",
+     "G581000"
+    ],
+    "cooked": [
+     "G581132",
+     "G581032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Butterschmalz": {
+   "targets": {
+    "unspecified": [
+     "Q683000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Cashew": {
+   "targets": {
+    "unspecified": [
+     "H170100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Cashewkern\""
+  },
+  "Champignon": {
+   "targets": {
+    "cooked": [
+     "K701132",
+     "K701152",
+     "K701162",
+     "K701172",
+     "K701182"
+    ],
+    "raw": [
+     "K701100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "K701142",
+    "K701200",
+    "K701242",
+    "K701262",
+    "K701282",
+    "K701400",
+    "K701432",
+    "K701502",
+    "K701902"
+   ]
+  },
+  "Cheddar": {
+   "targets": {
+    "unspecified": [
+     "M303700",
+     "M303600"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Chiasamen": {
+   "targets": {
+    "unspecified": [
+     "H480100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Chia-Samen\""
+  },
+  "Clementine": {
+   "targets": {
+    "raw": [
+     "F607100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Couscous": {
+   "targets": {
+    "raw": [
+     "C119200"
+    ],
+    "cooked": [
+     "C119232"
+    ]
+   },
+   "via": "BLS-Gruppe \"Couscous (Hartweizen)\""
+  },
+  "Creme fraiche": {
+   "targets": {
+    "unspecified": [
+     "M176800"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sauerrahm/Creme fraiche, 30 % Fett\""
+  },
+  "Dattel": {
+   "targets": {
+    "raw": [
+     "F504100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F504400"
+   ]
+  },
+  "Ei": {
+   "targets": {
+    "cooked": [
+     "E111132",
+     "E107122",
+     "E111162",
+     "E111182"
+    ],
+    "raw": [
+     "E111100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Erbse": {
+   "targets": {
+    "raw": [
+     "G760100"
+    ],
+    "cooked": [
+     "G760132",
+     "G760152",
+     "G760182",
+     "G760162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Erbse grün\"",
+   "candidates": [
+    "G760200",
+    "G760232",
+    "G760252",
+    "G760262",
+    "G760282",
+    "G760400",
+    "G760432",
+    "G760902"
+   ]
+  },
+  "Erdbeere": {
+   "targets": {
+    "cooked": [
+     "F301152"
+    ],
+    "raw": [
+     "F301100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F301400",
+    "F301902",
+    "F340902",
+    "F341902"
+   ]
+  },
+  "Erdnuss": {
+   "targets": {
+    "unspecified": [
+     "H110600"
+    ]
+   },
+   "via": "BLS-Gruppe \"Erdnuss geröstet\"",
+   "candidates": [
+    "H110700",
+    "H810100"
+   ]
+  },
+  "Erdnussöl": {
+   "targets": {
+    "unspecified": [
+     "Q210000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Essig": {
+   "targets": {
+    "unspecified": [
+     "R121000",
+     "R122000",
+     "R124000"
+    ]
+   },
+   "via": "Sortengetrennt (Weißwein-, Rotwein-, Apfelessig) sind eigene Sorten; das nackte Wort ist der Weinessig"
+  },
+  "Feige": {
+   "targets": {
+    "raw": [
+     "F505100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F505400",
+    "F505902"
+   ]
+  },
+  "Feldsalat": {
+   "targets": {
+    "raw": [
+     "G104100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Feldsalat/Rapunzel\""
+  },
+  "Fenchel": {
+   "targets": {
+    "raw": [
+     "G430100"
+    ],
+    "cooked": [
+     "G430132",
+     "G430152",
+     "G430182",
+     "G430162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Gemüsefenchel\""
+  },
+  "Feta": {
+   "targets": {
+    "unspecified": [
+     "M012200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Feta mind. 45 % Fett i. Tr.\""
+  },
+  "Fladenbrot": {
+   "targets": {
+    "unspecified": [
+     "B782100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizenfladenbrot\""
+  },
+  "Forelle": {
+   "targets": {
+    "cooked": [
+     "T420152",
+     "T420132",
+     "T420162",
+     "T420172",
+     "T420182"
+    ],
+    "raw": [
+     "T422100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "T420232",
+    "T420252",
+    "T420262",
+    "T420282",
+    "T422112",
+    "T422200",
+    "T422272",
+    "T422400",
+    "T422600"
+   ]
+  },
+  "Frischkäse": {
+   "targets": {
+    "unspecified": [
+     "M710800"
+    ]
+   },
+   "via": "BLS-Gruppe \"Frischkäsezubereitung Natur, mind. 60 % Fett i. Tr.\"",
+   "candidates": [
+    "M7A1600",
+    "M7B1600"
+   ]
+  },
+  "Frühlingszwiebel": {
+   "targets": {
+    "raw": [
+     "G482100"
+    ],
+    "cooked": [
+     "G482132",
+     "G482152",
+     "G482182",
+     "G482162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Frühlingszwiebel/Lauchzwiebel\"",
+   "candidates": [
+    "G482142",
+    "G486100",
+    "G486132",
+    "G486142",
+    "G486152",
+    "G486162",
+    "G486182"
+   ]
+  },
+  "Fusilli": {
+   "targets": {
+    "raw": [
+     "E401000"
+    ],
+    "cooked": [
+     "E401032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Garnele": {
+   "targets": {
+    "raw": [
+     "T753100"
+    ],
+    "cooked": [
+     "T753132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Garnele/Granat/Krabbe\"",
+   "candidates": [
+    "T753172",
+    "T753182",
+    "T753200",
+    "T753232",
+    "T753252",
+    "T753272",
+    "T753282",
+    "T753800",
+    "T936100",
+    "T936182"
+   ]
+  },
+  "Gehackte Tomaten": {
+   "targets": {
+    "unspecified": [
+     "G568900"
+    ]
+   },
+   "via": "BLS-Gruppe \"Tomate geschält, Konserve\""
+  },
+  "Gemüsebrühe": {
+   "targets": {
+    "unspecified": [
+     "X416243"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Gouda": {
+   "targets": {
+    "unspecified": [
+     "M402600"
+    ]
+   },
+   "via": "BLS-Gruppe \"Gouda 48 % Fett i. Tr.\"",
+   "candidates": [
+    "M402400",
+    "M402500"
+   ]
+  },
+  "Granatapfel": {
+   "targets": {
+    "raw": [
+     "F506100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Grieß": {
+   "targets": {
+    "cooked": [
+     "C219332"
+    ],
+    "unspecified": [
+     "C219300"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hartweizen Grieß\""
+  },
+  "Gurke": {
+   "targets": {
+    "cooked": [
+     "G520132",
+     "G520062",
+     "G520152",
+     "G520182"
+    ],
+    "raw": [
+     "G520100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G520042",
+    "G520802"
+   ]
+  },
+  "Hackfleisch": {
+   "targets": {
+    "raw": [
+     "U050100"
+    ],
+    "cooked": [
+     "U050132",
+     "U050162",
+     "U050182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind/Schwein, Hackfleisch gemischt\""
+  },
+  "Haferflocken": {
+   "targets": {
+    "cooked": [
+     "C133032"
+    ],
+    "unspecified": [
+     "C133000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hafer Flocken\""
+  },
+  "Halloumi": {
+   "targets": {
+    "cooked": [
+     "M524582",
+     "M524562",
+     "M524572"
+    ],
+    "unspecified": [
+     "M524500"
+    ]
+   },
+   "via": "BLS-Gruppe \"Halloumi Grillkäse\""
+  },
+  "Haselnuss": {
+   "targets": {
+    "unspecified": [
+     "H130100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "H130400",
+    "H130610"
+   ]
+  },
+  "Hefe": {
+   "targets": {
+    "unspecified": [
+     "R459000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Backhefe frisch (Frischbackhefe)\""
+  },
+  "Hefeflocken": {
+   "targets": {
+    "unspecified": [
+     "Z000001"
+    ]
+   },
+   "via": "Der BLS führt keine Nährhefe — nur Backhefe, ein anderes Erzeugnis. Z000001 ist die Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Resources/community.json."
+  },
+  "Himbeere": {
+   "targets": {
+    "cooked": [
+     "F302152"
+    ],
+    "raw": [
+     "F302100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F302400",
+    "F302902",
+    "F3A2902",
+    "F3B2902"
+   ]
+  },
+  "Hokkaido": {
+   "targets": {
+    "raw": [
+     "G581000"
+    ],
+    "cooked": [
+     "G581032",
+     "G581052",
+     "G581082",
+     "G581062"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kürbis Hokkaido (C. maxima)\""
+  },
+  "Honig": {
+   "targets": {
+    "unspecified": [
+     "S120000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Honigmelone": {
+   "targets": {
+    "raw": [
+     "F533100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Hähnchenbrust": {
+   "targets": {
+    "raw": [
+     "V416100"
+    ],
+    "cooked": [
+     "V416132",
+     "V416162",
+     "V416182",
+     "V416172"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hähnchen Brustfilet\""
+  },
+  "Hähnchenschenkel": {
+   "targets": {
+    "raw": [
+     "V4A5100",
+     "V4B5100"
+    ],
+    "cooked": [
+     "V4A5162",
+     "V4B5162",
+     "V4A5182",
+     "V4B5182",
+     "V4A5172",
+     "V4B5172"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Hühnerbrühe": {
+   "targets": {
+    "unspecified": [
+     "X411243"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Ingwer": {
+   "targets": {
+    "raw": [
+     "R211200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Ingwer/Ingwerwurzel\""
+  },
+  "Jasminreis": {
+   "targets": {
+    "raw": [
+     "C352000"
+    ],
+    "cooked": [
+     "C352032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Joghurt": {
+   "targets": {
+    "unspecified": [
+     "M141300"
+    ]
+   },
+   "via": "BLS-Gruppe \"Joghurt mild, mind. 3,5 % Fett\"",
+   "candidates": [
+    "M141100",
+    "M141200",
+    "M148100",
+    "M148200",
+    "M148300",
+    "M1B1100",
+    "M1B2200",
+    "M1E3300",
+    "M241100",
+    "M241200",
+    "M241300",
+    "M246000",
+    "M248000",
+    "M276300",
+    "M293300",
+    "M2A3200",
+    "M2A3300",
+    "M2A9200",
+    "M2D1100",
+    "M2J1100",
+    "M2J2100",
+    "M2K7200",
+    "M2L7300",
+    "M2R2200",
+    "M2R7300",
+    "M2R8300",
+    "M2R9300"
+   ]
+  },
+  "Johannisbeere": {
+   "targets": {
+    "raw": [
+     "F321100"
+    ],
+    "cooked": [
+     "F321152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Johannisbeere rot\"",
+   "candidates": [
+    "F321902",
+    "F322100",
+    "F323100",
+    "F323152",
+    "F323902",
+    "F324902"
+   ]
+  },
+  "Kabeljau": {
+   "targets": {
+    "raw": [
+     "T204100"
+    ],
+    "cooked": [
+     "T204152",
+     "T204132",
+     "T204162",
+     "T204182",
+     "T204172"
+    ]
+   },
+   "via": "BLS-Gruppe \"Dorsch/Kabeljau\"",
+   "candidates": [
+    "T940200"
+   ]
+  },
+  "Kaffee": {
+   "targets": {
+    "unspecified": [
+     "N410100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kaffee (Getränk)\""
+  },
+  "Kakao": {
+   "targets": {
+    "unspecified": [
+     "S713000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kakaopulver stark entölt\""
+  },
+  "Karotte": {
+   "targets": {
+    "raw": [
+     "G620100"
+    ],
+    "cooked": [
+     "G620132",
+     "G620152",
+     "G620182",
+     "G620162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Karotte/Möhre\"",
+   "candidates": [
+    "G620142",
+    "G620200",
+    "G620232",
+    "G620242",
+    "G620252",
+    "G620262",
+    "G620282",
+    "G620802",
+    "G620902"
+   ]
+  },
+  "Kartoffel": {
+   "targets": {
+    "raw": [
+     "K110100"
+    ],
+    "cooked": [
+     "K110132",
+     "K110182",
+     "K110162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kartoffel geschält\"",
+   "candidates": [
+    "E605000",
+    "E605032",
+    "E605062",
+    "E605082",
+    "K110142",
+    "K110143",
+    "K110902",
+    "K120100",
+    "K120134",
+    "K120164",
+    "K120184",
+    "K120200",
+    "K120264"
+   ]
+  },
+  "Ketchup": {
+   "targets": {
+    "unspecified": [
+     "R141100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Tomatenketchup\""
+  },
+  "Kichererbsen": {
+   "targets": {
+    "cooked": [
+     "G770432"
+    ],
+    "unspecified": [
+     "G770400"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kichererbse reif\""
+  },
+  "Kidneybohnen": {
+   "targets": {
+    "cooked": [
+     "H742132"
+    ],
+    "unspecified": [
+     "H742100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kidneybohne reif\""
+  },
+  "Kirsche": {
+   "targets": {
+    "raw": [
+     "F211100"
+    ],
+    "cooked": [
+     "F211152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Süßkirsche\""
+  },
+  "Kiwi": {
+   "targets": {
+    "cooked": [
+     "F514152"
+    ],
+    "raw": [
+     "F514100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Knoblauch": {
+   "targets": {
+    "cooked": [
+     "G490132",
+     "G490152",
+     "G490162",
+     "G490182"
+    ],
+    "raw": [
+     "G490100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G490042",
+    "G490200",
+    "G490232",
+    "G490242",
+    "G490252",
+    "G490262",
+    "G490282",
+    "G490400",
+    "G490500",
+    "G491702",
+    "G491802"
+   ]
+  },
+  "Knollensellerie": {
+   "targets": {
+    "cooked": [
+     "G660132",
+     "G660152",
+     "G660162",
+     "G660182"
+    ],
+    "raw": [
+     "G660100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G660802"
+   ]
+  },
+  "Kokosmilch": {
+   "targets": {
+    "unspecified": [
+     "H154000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kokosmilch/Kokosnussmilch\""
+  },
+  "Kokosraspeln": {
+   "targets": {
+    "unspecified": [
+     "H150400"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kokos Fruchtfleisch, geraspelt, getrocknet\""
+  },
+  "Kokosöl": {
+   "targets": {
+    "unspecified": [
+     "Q550000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Kuvertüre": {
+   "targets": {
+    "unspecified": [
+     "S671000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Zartbitter-/Halbbitter-Kuvertüre\""
+  },
+  "Kürbis": {
+   "targets": {
+    "raw": [
+     "G581100"
+    ],
+    "cooked": [
+     "G581132",
+     "G581152",
+     "G581182",
+     "G581162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kürbis Pumpkin (C. pepo)\"",
+   "candidates": [
+    "G581000",
+    "G581032",
+    "G581042",
+    "G581052",
+    "G581062",
+    "G581082",
+    "G581142",
+    "G581802"
+   ]
+  },
+  "Kürbiskerne": {
+   "targets": {
+    "unspecified": [
+     "H310100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kürbiskern\""
+  },
+  "Lachs": {
+   "targets": {
+    "cooked": [
+     "T410052",
+     "T410062",
+     "T410072",
+     "T410082",
+     "T410132"
+    ],
+    "raw": [
+     "T410100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "T410200",
+    "T410252",
+    "T410262",
+    "T410272",
+    "T410282",
+    "T410600",
+    "T410702",
+    "T410902",
+    "T411222",
+    "T411700",
+    "T824900"
+   ]
+  },
+  "Lammfleisch": {
+   "targets": {
+    "raw": [
+     "U807000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Lamm Muskelfleisch\"",
+   "candidates": [
+    "W139100",
+    "W149100"
+   ]
+  },
+  "Lauch": {
+   "targets": {
+    "raw": [
+     "G470100"
+    ],
+    "cooked": [
+     "G470132",
+     "G470152",
+     "G470182",
+     "G470162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Porree/Lauch\""
+  },
+  "Limette": {
+   "targets": {
+    "raw": [
+     "F602100"
+    ],
+    "unspecified": [
+     "F602600"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Linsen": {
+   "targets": {
+    "cooked": [
+     "H730132"
+    ],
+    "unspecified": [
+     "H725100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Linse reif\""
+  },
+  "Mais": {
+   "targets": {
+    "cooked": [
+     "C341032"
+    ],
+    "raw": [
+     "C341000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "C341162",
+    "C346000",
+    "C346032",
+    "C347000",
+    "C347032",
+    "C443000",
+    "C446000"
+   ]
+  },
+  "Mandarine": {
+   "targets": {
+    "raw": [
+     "F606100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F606902",
+    "F640902",
+    "F6A6902",
+    "F6B6902"
+   ]
+  },
+  "Mandel": {
+   "targets": {
+    "unspecified": [
+     "H210100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mandel süß\"",
+   "candidates": [
+    "H210200",
+    "H210400",
+    "H210600",
+    "H210710",
+    "H220100"
+   ]
+  },
+  "Mango": {
+   "targets": {
+    "raw": [
+     "F516100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F516400",
+    "F516902"
+   ]
+  },
+  "Marmelade": {
+   "targets": {
+    "unspecified": [
+     "S135000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Marmelade (hergestellt aus Zitrusfrüchten)\""
+  },
+  "Mascarpone": {
+   "targets": {
+    "unspecified": [
+     "M7A6800"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mascarpone mind. 80 % Fett i. Tr.\""
+  },
+  "Mayonnaise": {
+   "targets": {
+    "unspecified": [
+     "Q991000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mayonnaise (Fertigprodukt)\""
+  },
+  "Meersalz": {
+   "targets": {
+    "unspecified": [
+     "R112000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Mehl": {
+   "targets": {
+    "unspecified": [
+     "C214100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizen Mehl, Type 405\""
+  },
+  "Melasse": {
+   "targets": {
+    "unspecified": [
+     "S152000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Melone": {
+   "targets": {
+    "raw": [
+     "F533100",
+     "F532100"
+    ]
+   },
+   "via": "Wasser- und Honigmelone sind eigene Sorten; das nackte Wort ist die Honigmelone"
+  },
+  "Miesmuschel": {
+   "targets": {
+    "cooked": [
+     "T792132"
+    ],
+    "raw": [
+     "T792100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "T792182",
+    "T792200",
+    "T792232",
+    "T792282",
+    "T792702",
+    "T832900"
+   ]
+  },
+  "Milch": {
+   "targets": {
+    "unspecified": [
+     "M111300"
+    ]
+   },
+   "via": "BLS-Gruppe \"Vollmilch frisch, 3,5 % Fett, pasteurisiert\"",
+   "candidates": [
+    "M111100",
+    "M111200",
+    "M114100",
+    "M114200"
+   ]
+  },
+  "Mozzarella": {
+   "targets": {
+    "unspecified": [
+     "M032100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mozzarella mind. 45 % Fett i. Tr.\"",
+   "candidates": [
+    "M0A1000"
+   ]
+  },
+  "Muschel": {
+   "targets": {
+    "raw": [
+     "T792100"
+    ],
+    "cooked": [
+     "T792132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Miesmuschel\""
+  },
+  "Naan": {
+   "targets": {
+    "unspecified": [
+     "B782100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizenfladenbrot\""
+  },
+  "Nektarine": {
+   "targets": {
+    "cooked": [
+     "F202152"
+    ],
+    "raw": [
+     "F202100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Nudeln": {
+   "targets": {
+    "raw": [
+     "E401000"
+    ],
+    "cooked": [
+     "E401032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Olive": {
+   "targets": {
+    "unspecified": [
+     "H510802",
+     "H520800"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Olivenöl": {
+   "targets": {
+    "unspecified": [
+     "Q120000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Orange": {
+   "targets": {
+    "raw": [
+     "F603100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Paprika": {
+   "targets": {
+    "raw": [
+     "G543100",
+     "G541100",
+     "G542100"
+    ],
+    "cooked": [
+     "G543032",
+     "G542132",
+     "G541032",
+     "G543152",
+     "G542152",
+     "G541152",
+     "G543082",
+     "G542182",
+     "G541082",
+     "G543162",
+     "G542162",
+     "G541162",
+     "G543072",
+     "G542172",
+     "G541072"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Parmaschinken": {
+   "targets": {
+    "cooked": [
+     "W441032",
+     "W441082"
+    ],
+    "unspecified": [
+     "W441000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Parmesan": {
+   "targets": {
+    "unspecified": [
+     "M306400"
+    ]
+   },
+   "via": "BLS-Gruppe \"Parmesan mind. 30 % Fett i. Tr.\""
+  },
+  "Passierte Tomaten": {
+   "targets": {
+    "unspecified": [
+     "R161200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Tomaten passiert/Tomatenpüree\""
+  },
+  "Pastinake": {
+   "targets": {
+    "cooked": [
+     "G640132",
+     "G640152",
+     "G640162",
+     "G640182"
+    ],
+    "raw": [
+     "G640100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G640142"
+   ]
+  },
+  "Penne": {
+   "targets": {
+    "raw": [
+     "E401000"
+    ],
+    "cooked": [
+     "E401032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Petersilie": {
+   "targets": {
+    "raw": [
+     "G250100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Petersilienblatt\""
+  },
+  "Pfeffer": {
+   "targets": {
+    "unspecified": [
+     "R258100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Pfeffer schwarz, getrocknet\""
+  },
+  "Pfirsich": {
+   "targets": {
+    "cooked": [
+     "F203152"
+    ],
+    "raw": [
+     "F203100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F203400",
+    "F203902",
+    "F206902",
+    "F207902",
+    "F208902"
+   ]
+  },
+  "Pflaume": {
+   "targets": {
+    "cooked": [
+     "F220152"
+    ],
+    "raw": [
+     "F220100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "F220400",
+    "F220902",
+    "F227902",
+    "F22A902"
+   ]
+  },
+  "Pilz": {
+   "targets": {
+    "raw": [
+     "K701100"
+    ],
+    "cooked": [
+     "K701132",
+     "K701152",
+     "K701182",
+     "K701162",
+     "K701172"
+    ]
+   },
+   "via": "BLS-Gruppe \"Champignon\""
+  },
+  "Pinienkerne": {
+   "targets": {
+    "unspecified": [
+     "H320100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Pinienkern\""
+  },
+  "Pistazie": {
+   "targets": {
+    "unspecified": [
+     "H250100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "H250600",
+    "H250700"
+   ]
+  },
+  "Pita": {
+   "targets": {
+    "unspecified": [
+     "B782100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizenfladenbrot\""
+  },
+  "Polenta": {
+   "targets": {
+    "cooked": [
+     "C526062",
+     "C526082"
+    ],
+    "unspecified": [
+     "C526000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Polenta (Maisgrieß mit Wasser, Fett und Salz) gekocht\""
+  },
+  "Puderzucker": {
+   "targets": {
+    "unspecified": [
+     "S111100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Quark": {
+   "targets": {
+    "unspecified": [
+     "M713100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Speisequark Magerstufe, Magerquark < 10 % Fett i. Tr.\""
+  },
+  "Quinoa": {
+   "targets": {
+    "raw": [
+     "C118000"
+    ],
+    "cooked": [
+     "C118032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Quinoa weiß\"",
+   "candidates": [
+    "C118100",
+    "C118122",
+    "C530200"
+   ]
+  },
+  "Rapsöl": {
+   "targets": {
+    "unspecified": [
+     "Q180000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rapsöl/Rüböl\""
+  },
+  "Reis": {
+   "targets": {
+    "raw": [
+     "C352000"
+    ],
+    "cooked": [
+     "C352032"
+    ]
+   },
+   "via": "kuratierte Auswahl",
+   "candidates": [
+    "C350042",
+    "C350222",
+    "C351000",
+    "C351032",
+    "C351082",
+    "C352082",
+    "C356000",
+    "C356032",
+    "C359000",
+    "C359032",
+    "C359042",
+    "C359082",
+    "C453000",
+    "C456000",
+    "C457000",
+    "C532000"
+   ]
+  },
+  "Ricotta": {
+   "targets": {
+    "unspecified": [
+     "M741600"
+    ]
+   },
+   "via": "BLS-Gruppe \"Ricotta, Molkeneiweißkäse, mind. 45 % Fett i. Tr.\""
+  },
+  "Rindfleisch": {
+   "targets": {
+    "raw": [
+     "U284100",
+     "U211100"
+    ],
+    "cooked": [
+     "U284132",
+     "U284162",
+     "U211162"
+    ]
+   },
+   "via": "kuratierte Auswahl",
+   "candidates": [
+    "U912000",
+    "U931100"
+   ]
+  },
+  "Risottoreis": {
+   "targets": {
+    "raw": [
+     "C352000"
+    ],
+    "cooked": [
+     "C352032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Rosine": {
+   "targets": {
+    "unspecified": [
+     "F840100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rosine/Sultanine (Weinbeere getrocknet)\""
+  },
+  "Rote Bete": {
+   "targets": {
+    "raw": [
+     "G613100"
+    ],
+    "cooked": [
+     "G613132",
+     "G613152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rote Rübe/Rote Bete\""
+  },
+  "Rote Linsen": {
+   "targets": {
+    "cooked": [
+     "H730032"
+    ],
+    "unspecified": [
+     "H730000"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Rote Zwiebel": {
+   "targets": {
+    "raw": [
+     "G480100"
+    ],
+    "cooked": [
+     "G480132",
+     "G480152",
+     "G480182",
+     "G480162",
+     "G480072"
+    ]
+   },
+   "via": "BLS-Gruppe \"Speisezwiebel\""
+  },
+  "Rotkohl": {
+   "targets": {
+    "cooked": [
+     "G341132",
+     "G341152",
+     "G341162",
+     "G341182"
+    ],
+    "raw": [
+     "G341100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G341142"
+   ]
+  },
+  "Rotwein": {
+   "targets": {
+    "unspecified": [
+     "P2A3000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rotwein trocken\"",
+   "candidates": [
+    "P253000",
+    "P2A1000",
+    "P2A2000"
+   ]
+  },
+  "Römersalat": {
+   "targets": {
+    "raw": [
+     "G107100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Römischer Salat/Romanasalat\""
+  },
+  "Sahne": {
+   "targets": {
+    "unspecified": [
+     "M173800"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schlagsahne mind. 30 % Fett\"",
+   "candidates": [
+    "G898200"
+   ]
+  },
+  "Salat": {
+   "targets": {
+    "raw": [
+     "G105100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kopfsalat\""
+  },
+  "Salz": {
+   "targets": {
+    "unspecified": [
+     "R111000",
+     "R114000"
+    ]
+   },
+   "via": "Meersalz ist eine eigene Sorte; das nackte Wort ist das Speisesalz"
+  },
+  "Sardelle": {
+   "targets": {
+    "cooked": [
+     "T104162",
+     "T104172",
+     "T104182"
+    ],
+    "raw": [
+     "T104100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "T104400",
+    "T104702"
+   ]
+  },
+  "Saure Sahne": {
+   "targets": {
+    "unspecified": [
+     "M172500"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sauerrahm/Saure Sahne, mind. 10 % Fett\""
+  },
+  "Schalotte": {
+   "targets": {
+    "cooked": [
+     "G485132",
+     "G485082",
+     "G485152"
+    ],
+    "raw": [
+     "G485100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Schinken": {
+   "targets": {
+    "unspecified": [
+     "W424000",
+     "W423000"
+    ]
+   },
+   "via": "Koch-, Serrano-, Parmaschinken sind eigene Sorten; das nackte Wort ist der Kochschinken",
+   "candidates": [
+    "W291100",
+    "W850200"
+   ]
+  },
+  "Schmand": {
+   "targets": {
+    "unspecified": [
+     "M172700"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sauerrahm/Schmand, mind. 20 % Fett\""
+  },
+  "Schmelzkäse": {
+   "targets": {
+    "unspecified": [
+     "M771600"
+    ]
+   },
+   "via": "kuratierte Auswahl",
+   "candidates": [
+    "M771300",
+    "M771400",
+    "M771700",
+    "M772800"
+   ]
+  },
+  "Schnittlauch": {
+   "targets": {
+    "raw": [
+     "G081100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G081400"
+   ]
+  },
+  "Schokolade": {
+   "targets": {
+    "unspecified": [
+     "S500000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "S580000"
+   ]
+  },
+  "Schwarze Bohnen": {
+   "targets": {
+    "raw": [
+     "H742100"
+    ],
+    "cooked": [
+     "H742132"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Schweinefleisch": {
+   "targets": {
+    "raw": [
+     "U611100",
+     "U622100"
+    ],
+    "cooked": [
+     "U611162",
+     "U622162",
+     "U611172",
+     "U622172"
+    ]
+   },
+   "via": "kuratierte Auswahl",
+   "candidates": [
+    "U950100"
+   ]
+  },
+  "Sellerie": {
+   "targets": {
+    "raw": [
+     "G660100"
+    ],
+    "cooked": [
+     "G660132",
+     "G660152"
+    ]
+   },
+   "via": "Stauden- und Knollensellerie sind eigene Sorten; das nackte Wort ist der Knollensellerie"
+  },
+  "Semmelbrösel": {
+   "targets": {
+    "unspecified": [
+     "B821000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Paniermehl/Semmelbrösel/Semmelmehl\""
+  },
+  "Senf": {
+   "targets": {
+    "unspecified": [
+     "R132000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Senf mittelscharf\"",
+   "candidates": [
+    "R133000",
+    "R134000",
+    "R135000"
+   ]
+  },
+  "Sesam": {
+   "targets": {
+    "unspecified": [
+     "H420100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "H420610"
+   ]
+  },
+  "Sesamöl": {
+   "targets": {
+    "unspecified": [
+     "Q230000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Sojahack": {
+   "targets": {
+    "unspecified": [
+     "H765000"
+    ],
+    "cooked": [
+     "H765082"
+    ]
+   },
+   "via": "BLS nennt es \"Sojaschnetzel/Sojagranulat, texturiert\". Trocken ist, was ein Rezept abwiegt (351 kcal); eingeweicht und gebraten ist der gekochte Zustand (99 kcal) — ein Faktor 3,5, deshalb müssen beide Zustände benannt sein."
+  },
+  "Sojasauce": {
+   "targets": {
+    "unspecified": [
+     "R143000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sojasauce/Sojasoße\""
+  },
+  "Sonnenblumenkerne": {
+   "targets": {
+    "unspecified": [
+     "H430100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sonnenblumenkern\""
+  },
+  "Sonnenblumenöl": {
+   "targets": {
+    "unspecified": [
+     "Q320000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Spaghetti": {
+   "targets": {
+    "raw": [
+     "E401000"
+    ],
+    "cooked": [
+     "E401032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Speck": {
+   "targets": {
+    "cooked": [
+     "W411332"
+    ],
+    "unspecified": [
+     "W411300"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Bauchspeck, Rohpökelware, geräuchert\""
+  },
+  "Speisestärke": {
+   "targets": {
+    "unspecified": [
+     "C446000",
+     "C216000",
+     "K230000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mais Stärke\""
+  },
+  "Spinat": {
+   "targets": {
+    "cooked": [
+     "G210132",
+     "G211152",
+     "G211162",
+     "G211182"
+    ],
+    "raw": [
+     "G211100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G210232",
+    "G210252",
+    "G210262",
+    "G210282",
+    "G210902",
+    "G211200"
+   ]
+  },
+  "Suppengrün": {
+   "targets": {
+    "raw": [
+     "G093100"
+    ],
+    "cooked": [
+     "G093132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Suppengrün/Suppenkraut\"",
+   "candidates": [
+    "G093200",
+    "G093232",
+    "G093400",
+    "G093432"
+   ]
+  },
+  "Süßkartoffel": {
+   "targets": {
+    "raw": [
+     "K420100"
+    ],
+    "cooked": [
+     "K420132",
+     "K420182",
+     "K420162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Batate/Süßkartoffel\""
+  },
+  "Tagliatelle": {
+   "targets": {
+    "raw": [
+     "E432000"
+    ],
+    "cooked": [
+     "E432032"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Tee": {
+   "targets": {
+    "unspecified": [
+     "N630000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwarztee (Getränk)\""
+  },
+  "Thunfisch": {
+   "targets": {
+    "cooked": [
+     "T121132",
+     "T121162",
+     "T121172",
+     "T121182"
+    ],
+    "raw": [
+     "T121100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Tiefkühlerbsen": {
+   "targets": {
+    "cooked": [
+     "G760232",
+     "G760252",
+     "G760282",
+     "G760262"
+    ],
+    "unspecified": [
+     "G760200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Erbse grün, tiefgefroren\""
+  },
+  "Toast": {
+   "targets": {
+    "unspecified": [
+     "B314000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizentoastbrot/Buttertoastbrot\""
+  },
+  "Tomate": {
+   "targets": {
+    "cooked": [
+     "G561132",
+     "G561072",
+     "G561082",
+     "G561152",
+     "G561162"
+    ],
+    "raw": [
+     "G561100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G560142",
+    "G560400",
+    "G560900",
+    "G561500",
+    "G561802",
+    "G567702",
+    "G568900",
+    "G569902"
+   ]
+  },
+  "Tomatenmark": {
+   "targets": {
+    "unspecified": [
+     "R160000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Tortellini": {
+   "targets": {
+    "cooked": [
+     "E609232"
+    ],
+    "unspecified": [
+     "E609200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Eierteigwaren Tortellini (Fleischfüllung) getrocknet\""
+  },
+  "Tortilla": {
+   "targets": {
+    "unspecified": [
+     "B783012"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizentortilla\""
+  },
+  "Traube": {
+   "targets": {
+    "raw": [
+     "F310100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weintraube\""
+  },
+  "Vanille": {
+   "targets": {
+    "unspecified": [
+     "S114000"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Vollkornmehl": {
+   "targets": {
+    "unspecified": [
+     "C211000",
+     "C221000",
+     "C235000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weizen Vollkornmehl\""
+  },
+  "Vollmilchschokolade": {
+   "targets": {
+    "unspecified": [
+     "S539900"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "C532100"
+   ]
+  },
+  "Walnuss": {
+   "targets": {
+    "unspecified": [
+     "H120100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "H120400",
+    "H120610"
+   ]
+  },
+  "Wasser": {
+   "targets": {
+    "unspecified": [
+     "N110000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Trinkwasser\""
+  },
+  "Wassermelone": {
+   "targets": {
+    "raw": [
+     "F535100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Weiße Bohnen": {
+   "targets": {
+    "raw": [
+     "H742100"
+    ],
+    "cooked": [
+     "H742132"
+    ]
+   },
+   "via": "kuratierte Auswahl"
+  },
+  "Weißkohl": {
+   "targets": {
+    "cooked": [
+     "G342132",
+     "G342152",
+     "G342162",
+     "G342182"
+    ],
+    "raw": [
+     "G342100"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "candidates": [
+    "G342142"
+   ]
+  },
+  "Weißwein": {
+   "targets": {
+    "unspecified": [
+     "P210000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weißwein trocken\"",
+   "candidates": [
+    "P220000",
+    "P230000",
+    "P231000"
+   ]
+  },
+  "Wurst": {
+   "targets": {
+    "cooked": [
+     "W234032",
+     "W234062",
+     "W234082"
+    ],
+    "unspecified": [
+     "W234000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Fleischwurst\""
+  },
+  "Zitrone": {
+   "targets": {
+    "raw": [
+     "F601100"
+    ],
+    "unspecified": [
+     "F601600"
+    ]
+   },
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Zucchini": {
+   "targets": {
+    "cooked": [
+     "G582132",
+     "G582152",
+     "G582162",
+     "G582172",
+     "G582182"
+    ],
+    "raw": [
+     "G582100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Zucker": {
+   "targets": {
+    "unspecified": [
+     "S111000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Zucker weiß (Raffinadezucker/Weißzucker)\"",
+   "candidates": [
+    "S112000"
+   ]
+  },
+  "Zwetschge": {
+   "targets": {
+    "cooked": [
+     "F223152"
+    ],
+    "raw": [
+     "F223100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Zwiebel": {
+   "targets": {
+    "raw": [
+     "G480100"
+    ],
+    "cooked": [
+     "G480132",
+     "G480152",
+     "G480182",
+     "G480162",
+     "G480072"
+    ]
+   },
+   "via": "BLS-Gruppe \"Speisezwiebel\""
+  }
+ }
+}

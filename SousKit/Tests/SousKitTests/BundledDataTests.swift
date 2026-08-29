@@ -15,10 +15,16 @@ struct BundledDataTests {
     private let synonyms = SynonymTable.bundled
     private let measures = MeasureTable.bundled
 
-    @Test("The five bundled files load")
+    @Test("The bundled files load, and the vocabulary is the kitchen's size")
     func filesLoad() {
         #expect(bls.entries.count > 3000)
-        #expect(synonyms.entries.count > 2000)
+        // The two lists are kept apart: the table has thousands of rows, the
+        // kitchen a few hundred words. When these two numbers approached each
+        // other the app was offering a food table's vocabulary to a cook.
+        #expect(KitchenWords.bundled.words.count > 250)
+        #expect(KitchenWords.bundled.words.count < 1000)
+        #expect(synonyms.entries.count == KitchenWords.bundled.words.count)
+        #expect(!IngredientCuration.bundled.words.isEmpty)
         #expect(!measures.units.isEmpty)
         #expect(!AisleDefaults.bundled.groups.isEmpty)
     }
@@ -252,15 +258,21 @@ struct BundledDataTests {
         }
     }
 
-    @Test("A name that carries its own comma is still one name")
-    func commaNamesSurvived() {
-        // 974 of the bundled names hold a comma. The parser only leaves a line
-        // whole at a comma when the catalog knows the whole name, so losing
-        // these names would quietly split those lines into name + preparation
-        // and drop them out of every recipe's nutrition.
-        let withComma = SynonymTable.bundled.entries.filter { $0.word.contains(",") }
-        #expect(withComma.count > 900)
-        #expect(IngredientCatalog.bundled.ingredient(for: "Sauerrahm/Schmand, mind. 20 % Fett") != nil)
+    @Test("The kitchen's list is written in the kitchen's language")
+    func theVocabularyReadsLikeACook() {
+        // This is the whole point of keeping the two lists apart, stated as a
+        // rule: a cook writes "Schmand", not "Sauerrahm/Schmand, mind. 20 %
+        // Fett", and every one of those names used to sit in the list the
+        // editor offered while typing. A comma or a bracket in a word here
+        // means a food table's name has leaked back in.
+        let tableSpeak = KitchenWords.bundled.words
+            .map(\.name)
+            .filter { $0.contains(",") || $0.contains("(") }
+        #expect(tableSpeak.isEmpty, "\(tableSpeak)")
+
+        // The table's own name is still reachable — by looking it up, which
+        // is a different act from being offered it.
+        #expect(bls.entries.contains { $0.name.contains(",") })
     }
 }
 
@@ -285,7 +297,7 @@ struct BundledDataFingerprintTests {
         let sizes = RecipeContentHash.bundledDataSizes
         // Spelled out rather than read off `bundledDataResources`: comparing
         // the list against itself would pass however short it got.
-        #expect(sizes.count == 5)
+        #expect(sizes.count == 6)
         for file in sizes {
             #expect(file.bytes > 0, "\(file.name).json contributed nothing to the fingerprint")
         }
@@ -435,86 +447,92 @@ struct BundledSupplementTests {
 /// all while sitting in the table. Splitting them is worth these five checks
 /// because a wrong split does not fail loudly: it invents a word, or hands
 /// one food's numbers to another.
-@Suite("Slashed catalog names")
-struct SlashedNameTests {
-    private let synonyms = SynonymTable.bundled
+@Suite("The two lists and what links them")
+struct ListSeparationTests {
+    private let kitchen = KitchenWords.bundled
+    private let curation = IngredientCuration.bundled
     private let bls = BLSCatalog.bundled
 
-    @Test("Both halves of a slashed name reach the row")
-    func bothHalvesResolve() throws {
-        for spelling in ["Topinambur", "Erdartischocke"] {
-            let entry = try #require(synonyms.entry(for: spelling), "\(spelling) resolves to nothing")
-            #expect(entry.word == "Topinambur")
-            #expect(!entry.targets.isEmpty)
-        }
-        #expect(synonyms.entry(for: "Batate")?.word == "Batate")
-        #expect(synonyms.entry(for: "Alaska-Seelachs")?.word == "Alaska-Pollack")
+    /// These replace a suite that guarded the *merge*: that a BLS row name
+    /// still resolved, that a slashed name reached its row, that no second
+    /// word stood beside the one already meaning it. All of those were
+    /// questions about one vocabulary built from two sources. There is no
+    /// such vocabulary now — the kitchen's list is offered, the table is
+    /// looked up, and what needs guarding is that the link between them holds.
+
+    @Test("Every word the link names is a word the kitchen has")
+    func curationNamesOnlyKitchenWords() {
+        let known = Set(kitchen.words.map(\.name))
+        let strays = curation.words.keys.filter { !known.contains($0) }.sorted()
+        #expect(strays.isEmpty, "\(strays)")
     }
 
-    @Test("The name BLS actually wrote still resolves")
-    func theFullNameSurvives() {
-        // Recipes and stored mappings may have written the slashed name. A
-        // split that dropped the original would orphan them silently — so it
-        // is kept as a spelling of the word it became.
+    @Test("Every code the link names is a row that exists")
+    func curationPointsAtRealRows() {
+        var dangling: [String] = []
+        for (word, entry) in curation.words {
+            for code in entry.targets.values.flatMap({ $0 }) + entry.candidates
+            where bls.entry(for: code) == nil {
+                dangling.append("\(word) → \(code)")
+            }
+        }
+        #expect(dangling.isEmpty, "\(dangling)")
+    }
+
+    @Test("Every state the link names is one the app knows")
+    func curationNamesRealStates() {
+        let states = Set(curation.words.values.flatMap(\.targets.keys))
+        let unknown = states.filter { IngredientState(rawValue: $0) == nil }.sorted()
+        #expect(unknown.isEmpty, "\(unknown)")
+    }
+
+    @Test("A variety names a parent the kitchen also has")
+    func parentsAreKitchenWords() {
+        let known = Set(kitchen.words.map(\.name))
+        let orphans = kitchen.words.compactMap(\.parent).filter { !known.contains($0) }.sorted()
+        #expect(orphans.isEmpty, "\(orphans)")
+    }
+
+    @Test("No two kitchen words answer to the same spelling")
+    func spellingsAreUnique() {
+        var owner: [String: String] = [:]
+        var collisions: [String] = []
+        for word in kitchen.words {
+            for spelling in [word.name] + word.aliases {
+                let key = IngredientCatalog.normalize(spelling)
+                if let taken = owner[key], taken != word.name {
+                    collisions.append("\(spelling): \(taken) / \(word.name)")
+                }
+                owner[key] = word.name
+            }
+        }
+        #expect(collisions.isEmpty, "\(collisions)")
+    }
+
+    @Test("A word carrying no values is one nobody wrote a link for")
+    func wordsWithoutValuesAreDeliberate() {
+        // The spices and the varieties: known ingredients whose gap has a
+        // name. The rule is that the gap is always a *missing link*, never a
+        // link that points nowhere — the two look the same on screen and are
+        // not the same mistake.
+        for word in kitchen.words where curation.entry(for: word.name) == nil {
+            #expect(SynonymTable.bundled.entry(for: word.name)?.targets.isEmpty == true)
+        }
+    }
+
+    @Test("The table's own names are not in the kitchen's list")
+    func theTableStaysOutOfTheVocabulary() {
+        // Sampled rather than exhaustive: plenty of BLS rows are named exactly
+        // as a cook would say it, and those belong in both. What must not
+        // happen is the food table's phrasing turning up as a suggestion.
+        let known = Set(kitchen.words.map { IngredientCatalog.normalize($0.name) })
         for name in [
-            "Batate/Süßkartoffel",
-            "Topinambur/Erdartischocke",
-            "Alaska-Pollack/Alaska-Seelachs",
+            "Speisezwiebel tiefgefroren, geschmort ohne Fett",
             "Sauerrahm/Schmand, mind. 20 % Fett",
-            "Sojaschnetzel/Sojagranulat, texturiert, trocken",
+            "Kürbis Hokkaido (C. maxima)",
+            "Fleischsalat-Grundmasse",
         ] {
-            #expect(synonyms.entry(for: name) != nil, "\(name) no longer resolves")
+            #expect(!known.contains(IngredientCatalog.normalize(name)), "\(name)")
         }
-    }
-
-    @Test("A slash inside brackets is not a synonym boundary")
-    func bracketsAreLeftAlone() {
-        // "Agavenbrand (Mezcal/Tequila)" and "Klippfisch 1/1 trocken" —
-        // one is a bracketed pair, the other a fraction. Neither splits.
-        #expect(synonyms.entry(for: "Mezcal") == nil)
-        #expect(synonyms.entry(for: "Tequila)") == nil)
-        #expect(!synonyms.entries.contains { $0.word.hasPrefix("Klippfisch 1") && $0.word.count < 14 })
-    }
-
-    @Test("A suspended hyphen is not a synonym boundary")
-    func suspendedHyphensAreLeftAlone() {
-        // "Zartbitter-/Halbbitterschokolade" means Zartbitter*schokolade*.
-        // The stem alone is not a word, and shipping it as one put a dangling
-        // hyphen in the catalog.
-        #expect(!synonyms.entries.contains { $0.word.hasSuffix("-") })
-        #expect(synonyms.entry(for: "Zartbitter-") == nil)
-    }
-
-    @Test("No second word stands beside the one that already means the row")
-    func aTakenHeadIsAbsorbedNotDuplicated() throws {
-        // "Karotte/Möhre" used to be a word of its own beside the curated
-        // "Karotte" — same codes, own category, and which shelf a cook got
-        // depended on how they had typed it. Where the word holding the head
-        // already carries every code the row has, the whole string is a
-        // spelling of it.
-        #expect(synonyms.entry(for: "Karotte/Möhre")?.word == "Karotte")
-        #expect(synonyms.entry(for: "Dorsch/Kabeljau")?.word == "Kabeljau")
-        #expect(synonyms.entry(for: "Feldsalat/Rapunzel")?.word == "Feldsalat")
-        #expect(!synonyms.entries.contains { $0.word == "Karotte/Möhre" })
-
-        // And the guard that keeps it from swallowing a different food:
-        // "Schwein" is taken, but it means entirely different rows, so the
-        // mixed mince stays a word of its own.
-        let mince = try #require(
-            synonyms.entry(for: "Schwein/Rind, Hackfleisch gemischt")
-        )
-        #expect(mince.word == "Schwein/Rind, Hackfleisch gemischt")
-    }
-
-    @Test("A spelling of one food is not allowed to name another")
-    func aSegmentNeverClaimsAnotherWord() throws {
-        // The bug this caught: letting a *segment* decide ownership sent
-        // "Kabanossi/Peperoni" to the curated word "Chili", whose alias
-        // "Peperoni" is a chilli and not a sausage — and Chili is one of the
-        // words that deliberately carries no values at all.
-        let chili = try #require(synonyms.entry(for: "Chili"))
-        #expect(chili.targets.isEmpty)
-        #expect(synonyms.entry(for: "Peperoni")?.word == "Chili")
-        #expect(synonyms.entry(for: "Kabanossi")?.word == "Kabanossi")
     }
 }
