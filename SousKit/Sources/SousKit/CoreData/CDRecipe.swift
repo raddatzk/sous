@@ -27,6 +27,7 @@ final class CDRecipe: CDHouseholdMember {
     @NSManaged var totalTimeSeconds: NSNumber?
     @NSManaged var imageIDsJSON: String
     @NSManaged var suitableSlotsJSON: String?
+    @NSManaged var effortOverrideRaw: String?
     @NSManaged var variantGroupID: UUID?
     @NSManaged var createdBy: UUID?
     @NSManaged var createdAt: Date?
@@ -65,6 +66,7 @@ final class CDRecipe: CDHouseholdMember {
         suitableSlotsJSON = recipe.suitableSlots.map { slots in
             JSONField.encode(slots.map(\.rawValue).sorted())
         }
+        effortOverrideRaw = recipe.effortOverride?.rawValue
         variantGroupID = recipe.variantGroupID
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
@@ -113,6 +115,7 @@ final class CDRecipe: CDHouseholdMember {
             suitableSlots: suitableSlotsJSON.map { raw in
                 Set(JSONField.decode(raw).compactMap(MealSlot.init(rawValue:)))
             },
+            effortOverride: effortOverrideRaw.flatMap(RecipeEffort.Level.init(rawValue:)),
             variantGroupID: variantGroupID,
             createdBy: createdBy,
             // A row that lost its timestamps is readable; it just sorts last

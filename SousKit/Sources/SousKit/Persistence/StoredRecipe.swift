@@ -34,6 +34,9 @@ public final class StoredRecipe {
     public var imageIDs: [UUID] = []
     /// ``Recipe/suitableSlots`` as raw values; `nil` where nobody chose.
     public var suitableSlotsRaw: [String]?
+    /// ``Recipe/effortOverride`` as its raw value; `nil` where nobody
+    /// overruled the structure.
+    public var effortOverrideRaw: String?
     /// The ``StoredVariantGroup`` this recipe is one version of. A plain id
     /// rather than a relationship: the group owns nothing, and a member that
     /// outlives its group row reads as ungrouped rather than as a broken
@@ -94,6 +97,7 @@ public final class StoredRecipe {
         suitableSlotsRaw = recipe.suitableSlots.map { slots in
             slots.map(\.rawValue).sorted()
         }
+        effortOverrideRaw = recipe.effortOverride?.rawValue
         variantGroupID = recipe.variantGroupID
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
@@ -127,6 +131,7 @@ public final class StoredRecipe {
             suitableSlots: suitableSlotsRaw.map { raw in
                 Set(raw.compactMap(MealSlot.init(rawValue:)))
             },
+            effortOverride: effortOverrideRaw.flatMap(RecipeEffort.Level.init(rawValue:)),
             variantGroupID: variantGroupID,
             createdBy: createdBy,
             createdAt: createdAt,

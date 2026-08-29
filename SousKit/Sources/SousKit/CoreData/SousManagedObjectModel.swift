@@ -98,6 +98,10 @@ enum SousManagedObjectModel {
             // slot is a different statement from every slot being unsuitable,
             // and the domain type keeps that distinction as an optional Set.
             attribute("suitableSlotsJSON", .stringAttributeType, optional: true),
+            // Optional, which is also what CloudKit's mirroring requires of
+            // anything added later: an existing store gains the column by
+            // lightweight migration and every row reads as "nobody said".
+            attribute("effortOverrideRaw", .stringAttributeType, optional: true),
             attribute("variantGroupID", .UUIDAttributeType, optional: true),
             attribute("createdBy", .UUIDAttributeType, optional: true),
             attribute("createdAt", .dateAttributeType),

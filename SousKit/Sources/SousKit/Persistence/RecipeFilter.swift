@@ -16,6 +16,11 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         /// caches. Which is why a slot filter is answered by
         /// ``RecipeLibrary``, where that cache is, rather than by the store.
         case slot
+        /// How much work the dish is. Like ``slot`` and unlike the other
+        /// two, this is mostly not written on the recipe: it is read off the
+        /// recipe's structure unless a cook overruled it, so the store
+        /// cannot answer it and ``RecipeLibrary`` does.
+        case effort
     }
 
     public let kind: Kind
@@ -56,6 +61,15 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         RecipeFilter(kind: .slot, key: slot.rawValue, title: slot.title)
     }
 
+    public static func effort(_ level: RecipeEffort.Level) -> RecipeFilter {
+        RecipeFilter(kind: .effort, key: level.rawValue, title: level.title)
+    }
+
+    /// The rung this filter stands for, where it stands for one.
+    public var effort: RecipeEffort.Level? {
+        kind == .effort ? RecipeEffort.Level(rawValue: key) : nil
+    }
+
     /// The meal this filter stands for, where it stands for one.
     public var slot: MealSlot? {
         kind == .slot ? MealSlot(rawValue: key) : nil
@@ -68,6 +82,7 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         case .ingredient: "carrot"
         case .category: "tag"
         case .slot: slot?.symbolName ?? "fork.knife"
+        case .effort: effort?.symbolName ?? "gauge.with.dots.needle.50percent"
         }
     }
 
@@ -101,6 +116,14 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         for slot in MealSlot.allCases {
             guard let rank = rank(of: slot.title, matching: query) else { continue }
             candidates.append((.slot(slot), rank))
+        }
+
+        // Same reasoning as the meals: three rungs, one comparison each, and
+        // typing "aufwendig" is the only way to reach them — effort is not a
+        // word that appears in a recipe, so nothing else would ever offer it.
+        for level in RecipeEffort.Level.allCases {
+            guard let rank = rank(of: level.title, matching: query) else { continue }
+            candidates.append((.effort(level), rank))
         }
 
         for ingredient in catalog.ingredients {

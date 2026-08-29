@@ -40,6 +40,12 @@ public actor SwiftDataRecipeStore: RecipeStore {
                 results = results.filter { recipe in
                     recipe.suitableSlotsRaw?.contains(filter.key) == true
                 }
+            case .effort:
+                // Never asked of the store: effort is read off the recipe's
+                // structure, which is not indexed and could not be. The
+                // library strips these before querying and applies them
+                // afterwards — see ``RecipeLibrary.narrowedToEffort``.
+                break
             }
         }
         return results.map(\.domainValue)
