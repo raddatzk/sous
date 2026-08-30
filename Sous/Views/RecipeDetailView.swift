@@ -757,7 +757,11 @@ struct RecipeDetailView: View {
         } label: {
             Label(
                 isOnShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
-                systemImage: isOnShoppingList ? "cart.badge.checkmark" : "cart.badge.plus"
+                // `cart.badge.checkmark` is not an SF Symbol, so the
+                // already-on-the-list button drew nothing at all. The filled
+                // cart is the pair to the badged one: same glyph, stated
+                // rather than offered.
+                systemImage: isOnShoppingList ? "cart.fill" : "cart.badge.plus"
             )
             // Icons only: three labelled buttons do not fit a phone
             // without wrapping mid-word.
@@ -1257,7 +1261,9 @@ struct RecipeDetailView: View {
                         isAddingVariant = true
                     }
                     if variantGroup != nil {
-                        Button("Aus der Gruppe lösen", systemImage: "square.on.square.slash") {
+                        // `square.on.square.slash` does not exist; the rectangle family
+                        // is the one that has a struck-through variant.
+                        Button("Aus der Gruppe lösen", systemImage: "rectangle.on.rectangle.slash") {
                             Task { await library.removeFromVariantGroup(recipe) }
                         }
                     } else {
