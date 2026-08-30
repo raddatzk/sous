@@ -415,7 +415,13 @@ public final class RecipeLibrary {
     /// on every open.
     public func amountSuggestions(for recipe: Recipe) async -> (resolution: StepAmountResolver.Resolution, suggestions: [AmountSuggestion]) {
         let mentions = await aiMentions(for: recipe)
-        let resolution = StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
+        let resolved = StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
+        // The ones the cook has already said no to are gone from here on:
+        // this is the one door the banner, the list marker and the sheet all
+        // come through, so a settled question cannot slip back in through
+        // one of them.
+        let declined = (try? await amountReviewStore.declinedKeys(for: recipe.id)) ?? []
+        let resolution = resolved.excluding(declined: declined)
         return (resolution, resolution.allSuggestions)
     }
 
@@ -433,8 +439,38 @@ public final class RecipeLibrary {
     /// the cook accepted some suggestions or dismissed the screen without
     /// changing anything at all; either way, nothing about this exact text
     /// should be asked about again.
-    public func markAmountsReviewed(_ recipe: Recipe) async {
-        try? await amountReviewStore.markReviewed(recipe)
+    ///
+    /// `declining` are the questions turned down for good rather than just
+    /// for this text: they survive later edits elsewhere in the recipe, which
+    /// the content hash on its own cannot. Passing none is the "Nicht jetzt"
+    /// answer, and leaves the ones already turned down where they are.
+    public func markAmountsReviewed(_ recipe: Recipe, declining: Set<String> = []) async {
+        try? await amountReviewStore.markReviewed(recipe, declining: await remembered(declining, for: recipe))
+    }
+
+    /// The questions already turned down for good, for a caller that resolves
+    /// a recipe itself rather than going through ``amountSuggestions(for:)``
+    /// — the editor, which works on an unsaved draft.
+    public func declinedAmountKeys(for recipeID: UUID) async -> Set<String> {
+        (try? await amountReviewStore.declinedKeys(for: recipeID)) ?? []
+    }
+
+    /// What to write as `recipe`'s declined set: the new answers, plus the
+    /// old ones the recipe still asks.
+    ///
+    /// Old keys are dropped rather than kept forever. A key names a sentence,
+    /// and a sentence that has been rewritten away is not a question anybody
+    /// can answer again — keeping it would grow the row by every edit the
+    /// recipe ever saw, for nothing.
+    private func remembered(_ declining: Set<String>, for recipe: Recipe) async -> Set<String> {
+        let previous = (try? await amountReviewStore.declinedKeys(for: recipe.id)) ?? []
+        guard !previous.isEmpty else { return declining }
+        let mentions = await aiMentions(for: recipe)
+        let asked = Set(
+            StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
+                .allSuggestions.map(\.declineKey)
+        )
+        return declining.union(previous.intersection(asked))
     }
 
     /// Writes the accepted suggestions into `recipe`'s steps, saves it, and
@@ -448,12 +484,16 @@ public final class RecipeLibrary {
     public func applyAmountSuggestions(
         _ accepted: Set<AmountSuggestion.ID>,
         corrections: [AmountSuggestion.ID: String] = [:],
+        declining: Set<String> = [],
         resolution: StepAmountResolver.Resolution,
         to recipe: Recipe
     ) async -> Recipe {
         let updated = resolution.applying(accepted, corrections: corrections, to: recipe)
         await save(updated)
-        try? await amountReviewStore.markReviewed(updated)
+        // Against the updated recipe: accepting a suggestion rewrites the
+        // sentence it was about, so the keys still worth keeping are the ones
+        // the *new* text asks.
+        try? await amountReviewStore.markReviewed(updated, declining: await remembered(declining, for: updated))
         return updated
     }
 

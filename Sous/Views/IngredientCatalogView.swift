@@ -185,6 +185,13 @@ struct IngredientFormView: View {
     /// app currently believes and must not turn that into a correction just
     /// because the form was opened.
     @State private var measureDraft: [String: String] = [:]
+    /// The catalog row the numbers stand in for, as shown and as loaded.
+    /// Part of the draft rather than written on the tap, because a new
+    /// ingredient has no entry to write a basis onto until it is saved —
+    /// which is the whole reason this used to be a second trip through a
+    /// recipe.
+    @State private var basisCode: String?
+    @State private var storedBasisCode: String?
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
@@ -252,6 +259,7 @@ struct IngredientFormView: View {
                 pantrySection
                 shoppingSection
                 nutritionSection
+                basisSection
                 measuresSection
             }
             .formStyle(.grouped)
@@ -273,6 +281,9 @@ struct IngredientFormView: View {
             .task {
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
+                storedBasisCode = nutrition.nutrition(forName: trimmedName)?
+                    .basis(for: .unspecified)?.code
+                basisCode = storedBasisCode
                 await shopping.ensurePantryLoaded()
                 storedPantry = shopping.pantryKeys.contains(pantryKey)
                 isPantry = storedPantry
@@ -745,10 +756,67 @@ struct IngredientFormView: View {
                 // and telling a cook their word "was never in the catalog"
                 // when it was there until the last update would be false.
                 if let was = orphanedBasisName {
-                    Text("Die zugeordnete Zeile „\(was)“ ist in den aktuellen Daten nicht mehr enthalten. Bitte neu zuordnen — in einem Rezept mit dieser Zutat lässt sich das direkt erledigen.")
-                } else if nutrition.needsBasisReview(forName: trimmedName) {
-                    Text("Zu diesem Namen kennt der Lebensmittelkatalog keine Zeile. Die eigenen Werte gelten weiter; eine Zuordnung würde sie bei Datenaktualisierungen mitführen.")
+                    Text("Die zugeordnete Zeile „\(was)“ ist in den aktuellen Daten nicht mehr enthalten. Bitte unten neu zuordnen.")
                 }
+            }
+        }
+    }
+
+    /// Which row of the food table these numbers stand in for — asked here,
+    /// beside the numbers, rather than only in a recipe that happens to use
+    /// the ingredient.
+    ///
+    /// It used to be reachable from one direction only. "Eigene Werte" in
+    /// the basis picker opens this form, but this form had no way back: a
+    /// cook who added Leinsamenöl and typed a label off the bottle was told
+    /// to go and find a recipe with it in to finish the job. Adding an
+    /// ingredient and saying what it is are the same thought, so they are
+    /// now the same screen.
+    ///
+    /// Written on save, not on the tap, because a new ingredient has no
+    /// entry to carry a basis until it has one.
+    @ViewBuilder
+    private var basisSection: some View {
+        if isNutritionEditable, !trimmedName.isEmpty {
+            let rows = nutrition.candidates(forName: trimmedName)
+            Section {
+                if rows.isEmpty {
+                    Text("Zu diesem Namen findet der Katalog nichts. Die eigenen Werte gelten trotzdem.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(rows) { row in
+                        Button {
+                            // Tapping the chosen row again takes the choice
+                            // back: with no other way to unpick one, a
+                            // mis-tap would be permanent.
+                            basisCode = basisCode == row.code ? nil : row.code
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Image(systemName: basisCode == row.code
+                                    ? "largecircle.fill.circle" : "circle")
+                                    .foregroundStyle(.tint)
+                                Text(row.name)
+                                    .multilineTextAlignment(.leading)
+                                    .foregroundStyle(.primary)
+                                Spacer(minLength: 8)
+                                Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
+                                    .foregroundStyle(.secondary)
+                                    .monospacedDigit()
+                            }
+                            .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            } header: {
+                Text("Zeile im Lebensmittelkatalog")
+            } footer: {
+                // The link is a note, not a source of numbers: own values win
+                // at read time either way. What it buys is that a data update
+                // can still find the row and say if it has gone.
+                Text(nutritionDraft.catalogNutrition(named: trimmedName) == nil
+                    ? "Ohne eigene Werte zählt die gewählte Zeile."
+                    : "Die eigenen Werte zählen; die Zeile hält fest, wofür sie stehen.")
             }
         }
     }
@@ -799,6 +867,8 @@ struct IngredientFormView: View {
             if trimmed.isEmpty { return .some(nil) }
             return DecimalText.number(trimmed).map { .some($0) }
         }
+        let basis = basisCode
+        let basisChanged = basisCode != storedBasisCode
         let measureTarget = pantryName
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
@@ -823,6 +893,15 @@ struct IngredientFormView: View {
                 } else if ownNutrition != nil {
                     // Everything cleared out reads as taking the entry back.
                     await nutrition.deleteIngredientNutrition(name: trimmedName)
+                }
+            }
+            // After the numbers, never before: `confirmBasis` carries own
+            // values across, so it has to see the ones just entered.
+            if basisChanged {
+                if let basis {
+                    await nutrition.confirmBasis(code: basis, forName: trimmedName)
+                } else {
+                    await nutrition.clearBasis(forName: trimmedName)
                 }
             }
             for (symbol, grams) in measures {

@@ -11,6 +11,8 @@ struct ShoppingListView: View {
     #if os(macOS)
     @Environment(RecipeSelection.self) private var selection
     #endif
+    /// Read for the recipe a detail page asked this list to stand at.
+    @Environment(SousNavigation.self) private var navigation
 
     @State private var grouping: Grouping = .aisle
     @State private var newItem = ""
@@ -63,6 +65,39 @@ struct ShoppingListView: View {
 
     @ViewBuilder
     private var list: some View {
+        ScrollViewReader { proxy in
+            listBody(proxy)
+        }
+    }
+
+    /// Takes the list to the recipe a detail page sent it to.
+    ///
+    /// Switching the grouping is part of it: asked for one dish, the aisle
+    /// view is the wrong shape of answer — its lines are scattered down the
+    /// whole list, and the portion dial that the cook came for only exists
+    /// under a recipe heading.
+    private func standAt(_ recipeID: UUID?, proxy: ScrollViewProxy) {
+        guard let recipeID,
+              let group = shopping.byRecipe.first(where: { $0.planEntry?.recipeID == recipeID })
+        else { return }
+        #if os(iOS)
+        // Tapped from a recipe the list itself had pushed: without this the
+        // list would be "shown" underneath the page that asked for it.
+        openedRecipe = nil
+        #endif
+        grouping = .recipe
+        Task {
+            // A turn later. The section does not exist until the picker has
+            // switched and the list has been rebuilt around it, and a proxy
+            // asked for an id it cannot see does nothing — silently.
+            try? await Task.sleep(for: .milliseconds(80))
+            withAnimation { proxy.scrollTo(group.id, anchor: .top) }
+            navigation.shoppingRecipeID = nil
+        }
+    }
+
+    @ViewBuilder
+    private func listBody(_ proxy: ScrollViewProxy) -> some View {
         List {
             addRow
 
@@ -82,6 +117,11 @@ struct ShoppingListView: View {
             }
         }
         .sousReadableList()
+        // Both, because the ask can arrive either way: from another tab,
+        // where this view appears fresh, or from a recipe pushed on top of
+        // this very list, where it is already on screen.
+        .onAppear { standAt(navigation.shoppingRecipeID, proxy: proxy) }
+        .onChange(of: navigation.shoppingRecipeID) { _, id in standAt(id, proxy: proxy) }
         .navigationTitle("Einkaufsliste")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -308,6 +348,8 @@ struct ShoppingListView: View {
             } header: {
                 recipeHeader(for: group)
             }
+            // Named so the list can be sent to one dish — see `standAt`.
+            .id(group.id)
         }
     }
 

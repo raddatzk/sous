@@ -42,10 +42,14 @@ public enum ShoppingListBuilder {
     /// `nil` is the whole recipe, and the two are not the same thing — an
     /// empty set is a recipe nothing was picked from.
     ///
-    /// The choice reaches the recipe's own lines and stops there. A chosen
-    /// line that refers to another recipe brings that one along entire,
-    /// because what was picked was the line — "2 Portionen Naan" — and not
-    /// the flour it turns out to be made of.
+    /// The choice reaches the recipe's own lines, and as far into a linked
+    /// recipe as it actually says anything about. A chosen line that refers
+    /// to another recipe brings that one along entire — what was picked was
+    /// the line, "2 Portionen Naan", not the flour it turns out to be made
+    /// of — *unless* `selected` also names some of that recipe's own lines,
+    /// which is a picker that showed them and got an answer about them.
+    /// Naming none of them is not the same as naming none of them on
+    /// purpose, so it still means the whole naan.
     public static func build(
         from recipe: Recipe,
         servings: Int,
@@ -128,7 +132,7 @@ public enum ShoppingListBuilder {
                     servings: portions(of: ingredient) ?? linked.servings,
                     origin: linked.title,
                     planEntryID: planEntryID,
-                    selecting: nil,
+                    selecting: childSelection(of: linked, in: selected),
                     // A naan wanted "as written" does not grow with the
                     // curry, and neither does anything a non-scaling line
                     // pulled in.
@@ -151,6 +155,20 @@ public enum ShoppingListBuilder {
                 into: &capture
             )
         }
+    }
+
+    /// What of a linked recipe was picked, given the choice made about the
+    /// parent.
+    ///
+    /// `nil` — the whole recipe — whenever the choice says nothing about its
+    /// lines, which covers both the planned week (no choice at all) and a
+    /// picker that only ever showed the link as one line. A set that does
+    /// name some of them came from a picker that listed them, and then it is
+    /// the answer.
+    private static func childSelection(of linked: Recipe, in selected: Set<UUID>?) -> Set<UUID>? {
+        guard let selected else { return nil }
+        let own = Set(linked.ingredients.map(\.id))
+        return selected.isDisjoint(with: own) ? nil : selected
     }
 
     private static func portions(of ingredient: RecipeIngredient) -> Int? {

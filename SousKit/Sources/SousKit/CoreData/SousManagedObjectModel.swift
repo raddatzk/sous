@@ -199,6 +199,12 @@ enum SousManagedObjectModel {
         entity.properties = [
             attribute("recipeID", .UUIDAttributeType),
             attribute("reviewedContentHash", .stringAttributeType, default: ""),
+            // Only the amount mark writes this — the ingredient review has
+            // no per-question "no" to remember yet. Described on both
+            // anyway: the two are one shape by design, and a column an
+            // entity leaves empty costs less than the copy of this builder
+            // that telling them apart would need.
+            attribute("declinedKeysJSON", .stringAttributeType, optional: true),
             attribute("updatedAt", .dateAttributeType),
         ]
         entity.indexes = [index(named: "byRecipeID", on: entity, properties: ["recipeID"])]

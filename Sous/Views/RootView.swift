@@ -380,6 +380,21 @@ private struct SectionButtonStyle: ButtonStyle {
 @Observable
 final class SousNavigation {
     var section: SousSection = .recipes
+    /// A recipe the shopping list should scroll to as it comes up.
+    ///
+    /// Cleared by the list once it has acted on it, so that coming back to
+    /// the tab later does not jump somewhere the cook did not ask for.
+    var shoppingRecipeID: UUID?
+
+    /// Shows the shopping list, standing at `recipeID`.
+    ///
+    /// Where a recipe already on the list is read, the question is no longer
+    /// "shall I buy this" but "how much of it" — and the portion dial that
+    /// answers it lives on the list, under that recipe's own heading.
+    func showShoppingList(for recipeID: UUID) {
+        shoppingRecipeID = recipeID
+        section = .shopping
+    }
 }
 
 /// The three places the app is used from, named once so the tab bar and the

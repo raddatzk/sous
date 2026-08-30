@@ -2,11 +2,18 @@ import SousKit
 import SwiftUI
 
 /// What the cook decided in `AmountReviewSheet` — which suggestions to
-/// write in, and what to write for the ones they edited instead of taking
-/// as offered.
+/// write in, what to write for the ones they edited instead of taking as
+/// offered, and which ones they turned down for good.
 struct AmountReviewOutcome {
     let accepted: Set<AmountSuggestion.ID>
     let corrections: [AmountSuggestion.ID: String]
+    /// The ``AmountSuggestion/declineKey``s of everything left unticked.
+    ///
+    /// Going through the list *is* the answer to each line in it, including
+    /// the lines answered "no". Without this the no's lived only in the
+    /// recipe's content hash, so the next comma typed anywhere in the recipe
+    /// asked every one of them again.
+    let declined: Set<String>
 }
 
 /// Lets the cook confirm, correct, or wave off the amounts the resolver
@@ -23,9 +30,9 @@ struct AmountReviewSheet: View {
 
     let recipe: Recipe
     let resolution: StepAmountResolver.Resolution
-    /// `nil` means "not now" — nothing changes, but the recipe still counts
-    /// as reviewed against its current text, so the same list does not come
-    /// back until the recipe itself changes.
+    /// `nil` means "not now" — nothing changes and nothing is turned down,
+    /// but the recipe still counts as reviewed against its current text, so
+    /// the same list does not come back until the recipe itself changes.
     let onFinish: (AmountReviewOutcome?) -> Void
 
     /// On by default — one tap accepts everything, which matters when a
@@ -65,6 +72,11 @@ struct AmountReviewSheet: View {
                         }
                         .font(.footnote)
                     }
+                } footer: {
+                    // Said out loud because the second half of it used not to
+                    // be true: unticking something meant "not this time", and
+                    // the next edit asked again.
+                    Text("Ausgewählte Mengen werden in den Text geschrieben, nicht ausgewählte nicht mehr vorgeschlagen. „Nicht jetzt“ lässt beides offen.")
                 }
                 ForEach(suggestionsByStep, id: \.step.id) { entry in
                     Section(entry.step.text) {
@@ -89,13 +101,20 @@ struct AmountReviewSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(accepted.isEmpty ? "Fertig" : "\(accepted.count) übernehmen") {
-                        onFinish(accepted.isEmpty ? nil : AmountReviewOutcome(accepted: accepted, corrections: edited))
+                        onFinish(AmountReviewOutcome(
+                            accepted: accepted, corrections: edited, declined: declined
+                        ))
                         dismiss()
                     }
                 }
             }
         }
         .sousSheetSizing(.form)
+    }
+
+    /// Everything left unticked, by the key that outlives this resolve.
+    private var declined: Set<String> {
+        Set(resolution.allSuggestions.filter { !accepted.contains($0.id) }.map(\.declineKey))
     }
 
     private func binding(for suggestion: AmountSuggestion) -> Binding<Bool> {

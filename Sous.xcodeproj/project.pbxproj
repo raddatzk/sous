@@ -88,12 +88,14 @@
 		D039F26CAA91B8EAF7A4A66A /* TimerSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */; };
 		D46D78B4250B2773DF76BEBA /* SousWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */; };
 		DBA71FE99BF65FBF589A2A81 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */; };
+		DFECC099BCEBCD72A603D0C5 /* RecipeLinkChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */; };
 		E7BDB939A6B8E83F497FB16F /* CookTimerCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */; };
 		F0FF8EF8304D4773B9C3DB46 /* LibraryCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6591D047592824004D26893B /* LibraryCommands.swift */; };
 		F2FE5B65452C7BCBC2814E47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */; };
 		F57D8BF30A466E29363D8D6D /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5F5A49BEF93D3CFF7287EA /* TrashView.swift */; };
 		FAE7300D467490B4F9085BD8 /* RecipeSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCD6C099CAEC9423250D44B0 /* RecipeSearchView.swift */; };
 		FC9975780EBE413A7F1F048E /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17926632D910B9FEE5B9A8A3 /* RootView.swift */; };
+		FD8A79F133D00A9B833313C9 /* RecipeLinkChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -171,6 +173,7 @@
 		76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerMetadata.swift; sourceTree = "<group>"; };
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSetupSheet.swift; sourceTree = "<group>"; };
+		8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLinkChips.swift; sourceTree = "<group>"; };
 		874968D982EF7B9D954ECC27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
@@ -262,6 +265,7 @@
 				90E750DD65005E77F070E4A9 /* RecipeExportView.swift */,
 				3A4D64C09129B00714574B3E /* RecipeImageView.swift */,
 				B30F1C03B1F7A30595D32B1C /* RecipeImportView.swift */,
+				8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */,
 				C97D3EDC685F9A1C82D0688B /* RecipeListView.swift */,
 				643CB10A242BDB3ED0E0125A /* RecipePickerView.swift */,
 				027C4D97EB668FD81EEF6515 /* RecipeRow.swift */,
@@ -545,6 +549,7 @@
 				7FE551E7D5F216F63382DB37 /* IngredientLineView.swift in Sources */,
 				9E085AA7B7BF149444F6FC5A /* RecipeEditorView.swift in Sources */,
 				CFE8BEA3041EE7D885F3F03F /* RecipeImageView.swift in Sources */,
+				FD8A79F133D00A9B833313C9 /* RecipeLinkChips.swift in Sources */,
 				02B9D85978357A0B6E4A8D91 /* RecipePickerView.swift in Sources */,
 				878E08450A4FD9165E9F4569 /* RecipeRow.swift in Sources */,
 				C7D67E97E394DF1784194101 /* RecipeTextEditorStyles.swift in Sources */,
@@ -607,6 +612,7 @@
 				D001C854B40B28607A227366 /* RecipeExportView.swift in Sources */,
 				8C15C16B4CC9DDD990279C44 /* RecipeImageView.swift in Sources */,
 				C34D8C291432A617C11A5D9A /* RecipeImportView.swift in Sources */,
+				DFECC099BCEBCD72A603D0C5 /* RecipeLinkChips.swift in Sources */,
 				03A11925BC7E5D8F8DF58EC2 /* RecipeListView.swift in Sources */,
 				C984ED23911E8BCB2FF58A17 /* RecipePickerView.swift in Sources */,
 				7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */,

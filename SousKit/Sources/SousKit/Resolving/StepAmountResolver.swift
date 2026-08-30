@@ -41,6 +41,17 @@ public struct AmountSuggestion: Identifiable, Sendable, Hashable {
     public let ingredientName: String
     public let displayAmount: String
     public let origin: AmountSuggestionOrigin
+    /// What identifies this question across edits, so that "no, not in the
+    /// text" can be remembered.
+    ///
+    /// `id` cannot: it is a fresh `UUID` per resolve, so nothing said about
+    /// a suggestion survives the next one. `stepID` cannot either — it hashes
+    /// the step's *index* along with its line, so inserting a step anywhere
+    /// above renames every question below it. This hashes only what the
+    /// question is actually about: the sentence, and the ingredient in it.
+    /// Reorder the steps and the answer holds; rewrite the sentence and it
+    /// is a different question again, which is the point.
+    public let declineKey: String
     /// Exactly one of these is set — mirrors the `insertAfter`/`replace`
     /// split `StepAmountResolver` already makes for a mention that writes
     /// itself in directly. A bare mention only ever inserts; an AI claim
@@ -49,10 +60,16 @@ public struct AmountSuggestion: Identifiable, Sendable, Hashable {
     fileprivate let replaceRange: Range<String.Index>?
 
     fileprivate init(
-        stepID: UUID, ingredientName: String, displayAmount: String, origin: AmountSuggestionOrigin,
+        stepID: UUID, stepText: String, ingredientName: String, displayAmount: String,
+        origin: AmountSuggestionOrigin,
         insertionPoint: String.Index? = nil, replaceRange: Range<String.Index>? = nil
     ) {
         self.id = UUID()
+        self.declineKey = StableID.make(
+            namespace: "decline",
+            index: 0,
+            content: "\(IngredientCatalog.normalize(stepText))|\(IngredientCatalog.normalize(ingredientName))"
+        ).uuidString
         self.stepID = stepID
         self.ingredientName = ingredientName
         self.displayAmount = displayAmount
@@ -82,7 +99,7 @@ public enum StepAmountResolver {
         /// under a step can collapse lines that share one pot instead of
         /// presenting the same butter twice.
         fileprivate let potIndexByLineID: [UUID: Int]
-        fileprivate let suggestionsByStep: [UUID: [AmountSuggestion]]
+        fileprivate private(set) var suggestionsByStep: [UUID: [AmountSuggestion]]
 
         /// Whether the steps between them account for every pot's whole
         /// amount — the recipe's text answers every "how much of it here?"
@@ -117,6 +134,23 @@ public enum StepAmountResolver {
         /// the detail view's banner both just want a number.
         public var allSuggestions: [AmountSuggestion] {
             suggestionsByStep.values.flatMap { $0 }
+        }
+
+        /// The same resolution with the questions already answered "no" left
+        /// out — of the count, of the sheet, and of the banner that offers
+        /// the sheet.
+        ///
+        /// Applied here rather than at each of those three, so a suggestion
+        /// the cook has settled cannot reappear at one of them because
+        /// somebody forgot to ask.
+        public func excluding(declined keys: Set<String>) -> Resolution {
+            guard !keys.isEmpty else { return self }
+            var copy = self
+            copy.suggestionsByStep = suggestionsByStep.compactMapValues { list in
+                let kept = list.filter { !keys.contains($0.declineKey) }
+                return kept.isEmpty ? nil : kept
+            }
+            return copy
         }
 
         /// `recipe` with `accepted` written into its step text — the only
@@ -318,7 +352,7 @@ public enum StepAmountResolver {
                             if !isEnclosedInParens(mention.writtenRange, in: step.text) {
                                 let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
                                 stepSuggestions.append(AmountSuggestion(
-                                    stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                    stepID: step.id, stepText: step.text, ingredientName: lines[pot.lineIndices[0]].name,
                                     displayAmount: amount, origin: origin, replaceRange: mention.writtenRange
                                 ))
                             }
@@ -329,7 +363,7 @@ public enum StepAmountResolver {
                             if !isAlreadyAnswered(at: point, in: step.text) {
                                 let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
                                 stepSuggestions.append(AmountSuggestion(
-                                    stepID: step.id, ingredientName: lines[pot.lineIndices[0]].name,
+                                    stepID: step.id, stepText: step.text, ingredientName: lines[pot.lineIndices[0]].name,
                                     displayAmount: amount, origin: origin, insertionPoint: point
                                 ))
                             }
@@ -379,6 +413,7 @@ public enum StepAmountResolver {
                 guard !isAlreadyAnswered(at: end, in: step.text) else { continue }
                 stepSuggestions.append(AmountSuggestion(
                     stepID: step.id,
+                    stepText: step.text,
                     ingredientName: lines[pot.lineIndices[0]].name,
                     displayAmount: formatter.string(for: pot.scaledTotal),
                     origin: .unmentioned,
