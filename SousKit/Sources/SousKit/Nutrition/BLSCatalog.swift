@@ -119,18 +119,66 @@ public struct BLSCatalog: Sendable {
         let query = IngredientCatalog.normalize(text)
         guard query.count >= 3 else { return [] }
 
-        func rank(_ entry: BLSEntry) -> (Int, Int) {
-            let name = IngredientCatalog.normalize(entry.name)
-            return (name.hasPrefix(query) ? 0 : 1, name.count)
-        }
-
         return entries
-            .filter { IngredientCatalog.normalize($0.name).contains(query) }
+            .compactMap { entry -> (BLSEntry, Int, Int)? in
+                let name = IngredientCatalog.normalize(entry.name)
+                guard let tier = Self.tier(of: name, for: query) else { return nil }
+                return (entry, tier, name.count)
+            }
             .sorted { first, second in
-                rank(first) == rank(second) ? first.name < second.name : rank(first) < rank(second)
+                (first.1, first.2) == (second.1, second.2)
+                    ? first.0.name < second.0.name
+                    : (first.1, first.2) < (second.1, second.2)
             }
             .prefix(limit)
-            .map { $0 }
+            .map(\.0)
+    }
+
+    /// How well a row's name answers `query`, lower being better, or `nil`
+    /// for a row that does not answer it at all.
+    ///
+    /// Containment alone only ever reaches *down*, to a name longer than
+    /// what was typed — which is the wrong direction for German. The table
+    /// stocks the general word and the cook writes the specific one:
+    /// "Leinöl" is what BLS calls Q160000, "Leinsamenöl" is what stands on
+    /// the bottle. `"leinöl".contains("leinsamenöl")` is false, so the one
+    /// right row in the table was invisible to the one name anybody types.
+    ///
+    /// Tiers 2 to 4 reach up instead, along the seams a German compound
+    /// actually has. The head noun comes last and carries the meaning, so a
+    /// shared ending ranks above a shared beginning: typing "Leinsamenöl"
+    /// should offer the oil before the seeds it is pressed from, even
+    /// though both are real matches.
+    static func tier(of name: String, for query: String) -> Int? {
+        if name.hasPrefix(query) { return 0 }
+        if name.contains(query) { return 1 }
+        // A name at least as long as the query has had its chance above.
+        // The short ones are held back because nearly every row shares a
+        // three-letter ending with something, and "…öl" matching every oil
+        // in the table is no more use than matching none of them.
+        guard name.count >= 4, name.count < query.count else { return nil }
+
+        // "Vollmilch" → "Milch": the query is the row's name with a
+        // modifier written in front of it.
+        if query.hasSuffix(name) { return 2 }
+
+        // "Leinsamenöl" → "Leinöl": the row's name split in two by an
+        // insertion, its beginning and its ending both still in place.
+        // Both halves have to carry weight — a single shared letter at
+        // either end is a coincidence, not a seam.
+        let n = Array(name), q = Array(query)
+        var head = 0
+        while head < n.count, n[head] == q[head] { head += 1 }
+        var tail = 0
+        while tail < n.count - head, n[n.count - 1 - tail] == q[q.count - 1 - tail] { tail += 1 }
+        if head + tail == n.count, head >= 2, tail >= 2 { return 3 }
+
+        // "Leinsamenöl" → "Leinsamen": only the modifier is shared, and the
+        // head noun — the part that says what the thing is — is not. Last,
+        // and only ever as the tail of a list that has better above it.
+        if query.hasPrefix(name) { return 4 }
+
+        return nil
     }
 
     /// The tables shipped with the app.

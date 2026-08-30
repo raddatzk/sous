@@ -225,16 +225,32 @@ public final class NutritionLibrary {
     }
 
     /// The cook picked a row: the mapping is settled, for every recipe.
+    ///
+    /// Numbers already typed for this ingredient survive the pick. The two
+    /// directions used to disagree: ``saveIngredientNutrition(_:)`` carries
+    /// the code across so own values remember the row they stand in for, but
+    /// this one built a fresh assignment with no `values` at all, and
+    /// `setBasis` replaces the whole slot — so typing values and *then*
+    /// naming their row silently threw the values away, while doing it the
+    /// other way round kept both. A cook picking a row is saying which row
+    /// their numbers stand in for; the way to go back to the table's own
+    /// numbers is "Zurücknehmen", which says so.
     public func confirmBasis(code: String, state: IngredientState = .unspecified, forName name: String) async {
-        await catalogLibrary.setBasis(
-            .confirmed(
+        let name = catalog.canonicalName(for: name)
+        let row = bls.entry(for: code)
+        let existing = catalogLibrary.entry(for: name)?.bases[state.rawValue]
+        let assignment: BasisAssignment = if let values = existing?.values {
+            .ownValues(
+                values,
                 code: code,
-                catalogName: bls.entry(for: code)?.name,
-                datasetVersion: datasetVersion
-            ),
-            state: state,
-            of: catalog.canonicalName(for: name)
-        )
+                catalogName: row?.name,
+                datasetVersion: datasetVersion,
+                source: existing?.source ?? CatalogNutrition.ownSource
+            )
+        } else {
+            .confirmed(code: code, catalogName: row?.name, datasetVersion: datasetVersion)
+        }
+        await catalogLibrary.setBasis(assignment, state: state, of: name)
         await settle()
     }
 

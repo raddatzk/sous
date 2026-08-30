@@ -35,6 +35,10 @@ struct CookModeView: View {
     @State private var isSettingServings = false
     /// A recipe about to be taken off the hob with a timer still running.
     @State private var confirmingFinish: UUID?
+    /// A linked recipe the cook tapped to read, rather than to cook. Kept
+    /// apart from `dismissedOffers` and the hob: looking the naan up is not
+    /// a decision about whether to make it.
+    @State private var lookingUp: Recipe?
     #if os(macOS)
     /// The system activity holding the display awake while cooking is up.
     @State private var awakeActivity: NSObjectProtocol?
@@ -83,6 +87,26 @@ struct CookModeView: View {
         // Cook mode is presented over the app, and a sheet does not pick up
         // a change to the window's scheme — so it names the same one again.
         .sousAppearance()
+        // Cook mode is presented from the root, a sibling of the detail
+        // view — so it inherits none of that view's link handling, and a
+        // recipe link tapped in a step fell through to the system, which
+        // handed `sous://recipe/…` back to an `onOpenURL` that only knows
+        // imports. It did nothing at all.
+        .environment(\.openURL, OpenURLAction { url in
+            guard let id = RecipeLink.recipeID(from: url) else { return .systemAction }
+            Task { lookingUp = await library.recipe(id: id) }
+            return .handled
+        })
+        .sheet(item: $lookingUp) { linked in
+            NavigationStack {
+                RecipeDetailView(recipe: linked)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Fertig") { lookingUp = nil }
+                        }
+                    }
+            }
+        }
         .sheet(item: $settingTimer) { draft in
             TimerSetupSheet(
                 stepNumber: draft.stepNumber,
@@ -444,7 +468,15 @@ struct CookModeView: View {
                 guard let top = visible.first, top != focusedStep(entry, steps: steps) else { return }
                 focus(top, entry: entry, steps: steps)
             }
-            .onAppear { proxy.scrollTo(focused, anchor: .top) }
+            // Only when the cook is being put back where they left off.
+            // On a fresh session the focused step is the first one, and
+            // pinning that to the top scrolls whatever stands before it —
+            // the offer to put the naan on too — off the screen, leaving a
+            // card that has to be scrolled up to be found.
+            .onAppear {
+                guard focused != steps.first?.id else { return }
+                proxy.scrollTo(focused, anchor: .top)
+            }
             .frame(maxWidth: .infinity)
         }
     }

@@ -75,6 +75,44 @@ struct ShoppingListTests {
         #expect(names(capture) == ["Mehl", "Hefe"])
     }
 
+    @Test("A choice that reaches inside a linked recipe is honoured line by line")
+    func pickedLinkCanBeTakenApart() throws {
+        // What the pick sheet needed to be able to say. Ticking "2 Portionen
+        // Naan" used to be all-or-nothing, so a cook who already had flour in
+        // the house had no way to take it off before the list was made — the
+        // sheet showed one line and eight arrived.
+        let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "300 g Mehl\n7 g Hefe")
+        let curry = Recipe(
+            title: "Curry", servings: 2,
+            ingredientsText: "400 ml Kokosmilch\n2 Portionen \(RecipeLink.markdown(title: "Naan", id: naan.id))"
+        )
+        let link = try #require(curry.ingredients.last)
+        let yeast = try #require(naan.ingredients.first { $0.name == "Hefe" })
+
+        let capture = build(curry, 2, picking: [link.id, yeast.id], recipes: [naan])
+        #expect(names(capture) == ["Hefe"])
+        // Still the sub-recipe's errand, so the list can say where it came
+        // from — taking one line out does not reattribute the rest.
+        #expect(capture.demands.first?.demand.originTitle == "Naan")
+    }
+
+    @Test("Saying nothing about a linked recipe's lines still means all of them")
+    func silenceAboutTheSubRecipeMeansAllOfIt() throws {
+        // The compatibility half: the planned week and any caller that only
+        // knows the parent's line ids must keep getting the whole naan.
+        // "None of its lines named" is not "none of its lines wanted".
+        let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "300 g Mehl\n7 g Hefe")
+        let curry = Recipe(
+            title: "Curry", servings: 2,
+            ingredientsText: "400 ml Kokosmilch\n2 Portionen \(RecipeLink.markdown(title: "Naan", id: naan.id))"
+        )
+        let milk = try #require(curry.ingredients.first)
+        let link = try #require(curry.ingredients.last)
+
+        let capture = build(curry, 2, picking: [milk.id, link.id], recipes: [naan])
+        #expect(names(capture) == ["Kokosmilch", "Mehl", "Hefe"])
+    }
+
     @Test("A line left out stays out however far the dial is turned")
     func unpickedLinesDoNotComeBack() {
         let recipe = Recipe(

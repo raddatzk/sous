@@ -36,6 +36,50 @@ struct RecipeAmountReviewStoreTests {
         #expect(read == RecipeContentHash.hash(for: recipe))
     }
 
+    @Test("The questions turned down come back, from either store", arguments: StoreBackend.allCases)
+    func declinedKeysRoundTrip(_ backend: StoreBackend) async throws {
+        // The column that carries "this one, never again". Worth its own
+        // round trip per backend: the app runs on Core Data, where this is a
+        // JSON string on a shared entity, and the library tests that exercise
+        // the feature only ever build a SwiftData stack.
+        let store = try makeStore(backend)
+        let recipe = sampleRecipe()
+        #expect(try await store.declinedKeys(for: recipe.id).isEmpty)
+
+        try await store.markReviewed(recipe, declining: ["a", "b"])
+        #expect(try await store.declinedKeys(for: recipe.id) == ["a", "b"])
+    }
+
+    @Test("Marking again replaces the turned-down set rather than adding to it", arguments: StoreBackend.allCases)
+    func declinedKeysAreReplaced(_ backend: StoreBackend) async throws {
+        // The caller decides what survives — it is the one that knows which
+        // of the old questions the recipe still asks. A store that merged
+        // would keep every sentence the recipe ever had.
+        let store = try makeStore(backend)
+        let recipe = sampleRecipe()
+        try await store.markReviewed(recipe, declining: ["a", "b"])
+        try await store.markReviewed(recipe, declining: ["b"])
+        #expect(try await store.declinedKeys(for: recipe.id) == ["b"])
+    }
+
+    @Test("Settling without turning anything down clears what was turned down", arguments: StoreBackend.allCases)
+    func plainMarkReviewedClearsThem(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        let recipe = sampleRecipe()
+        try await store.markReviewed(recipe, declining: ["a"])
+        try await store.markReviewed(recipe)
+        #expect(try await store.declinedKeys(for: recipe.id).isEmpty)
+    }
+
+    @Test("Deleting takes the turned-down answers with it", arguments: StoreBackend.allCases)
+    func deleteRemovesDeclinedKeys(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        let recipe = sampleRecipe()
+        try await store.markReviewed(recipe, declining: ["a"])
+        try await store.delete(recipeID: recipe.id)
+        #expect(try await store.declinedKeys(for: recipe.id).isEmpty)
+    }
+
     @Test("A changed instruction text no longer matches the reviewed hash", arguments: StoreBackend.allCases)
     func changedTextInvalidatesTheReview(_ backend: StoreBackend) async throws {
         let store = try makeStore(backend)

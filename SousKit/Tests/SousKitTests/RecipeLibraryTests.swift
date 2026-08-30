@@ -439,6 +439,53 @@ struct RecipeLibraryAmountReviewTests {
         #expect(await library.needsAmountReview(edited))
     }
 
+    @Test("An amount turned down stays turned down when the recipe is edited elsewhere")
+    func aDeclinedAmountSurvivesLaterEdits() async throws {
+        // The gap the content hash left. It settles a recipe against its
+        // exact text, which is right for "I have looked at these" and wrong
+        // for "not this one": one further line anywhere and every amount the
+        // cook had already waved off was being offered again.
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        let (_, suggestions) = await library.amountSuggestions(for: recipe)
+        let butter = try #require(suggestions.first)
+
+        await library.markAmountsReviewed(recipe, declining: [butter.declineKey])
+
+        // A second ingredient, and a step that says nothing about the butter:
+        // the recipe has changed, so the *recipe* is unreviewed again — but
+        // the sentence the answer was about has not.
+        var edited = recipe
+        edited.ingredientsText = "150 g Butter\n2 Eier"
+        edited.instructionsText = "Die Butter erhitzen. Die Eier verquirlen."
+        let (_, after) = await library.amountSuggestions(for: edited)
+        #expect(!after.contains { $0.declineKey == butter.declineKey })
+        #expect(after.contains { $0.ingredientName.contains("Eier") })
+    }
+
+    @Test("Rewriting the sentence itself asks again")
+    func rewritingTheStepReopensItsQuestion() async throws {
+        // The other half of the bargain. The key hangs on the sentence, so a
+        // rewritten sentence is a new question — otherwise "no" would outlive
+        // the text that made it make sense.
+        let library = try makeLibrary()
+        let recipe = Recipe(
+            title: "Kartoffelpüree", servings: 2,
+            ingredientsText: "150 g Butter",
+            instructionsText: "Die Butter erhitzen."
+        )
+        let (_, suggestions) = await library.amountSuggestions(for: recipe)
+        await library.markAmountsReviewed(recipe, declining: [try #require(suggestions.first).declineKey])
+
+        var edited = recipe
+        edited.instructionsText = "Die Butter in der Pfanne langsam zerlassen."
+        #expect(await library.needsAmountReview(edited))
+    }
+
     @Test("A cached AI claim needs review too — it never resolves on its own, only through the sheet")
     func cachedAIClaimNeedsReview() async throws {
         let container = try ModelContainer.sousContainer(inMemory: true)

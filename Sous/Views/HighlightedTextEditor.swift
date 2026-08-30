@@ -1,3 +1,4 @@
+import SousKit
 import SwiftUI
 
 #if os(iOS)
@@ -143,13 +144,25 @@ private struct RepresentableTextView: UIViewRepresentable {
 }
 
 extension TextViewCoordinator: UITextViewDelegate {
+    func textView(
+        _ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String
+    ) -> Bool {
+        shouldChange(textView, in: range, replacement: text)
+    }
+
     func textViewDidChange(_ textView: UITextView) {
-        restyleAndApply(textView.text ?? "", to: textView, preservingSelectionFrom: textView.selectedRange)
+        // Read back through the chips: what the view holds is the display
+        // text, and the recipe keeps the markdown behind it.
+        restyleAndApply(
+            RecipeLinkChips.stored(textView.attributedText ?? NSAttributedString()),
+            to: textView, preservingSelectionFrom: textView.selectedRange
+        )
     }
 
     func textViewDidChangeSelection(_ textView: UITextView) {
         guard !isProgrammaticChange else { return }
         cursorOffset.wrappedValue = characterOffset(for: textView.selectedRange, in: textView.text ?? "")
+            .map { RecipeLinkChipping.storedOffset(forDisplay: $0, in: lastKnownText) }
     }
 
     func textViewDidBeginEditing(_ textView: UITextView) { isFocused?.wrappedValue = true }
@@ -207,14 +220,24 @@ private struct RepresentableTextView: NSViewRepresentable {
 }
 
 extension TextViewCoordinator: NSTextViewDelegate {
+    func textView(
+        _ textView: NSTextView, shouldChangeTextIn range: NSRange, replacementString: String?
+    ) -> Bool {
+        shouldChange(textView, in: range, replacement: replacementString ?? "")
+    }
+
     func textDidChange(_ notification: Notification) {
         guard let textView = notification.object as? NSTextView else { return }
-        restyleAndApply(textView.string, to: textView, preservingSelectionFrom: textView.selectedRange())
+        restyleAndApply(
+            RecipeLinkChips.stored(textView.textStorage ?? NSAttributedString()),
+            to: textView, preservingSelectionFrom: textView.selectedRange()
+        )
     }
 
     func textViewDidChangeSelection(_ notification: Notification) {
         guard !isProgrammaticChange, let textView = notification.object as? NSTextView else { return }
         cursorOffset.wrappedValue = characterOffset(for: textView.selectedRange(), in: textView.string)
+            .map { RecipeLinkChipping.storedOffset(forDisplay: $0, in: lastKnownText) }
     }
 
     func textDidBeginEditing(_ notification: Notification) { isFocused?.wrappedValue = true }
@@ -239,7 +262,7 @@ final class TextViewCoordinator: NSObject {
     /// external `text` binding to tell "the user is typing" apart from "a
     /// sibling view (link insertion, autocomplete) changed `text` for us",
     /// which needs a full reload instead.
-    private var lastKnownText = ""
+    fileprivate private(set) var lastKnownText = ""
     /// Set while this coordinator is itself assigning the selected range,
     /// so the resulting selection-changed callback doesn't re-report a
     /// cursor position nobody actually moved to.
@@ -259,15 +282,30 @@ final class TextViewCoordinator: NSObject {
 
     func apply(text: String, cursorOffset: Int?, to textView: TextView, restyle: @escaping (NSMutableAttributedString) -> Void) {
         currentRestyle = restyle
-        let attributed = NSMutableAttributedString(string: text)
-        restyle(attributed)
+        let attributed = Self.rendered(text, restyle: restyle)
         isProgrammaticChange = true
         setAttributedText(attributed, on: textView)
-        if let cursorOffset, let range = nsRange(forCharacterOffset: cursorOffset, in: text) {
+        if let cursorOffset,
+           let range = nsRange(
+               forCharacterOffset: RecipeLinkChipping.displayOffset(forStored: cursorOffset, in: text),
+               in: attributed.string
+           ) {
             setSelection(range, on: textView)
         }
         isProgrammaticChange = false
         lastKnownText = text
+    }
+
+    /// The stored text as the text view should show it: recipe links
+    /// collapsed to their titles, the caller's own styling over that, and
+    /// the chips painted last so the base pass cannot wash them out.
+    private static func rendered(
+        _ text: String, restyle: (NSMutableAttributedString) -> Void
+    ) -> NSMutableAttributedString {
+        let attributed = RecipeLinkChips.display(text)
+        restyle(attributed)
+        RecipeLinkChips.decorate(attributed)
+        return attributed
     }
 
     func syncIfNeeded(text: String, cursorOffset: Int?, to textView: TextView, restyle: @escaping (NSMutableAttributedString) -> Void) {
@@ -279,11 +317,10 @@ final class TextViewCoordinator: NSObject {
     /// Restyles after the user's own edit, keeping the cursor where they
     /// left it — `setAttributedText`/`setAttributedString` otherwise resets
     /// the selection to the very start.
-    fileprivate func restyleAndApply(_ plain: String, to textView: TextView, preservingSelectionFrom selection: NSRange) {
-        lastKnownText = plain
-        text.wrappedValue = plain
-        let attributed = NSMutableAttributedString(string: plain)
-        currentRestyle(attributed)
+    fileprivate func restyleAndApply(_ stored: String, to textView: TextView, preservingSelectionFrom selection: NSRange) {
+        lastKnownText = stored
+        text.wrappedValue = stored
+        let attributed = Self.rendered(stored, restyle: currentRestyle)
         isProgrammaticChange = true
         setAttributedText(attributed, on: textView)
         let clampedLocation = min(selection.location, attributed.length)
@@ -292,17 +329,68 @@ final class TextViewCoordinator: NSObject {
         )
         setSelection(clamped, on: textView)
         isProgrammaticChange = false
-        cursorOffset.wrappedValue = characterOffset(for: clamped, in: plain)
+        // Quoted outwards in stored-text terms: whoever reads this — the
+        // autocomplete bar, "Rezept verlinken" — works on the text the recipe
+        // keeps, not on the one being drawn.
+        cursorOffset.wrappedValue = characterOffset(for: clamped, in: attributed.string)
+            .map { RecipeLinkChipping.storedOffset(forDisplay: $0, in: stored) }
+    }
+
+    /// Lets an ordinary edit through, and takes a chip apart in one go.
+    ///
+    /// A chip is one thing on the screen and has to be one thing under the
+    /// finger too: a backspace at its right edge, or a selection that clips
+    /// its first letter, removes the whole link — including the URL nobody
+    /// can see — rather than leaving the wreckage of a markdown link behind.
+    fileprivate func shouldChange(
+        _ textView: TextView, in range: NSRange, replacement: String
+    ) -> Bool {
+        guard let attributed = attributedText(of: textView) else { return true }
+        // Typing beside a chip must not be swallowed into it.
+        clearChipTypingAttributes(on: textView)
+
+        // A backspace is a caret, not a range: widen it onto the character
+        // it is about to eat, so a chip immediately behind is seen.
+        var touched = range
+        if range.length == 0, replacement.isEmpty, range.location > 0 {
+            touched = NSRange(location: range.location - 1, length: 1)
+        }
+        // Against `touched`, not against `range`: a plain backspace always
+        // widens onto the character behind it, and comparing with the
+        // original caret would count that as a chip every time.
+        let expanded = RecipeLinkChips.expandingChips(touched, in: attributed)
+        guard expanded != touched else { return true }
+
+        let updated = NSMutableAttributedString(attributedString: attributed)
+        // As a bare attributed string, not as a `String`: replacing
+        // characters with plain text lets them inherit the attributes at that
+        // spot, and the attribute at that spot is the chip's own — the typed
+        // letters would have become part of the link they just replaced.
+        updated.replaceCharacters(in: expanded, with: NSAttributedString(string: replacement))
+        let stored = RecipeLinkChips.stored(updated)
+        restyleAndApply(
+            stored, to: textView,
+            preservingSelectionFrom: NSRange(location: expanded.location + (replacement as NSString).length, length: 0)
+        )
+        return false
     }
 
     #if os(iOS)
     private func setAttributedText(_ attributed: NSAttributedString, on textView: TextView) { textView.attributedText = attributed }
     private func setSelection(_ range: NSRange, on textView: TextView) { textView.selectedRange = range }
+    fileprivate func attributedText(of textView: TextView) -> NSAttributedString? { textView.attributedText }
+    private func clearChipTypingAttributes(on textView: TextView) {
+        textView.typingAttributes.removeValue(forKey: .sousRecipeLink)
+    }
     #else
     private func setAttributedText(_ attributed: NSAttributedString, on textView: TextView) {
         textView.textStorage?.setAttributedString(attributed)
     }
     private func setSelection(_ range: NSRange, on textView: TextView) { textView.setSelectedRange(range) }
+    fileprivate func attributedText(of textView: TextView) -> NSAttributedString? { textView.textStorage }
+    private func clearChipTypingAttributes(on textView: TextView) {
+        textView.typingAttributes.removeValue(forKey: .sousRecipeLink)
+    }
     #endif
 }
 

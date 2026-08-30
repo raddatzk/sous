@@ -50,6 +50,50 @@ struct ShoppingLibraryTests {
         #expect(shopping.planEntries.map(\.title) == ["Salat"])
     }
 
+    @Test("A recipe stops counting as on the list once it is all bought", arguments: StoreBackend.allCases)
+    func boughtOutMeansOffTheList(_ backend: StoreBackend) async throws {
+        // What the recipe page's cart button reads. The plan entry behind a
+        // recipe is never deleted by shopping it — only by taking it off the
+        // list by hand — so a button that asked "is there an entry" said
+        // "already on the list" for ever after, including for a recipe the
+        // list itself had stopped showing.
+        let (shopping, _, _) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n1 Zwiebel")
+        await shopping.add(recipe)
+        #expect(shopping.hasOpenDemand(forRecipe: recipe.id))
+
+        // Half shopped is still shopping.
+        await shopping.toggle(try #require(shopping.items.first))
+        #expect(shopping.hasOpenDemand(forRecipe: recipe.id))
+
+        for item in shopping.items where !item.isChecked {
+            await shopping.toggle(item)
+        }
+        #expect(!shopping.hasOpenDemand(forRecipe: recipe.id))
+        // The entry is still there, which is what lets a second add mark its
+        // demands as arriving late — it just no longer means "outstanding".
+        #expect(shopping.planEntries.contains { $0.recipeID == recipe.id })
+    }
+
+    @Test("Clearing the bought rows does not leave the recipe claiming a place", arguments: StoreBackend.allCases)
+    func clearedRowsLeaveNothingBehind(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
+        await shopping.add(recipe)
+        await shopping.toggle(try #require(shopping.items.first))
+        await shopping.clearChecked()
+
+        // The list shows nothing for it any more, so nothing may say it does.
+        #expect(!shopping.byRecipe.contains { $0.planEntry?.recipeID == recipe.id })
+        #expect(!shopping.hasOpenDemand(forRecipe: recipe.id))
+    }
+
+    @Test("A recipe never added has nothing outstanding", arguments: StoreBackend.allCases)
+    func anUnaddedRecipeIsNotOnTheList(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        #expect(!shopping.hasOpenDemand(forRecipe: UUID()))
+    }
+
     @Test("A stated state survives the store and annotates the line", arguments: StoreBackend.allCases)
     func statesRoundTripThroughTheStore(_ backend: StoreBackend) async throws {
         // `ShoppingDemand.state` has had a column since the document model

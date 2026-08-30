@@ -8,14 +8,20 @@ public actor SwiftDataRecipeAmountReviewStore: RecipeAmountReviewStore {
         try stored(recipeID: recipeID)?.reviewedContentHash
     }
 
-    public func markReviewed(_ recipe: Recipe) async throws {
+    public func markReviewed(_ recipe: Recipe, declining: Set<String>) async throws {
         let hash = RecipeContentHash.hash(for: recipe)
         if let existing = try stored(recipeID: recipe.id) {
-            existing.apply(reviewedContentHash: hash)
+            existing.apply(reviewedContentHash: hash, declinedKeys: declining)
         } else {
-            modelContext.insert(StoredAmountReview(recipeID: recipe.id, reviewedContentHash: hash))
+            modelContext.insert(StoredAmountReview(
+                recipeID: recipe.id, reviewedContentHash: hash, declinedKeys: declining
+            ))
         }
         try modelContext.save()
+    }
+
+    public func declinedKeys(for recipeID: UUID) async throws -> Set<String> {
+        try stored(recipeID: recipeID)?.declinedKeys ?? []
     }
 
     public func delete(recipeID: UUID) async throws {

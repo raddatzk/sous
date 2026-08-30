@@ -195,6 +195,7 @@ targets:
       - path: Sous/Views/IngredientCatalogView.swift
       - path: Sous/Views/IngredientLineView.swift
       - path: Sous/Views/HighlightedTextEditor.swift
+      - path: Sous/Views/RecipeLinkChips.swift
       - path: Sous/Views/RecipeTextEditorStyles.swift
       - path: Sous/Views/UnknownIngredientButton.swift
       - path: Sous/Views/IngredientAliasPickerView.swift

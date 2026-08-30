@@ -31,6 +31,12 @@ struct RecipeEditorView: View {
     /// state so a keystroke re-renders without re-resolving inline.
     @State private var amountSuggestionCount = 0
     @State private var isReviewingAmounts = false
+    /// The amount questions turned down for good — what was already on
+    /// record when the editor opened, plus whatever this session's review
+    /// added. Held here rather than written on the spot because the draft is
+    /// not the saved recipe yet: writing a decision about text that may still
+    /// be abandoned would settle a question the cook never asked.
+    @State private var declinedAmountKeys: Set<String> = []
     /// Which of the plain fields is being typed in, so that "Fertig" above
     /// the keyboard has something to let go of. The two big editors are not
     /// in here: they are a `UITextView` and mirror their focus separately,
@@ -105,8 +111,14 @@ struct RecipeEditorView: View {
                 // Resolved fresh at presentation and captured, so the apply
                 // works against the exact text the sheet was showing.
                 let resolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                    .excluding(declined: declinedAmountKeys)
                 AmountReviewSheet(recipe: draft, resolution: resolution) { outcome in
                     guard let outcome else { return }
+                    // Both halves of the answer, where this used to keep only
+                    // the first: unticking a line here meant nothing at all,
+                    // so the banner on the recipe was back the moment the
+                    // editor closed.
+                    declinedAmountKeys.formUnion(outcome.declined)
                     draft = resolution.applying(outcome.accepted, corrections: outcome.corrections, to: draft)
                 }
             }
@@ -114,9 +126,13 @@ struct RecipeEditorView: View {
             // the editor's version of the detail view's review banner.
             .task(id: "\(draft.ingredientsText)|\(draft.instructionsText)|\(draft.servings)") {
                 amountSuggestionCount = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                    .excluding(declined: declinedAmountKeys)
                     .allSuggestions.count
             }
             .task { await catalog.reload() }
+            // What the recipe has already been answered "no" about, so the
+            // editor's own count and review sheet agree with the recipe's.
+            .task { declinedAmountKeys = await library.declinedAmountKeys(for: draft.id) }
         }
         // A recipe is written, not glanced at.
         .sousSheetSizing(.page)
@@ -786,8 +802,16 @@ struct RecipeEditorView: View {
         isSaving = true
         var recipe = draft
         recipe.title = recipe.title.trimmingCharacters(in: .whitespaces)
+        let declined = declinedAmountKeys
         Task {
             await onSave(recipe)
+            // After the save, and only if the cook actually answered
+            // something: the review sheet reached from here used to drop its
+            // answers on the floor, so a recipe reviewed while editing asked
+            // the whole list again on the way back out.
+            if !declined.isEmpty {
+                await library.markAmountsReviewed(recipe, declining: declined)
+            }
             dismiss()
         }
     }

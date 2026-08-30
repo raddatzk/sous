@@ -19,15 +19,41 @@ public final class StoredAmountReview {
     /// ingredients or instructions changed since, and the question is open
     /// again.
     public var reviewedContentHash: String = ""
+    /// The questions turned down for good, as `AmountSuggestion.declineKey`s
+    /// in a JSON array.
+    ///
+    /// The hash alone could never carry this. It settles the whole recipe
+    /// until any of its text changes, which is right for "I have looked at
+    /// these" and wrong for "this one, never": one comma elsewhere and every
+    /// declined amount was being asked about again. These keys hang on the
+    /// sentence the question is about, so the rest of the recipe can be
+    /// rewritten around them.
+    ///
+    /// Defaulted rather than optional, which is what SwiftData's lightweight
+    /// migration needs of anything added to a model already in use.
+    public var declinedKeysJSON: String = "[]"
     public var updatedAt: Date = Date.nowInSyncPrecision
 
-    public init(recipeID: UUID, reviewedContentHash: String) {
+    public init(recipeID: UUID, reviewedContentHash: String, declinedKeys: Set<String> = []) {
         self.recipeID = recipeID
         self.reviewedContentHash = reviewedContentHash
+        self.declinedKeysJSON = Self.encode(declinedKeys)
     }
 
-    public func apply(reviewedContentHash: String) {
+    public func apply(reviewedContentHash: String, declinedKeys: Set<String>) {
         self.reviewedContentHash = reviewedContentHash
+        self.declinedKeysJSON = Self.encode(declinedKeys)
         self.updatedAt = .nowInSyncPrecision
+    }
+
+    public var declinedKeys: Set<String> {
+        (try? JSONDecoder().decode(Set<String>.self, from: Data(declinedKeysJSON.utf8))) ?? []
+    }
+
+    /// Sorted before encoding: the set has no order of its own, and two
+    /// devices writing the same answers should write the same bytes.
+    static func encode(_ keys: Set<String>) -> String {
+        guard let data = try? JSONEncoder().encode(keys.sorted()) else { return "[]" }
+        return String(decoding: data, as: UTF8.self)
     }
 }

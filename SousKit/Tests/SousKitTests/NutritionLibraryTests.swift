@@ -224,6 +224,27 @@ struct NutritionLibraryTests {
         #expect(after.coverage.isComplete)
     }
 
+    @Test("Naming the row a cook's own numbers stand in for keeps the numbers")
+    func linkingARowAfterTypingValuesKeepsThem() async throws {
+        // The two directions used to disagree. Typing values *after* picking
+        // a row carried the code across; picking a row *after* typing values
+        // built a fresh assignment with no values and replaced the whole
+        // slot, so the numbers went silently. Whichever way round the cook
+        // does it, they end up with both.
+        let (nutrition, _) = try makeLibrary()
+        let recipe = Recipe(title: "Toast", servings: 1, ingredientsText: "100 g Schmelzkäse")
+        await nutrition.saveIngredientNutrition(ownEntry("Schmelzkäse", kcal: 111))
+        let row = try #require(nutrition.candidates(forName: "Schmelzkäse").first)
+
+        await nutrition.confirmBasis(code: row.code, forName: "Schmelzkäse")
+
+        let after = try #require(await nutrition.nutrition(for: recipe))
+        // The cook's number, not the row's — the row is the note beside it.
+        #expect(after.perPortion.kcal == 111)
+        #expect(after.coverage.contributions.first?.basisCode == row.code)
+        #expect(nutrition.ownNutrition(forCanonicalName: "Schmelzkäse") != nil)
+    }
+
     @Test("Deliberately without stops the asking for good")
     func deliberatelyWithoutIsRemembered() async throws {
         let (nutrition, _) = try makeLibrary()

@@ -284,6 +284,31 @@ public final class ShoppingLibrary {
         }
     }
 
+    /// Whether `recipeID` still has anything unbought on the list.
+    ///
+    /// Not simply "is there a plan entry for it". The entry outlives the
+    /// shopping on purpose — it is what lets the same recipe added a second
+    /// time have its new demands marked as arriving late — and it is never
+    /// deleted except by taking the recipe off the list by hand. Read off the
+    /// entry alone, "already on the list" stayed true for a recipe whose last
+    /// line had been ticked off weeks ago, and stayed true after "Abgehaktes
+    /// entfernen" for one the list no longer showed anywhere at all.
+    ///
+    /// Ticked-off counts as done rather than as present: everything bought is
+    /// the errand finished, and the button that offers the list should go
+    /// back to offering it.
+    public func hasOpenDemand(forRecipe recipeID: UUID) -> Bool {
+        let entries = Set(planEntries.filter { $0.recipeID == recipeID }.map(\.id))
+        guard !entries.isEmpty else { return false }
+        // `items` already leaves out what "Abgehaktes entfernen" cleared, so
+        // the only question left is whether any of what remains is open.
+        return items.contains { item in
+            !item.isChecked && item.demands.contains { demand in
+                demand.planEntryID.map(entries.contains) ?? false
+            }
+        }
+    }
+
     public func clearChecked() async {
         do {
             try await store.clearChecked()

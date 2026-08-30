@@ -10,6 +10,11 @@ import Foundation
 final class CDReviewMark: CDHouseholdMember {
     @NSManaged var recipeID: UUID?
     @NSManaged var reviewedContentHash: String
+    /// `AmountSuggestion.declineKey`s as a JSON array — see
+    /// ``StoredAmountReview/declinedKeysJSON``. Optional, so an existing
+    /// store gains the column by lightweight migration and every row already
+    /// in iCloud reads as "nothing turned down".
+    @NSManaged var declinedKeysJSON: String?
     @NSManaged var updatedAt: Date?
 }
 
@@ -31,7 +36,7 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
         try await context.perform { try self.stored(recipeID: recipeID)?.reviewedContentHash }
     }
 
-    func markReviewed(_ recipe: Recipe) async throws {
+    func markReviewed(_ recipe: Recipe, declining: Set<String> = []) async throws {
         let hash = RecipeContentHash.hash(for: recipe)
         try await context.perform {
             guard let row = try self.stored(recipeID: recipe.id)
@@ -39,8 +44,16 @@ final class CoreDataReviewMarkStore: @unchecked Sendable {
             else { return }
             row.recipeID = recipe.id
             row.reviewedContentHash = hash
+            row.declinedKeysJSON = StoredAmountReview.encode(declining)
             row.updatedAt = .nowInSyncPrecision
             try self.context.save()
+        }
+    }
+
+    func declinedKeys(for recipeID: UUID) async throws -> Set<String> {
+        try await context.perform {
+            guard let json = try self.stored(recipeID: recipeID)?.declinedKeysJSON else { return [] }
+            return (try? JSONDecoder().decode(Set<String>.self, from: Data(json.utf8))) ?? []
         }
     }
 
@@ -90,8 +103,12 @@ public final class CoreDataRecipeAmountReviewStore: RecipeAmountReviewStore, @un
         try await marks.reviewedHash(for: recipeID)
     }
 
-    public func markReviewed(_ recipe: Recipe) async throws {
-        try await marks.markReviewed(recipe)
+    public func markReviewed(_ recipe: Recipe, declining: Set<String>) async throws {
+        try await marks.markReviewed(recipe, declining: declining)
+    }
+
+    public func declinedKeys(for recipeID: UUID) async throws -> Set<String> {
+        try await marks.declinedKeys(for: recipeID)
     }
 
     public func delete(recipeID: UUID) async throws {
