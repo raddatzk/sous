@@ -102,6 +102,23 @@ struct BundledDataTests {
         #expect(entry.densityGramsPerMl == density)
     }
 
+    @Test("Leinöl reaches its own BLS row, under both of its names")
+    func linseedOilIsInTheKitchensList() throws {
+        // A word the kitchen uses and the table has: the mapping is the only
+        // thing between the two, and without it the app answers "nicht im
+        // Katalog" for a bottle the BLS has analysed.
+        let oil = try #require(synonyms.entry(for: "Leinsamenöl"))
+        #expect(oil.word == "Leinöl")
+        #expect(oil.category == .oils)
+        let target = try #require(oil.target(for: .unspecified))
+        let row = try #require(bls.entry(for: target.code))
+        #expect(row.name == "Leinöl")
+        // No density of its own — group Q answers a spoonful of it, which is
+        // the point of the per-group row.
+        let entry = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Leinöl"))
+        #expect(entry.densityGramsPerMl == measures.density(forGroup: "Q"))
+    }
+
     @Test("The piece weights and generic measures survived the move into data")
     func measuresSurvived() throws {
         // These were a Swift constant and a column of nutrition.json before.
