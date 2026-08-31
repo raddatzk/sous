@@ -8,6 +8,10 @@ struct RecipeDetailView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(NutritionLibrary.self) private var nutritionLibrary
     @Environment(RecipeSelection.self) private var selection
+    /// The way to the shopping list — where there is one. Optional because
+    /// this page is also shown as a sheet out of the Mac's cook window,
+    /// which is a window of its own and carries no section to switch.
+    @Environment(SousNavigation.self) private var navigation: SousNavigation?
     /// Restoring from the trash leaves this page behind — the recipe is
     /// back in the collection, and the reader came from the trash list.
     /// A no-op where the view is not presented, like the Mac's detail column.
@@ -46,6 +50,9 @@ struct RecipeDetailView: View {
     /// bar, which is when the bar takes the name over.
     @State private var showsToolbarTitle = false
     @State private var isPickingForShoppingList = false
+    /// Whether the fork a recipe already on the list is asked about is up:
+    /// set the portions there, or bring along what was left out here.
+    @State private var isAskingAboutSecondAdd = false
     /// How much work this is: the cook's word, or what the structure says.
     ///
     /// `nil` where the recipe has too little structure to judge, and then
@@ -221,9 +228,38 @@ struct RecipeDetailView: View {
         .task { await shopping.loadIfNeeded() }
         .task(id: recipe.id) { await recomputeEffort() }
         .sheet(isPresented: $isPickingForShoppingList) {
-            ShoppingPickSheet(recipe: recipe, servings: servings) { lines in
+            // Topping up shows the amounts the list is showing for the dish
+            // — its dial, not this page's. The two are different questions,
+            // and the sheet is answering the list's.
+            ShoppingPickSheet(
+                recipe: recipe,
+                servings: listedEntry?.servingsCurrent ?? servings,
+                joining: listedEntry
+            ) { lines in
                 addToShoppingList(lines: lines)
             }
+        }
+        // What a second tap on the trolley means, asked rather than guessed.
+        // Both readings are real: a cook who wants more of the dish wants the
+        // portion dial, and a cook who unticked the paprika last time wants
+        // it now. Silently adding the recipe again answers neither — it put
+        // the dish on the list twice, with two dials splitting one meal.
+        .confirmationDialog(
+            "Schon auf der Einkaufsliste",
+            isPresented: $isAskingAboutSecondAdd,
+            titleVisibility: .visible
+        ) {
+            Button("Portionen einstellen") { navigation?.showShoppingList(for: recipe.id) }
+            Button("Zutaten ergänzen") { isPickingForShoppingList = true }
+            Button("Abbrechen", role: .cancel) {}
+        } message: {
+            Text(
+                """
+                „\(recipe.title)“ steht schon auf der Liste. Wie viel davon \
+                gebraucht wird, stellst du dort ein — oder du ergänzt hier, \
+                was beim Hinzufügen abgewählt war.
+                """
+            )
         }
         .sheet(isPresented: $isReviewingAmounts) {
             if let amountReviewResolution {
@@ -753,7 +789,15 @@ struct RecipeDetailView: View {
 
     private var shoppingButton: some View {
         Button {
-            isPickingForShoppingList = true
+            // A dish the list is already carrying is not a second errand.
+            // Asking is the whole of the fix: the two things this tap can
+            // mean live in two different places, and only the cook knows
+            // which one they came for.
+            if isOnShoppingList, navigation != nil {
+                isAskingAboutSecondAdd = true
+            } else {
+                isPickingForShoppingList = true
+            }
         } label: {
             Label(
                 isOnShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste",
@@ -772,18 +816,25 @@ struct RecipeDetailView: View {
         .help(isOnShoppingList ? "Auf der Einkaufsliste" : "Auf die Einkaufsliste")
     }
 
-    /// Whether this recipe is on the shopping list right now.
+    /// The entry this recipe is being carried by on the list, if it still
+    /// has anything outstanding there.
     ///
     /// Read off the list rather than remembered from the tap that put it
     /// there. The remembered version was wrong in both directions: it
     /// survived taking the recipe back off the list, and it was absent on a
-    /// recipe that had been on the list since yesterday. It also disabled the
-    /// button, which the store does not want — a recipe added again has its
-    /// new demands marked as arriving late, so the list can say what turned
-    /// up after the cook had already been shopping.
-    private var isOnShoppingList: Bool {
-        shopping.planEntries.contains { $0.recipeID == recipe.id }
+    /// recipe that had been on the list since yesterday.
+    ///
+    /// And read off what is *open*, not off the plan entry: the entry
+    /// outlives the shopping on purpose, so "already on the list" used to
+    /// stay true for a dish whose last line had been ticked off weeks ago.
+    /// Everything bought is the errand finished, and then the trolley goes
+    /// back to offering the list rather than asking about it.
+    private var listedEntry: ShoppingPlanEntry? {
+        shopping.openPlanEntry(forRecipe: recipe.id)
     }
+
+    /// Whether this recipe is on the shopping list right now.
+    private var isOnShoppingList: Bool { listedEntry != nil }
 
     /// The count "Kochen" and "Auf die Einkaufsliste" both use, set right
     /// beside them rather than in a card of its own above — a cook reads it
@@ -1322,8 +1373,18 @@ struct RecipeDetailView: View {
 
     /// Puts the picked ingredients on the list at the serving count on
     /// screen, so what is bought matches what was just read.
+    ///
+    /// Unless the dish is already there, in which case the lines join it:
+    /// one heading and one portion dial per meal, however often the cook
+    /// comes back to the recipe for the thing they left out.
     private func addToShoppingList(lines: Set<UUID>) {
-        Task { await shopping.add(recipe, servings: servings, lines: lines) }
+        Task {
+            if let entry = listedEntry {
+                await shopping.add(recipe, lines: lines, joining: entry)
+            } else {
+                await shopping.add(recipe, servings: servings, lines: lines)
+            }
+        }
     }
 
     /// Renders inline markdown, falling back to the raw text if it does not

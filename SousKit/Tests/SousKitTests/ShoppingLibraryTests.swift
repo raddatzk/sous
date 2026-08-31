@@ -256,6 +256,83 @@ extension ShoppingLibraryTests {
     }
 }
 
+// MARK: - Coming back to a dish already on the list
+
+extension ShoppingLibraryTests {
+    @Test("What was left out at first joins the dish already on the list", arguments: StoreBackend.allCases)
+    func toppingUpKeepsOneEntry(_ backend: StoreBackend) async throws {
+        // The way back from unticking something in the picker. Adding the
+        // recipe again would work — and would leave the meal split across two
+        // headings with two portion dials, which is the thing the cook was
+        // not asking for.
+        let (shopping, _, _) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n1 Zwiebel")
+        let tomatoes = try #require(recipe.ingredients.first)
+        let onion = try #require(recipe.ingredients.last)
+
+        await shopping.add(recipe, servings: 2, lines: [tomatoes.id])
+        #expect(shopping.items.map(\.name) == ["Tomate"])
+
+        let entry = try #require(shopping.openPlanEntry(forRecipe: recipe.id))
+        #expect(shopping.listedLines(of: entry) == [tomatoes.id])
+
+        await shopping.add(recipe, lines: [onion.id], joining: entry)
+
+        #expect(shopping.items.map(\.name) == ["Tomate", "Zwiebel"])
+        // One dish, one heading, one dial.
+        #expect(shopping.planEntries.count == 1)
+        #expect(shopping.byRecipe.count { $0.planEntry?.recipeID == recipe.id } == 1)
+        #expect(shopping.listedLines(of: entry) == [tomatoes.id, onion.id])
+    }
+
+    @Test("A line brought along late follows the dial the dish stands on", arguments: StoreBackend.allCases)
+    func toppingUpFollowsTheDial(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n100 g Gurke")
+        let tomatoes = try #require(recipe.ingredients.first)
+        let cucumber = try #require(recipe.ingredients.last)
+
+        await shopping.add(recipe, servings: 2, lines: [tomatoes.id])
+        await shopping.setServings(6, for: try #require(shopping.planEntries.first))
+        #expect(shopping.items[0].quantities == [Quantity(900, .gram)])
+
+        await shopping.add(
+            recipe, lines: [cucumber.id],
+            joining: try #require(shopping.openPlanEntry(forRecipe: recipe.id))
+        )
+
+        // Captured at the entry's own count and shown at its dial: 100 g for
+        // two, so 300 g for the six the dish already stands at.
+        let listed = try #require(shopping.items.first { $0.name == "Gurke" })
+        #expect(listed.quantities == [Quantity(300, .gram)])
+
+        // And it keeps following it, like everything else under that heading.
+        await shopping.setServings(2, for: try #require(shopping.planEntries.first))
+        #expect(shopping.items.map(\.quantities)
+            == [[Quantity(300, .gram)], [Quantity(100, .gram)]])
+    }
+
+    @Test("A dish that is all bought is put on afresh, not topped up", arguments: StoreBackend.allCases)
+    func nothingOpenLeavesNothingToJoin(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
+        await shopping.add(recipe)
+        await shopping.toggle(try #require(shopping.items.first))
+
+        // The entry is still there — it is what marks a re-add as late — but
+        // there is nothing outstanding to join, so the trolley is offering
+        // the dish again rather than asking about the one on the list.
+        #expect(shopping.planEntries.contains { $0.recipeID == recipe.id })
+        #expect(shopping.openPlanEntry(forRecipe: recipe.id) == nil)
+    }
+
+    @Test("A recipe never added has no entry to join", arguments: StoreBackend.allCases)
+    func anUnaddedRecipeHasNoEntry(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        #expect(shopping.openPlanEntry(forRecipe: UUID()) == nil)
+    }
+}
+
 // MARK: - Re-scaling on the list
 
 extension ShoppingLibraryTests {
