@@ -18,6 +18,13 @@ struct ShoppingPickSheet: View {
     /// The count the recipe is being read at, which is the scale the amounts
     /// are shown and captured at.
     let servings: Int
+    /// The entry this recipe already has on the list, where it has one.
+    ///
+    /// Then the sheet is not putting a dish on the list but topping one up:
+    /// what is already there is named as such and starts unticked, so that
+    /// "Alles auswählen" is not the only honest answer to a screen that
+    /// looks exactly like the first time round.
+    var joining: ShoppingPlanEntry?
     /// The picked line ids, or nothing if the sheet was dismissed.
     let onAdd: (Set<UUID>) -> Void
 
@@ -44,6 +51,13 @@ struct ShoppingPickSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let joining {
+                    Section {
+                        Text(intro(joining))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 ForEach(groups, id: \.group) { group in
                     Section {
                         ForEach(group.ingredients) { ingredient in
@@ -60,7 +74,7 @@ struct ShoppingPickSheet: View {
                     }
                 }
             }
-            .navigationTitle("Auf die Einkaufsliste")
+            .navigationTitle(joining == nil ? "Auf die Einkaufsliste" : "Zutaten ergänzen")
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -69,13 +83,15 @@ struct ShoppingPickSheet: View {
                     Button("Abbrechen") { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Hinzufügen") {
+                    Button(joining == nil ? "Hinzufügen" : "Ergänzen") {
                         onAdd(picked)
                         dismiss()
                     }
                     // Nothing picked is not a shorter list, it is no errand
                     // at all — and it would still put the recipe's heading
                     // and its dial on the list with nothing underneath.
+                    // Topping up, it is the sheet saying it has nothing to
+                    // bring: everything is already there.
                     .disabled(picked.isEmpty)
                 }
                 // The Mac has no bottom bar to hang it under; there it
@@ -122,8 +138,8 @@ struct ShoppingPickSheet: View {
                         .foregroundStyle(.primary)
                     // Why it starts unpicked, said once per line rather than
                     // as a legend the reader has to hold in mind.
-                    if isPantry(ingredient) {
-                        Text("Vorrat")
+                    if let note = note(for: ingredient) {
+                        Text(note)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -307,6 +323,53 @@ struct ShoppingPickSheet: View {
         }
     }
 
+    /// Why a line arrived unticked, in the fewest words that are true of it.
+    ///
+    /// One note, not two: a staple that is also already on the list is on the
+    /// list, and that is the fact that decides what this screen is for.
+    private func note(for ingredient: RecipeIngredient) -> String? {
+        if listed.contains(ingredient.id) { return "Schon auf der Liste" }
+        return isPantry(ingredient) ? "Vorrat" : nil
+    }
+
+    /// What the sheet says it is doing, before the first line of it.
+    private func intro(_ entry: ShoppingPlanEntry) -> String {
+        let portions = entry.servingsCurrent == 1 ? "1 Portion" : "\(entry.servingsCurrent) Portionen"
+        // The screen that can add nothing says so, rather than leaving the
+        // cook to work it out from a page of ticked-off notes and a button
+        // that will not press.
+        guard !missing.isEmpty else {
+            return """
+                Von „\(entry.title)“ steht schon alles auf der Liste, mit \
+                \(portions). Die Portionen stellst du dort ein.
+                """
+        }
+        return """
+            „\(entry.title)“ steht schon auf der Liste, mit \(portions). Was du \
+            hier auswählst, kommt dort dazu — die Portionen stellst du weiter \
+            auf der Liste ein.
+            """
+    }
+
+    /// What is left to add: everything the list does not already carry.
+    ///
+    /// Link headings are not counted — a heading is never a demand of its
+    /// own, it stands for the lines underneath it, and those are counted.
+    private var missing: [RecipeIngredient] {
+        ingredients
+            .flatMap { ingredient -> [RecipeIngredient] in
+                guard let sub = linkedRecipe(for: ingredient) else { return [ingredient] }
+                return subLines(of: ingredient, sub)
+            }
+            .filter { !listed.contains($0.id) }
+    }
+
+    /// The lines the list already carries for this dish, so that topping up
+    /// offers what is missing rather than everything again.
+    private var listed: Set<UUID> {
+        joining.map { shopping.listedLines(of: $0) } ?? []
+    }
+
     /// A staple the cook has said is always in the house.
     private func isPantry(_ ingredient: RecipeIngredient) -> Bool {
         shopping.isPantry(ShoppingItem(
@@ -326,7 +389,13 @@ struct ShoppingPickSheet: View {
         hasSeeded = true
         // The cupboard is read line by line, which now reaches the naan's
         // flour as well — a staple inside a linked recipe is the same staple.
-        picked = Set(pickableLines.filter { !isPantry($0) }.map(\.id))
+        // What the list already carries is left out for the same reason the
+        // cupboard is: it is not an errand.
+        picked = Set(
+            pickableLines
+                .filter { !isPantry($0) && !listed.contains($0.id) }
+                .map(\.id)
+        )
         syncLinkLines()
     }
 }
