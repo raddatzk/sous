@@ -33,4 +33,32 @@ struct CategoryCompletionTests {
     func exactMatch() {
         #expect(!CategoryCompletion.suggestions(for: "Suppen", categories: existing).contains("Suppen"))
     }
+
+    @Test("What was typed is taken as one category, trimmed")
+    func addsOne() {
+        #expect(CategoryCompletion.adding("  Nachtisch ", to: ["Schnell"]) == ["Schnell", "Nachtisch"])
+    }
+
+    @Test("Nothing typed adds nothing")
+    func addsNothing() {
+        #expect(CategoryCompletion.adding("   ", to: ["Schnell"]) == ["Schnell"])
+        #expect(CategoryCompletion.adding(",,", to: []) == [])
+    }
+
+    @Test("A pasted list becomes one category each")
+    func addsSeveral() {
+        #expect(CategoryCompletion.adding("Salate, Schnell\nSuppen", to: [])
+            == ["Salate", "Schnell", "Suppen"])
+    }
+
+    @Test("A category the recipe already carries is not added again")
+    func noDuplicates() {
+        #expect(CategoryCompletion.adding("salate", to: ["Salate"]) == ["Salate"])
+    }
+
+    @Test("The library's spelling wins over the one just typed")
+    func adoptsKnownSpelling() {
+        #expect(CategoryCompletion.adding("salate", to: [], known: existing) == ["Salate"])
+        #expect(CategoryCompletion.adding("Gebäck", to: [], known: existing) == ["Gebäck"])
+    }
 }
