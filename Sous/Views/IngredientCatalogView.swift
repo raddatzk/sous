@@ -149,7 +149,6 @@ struct IngredientFormView: View {
     @Environment(\.dismiss) private var dismiss
 
     private let original: CatalogIngredient
-    private let isNew: Bool
     /// Opened straight from the basis picker's "Eigene Werte": the cook has
     /// already said they want to type numbers, so the bundled read-only view
     /// would be one tap in the way.
@@ -195,7 +194,6 @@ struct IngredientFormView: View {
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
-        isNew = ingredient.name.isEmpty
         self.startsOnOwnValues = startsOnOwnValues
         _name = State(initialValue: ingredient.name)
         _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
@@ -203,6 +201,18 @@ struct IngredientFormView: View {
         _nutritionDraft = State(initialValue: NutritionDraft())
         _parentName = State(initialValue: ingredient.parentName)
         _isEnteringOwnValues = State(initialValue: startsOnOwnValues)
+    }
+
+    /// Whether this entry is coming into being — the empty form, or a name
+    /// the catalog does not know yet.
+    ///
+    /// The second case is what "Neue Zutat" hands in for an unknown
+    /// ingredient: the name as the cook wrote it in a recipe, wrapped in a
+    /// `CatalogIngredient` that exists nowhere else. Counting only the empty
+    /// name as new made the form tell them that word belonged to the app's
+    /// own stock, and locked the two fields they had opened it to fill in.
+    private var isNew: Bool {
+        original.name.isEmpty || catalog.catalog.ingredient(for: original.name) == nil
     }
 
     /// Whether this entry is the cook's own — a new one counts, since saving
@@ -279,6 +289,9 @@ struct IngredientFormView: View {
             // The draft is filled after the load, not on appear: what the
             // cook already entered is not known until the store has answered.
             .task {
+                // Before anything reads the catalog: which shape this form
+                // takes depends on whether it knows the name.
+                await catalog.ensureLoaded()
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
                 storedBasisCode = nutrition.nutrition(forName: trimmedName)?
