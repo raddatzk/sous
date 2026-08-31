@@ -83,6 +83,85 @@ public struct ShoppingRecipeGroup: Identifiable, Sendable {
     /// Each row carries only this group's share of its item, so an
     /// ingredient two dishes need appears under both with its own amount.
     public var items: [ShoppingItem]
+
+    /// The section read as what asks for what: the dish's own lines first,
+    /// then one block per subrecipe a link resolved into it.
+    ///
+    /// A subrecipe is not a section of its own — it has no plan entry and no
+    /// dial, because the amount of naan is something the curry's line says
+    /// and the curry's dial scales. What it does have is a name worth saying
+    /// once, above its lines, rather than repeating "aus Naan" under every
+    /// one of them.
+    ///
+    /// An ingredient both the dish and its subrecipe want appears in both
+    /// blocks with its own share. That is the point of this reading: the
+    /// aisle view is where the two become one errand.
+    public var blocks: [ShoppingRecipeBlock] {
+        let subrecipes = subrecipeTitles
+        // Nothing was pulled in — the common case, and the rows are handed
+        // on exactly as they came, manual top-ups and all.
+        guard !subrecipes.isEmpty else {
+            return [ShoppingRecipeBlock(id: "\(id):own", subrecipe: nil, items: items)]
+        }
+
+        var result: [ShoppingRecipeBlock] = []
+        let own = items.compactMap { item -> ShoppingItem? in
+            // A row with no demands at all belongs to no recipe and is not
+            // split by one.
+            guard !item.demands.isEmpty else { return item }
+            return item.keeping { isOwn($0) }
+        }
+        if !own.isEmpty {
+            result.append(ShoppingRecipeBlock(id: "\(id):own", subrecipe: nil, items: own))
+        }
+        for title in subrecipes {
+            let rows = items.compactMap { item in
+                item.keeping { $0.originTitle == title }
+            }
+            result.append(ShoppingRecipeBlock(id: "\(id):sub:\(title)", subrecipe: title, items: rows))
+        }
+        return result
+    }
+
+    /// The subrecipes this section's rows read as coming from, each named
+    /// once, in the order they first appear.
+    private var subrecipeTitles: [String] {
+        var seen = Set<String>()
+        return items.flatMap(\.demands).compactMap { demand in
+            guard !isOwn(demand), seen.insert(demand.originTitle).inserted else { return nil }
+            return demand.originTitle
+        }
+    }
+
+    /// Whether a demand reads as the dish's own. An origin nobody wrote is
+    /// the dish's, not a nameless subrecipe's.
+    private func isOwn(_ demand: ShoppingDemand) -> Bool {
+        demand.originTitle.isEmpty || demand.originTitle == title
+    }
+}
+
+/// A stretch of one dish's rows that reads as coming from one place.
+public struct ShoppingRecipeBlock: Identifiable, Sendable {
+    public var id: String
+    /// The subrecipe the lines came from, or `nil` for the dish's own.
+    public var subrecipe: String?
+    public var items: [ShoppingItem]
+}
+
+extension ShoppingItem {
+    /// The row narrowed to the demands that pass — `nil` where none do.
+    ///
+    /// Hand-typed amounts stay out of a narrowed row: they belong to no
+    /// recipe line, so any split by origin would have to invent a place for
+    /// them, and the by-recipe view already gives them one of their own.
+    fileprivate func keeping(_ isIncluded: (ShoppingDemand) -> Bool) -> ShoppingItem? {
+        let share = demands.filter(isIncluded)
+        guard !share.isEmpty else { return nil }
+        var row = self
+        row.demands = share
+        row.manualQuantities = []
+        return row
+    }
 }
 
 /// The view-facing shopping list.
