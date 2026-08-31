@@ -405,6 +405,71 @@ extension ShoppingLibraryTests {
         #expect(groups[2].items.map(\.name) == ["Kaffee"])
     }
 
+    @Test("A subrecipe's lines sit under its own heading, inside the dish", arguments: StoreBackend.allCases)
+    func subrecipesReadAsTheirOwnBlock(_ backend: StoreBackend) async throws {
+        let (shopping, recipes, _) = try makeLibrary(backend)
+        let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "250 g Mehl\n1 TL Hefe")
+        try await recipes.save(naan)
+        let curry = Recipe(
+            title: "Curry",
+            servings: 2,
+            ingredientsText: "400 ml Kokosmilch\n2 Portionen \(RecipeLink.markdown(title: "Naan", id: naan.id))"
+        )
+
+        await shopping.add(curry)
+
+        // One section, because there is one dish and one dial…
+        let group = try #require(shopping.byRecipe.first)
+        #expect(shopping.byRecipe.count == 1)
+        #expect(group.planEntry != nil)
+
+        // …read as the curry's own lines and then the naan's.
+        let blocks = group.blocks
+        #expect(blocks.map(\.subrecipe) == [nil, "Naan"])
+        #expect(blocks[0].items.map(\.name) == ["Kokosmilch"])
+        #expect(blocks[1].items.map(\.name) == ["Mehl", "Hefe"])
+    }
+
+    @Test("An ingredient the dish and its subrecipe both want appears in both blocks", arguments: StoreBackend.allCases)
+    func sharedIngredientSplitsBetweenBlocks(_ backend: StoreBackend) async throws {
+        let (shopping, recipes, _) = try makeLibrary(backend)
+        let naan = Recipe(title: "Naan", servings: 2, ingredientsText: "250 g Mehl")
+        try await recipes.save(naan)
+        let curry = Recipe(
+            title: "Curry",
+            servings: 2,
+            ingredientsText: "50 g Mehl\n2 Portionen \(RecipeLink.markdown(title: "Naan", id: naan.id))"
+        )
+
+        await shopping.add(curry)
+
+        // One errand when shopping…
+        #expect(shopping.items.map(\.name) == ["Mehl"])
+        #expect(shopping.items[0].quantities == [Quantity(300, .gram)])
+
+        // …and two shares when checking what wants it.
+        let blocks = try #require(shopping.byRecipe.first).blocks
+        #expect(blocks.map(\.subrecipe) == [nil, "Naan"])
+        #expect(blocks[0].items[0].quantities == [Quantity(50, .gram)])
+        #expect(blocks[1].items[0].quantities == [Quantity(250, .gram)])
+    }
+
+    @Test("A dish that pulled nothing in is one block, hand-typed lines included", arguments: StoreBackend.allCases)
+    func plainDishesStayOneBlock(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
+        await shopping.addItem("Kaffee")
+
+        let groups = shopping.byRecipe
+        #expect(groups.map(\.title) == ["Salat", ShoppingLibrary.ungroupedTitle])
+        for group in groups {
+            let blocks = group.blocks
+            #expect(blocks.count == 1)
+            #expect(blocks[0].subrecipe == nil)
+            #expect(blocks[0].items.map(\.name) == group.items.map(\.name))
+        }
+    }
+
     @Test("Topping up a line by hand shows up in both readings", arguments: StoreBackend.allCases)
     func manualTopUpIsAccountedFor(_ backend: StoreBackend) async throws {
         let (shopping, _, _) = try makeLibrary(backend)
