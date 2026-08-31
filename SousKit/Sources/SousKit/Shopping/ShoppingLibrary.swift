@@ -258,6 +258,47 @@ public final class ShoppingLibrary {
         }
     }
 
+    /// Adds picked lines to a dish the list already carries, instead of
+    /// putting the recipe on a second time.
+    ///
+    /// The way back from "ich habe beim Hinzufügen was abgewählt". A second
+    /// add would give the dish a second heading and a second portion dial,
+    /// and the cook would then be turning one of two halves of the same
+    /// meal — so the lines join the entry that is already there.
+    ///
+    /// Captured at *that* entry's portion count rather than at whatever the
+    /// recipe page happens to be showing: everything under one dial has to
+    /// be captured at the same count, or the lines that arrived late would
+    /// grow at a different rate than the rest of the dish.
+    public func add(_ recipe: Recipe, lines: Set<UUID>, joining planEntry: ShoppingPlanEntry) async {
+        guard !lines.isEmpty else { return }
+        do {
+            var known: [UUID: Recipe] = [recipe.id: recipe]
+            try await resolveLinks(of: recipe, into: &known)
+            let capture = ShoppingListBuilder.build(
+                from: recipe,
+                servings: planEntry.servingsCaptured,
+                selecting: lines,
+                catalog: catalog
+            ) { known[$0] }
+            // The builder always makes an entry — it has no notion of a list
+            // that already exists. Dropping it and re-pointing its demands is
+            // what turns the capture into an addition to the dish on the
+            // list: one heading, one dial, more under it than before.
+            let joined = ShoppingCapture(
+                planEntries: [],
+                demands: capture.demands.map { captured in
+                    var captured = captured
+                    captured.demand.planEntryID = planEntry.id
+                    return captured
+                }
+            )
+            try await commit(joined, describing: recipe.title)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Puts everything planned for a set of days on the list.
     public func add(planned: [(recipe: Recipe, servings: Int)], describing description: String) async {
         await add(planned, describing: description)
@@ -377,15 +418,51 @@ public final class ShoppingLibrary {
     /// the errand finished, and the button that offers the list should go
     /// back to offering it.
     public func hasOpenDemand(forRecipe recipeID: UUID) -> Bool {
-        let entries = Set(planEntries.filter { $0.recipeID == recipeID }.map(\.id))
-        guard !entries.isEmpty else { return false }
-        // `items` already leaves out what "Abgehaktes entfernen" cleared, so
-        // the only question left is whether any of what remains is open.
-        return items.contains { item in
-            !item.isChecked && item.demands.contains { demand in
-                demand.planEntryID.map(entries.contains) ?? false
+        !openEntryIDs(ofRecipe: recipeID).isEmpty
+    }
+
+    /// The entry a recipe is being carried by right now, or `nil` where the
+    /// list has nothing outstanding for it.
+    ///
+    /// What a second add joins instead of putting the dish on again. The
+    /// newest one where a recipe somehow got on twice — that is the entry
+    /// the cook was last looking at, and the one the list shows last.
+    public func openPlanEntry(forRecipe recipeID: UUID) -> ShoppingPlanEntry? {
+        let open = openEntryIDs(ofRecipe: recipeID)
+        return planEntries
+            .filter { open.contains($0.id) }
+            .max { $0.addedAt < $1.addedAt }
+    }
+
+    /// Which lines of the recipe behind `planEntry` the list already carries,
+    /// named the way a picker names them: by ``RecipeIngredient/id``.
+    ///
+    /// Bought counts as carried. The line is on the list either way, and a
+    /// picker that offered it again as though it were missing would be
+    /// describing a list the cook is not looking at.
+    public func listedLines(of planEntry: ShoppingPlanEntry) -> Set<UUID> {
+        var lines: Set<UUID> = []
+        for item in items {
+            for demand in item.demands where demand.planEntryID == planEntry.id {
+                if let lineID = demand.lineID { lines.insert(lineID) }
             }
         }
+        return lines
+    }
+
+    /// The recipe's entries the list still shows something unbought under.
+    private func openEntryIDs(ofRecipe recipeID: UUID) -> Set<UUID> {
+        let entries = Set(planEntries.filter { $0.recipeID == recipeID }.map(\.id))
+        guard !entries.isEmpty else { return [] }
+        // `items` already leaves out what "Abgehaktes entfernen" cleared, so
+        // the only question left is which of what remains is open.
+        var open: Set<UUID> = []
+        for item in items where !item.isChecked {
+            for demand in item.demands {
+                if let id = demand.planEntryID, entries.contains(id) { open.insert(id) }
+            }
+        }
+        return open
     }
 
     public func clearChecked() async {
