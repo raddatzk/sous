@@ -342,8 +342,13 @@ struct ShoppingListView: View {
     private var byRecipe: some View {
         ForEach(shopping.byRecipe) { group in
             Section {
-                ForEach(group.items) { item in
-                    row(item, showingSource: false, note: subrecipeNote(for: item, in: group))
+                ForEach(group.blocks) { block in
+                    if let subrecipe = block.subrecipe {
+                        subrecipeHeadline(subrecipe)
+                    }
+                    ForEach(block.items) { item in
+                        row(item, showingSource: false, indented: block.subrecipe != nil)
+                    }
                 }
             } header: {
                 recipeHeader(for: group)
@@ -351,6 +356,29 @@ struct ShoppingListView: View {
             // Named so the list can be sent to one dish — see `standAt`.
             .id(group.id)
         }
+    }
+
+    /// The heading a resolved subrecipe gets inside its parent's section.
+    ///
+    /// It is a heading and not a section, because the naan is not a second
+    /// dish on the list: its amount comes from the curry's line and its dial
+    /// is the curry's. What it needed was a name said once — "aus Naan" under
+    /// each of four lines told the same thing four times and still left them
+    /// looking like the curry's own.
+    ///
+    /// Not checkable, for the reason `groupHeadline` is not: what goes in the
+    /// basket is flour and yeast, one at a time.
+    private func subrecipeHeadline(_ title: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.turn.down.right")
+            Text(title)
+        }
+        .font(.subheadline.weight(.medium))
+        .foregroundStyle(.secondary)
+        .padding(.leading, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Aus \(title)")
+        .accessibilityAddTraits(.isHeader)
     }
 
     /// A recipe's heading — with its portion dial, where the entry knows
@@ -498,17 +526,14 @@ struct ShoppingListView: View {
         }
     }
 
-    /// A resolved subrecipe keeps its title as the origin its demands read
-    /// as — under the parent's section, the flour still says it is naan's.
-    private func subrecipeNote(for item: ShoppingItem, in group: ShoppingRecipeGroup) -> String? {
-        let foreign = item.originTitles.filter { $0 != group.title }
-        guard !foreign.isEmpty else { return nil }
-        return "aus \(foreign.joined(separator: " · "))"
-    }
-
     @ViewBuilder
     private func row(
-        _ item: ShoppingItem, showingSource: Bool, note: String? = nil, isSubline: Bool = false
+        _ item: ShoppingItem,
+        showingSource: Bool,
+        isSubline: Bool = false,
+        // Set under a subrecipe's heading, where the row keeps the
+        // ingredient's own name and only moves in under it.
+        indented: Bool = false
     ) -> some View {
         // A button rather than a tap gesture: the pointer changes over it,
         // the keyboard reaches it, and the Mac gets the click it expects.
@@ -523,11 +548,6 @@ struct ShoppingListView: View {
                         .strikethrough(item.isChecked)
                     if let annotation = annotation(for: item) {
                         Text(annotation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let note {
-                        Text(note)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -547,7 +567,7 @@ struct ShoppingListView: View {
                 Spacer(minLength: 0)
             }
             .opacity(item.isChecked ? 0.5 : 1)
-            .padding(.leading, isSubline ? 16 : 0)
+            .padding(.leading, isSubline || indented ? 16 : 0)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
