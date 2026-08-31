@@ -889,6 +889,13 @@
   "category": "vegetables"
  },
  {
+  "name": "Leinöl",
+  "aliases": [
+   "Leinsamenöl"
+  ],
+  "category": "oils"
+ },
+ {
   "name": "Limette",
   "aliases": [
    "Limetten",

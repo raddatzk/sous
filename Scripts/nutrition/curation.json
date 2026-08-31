@@ -1287,6 +1287,14 @@
    },
    "via": "BLS-Gruppe \"Porree/Lauch\""
   },
+  "Leinöl": {
+   "targets": {
+    "unspecified": [
+     "Q160000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
   "Limette": {
    "targets": {
     "raw": [
