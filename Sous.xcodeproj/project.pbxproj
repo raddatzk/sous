@@ -39,6 +39,7 @@
 		4AE6476A1C8755668C220EA7 /* IngredientAliasPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA3A090222FEA0685769F99 /* IngredientAliasPickerView.swift */; };
 		4C4121828E62AB0A9E528E97 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 560216B54AB18B951EBB4FF8 /* PrivacyInfo.xcprivacy */; };
 		54E27685ECB3D7C4073717E2 /* CookTimerMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */; };
+		54EE5B57A0B478E701864B1C /* CategoryField.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */; };
 		551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */; };
 		58B55AC7746A47C07A591E81 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
 		58D8BB1535653B31CCEE0F34 /* CookTimerMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */; };
@@ -52,6 +53,7 @@
 		6EF999347DFB45C4AD188FCF /* ShoppingPickSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 016DCB9A57A20D413B827E18 /* ShoppingPickSheet.swift */; };
 		7433672562FD5D4226C70229 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 027C4D97EB668FD81EEF6515 /* RecipeRow.swift */; };
 		7498D7DCB5309FD2CF3FD819 /* UnknownIngredientButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 973AC4B5EEA5A0B69F7D77B6 /* UnknownIngredientButton.swift */; };
+		7723DECF8CDF0F9618796E01 /* CategoryField.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */; };
 		7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */ = {isa = PBXBuildFile; fileRef = F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */; };
 		7CA93220F39B649A2D0550AC /* AmountReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6664D684C6558699AFE1C5B1 /* AmountReviewSheet.swift */; };
 		7FE551E7D5F216F63382DB37 /* IngredientLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C70498384AEDCBCE42346CB /* IngredientLineView.swift */; };
@@ -207,6 +209,7 @@
 		E59C696E9B502CE1433926B5 /* AddVariantSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddVariantSheet.swift; sourceTree = "<group>"; };
 		EAC937BDCB94723ECECBF2FF /* IngredientMeasurePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientMeasurePicker.swift; sourceTree = "<group>"; };
 		F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariantGroupRow.swift; sourceTree = "<group>"; };
+		F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryField.swift; sourceTree = "<group>"; };
 		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMirror.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -236,6 +239,7 @@
 			children = (
 				E59C696E9B502CE1433926B5 /* AddVariantSheet.swift */,
 				6664D684C6558699AFE1C5B1 /* AmountReviewSheet.swift */,
+				F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */,
 				C5FCA0AB252031EC1359F91A /* CategoryManagerView.swift */,
 				D887BABFAA022A8033B9EDBE /* ContinueCookingBanner.swift */,
 				20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */,
@@ -541,6 +545,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7CA93220F39B649A2D0550AC /* AmountReviewSheet.swift in Sources */,
+				7723DECF8CDF0F9618796E01 /* CategoryField.swift in Sources */,
 				145C1058A88492DACB05360E /* DecimalText.swift in Sources */,
 				36FCF10A373EFD7E0EB59A5B /* FlowLayout.swift in Sources */,
 				45172002B4442D3DD01976BC /* HighlightedTextEditor.swift in Sources */,
@@ -577,6 +582,7 @@
 				6AB353F80688690CFEC6D30A /* AddVariantSheet.swift in Sources */,
 				3E9A127EA10F36151721E2D5 /* AmountReviewSheet.swift in Sources */,
 				7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */,
+				54EE5B57A0B478E701864B1C /* CategoryField.swift in Sources */,
 				0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */,
 				B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */,
 				027DB14287C4B8F7C448B5C6 /* CookAddSheet.swift in Sources */,

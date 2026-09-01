@@ -39,4 +39,33 @@ public enum CategoryCompletion {
             .prefix(limit)
             .map { $0 }
     }
+
+    /// The categories a recipe carries once what was typed is added.
+    ///
+    /// This is where free text is tidied, because it is the one place every
+    /// category enters a recipe: whitespace comes off, a pasted
+    /// "Salate, Schnell" becomes two categories rather than one oddly named
+    /// one, and a category the recipe already carries is not added a second
+    /// time.
+    ///
+    /// - Parameter known: the spellings the library already uses. One of them
+    ///   wins over what was just typed — "salate" under an existing "Salate"
+    ///   files the recipe with the others instead of starting a second
+    ///   category beside it, which is the same typo the suggestions above
+    ///   exist to prevent.
+    public static func adding(
+        _ typed: String,
+        to categories: [String],
+        known: [String] = []
+    ) -> [String] {
+        var result = categories
+        for part in typed.split(whereSeparator: { $0 == "," || $0.isNewline }) {
+            let name = part.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            let key = name.lowercased()
+            guard !result.contains(where: { $0.lowercased() == key }) else { continue }
+            result.append(known.first { $0.lowercased() == key } ?? name)
+        }
+        return result
+    }
 }
