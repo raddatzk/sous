@@ -4,7 +4,10 @@ A second round on [INGREDIENTS-CONCEPT.md](INGREDIENTS-CONCEPT.md), about the ha
 of it the cook actually touches: the ingredient catalog, the variety relation, and
 the assignment of a BLS row.
 
-- **Status:** decided — the five questions in §2 were resolved on 2026-09-01.
+- **Status:** decided — the five questions in §2 were resolved on 2026-09-01. Two of
+  them were then revised the same day, by the question "so a parent is only there for
+  nutrition, isn't it?" — which turned out to be the sharpest question of the round.
+  §2½ records what it changed and why the obvious answer to it is wrong.
 - **Scope:** the vocabulary model and the screens around it. The parser, the
   shopping list as a document, and the nutrition math are not reopened.
 - **Why now:** the data layer does nearly everything the concept asks of it. The
@@ -67,6 +70,24 @@ So the picker offers a wrong answer rather than none, beside no free search and 
 way to say "deliberately without" from that screen. That is three failures meeting
 on one form, and it is where this round started.
 
+### A variety inherits its parent's numbers silently, and sometimes wrongly
+
+49 of the 60 varieties have no basis of their own and take their parent's
+(`NutritionCatalog.swift:118`). Often that is right — Cocktailtomate is a tomato. Not
+always, and nothing on screen says where the number came from, because a child
+inherits the parent's *status* too, confirmation included.
+
+Three cases where the correct row sits unused in the same shipped file:
+
+| Word | Inherits | Correct row | Difference |
+| --- | --- | --- | --- |
+| Räucherlachs | Lachs roh, 32 mg sodium | `T410600` Lachs geräuchert, 1170 mg | ×37 |
+| Trockenhefe | Backhefe frisch, 128 kcal | `R458000` Backhefe getrocknet, 334 kcal | ×2.6 |
+| Staudensellerie | Knollensellerie roh, 30 kcal | `G660100` is a different plant; the right row is Bleichsellerie, 17 kcal | wrong food |
+
+The reason none of them was mapped is the same one this whole round is about: the
+kitchen word does not resemble the catalog word, and there is no free search.
+
 ### What was already right
 
 The gram bridge is complete and needs nothing: `measures.json` ships seven generic
@@ -111,9 +132,22 @@ The data agrees: of 60 varieties, **not one** differs from its parent's category
 48 of the 49 varieties without their own BLS mapping do inherit one (the exception is
 Pfefferminze under Minze, where the parent has none either).
 
+**An inherited basis arrives as *proposed*, never as confirmed.** This is the one
+correction the round made to itself, and it comes from asking what a parent is
+actually for (see §2½). Inheritance is a good guess, not an answer: it is right for
+Cocktailtomate and off by a factor of 37 for Räucherlachs, and today the child takes
+the parent's confirmed status along with its numbers, which is what makes the bad
+cases invisible. As a proposal it is still computed with — concept decision A — but
+marked, counted as unconfirmed in the coverage, and asked about once.
+
+Nothing new is needed for this: `NutritionBasis.Status` already has `proposed`, and
+the whole clarification flow is built on it.
+
 *Price:* `category` becomes optional in `kitchen_words.json` and in
 `KitchenWords.Word`, and resolution walks the chain. The 60 redundant fields come out
-of the data. The form has to say which values are inherited and from whom, rather
+of the data. Every recipe using one of the 49 inheriting varieties gains an open
+question — which is the point, and which decision D's spice marker keeps from turning
+into noise. The form has to say which values are inherited and from whom, rather
 than showing them as though the ingredient owned them — which is also the honest fix
 for the measures section, where a parent's piece weight is already displayed without
 a word about where it comes from.
@@ -156,20 +190,50 @@ including the decision to give Zimt values after all.
 door is left open for anything used by the tablespoon (Paprikapulver, Currypulver)
 rather than the pinch.
 
-### E · The shopping list collects one level
+### E · The parent does nothing on the shopping list
 
-An item bundles under its *direct* parent, as `ShoppingLibrary.grouped(_:)`
-(`:530`) already does. One level of sub-lines, no nesting on a phone.
+Varieties stop bundling under their parent. Champignon and Pfifferling are separate
+rows, as they are separate things at the shelf — and because the list already sorts
+by aisle, they stand next to each other anyway without a heading claiming they are
+one purchase. `ShoppingLibrary.grouped(_:)` (`:530`), `ShoppingGroup` and the
+sub-line rendering in `ShoppingListView.swift:214-241` go away.
 
-This meets decision A halfway on purpose, and the seam has to be held by the data:
-**a chain that gets shopped stays two levels deep.** Otherwise a middle word is a
-heading in one place and an item in another — `Pilz → 400 g Champignon` next to
-`Champignon → 200 g Brauner Champignon`, mushrooms in two spots. So the shipped
-chain is flattened to `Pilz → {Champignon, Brauner Champignon}`, and a golden-file
-test refuses a third level in `kitchen_words.json`.
+*Price:* concept §6's grouped entry — "Tomate 700 g" with the cocktail tomatoes
+readable underneath — is given up. That entry was designed to keep two things at
+once, one place in the shop and a visible distinction. Aisle sorting turns out to
+deliver the first well enough on its own, and the second is what actually matters
+when standing in front of the shelf.
 
-Depth remains legal in the model, where a cook's own entries can reach it and where
-inheritance handles it correctly.
+*It also dissolves a seam.* With no bundling, there is no middle word that is a
+heading in one place and an item in another, so decision A's arbitrary depth costs
+the shopping list nothing and `Pilz → Champignon → Brauner Champignon` can stay as
+it is.
+
+## 2½ · Why there is no second relation
+
+The obvious reading of the mushroom case is that one relation is doing two jobs:
+*variety-of* (Cocktailtomate of Tomate — the same product, more precisely) and
+*belongs-to* (Champignon of Pilz — different products, one family). Splitting them
+looks like the clean fix.
+
+It is not, because **that distinction does not predict whether the numbers carry
+over.** Räucherlachs is unambiguously a variety of Lachs and inherits its sodium
+wrong by a factor of 37. Pfifferling under Pilz would be pure family grouping and
+would inherit roughly right — 26 kcal against Champignon's 28. The line the cook
+feels is real, but it runs through taste and shopping, not through nutrition.
+
+So the three jobs are separated by three different means, not by a second field:
+
+| Job | Answered by | Where |
+| --- | --- | --- |
+| Nutrition | inheritance as a *proposal* (decision B) | `NutritionCatalog.swift:118` |
+| Shopping | nothing — no bundling (decision E) | `ShoppingLibrary.swift:530` |
+| Finding recipes | the search index, walking the whole chain | `RecipeIndex.swift:22` |
+
+The third already works and is the parent's least visible, most useful job: a recipe
+with Hokkaido in it answers to "Kürbis". It takes exactly one hop today, so with
+arbitrary depth it has to walk up to the root — otherwise "Pilz" does not find a
+recipe written with braune Champignons.
 
 ---
 
@@ -178,21 +242,27 @@ inheritance handles it correctly.
 ### Data
 
 - `kitchen_words.json`: `category` becomes optional; drop it from the 60 varieties.
-- `kitchen_words.json`: flatten `Pilz → Champignon → Brauner Champignon`.
 - `curation.json`: a "without values" marker; set it on the 29 spice words, each
   with its reason in `via`.
-- `BundledDataTests`: no shoppable chain deeper than two; every word without a basis
-  either declares it or is reported.
+- `curation.json`: map the varieties whose inherited numbers are wrong and whose own
+  row is already shipped — Räucherlachs, Trockenhefe, Staudensellerie for a start.
+  The proposal status of decision B will surface the rest; this is the head start.
+- `BundledDataTests`: every word without a basis either declares it or is reported;
+  no cycle in the parent chain.
 
 ### Model
 
-- Inheritance walks the chain (category, basis, measures, shopping fields).
-- The one-level guard in the vocabulary store becomes a cycle check that refuses
+- Inheritance walks the chain (category, basis, measures, shopping fields), and an
+  inherited basis comes back as `proposed`.
+- The one-level guard in both vocabulary stores becomes a cycle check that refuses
   audibly.
 - `KitchenWords.Word.category` optional; `CatalogIngredient.category` resolved, not
   stored.
 - The curation's "without values" reaches `NutritionCatalog` as a settled basis, so
   coverage and the picker both see an answer rather than a gap.
+- `RecipeIndex.ingredientKeys` indexes the whole ancestor chain, not one hop.
+- `ShoppingLibrary.grouped(_:)` and `ShoppingGroup` go; `ShoppingListView` renders
+  plain rows again.
 
 ### UI
 
