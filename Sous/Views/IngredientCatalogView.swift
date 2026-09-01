@@ -184,13 +184,22 @@ struct IngredientFormView: View {
     /// app currently believes and must not turn that into a correction just
     /// because the form was opened.
     @State private var measureDraft: [String: String] = [:]
-    /// The catalog row the numbers stand in for, as shown and as loaded.
+    /// The answer this form will write for the state on screen, and the one
+    /// it found there.
+    ///
     /// Part of the draft rather than written on the tap, because a new
     /// ingredient has no entry to write a basis onto until it is saved —
     /// which is the whole reason this used to be a second trip through a
-    /// recipe.
-    @State private var basisCode: String?
-    @State private var storedBasisCode: String?
+    /// recipe. Only a *change* is written: opening a form must never turn a
+    /// proposal the app made into a confirmation the cook did not.
+    @State private var basisChoice: BasisChoice = .unset
+    @State private var storedBasisChoice: BasisChoice = .unset
+    /// The free search over the catalog, beside the proposals.
+    @State private var basisQuery = ""
+    /// Whether the row list is unfolded. Kept apart from the choice itself:
+    /// tapping "Zeile im Lebensmittelkatalog" with nothing picked yet has to
+    /// open the list, not answer the question with a row nobody chose.
+    @State private var isChoosingRow = false
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
@@ -268,8 +277,8 @@ struct IngredientFormView: View {
                 variantSection
                 pantrySection
                 shoppingSection
-                nutritionSection
                 basisSection
+                nutritionSection
                 measuresSection
             }
             .formStyle(.grouped)
@@ -294,9 +303,11 @@ struct IngredientFormView: View {
                 await catalog.ensureLoaded()
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
-                storedBasisCode = nutrition.nutrition(forName: trimmedName)?
-                    .basis(for: .unspecified)?.code
-                basisCode = storedBasisCode
+                loadBasisChoice()
+                // Opened from the picker's "Eigene Werte": the answer was
+                // given on the way in, and the form should show it as given
+                // rather than make the cook say it a second time.
+                if startsOnOwnValues { basisChoice = .ownValues }
                 await shopping.ensurePantryLoaded()
                 storedPantry = shopping.pantryKeys.contains(pantryKey)
                 isPantry = storedPantry
@@ -310,6 +321,9 @@ struct IngredientFormView: View {
             // Retyping the name is still "coming into being": the proposal
             // follows what is being written until the entry is saved.
             .onChange(of: trimmedName) { proposeVariantIfNew() }
+            // Each state carries its own answer, so switching which one is on
+            // screen switches the question too.
+            .onChange(of: shownState) { loadBasisChoice() }
         }
         .sousSheetSizing(.form)
     }
@@ -636,7 +650,6 @@ struct IngredientFormView: View {
             // BLS reports sodium; the standard EU label shows salt, in grams
             // — which the formatter drops to milligrams where it has to.
             measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
-            Button("Eigene Werte eintragen") { isEnteringOwnValues = true }
         } header: {
             Text("Nährwerte je 100 g")
         } footer: {
@@ -775,63 +788,219 @@ struct IngredientFormView: View {
         }
     }
 
-    /// Which row of the food table these numbers stand in for — asked here,
-    /// beside the numbers, rather than only in a recipe that happens to use
-    /// the ingredient.
+    // MARK: - Grundlage
+
+    /// The one question the numbers hang on: what do they rest on.
     ///
-    /// It used to be reachable from one direction only. "Eigene Werte" in
-    /// the basis picker opens this form, but this form had no way back: a
-    /// cook who added Leinsamenöl and typed a label off the bottle was told
-    /// to go and find a recipe with it in to finish the job. Adding an
-    /// ingredient and saying what it is are the same thought, so they are
-    /// now the same screen.
+    /// Three answers that exclude one another — a row of the food table, the
+    /// cook's own numbers, or the decision to have neither. The model has
+    /// said so since phase 4; the form used to lay two of them out as
+    /// separate sections with the exclusivity hidden in a footnote, and keep
+    /// the third only in the recipe. Worse, the row picker appeared only
+    /// while `isNutritionEditable` — that is, only for ingredients that had
+    /// no values yet — so an ingredient whose numbers were fine and whose row
+    /// was wrong could not be corrected here at all.
     ///
-    /// Written on save, not on the tap, because a new ingredient has no
-    /// entry to carry a basis until it has one.
+    /// Asked for the state on screen, because that is what a row answers:
+    /// picking one says what a *cooked* potato is. Own values stay a
+    /// statement about the ingredient — see `save()` — and that asymmetry is
+    /// deliberate, not an oversight.
+    ///
+    /// Written on save, not on the tap, because a new ingredient has no entry
+    /// to carry a basis until it has one.
+    ///
+    /// **Not yet here:** the target's "steht für" note — a catalog row kept
+    /// *beside* own values rather than instead of them, so that a data update
+    /// can still say the row it stood for is gone. `BasisAssignment` holds
+    /// both at once and `confirmBasis` already carries values across, so the
+    /// model is ready; what is missing is a place to put a second, subordinate
+    /// choice without turning three answers back into two questions.
     @ViewBuilder
     private var basisSection: some View {
-        if isNutritionEditable, !trimmedName.isEmpty {
-            let rows = nutrition.candidates(forName: trimmedName)
+        if !trimmedName.isEmpty {
             Section {
-                if rows.isEmpty {
-                    Text("Zu diesem Namen findet der Katalog nichts. Die eigenen Werte gelten trotzdem.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(rows) { row in
-                        Button {
-                            // Tapping the chosen row again takes the choice
-                            // back: with no other way to unpick one, a
-                            // mis-tap would be permanent.
-                            basisCode = basisCode == row.code ? nil : row.code
-                        } label: {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Image(systemName: basisCode == row.code
-                                    ? "largecircle.fill.circle" : "circle")
-                                    .foregroundStyle(.tint)
-                                Text(row.name)
-                                    .multilineTextAlignment(.leading)
-                                    .foregroundStyle(.primary)
-                                Spacer(minLength: 8)
-                                Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
-                            }
-                            .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                basisAnswer(
+                    title: "Zeile im Lebensmittelkatalog",
+                    detail: chosenRowName,
+                    isChosen: chosenRowCode != nil
+                ) { chooseCatalogRow() }
+                if chosenRowCode != nil || isChoosingRow {
+                    basisRowList
                 }
+                basisAnswer(
+                    title: "Eigene Werte",
+                    detail: nil,
+                    isChosen: basisChoice == .ownValues,
+                    action: chooseOwnValues
+                )
+                basisAnswer(
+                    title: "Bewusst ohne Nährwerte",
+                    detail: nil,
+                    isChosen: basisChoice == .deliberatelyWithout
+                ) { choose(.deliberatelyWithout) }
             } header: {
-                Text("Zeile im Lebensmittelkatalog")
+                Text(availableStates.count > 1
+                    ? "Grundlage (\(selectedState.wrappedValue.title.lowercased()))"
+                    : "Grundlage")
             } footer: {
-                // The link is a note, not a source of numbers: own values win
-                // at read time either way. What it buys is that a data update
-                // can still find the row and say if it has gone.
-                Text(nutritionDraft.catalogNutrition(named: trimmedName) == nil
-                    ? "Ohne eigene Werte zählt die gewählte Zeile."
-                    : "Die eigenen Werte zählen; die Zeile hält fest, wofür sie stehen.")
+                Text(basisFooter)
             }
         }
+    }
+
+    /// One of the three answers, as a row that can also be tapped a second
+    /// time to take it back. With no other way to unpick one, a mis-tap would
+    /// otherwise be permanent.
+    private func basisAnswer(
+        title: String, detail: String?, isChosen: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: isChosen ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    if let detail {
+                        Text(detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 8)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The rows to choose between: the proposals for this name, or whatever
+    /// the cook is searching for. Typing replaces the list rather than adding
+    /// a second one beneath it.
+    @ViewBuilder
+    private var basisRowList: some View {
+        let query = basisQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rows = query.isEmpty
+            ? nutrition.candidates(forName: trimmedName)
+            : nutrition.search(query)
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Im Lebensmittelkatalog suchen", text: $basisQuery)
+                .autocorrectionDisabled()
+        }
+        if rows.isEmpty {
+            Text(emptyRowListNote(query: query))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(rows) { row in
+                Button {
+                    chooseRow(row.code)
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: chosenRowCode == row.code
+                            ? "largecircle.fill.circle" : "circle")
+                            .foregroundStyle(.tint)
+                            .padding(.leading, 14)
+                        Text(row.name)
+                            .multilineTextAlignment(.leading)
+                            .foregroundStyle(.primary)
+                        Spacer(minLength: 8)
+                        Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func emptyRowListNote(query: String) -> String {
+        if query.isEmpty {
+            return "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
+        }
+        return query.count < 3 ? "Noch ein Buchstabe." : "Keine Zeile gefunden."
+    }
+
+    private var basisFooter: String {
+        switch basisChoice {
+        case .catalogRow:
+            "Die Werte dieser Zeile zählen für jedes Rezept mit dieser Zutat."
+        case .ownValues:
+            "Deine Zahlen zählen — in jedem Rezept mit dieser Zutat und in jedem Zustand."
+        case .deliberatelyWithout:
+            "Diese Zutat zählt bewusst in keiner Summe mit und fragt nicht mehr nach."
+        case .unset:
+            "Ohne Grundlage lässt jede Summe diese Zutat aus und nennt sie als Lücke."
+        }
+    }
+
+    // MARK: - Grundlage, the answering
+
+    private var chosenRowCode: String? {
+        if case .catalogRow(let code) = basisChoice { return code }
+        return nil
+    }
+
+    private var chosenRowName: String? {
+        guard let code = chosenRowCode else { return nil }
+        return nutrition.row(forCode: code)?.name
+    }
+
+    /// Reads the answer currently filed for the state on screen. Called again
+    /// when that state changes, because each one carries its own answer.
+    private func loadBasisChoice() {
+        storedBasisChoice = filedBasisChoice()
+        basisChoice = storedBasisChoice
+        isChoosingRow = false
+    }
+
+    private func filedBasisChoice() -> BasisChoice {
+        guard !trimmedName.isEmpty,
+              let basis = nutrition.nutrition(forName: trimmedName)?
+                  .basis(for: selectedState.wrappedValue)
+        else { return .unset }
+        if basis.status == .deliberatelyWithout { return .deliberatelyWithout }
+        if ownNutrition != nil { return .ownValues }
+        return basis.code.map(BasisChoice.catalogRow) ?? .unset
+    }
+
+    /// Picking an answer, or taking it back by picking it again.
+    private func choose(_ choice: BasisChoice) {
+        basisChoice = basisChoice == choice ? .unset : choice
+        if basisChoice != .ownValues, !startsOnOwnValues {
+            isEnteringOwnValues = false
+        }
+        if chosenRowCode == nil { isChoosingRow = false }
+    }
+
+    /// The catalog-row answer has no value until a row is picked, so tapping
+    /// it opens the list rather than choosing anything.
+    private func chooseCatalogRow() {
+        if chosenRowCode != nil {
+            basisChoice = .unset
+            isChoosingRow = false
+        } else {
+            isChoosingRow.toggle()
+        }
+    }
+
+    /// Picking a row, or unpicking it. The list stays open either way:
+    /// taking one back is usually the first half of choosing a different one.
+    private func chooseRow(_ code: String) {
+        basisChoice = chosenRowCode == code ? .unset : .catalogRow(code)
+        isChoosingRow = true
+        if !startsOnOwnValues { isEnteringOwnValues = false }
+    }
+
+    /// Own values are chosen by saying so, and the fields appear at once —
+    /// the answer and the place to type it are one thought.
+    private func chooseOwnValues() {
+        choose(.ownValues)
+        if basisChoice == .ownValues { isEnteringOwnValues = true }
     }
 
     private func numberField(_ label: String, text: Binding<String>, indented: Bool = false) -> some View {
@@ -880,8 +1049,10 @@ struct IngredientFormView: View {
             if trimmed.isEmpty { return .some(nil) }
             return DecimalText.number(trimmed).map { .some($0) }
         }
-        let basis = basisCode
-        let basisChanged = basisCode != storedBasisCode
+        let basis = basisChoice
+        let storedBasis = storedBasisChoice
+        let hadOwnValues = ownNutrition != nil
+        let basisState = selectedState.wrappedValue
         let measureTarget = pantryName
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
@@ -900,21 +1071,37 @@ struct IngredientFormView: View {
                 // everything else about it stays the app's.
                 await catalog.setParent(parent, of: trimmedName)
             }
-            if editable {
+            if basis == .ownValues, editable {
                 if let entered {
                     await nutrition.saveIngredientNutrition(entered)
-                } else if ownNutrition != nil {
+                } else if hadOwnValues {
                     // Everything cleared out reads as taking the entry back.
                     await nutrition.deleteIngredientNutrition(name: trimmedName)
                 }
+            } else if storedBasis == .ownValues, hadOwnValues {
+                // Moving off own values takes the numbers with it. They win
+                // over a code at read time, so leaving them behind would mean
+                // picking a row and watching nothing change.
+                await nutrition.deleteIngredientNutrition(name: trimmedName)
             }
             // After the numbers, never before: `confirmBasis` carries own
             // values across, so it has to see the ones just entered.
-            if basisChanged {
-                if let basis {
-                    await nutrition.confirmBasis(code: basis, forName: trimmedName)
-                } else {
-                    await nutrition.clearBasis(forName: trimmedName)
+            if basis != storedBasis {
+                switch basis {
+                case .catalogRow(let code):
+                    await nutrition.confirmBasis(
+                        code: code, state: basisState, forName: trimmedName
+                    )
+                case .deliberatelyWithout:
+                    await nutrition.setDeliberatelyWithoutBasis(
+                        forName: trimmedName, state: basisState
+                    )
+                case .unset:
+                    await nutrition.clearBasis(forName: trimmedName, state: basisState)
+                case .ownValues:
+                    // The numbers written above are the answer; there is no
+                    // second thing to record.
+                    break
                 }
             }
             for (symbol, grams) in measures {
@@ -936,6 +1123,20 @@ struct IngredientFormView: View {
             dismiss()
         }
     }
+}
+
+/// What an ingredient's numbers rest on, as one question with three answers.
+///
+/// The shape `BasisAssignment` has had since phase 4, in the form's own
+/// terms: a row of the food table, the cook's own numbers, or the decision to
+/// have neither — plus the state of never having said. They exclude one
+/// another, which is exactly what two stacked form sections could not show.
+private enum BasisChoice: Equatable {
+    /// Nothing said yet. A named gap in every sum that uses the ingredient.
+    case unset
+    case catalogRow(String)
+    case ownValues
+    case deliberatelyWithout
 }
 
 /// The nutrition form's fields as typed, before they mean anything.
