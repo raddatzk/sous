@@ -62,13 +62,13 @@ Decision E gives up the concept's grouped shopping entry (§6, "Bundling without
 swallowing"). That is a deliberate reversal of a decided design, not an oversight,
 and it has a record to keep straight:
 
-- `ConceptScorecardTests` case 5 ("Tomaten + Cocktailtomaten — one place on the
-  list, the varieties intact under it") and case 11 ("Ochsenherztomaten — never
-  missing, and fixing it does not un-check the tomatoes") both assert the grouped
-  entry. Case 5 changes meaning: the varieties stay distinguishable, which was the
-  point, but as separate rows rather than as sub-lines of a total. Case 11's real
-  subject is the late addition and the check-off that survives it — that part holds
-  unchanged and must keep being asserted.
+- `ConceptScorecardTests` case 5 ("Tomaten + Cocktailtomaten") and case 10
+  ("Ochsenherztomaten — never missing, and fixing it does not un-check the
+  tomatoes") both assert the grouped entry. Case 5 changes meaning: the varieties
+  stay distinguishable, which was the point, but as separate rows rather than as
+  sub-lines of a total. Case 10's real subject is the late addition and the
+  check-off that survives it — that part holds unchanged and must keep being
+  asserted.
 - `INGREDIENTS-CONCEPT.md` §6 gets a pointer to decision E, so the two documents do
   not quietly disagree.
 

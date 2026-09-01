@@ -25,53 +25,6 @@ public enum ShoppingSection: Hashable, Sendable {
     }
 }
 
-/// One place on the shopping list: an ingredient, together with the
-/// varieties of it that are also wanted.
-///
-/// The concept's grouped entry (§6), and the answer to the brief's "Tomaten
-/// and Cocktailtomaten — one line": one place to walk to, with the
-/// distinction intact underneath. Taken literally, a single summed line would
-/// send the cook home with the wrong tomatoes.
-public struct ShoppingGroup: Identifiable, Hashable, Sendable {
-    /// The parent ingredient's key, or the item's own where it has no parent.
-    public var id: String
-    /// What the place is called — the parent's name.
-    public var name: String
-    /// Its rows, each still its own checkable item.
-    public var items: [ShoppingItem]
-    /// Whether anything is actually being held apart. `false` is the ordinary
-    /// single row, which must keep looking exactly as it always did.
-    public var isGrouped: Bool
-
-    public init(id: String, name: String, items: [ShoppingItem], isGrouped: Bool) {
-        self.id = id
-        self.name = name
-        self.items = items
-        self.isGrouped = isGrouped
-    }
-
-    /// Everything wanted across the group, bundled unit by unit — the total
-    /// the header line shows. Only equal units are added up, as everywhere.
-    public var quantities: [Quantity] {
-        items.reduce(into: [Quantity]()) { $0 = $0.adding($1.quantities) }
-    }
-
-    /// The same annotation an item carries, summed across the varieties that
-    /// share this place on the list — see ``ShoppingItem/statedQuantities``.
-    /// The heading has to say it too: it is the line that shows the total, so
-    /// it is the line where "300 g of that was weighed cooked" belongs.
-    public var statedQuantities: [(state: IngredientState, quantities: [Quantity])] {
-        IngredientState.displayOrder.compactMap { state in
-            let quantities = items
-                .flatMap { $0.statedQuantities.filter { $0.state == state }.flatMap(\.quantities) }
-                .reduce(into: [Quantity]()) { $0 = $0.adding($1) }
-            return quantities.isEmpty ? nil : (state, quantities)
-        }
-    }
-
-    public var isChecked: Bool { items.allSatisfy(\.isChecked) }
-}
-
 /// One section of the by-recipe view: a plan entry with its portion dial,
 /// a frozen origin without one, or the hand-typed rest.
 public struct ShoppingRecipeGroup: Identifiable, Sendable {
@@ -514,43 +467,17 @@ public final class ShoppingLibrary {
 
     // MARK: - Varieties
 
-    /// The ingredient an item bundles under: itself, or the one it is a
+    /// The ingredient an item *inherits* from: itself, or the one it is a
     /// variety of.
+    ///
+    /// Only for what a variety takes over from its parent — which shop it is
+    /// bought in, what to know at the shelf, whether it is a staple. It used
+    /// to decide the list's shape as well, bundling varieties under a shared
+    /// heading; that is gone (catalog target, decision E), because a heading
+    /// summing Champignons and Pfifferlinge into "Pilz 350 g" names a
+    /// purchase nobody can make.
     private func groupIngredient(of item: ShoppingItem) -> CatalogIngredient? {
         catalog.groupIngredient(for: item.name)
-    }
-
-    /// The items of one stretch of the list as the *places* they occupy.
-    ///
-    /// Varieties share a place with the ingredient they are varieties of —
-    /// the concept's grouped entry: one line to find in the shop, and the
-    /// distinction still readable underneath it. Anything without varieties
-    /// in play comes back as a group of one, which renders exactly as a plain
-    /// row always did.
-    public func grouped(_ items: [ShoppingItem]) -> [ShoppingGroup] {
-        var order: [String] = []
-        var byGroup: [String: [ShoppingItem]] = [:]
-        var names: [String: String] = [:]
-        for item in items {
-            let parent = groupIngredient(of: item)
-            let key = parent?.key ?? item.key
-            if byGroup[key] == nil {
-                order.append(key)
-                names[key] = parent?.name ?? item.name
-            }
-            byGroup[key, default: []].append(item)
-        }
-        return order.map { key in
-            let members = byGroup[key] ?? []
-            return ShoppingGroup(
-                id: key,
-                name: names[key] ?? key,
-                items: members,
-                // A single item under its own name is not a group, however
-                // the display renders it: nothing is being held apart.
-                isGrouped: members.count > 1 || members.first.map { $0.key != key } == true
-            )
-        }
     }
 
     // MARK: - Readings

@@ -577,47 +577,21 @@ extension ShoppingLibraryTests {
         #expect(shopping.items[0].quantities == [Quantity(800, .gram), Quantity(2, .piece)])
     }
 
-    @Test("A variety keeps its own line, in the parent's place on the list", arguments: StoreBackend.allCases)
-    func varietiesGroupWithoutMerging(_ backend: StoreBackend) async throws {
+    @Test("A variety is its own errand, never a share of its parent's", arguments: StoreBackend.allCases)
+    func varietiesAreNeverMerged(_ backend: StoreBackend) async throws {
         let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Bauernsalat", servings: 2, ingredientsText: "500 g Tomaten"))
         await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
 
-        // Two items, because two different things are being bought.
+        // Two items, because two different things are being bought — and no
+        // heading over them summing the two into 700 g of something you
+        // cannot ask for at a counter. See the catalog target, decision E.
         #expect(shopping.items.map(\.name) == ["Tomate", "Cocktailtomate"])
-
-        // One place on the list, with the total on the heading and the
-        // distinction intact underneath — the concept's grouped entry.
-        let groups = shopping.grouped(shopping.items)
-        #expect(groups.count == 1)
-        let tomatoes = try #require(groups.first)
-        #expect(tomatoes.name == "Tomate")
-        #expect(tomatoes.isGrouped)
-        #expect(tomatoes.quantities == [Quantity(700, .gram)])
-        #expect(tomatoes.items.map(\.name) == ["Tomate", "Cocktailtomate"])
-    }
-
-    @Test("A sub-line keeps the word the recipe wrote", arguments: StoreBackend.allCases)
-    func varietySublinesKeepTheWrittenName(_ backend: StoreBackend) async throws {
-        let (shopping, _, _) = try makeLibrary(backend)
-        await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
-
-        // Capture files the item under the catalog's spelling, which is right
-        // for a heading and would destroy the sub-line. The demand keeps what
-        // was written — the only moment it could have been lost in.
-        let item = try #require(shopping.items.first)
-        #expect(item.name == "Cocktailtomate")
-        #expect(item.writtenNames == ["Cocktailtomaten"])
-    }
-
-    @Test("An ordinary ingredient is a group of one, and renders as it always did", arguments: StoreBackend.allCases)
-    func plainItemsAreNotGrouped(_ backend: StoreBackend) async throws {
-        let (shopping, _, _) = try makeLibrary(backend)
-        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
-
-        let groups = shopping.grouped(shopping.items)
-        #expect(groups.count == 1)
-        #expect(groups.first?.isGrouped == false)
+        #expect(shopping.items.map(\.quantities) == [
+            [Quantity(500, .gram)], [Quantity(200, .gram)],
+        ])
+        // The aisle is what puts them next to each other now.
+        #expect(shopping.items[0].category == shopping.items[1].category)
     }
 
     @Test("A named store pulls its errands out of the aisle walk")
