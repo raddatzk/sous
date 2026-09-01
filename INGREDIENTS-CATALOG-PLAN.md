@@ -3,7 +3,8 @@
 Companion to [INGREDIENTS-CATALOG.md](INGREDIENTS-CATALOG.md) (the target). Turns
 its §3 into a sequence of shippable phases.
 
-- **Status:** not started.
+- **Status:** four of seven phases landed on the branch, none of them built or
+  tested — see rule 6. Phases 3, 4 and 6 are open.
 - **Baseline:** `main` @ `44f3273`, 2026-09-01.
 - **There is no existing user data.** Nothing is deployed, nothing has to be carried
   forward. That is not merely a relief — it removes a phase's worth of caution from
@@ -15,15 +16,23 @@ its §3 into a sequence of shippable phases.
   spice marker is shipped JSON, and dropping the bundling removes a view. They are
   what they would have been either way.
 
-| Phase | What it buys | Size |
-| --- | --- | --- |
-| 0 — Take out what only the old data needed | ~500 lines and four entities gone | S |
-| 1 — The basis becomes answerable | a mapping can be made, changed and searched | M |
-| 2 — Words with no values say so | the spices stop being a permanent gap | S |
-| 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M |
-| 4 — The parent becomes something you can make | the relation gets a way in | M |
-| 5 — The shopping list stops bundling | varieties are their own errands | S |
-| 6 — Category is inherited | one inheritance rule instead of an exception | S |
+| Phase | What it buys | Size | |
+| --- | --- | --- | --- |
+| 0 — Take out what only the old data needed | ~500 lines and four entities gone | S | `3862979` |
+| 1 — The basis becomes answerable | a mapping can be made, changed and searched | M | `416e010`, `80f9fa0` |
+| 2 — Words with no values say so | the spices stop being a permanent gap | S | `257ba8f` |
+| 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M | open |
+| 4 — The parent becomes something you can make | the relation gets a way in | M | open |
+| 5 — The shopping list stops bundling | varieties are their own errands | S | `bc14811` |
+| 6 — Category is inherited | one inheritance rule instead of an exception | S | open |
+
+Phase 1 left one piece of decision C unbuilt — a catalog row kept *beside* own
+values as a note of what they stand for. `BasisAssignment` holds both and
+`confirmBasis` already carries values across, so the model is ready; what is
+missing is somewhere to put a subordinate choice without turning three answers
+back into two questions. Phase 2 marked 28 words rather than 29: checking each
+against plausible catalog names instead of its own spelling turned up Chili, which
+the source *does* have, filed as "Pfefferschote".
 
 ---
 
