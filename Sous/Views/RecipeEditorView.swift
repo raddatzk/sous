@@ -22,6 +22,10 @@ struct RecipeEditorView: View {
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
+    /// What stands in the category field without being a chip yet. Kept
+    /// here rather than inside the field, so that saving straight out of a
+    /// half-typed category still keeps it — see `save()`.
+    @State private var categoryEntry = ""
     /// Mirrors each `HighlightedTextEditor`'s own `@FocusState`, since a view
     /// cannot hand its focus state to a child to own directly.
     @State private var isEditingIngredients = false
@@ -232,13 +236,12 @@ struct RecipeEditorView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Kategorien", systemImage: "tag")
                     .font(.subheadline.weight(.medium))
-                TextField(
-                    "Nachtisch, Schnell",
-                    text: categoriesBinding
+                CategoryField(
+                    categories: $draft.categories,
+                    typed: $categoryEntry,
+                    known: library.categories,
+                    focus: $focusedField
                 )
-                .textFieldStyle(.plain)
-                .sousFieldBox()
-                .focused($focusedField, equals: .categories)
             }
             .padding(.vertical, 4)
             suitabilityRow
@@ -347,30 +350,6 @@ struct RecipeEditorView: View {
             return "Automatisch — noch zu wenig Struktur"
         }
         return "Automatisch: \(level.title)"
-    }
-
-    private var categoriesBinding: Binding<String> {
-        Binding<String>(
-            get: {
-                draft.categories.joined(separator: ", ")
-            },
-            set: { newValue in
-                let parts = newValue
-                    .split(separator: ",")
-                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                    .filter { !$0.isEmpty }
-                var seen = Set<String>()
-                var result: [String] = []
-                for p in parts {
-                    let key = p.lowercased()
-                    if !seen.contains(key) {
-                        seen.insert(key)
-                        result.append(p)
-                    }
-                }
-                draft.categories = result
-            }
-        )
     }
 
     /// The three times, with the one sentence that keeps them apart.
@@ -802,6 +781,13 @@ struct RecipeEditorView: View {
         isSaving = true
         var recipe = draft
         recipe.title = recipe.title.trimmingCharacters(in: .whitespaces)
+        // A category typed but not yet turned into a chip is still meant:
+        // "Sichern" is as good a way to finish a word as the return key.
+        recipe.categories = CategoryCompletion.adding(
+            categoryEntry,
+            to: recipe.categories,
+            known: library.categories
+        )
         let declined = declinedAmountKeys
         Task {
             await onSave(recipe)

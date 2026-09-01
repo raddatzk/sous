@@ -185,6 +185,7 @@ targets:
       # rebuilt: a recipe off the web is checked in the same screen it would
       # be edited in later.
       - path: Sous/Views/RecipeEditorView.swift
+      - path: Sous/Views/CategoryField.swift
       - path: Sous/Views/AmountReviewSheet.swift
       - path: Sous/Views/RecipeImageView.swift
       - path: Sous/Views/RecipePickerView.swift
