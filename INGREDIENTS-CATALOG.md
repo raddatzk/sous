@@ -12,6 +12,8 @@ the assignment of a BLS row.
   shopping list as a document, and the nutrition math are not reopened.
 - **Why now:** the data layer does nearly everything the concept asks of it. The
   UI uncovers about half. Everything below follows from that one sentence.
+- **The road:** [INGREDIENTS-CATALOG-PLAN.md](INGREDIENTS-CATALOG-PLAN.md) turns
+  §3 into six shippable phases.
 
 ---
 
