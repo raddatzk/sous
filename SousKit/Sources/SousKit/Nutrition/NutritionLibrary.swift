@@ -276,6 +276,24 @@ public final class NutritionLibrary {
         await settle()
     }
 
+    /// The rows a typed query finds — the free search beside the proposals.
+    ///
+    /// Deliberately not the same question as ``candidates(forName:limit:)``.
+    /// That one asks *what could this word mean*, and every route it takes
+    /// starts from a name the app already holds: the curation's codes, the
+    /// kitchen word, the parent, the remembered name of an orphan. This one
+    /// asks *I know the row, let me find it* — and it is the only way in for
+    /// a word whose catalog row shares no spelling with it. Without it,
+    /// Zimt's whole offer was breakfast cereal at 424 kcal or nothing at all.
+    ///
+    /// Short queries come back empty rather than with the first forty rows of
+    /// the table: `BLSCatalog.search` wants three characters, and a list that
+    /// changes completely on the third keystroke is worse than one that waits
+    /// for it.
+    public func search(_ query: String, limit: Int = 30) -> [BLSEntry] {
+        bls.search(query, limit: limit)
+    }
+
     /// The rows the picker offers for `name`: what the synonym table already
     /// knows, then everything the catalog's own names turn up, deduplicated
     /// and never longer than a person will read.

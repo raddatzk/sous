@@ -25,6 +25,10 @@ struct IngredientBasisPicker: View {
     var onDecision: () async -> Void = {}
 
     @State private var ownValuesFor: CatalogIngredient?
+    /// What the cook is looking for by hand. While it holds something, it
+    /// replaces the proposals rather than sitting beside them: two lists of
+    /// catalog rows under one question is one list too many.
+    @State private var query = ""
 
     private var current: NutritionBasis? {
         nutrition.nutrition(forName: name)?.basis(for: state)
@@ -40,7 +44,12 @@ struct IngredientBasisPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             currentLine
-            candidateList
+            searchField
+            if trimmedQuery.isEmpty {
+                candidateList
+            } else {
+                searchResults
+            }
             otherAnswers
         }
         .font(.footnote)
@@ -107,32 +116,77 @@ struct IngredientBasisPicker: View {
     private var candidateList: some View {
         let rows = nutrition.candidates(forName: name)
         if rows.isEmpty {
-            Text("Der Lebensmittelkatalog hat zu diesem Namen nichts. Eigene Werte oder bewusst ohne.")
+            Text("Der Lebensmittelkatalog schlägt zu diesem Namen nichts vor. Such von Hand, trag eigene Werte ein oder lass es bewusst ohne.")
                 .foregroundStyle(.secondary)
         } else {
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(rows) { row in
-                    Button {
-                        decide {
-                            await nutrition.confirmBasis(code: row.code, state: target, forName: name)
-                        }
-                    } label: {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Image(systemName: current?.code == row.code
-                                ? "largecircle.fill.circle" : "circle")
-                                .foregroundStyle(.tint)
-                            Text(row.name)
-                                .multilineTextAlignment(.leading)
-                            Spacer(minLength: 8)
-                            Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                        .padding(.vertical, 4)
-                        .contentShape(.rect)
-                    }
+            rowList(rows)
+        }
+    }
+
+    /// What the cook typed, answered from the whole table.
+    ///
+    /// The kitchen's word and the catalog's word are nearly disjoint
+    /// languages, so a name-based proposal can miss entirely while the right
+    /// row sits in the file — "Räucherlachs" is there, under "Lachs
+    /// geräuchert". This is the way to it.
+    @ViewBuilder
+    private var searchResults: some View {
+        let rows = nutrition.search(trimmedQuery)
+        if rows.isEmpty {
+            Text(trimmedQuery.count < 3
+                ? "Noch ein Buchstabe."
+                : "Keine Zeile gefunden.")
+                .foregroundStyle(.secondary)
+        } else {
+            rowList(rows)
+        }
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Im Lebensmittelkatalog suchen", text: $query)
+                .textFieldStyle(.plain)
+                .autocorrectionDisabled()
+            if !trimmedQuery.isEmpty {
+                Button("Löschen", systemImage: "xmark.circle.fill") { query = "" }
+                    .labelStyle(.iconOnly)
                     .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// One shape for both lists, so a proposal and a search hit are picked the
+    /// same way and look the same when picked.
+    private func rowList(_ rows: [BLSEntry]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(rows) { row in
+                Button {
+                    decide {
+                        await nutrition.confirmBasis(code: row.code, state: target, forName: name)
+                    }
+                } label: {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: current?.code == row.code
+                            ? "largecircle.fill.circle" : "circle")
+                            .foregroundStyle(.tint)
+                        Text(row.name)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 8)
+                        Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    .padding(.vertical, 4)
+                    .contentShape(.rect)
                 }
+                .buttonStyle(.plain)
             }
         }
     }

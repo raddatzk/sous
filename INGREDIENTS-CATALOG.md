@@ -87,8 +87,17 @@ Three cases where the correct row sits unused in the same shipped file:
 | Trockenhefe | Backhefe frisch, 128 kcal | `R458000` Backhefe getrocknet, 334 kcal | ×2.6 |
 | Staudensellerie | Knollensellerie roh, 30 kcal | `G660100` is a different plant; the right row is Bleichsellerie, 17 kcal | wrong food |
 
-The reason none of them was mapped is the same one this whole round is about: the
-kitchen word does not resemble the catalog word, and there is no free search.
+Two of them were never mapped for the reason this whole round is about: the kitchen
+word does not resemble the catalog word, and there is no free search — "Trockenhefe"
+finds nothing in a table that calls it "Backhefe getrocknet (Trockenbackhefe)", and
+"Staudensellerie" nothing in one that says "Bleichsellerie".
+
+Räucherlachs is worse than that, and more instructive. Its row *is* findable: the
+name search returns "Lachs geräuchert (Räucherlachs)" and nothing else. Every piece
+needed to fix it was already in place — the row, the search, the picker — and the
+mapping is still wrong, because inheritance answered the question before anyone was
+asked it. That is the case decision B exists for: the fault is not a missing tool,
+it is a silent answer.
 
 ### What was already right
 

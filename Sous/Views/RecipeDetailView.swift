@@ -1079,7 +1079,13 @@ struct RecipeDetailView: View {
                                 state: line.state,
                                 source: line.sourceRecipeTitle,
                                 detail: basisDetail(for: line, basis: basis),
-                                isOpen: line.isProvisional
+                                isOpen: line.isProvisional,
+                                // A line that counted can still rest on the
+                                // wrong row. Until now the drill-down let it
+                                // be read and not corrected, which made a
+                                // confirmed mapping the one thing in the app
+                                // with no way back.
+                                canRevisit: true
                             )
                         }
                         gramBridgeRow(for: line)
@@ -1183,11 +1189,20 @@ struct RecipeDetailView: View {
         return summary
     }
 
-    /// One line of the drill-down. Open questions are tappable and unfold the
-    /// picker underneath; settled ones are just text.
+    /// One line of the drill-down.
+    ///
+    /// Two different things used to be decided by one flag. `isOpen` says the
+    /// line is still a *question* — that is what earns the dotted underline,
+    /// and it is what the reader scans for. Whether the picker can be opened
+    /// is a different matter: a settled line may rest on the wrong row, and
+    /// wanting to change it is not the same as never having answered. Only
+    /// gaps that no basis would repair — a missing gram equivalent, an amount
+    /// nobody quantified — stay plain text, because for those this picker is
+    /// the wrong tool rather than a locked one.
     @ViewBuilder
     private func coverageRow(
-        name: String, state: IngredientState, source: String?, detail: String, isOpen: Bool
+        name: String, state: IngredientState, source: String?, detail: String,
+        isOpen: Bool, canRevisit: Bool = false
     ) -> some View {
         let title = source.map { "aus \($0): \(name)" } ?? name
         // Keyed by name *and* state: one word can appear twice in a recipe,
@@ -1195,13 +1210,13 @@ struct RecipeDetailView: View {
         // two separate answers.
         let key = NutritionCoverage.OpenIngredient(name: name, state: state).id
         VStack(alignment: .leading, spacing: 0) {
-            if isOpen {
+            if isOpen || canRevisit {
                 Button {
                     withAnimation { clarifying = clarifying == key ? nil : key }
                 } label: {
                     HStack(alignment: .firstTextBaseline) {
                         Text(title)
-                            .underline(pattern: .dot)
+                            .underline(isOpen, pattern: .dot)
                         Spacer()
                         Text(detail)
                             .foregroundStyle(.secondary)
