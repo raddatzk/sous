@@ -67,6 +67,25 @@ public struct NutritionCatalog: Sendable {
                     source: row.source ?? source
                 )
             }
+            // A word the source does not list at all arrives *answered*,
+            // not empty, and that answer overrules anything the loop above
+            // found: the marker is the curator's last word, not a hint.
+            //
+            // The difference is the whole of decision D. An empty word is a
+            // question every recipe using it asks again; a word carrying
+            // `deliberatelyWithout` is a settled one that stops counting as a
+            // defect. Filed under `unspecified`, because "the BLS has no
+            // cinnamon" is true of cinnamon in every state.
+            if word.hasNoValues {
+                bases = [IngredientState.unspecified.rawValue: NutritionBasis(
+                    values: .zero, status: .deliberatelyWithout,
+                    // The dataset's own name, not `ownSource`: this is the
+                    // curation's decision, and telling the cook it was theirs
+                    // would be a small lie in the one place that explains
+                    // where a number came from.
+                    source: source
+                )]
+            }
             let candidates = word.candidateCodes
             // A word with no basis still sits in a food group, and the group
             // is what a cup of it or a milliliter of it is answered from.

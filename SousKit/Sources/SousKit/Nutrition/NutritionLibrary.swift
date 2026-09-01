@@ -300,6 +300,12 @@ public final class NutritionLibrary {
     public func candidates(forName name: String, limit: Int = 30) -> [BLSEntry] {
         let canonical = catalog.canonicalName(for: name)
         let entry = nutritionCatalog.nutrition(forCanonicalName: canonical)
+        // A word that has been answered has nothing to propose. Every route
+        // below is a *guess* at what the word might mean, and guessing at a
+        // settled question is how Zimt came to be offered breakfast cereal at
+        // 424 kcal. The free search stays open for a cook who disagrees —
+        // this only stops the app from volunteering.
+        if entry?.basis(for: .unspecified)?.status == .deliberatelyWithout { return [] }
         var seen = Set<String>()
         var rows: [BLSEntry] = []
         for code in entry?.candidateCodes ?? [] {

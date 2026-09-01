@@ -537,6 +537,51 @@ struct ListSeparationTests {
         }
     }
 
+    @Test("A word without a basis has either an answer or a reason to be asked")
+    func everyEmptyWordIsAccountedFor() {
+        // Decision D's rule, and the thing that keeps it from becoming a
+        // dumping ground: a word may carry no values only if it *says* so,
+        // with the reasoning written down where the next curator will read
+        // it. Silence is what this forbids.
+        let table = SynonymTable.bundled
+        for word in kitchen.words {
+            guard let entry = table.entry(for: word.name), entry.targets.isEmpty else { continue }
+            // A variety inherits from its parent and needs nothing of its own.
+            if word.parent != nil { continue }
+            #expect(entry.hasNoValues, "\(word.name) has no basis and does not say why")
+            let via = curation.entry(for: word.name)?.via ?? ""
+            #expect(via.count > 20, "\(word.name) is marked without values but gives no reason")
+        }
+    }
+
+    @Test("A word that says it has no values proposes nothing")
+    func settledWordsOfferNoCandidates() {
+        // The Zimt case. The BLS has no cinnamon, so every route that guesses
+        // at what the word might mean was reaching for whatever the name
+        // search scraped up - breakfast cereal at 424 kcal, offered as if it
+        // were an answer. A settled word has no question left to fill.
+        let zimt = SynonymTable.bundled.entry(for: "Zimt")
+        #expect(zimt?.hasNoValues == true)
+        #expect(zimt?.candidateCodes.isEmpty == true)
+        let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: "Zimt")?
+            .basis(for: .unspecified)
+        #expect(basis?.status == .deliberatelyWithout)
+    }
+
+    @Test("Chili is in the source, under a word no kitchen writes")
+    func chiliIsCuratedRatherThanDeclaredMissing() {
+        // Found while marking the spices, and the reason that pass was worth
+        // making by hand: the fresh chilli *is* in the table, filed as
+        // "Pfefferschote". No cook writes that, so neither the name search nor
+        // any proposal ever reached it, and it was one keystroke away from
+        // being declared absent along with the real gaps.
+        let chili = SynonymTable.bundled.entry(for: "Chili")
+        #expect(chili?.hasNoValues == false)
+        let raw = chili?.target(for: .raw)
+        #expect(raw?.code == "G554100")
+        #expect(BLSCatalog.bundled.entry(for: "G554100")?.name.contains("Pfefferschote") == true)
+    }
+
     @Test("The table's own names are not in the kitchen's list")
     func theTableStaysOutOfTheVocabulary() {
         // Sampled rather than exhaustive: plenty of BLS rows are named exactly

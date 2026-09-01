@@ -2535,6 +2535,139 @@
     ]
    },
    "via": "BLS-Gruppe \"Speisezwiebel\""
+  },
+  "Agavendicksaft": {
+   "withoutValues": true,
+   "via": "Das BLS führt keinen Agavendicksaft. Ahornsirup wäre der nächste Nachbar, ist aber ein anderer Zucker — die Zuordnung gehört dem Koch, nicht der Kuratierung."
+  },
+  "Cayennepfeffer": {
+   "withoutValues": true,
+   "via": "Gemahlener Cayennepfeffer fehlt im BLS. Die frische Schote gibt es („Pfefferschote“, siehe Chili); gemahlen und getrocknet ist sie ein anderes Lebensmittel je Gramm."
+  },
+  "Chili": {
+   "targets": {
+    "raw": [
+     "G554100",
+     "G553100"
+    ],
+    "cooked": [
+     "G554132",
+     "G554152",
+     "G554182",
+     "G553132",
+     "G553152",
+     "G553182"
+    ]
+   },
+   "via": "Das BLS führt die frische Chilischote als „Pfefferschote“ — ein Wort, das keine Küche schreibt, weshalb weder Namenssuche noch Vorschlag je darauf kam. Rot vor grün, weil „Chili“ ohne Zusatz meist die rote meint.",
+   "candidates": [
+    "G550702",
+    "G550802"
+   ]
+  },
+  "Chiliflocken": {
+   "withoutValues": true,
+   "via": "Getrocknete Chiliflocken führt das BLS nicht. Die frische Schote gibt es („Pfefferschote“, siehe Chili), aber getrocknet wiegt sie ein Vielfaches je Gramm — die frische Zeile hier einzusetzen wäre der größere Fehler."
+  },
+  "Chorizo": {
+   "withoutValues": true,
+   "via": "Das BLS führt keine Chorizo. Die spanische Rohwurst ist von den geführten Brühwürsten weit genug entfernt, dass eine Ersatzzeile mehr behaupten würde als sie weiß."
+  },
+  "Currypulver": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Dill": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Estragon": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Fenchelsamen": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Filoteig": {
+   "withoutValues": true,
+   "via": "Das BLS führt keinen Filo- oder Yufkateig. Blätterteig steht daneben und ist etwas anderes; lieber offen als falsch zugeordnet."
+  },
+  "Garam Masala": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Kardamom": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Koriander": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Koriandersamen": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Kreuzkümmel": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Kurkuma": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Lorbeerblatt": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Minze": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Muskatnuss": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Natron": {
+   "withoutValues": true,
+   "via": "Backtriebmittel, kein Lebensmittel im Sinne des BLS — und trägt in verwendeter Menge nichts bei. Backpulver steht im Katalog (R421100), ist aber ein anderer Stoff und deshalb bewusst nicht eingesetzt."
+  },
+  "Nelke": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Oregano": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Paprikapulver": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Rosmarin": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Safran": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Salbei": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Senfkörner": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Thymian": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Zimt": {
+   "withoutValues": true,
+   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
   }
  }
 }
