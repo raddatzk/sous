@@ -23,8 +23,14 @@ final class CDVocabularyEntry: CDHouseholdMember {
 
     var bases: [String: BasisAssignment] {
         get {
-            guard let basisData else { return [:] }
-            return (try? SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData)) ?? [:]
+            guard let basisData, !basisData.isEmpty else { return [:] }
+            // Loudly in debug, and empty in release — see
+            // `StoredIngredientVocabulary.bases` for why that pairing.
+            do { return try SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData) }
+            catch {
+                assertionFailure("Unreadable basis blob: \(error)")
+                return [:]
+            }
         }
         set { basisData = try? SousCoding.encoder.encode(newValue) }
     }

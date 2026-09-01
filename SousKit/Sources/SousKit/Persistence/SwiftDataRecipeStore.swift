@@ -349,11 +349,9 @@ extension ModelContainer {
 
         return try ModelContainer(
             for: StoredRecipe.self, StoredRecipeImage.self, StoredMealPlanEntry.self, StoredShoppingEntry.self,
-            StoredShoppingPlanEntry.self, StoredShoppingDemand.self, StoredPantryFlag.self,
-            StoredCatalogIngredient.self, StoredRecipeEnrichment.self, StoredAmountReview.self,
-            StoredRecipeNutrition.self, StoredIngredientReview.self, StoredVariantGroup.self,
-            StoredIngredientAliasOverride.self, StoredCatalogNutrition.self,
-            StoredIngredientVocabulary.self,
+            StoredShoppingPlanEntry.self, StoredShoppingDemand.self, StoredRecipeEnrichment.self,
+            StoredAmountReview.self, StoredRecipeNutrition.self, StoredIngredientReview.self,
+            StoredVariantGroup.self, StoredIngredientVocabulary.self,
             configurations: configuration
         )
     }

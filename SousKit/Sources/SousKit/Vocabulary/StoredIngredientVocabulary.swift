@@ -29,10 +29,10 @@ public final class StoredIngredientVocabulary {
     /// an entry that is itself a variant.
     public var parentID: UUID?
     /// Whether the cook created this ingredient, as opposed to leaving a note
-    /// on a shipped one. What used to be the whole of `StoredCatalogIngredient`.
+    /// on a shipped one.
     public var isOwnIngredient: Bool = false
-    /// What used to be `StoredPantryFlag`, whose doc comment already said a
-    /// later phase's vocabulary entity would absorb it.
+    /// Salt, oil, flour: checked against the shelf rather than hunted through
+    /// the shop.
     public var isPantry: Bool = false
     /// The phase-3 stamp, carried over and finally read: a name whose link
     /// into the shipped world could never be established is a question for
@@ -54,8 +54,24 @@ public final class StoredIngredientVocabulary {
         self.name = name
     }
 
+    /// Read whole, and *loudly* when it cannot be read.
+    ///
+    /// A decode failure here empties every basis decision made about this
+    /// word, which is the quietest possible way to lose the cook's work. The
+    /// fallback stays — a screen full of nothing is better than a crash in
+    /// somebody's kitchen — but debug builds trip on it, so the shape that
+    /// broke gets found here rather than in a support mail.
     public var bases: [String: BasisAssignment] {
-        get { (try? SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData)) ?? [:] }
+        get {
+            // An entry that never had a basis carries no bytes at all, which
+            // is not a broken record and must not trip the assertion below.
+            guard !basisData.isEmpty else { return [:] }
+            do { return try SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData) }
+            catch {
+                assertionFailure("Unreadable basis blob for \(key): \(error)")
+                return [:]
+            }
+        }
         set {
             basisData = (try? SousCoding.encoder.encode(newValue)) ?? Data()
             updatedAt = .nowInSyncPrecision
