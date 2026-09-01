@@ -163,7 +163,12 @@ struct CategoryField: View {
                     return
                 }
                 let entered = String(newValue.dropFirst(Self.anchor.count))
-                marked = nil
+                // Only what was actually typed clears the mark. UIKit writes
+                // the field's text back through here when it takes focus,
+                // unchanged — and since marking a chip is what focuses the
+                // field, clearing on every write wiped the mark a frame
+                // after the tap that set it.
+                if entered != typed { marked = nil }
                 // A comma still ends a category, for anyone with the old
                 // field's habit and for a list pasted in from somewhere else.
                 if entered.contains(where: { $0 == "," || $0.isNewline }) {
