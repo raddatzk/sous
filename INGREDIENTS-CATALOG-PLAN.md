@@ -5,13 +5,19 @@ its §3 into a sequence of shippable phases.
 
 - **Status:** not started.
 - **Baseline:** `main` @ `44f3273`, 2026-09-01.
-- **Property worth stating first:** *no phase in this round migrates user data.*
-  Everything the decisions touch is either shipped JSON (replaced wholesale on an
-  update), a computed view, or a field the store already has. The vocabulary's
-  `parentID` and `bases` exist; nothing new is persisted.
+- **There is no existing user data.** Nothing is deployed, nothing has to be carried
+  forward. That is not merely a relief — it removes a phase's worth of caution from
+  every other phase, and it means the previous round's migration machinery is now
+  dead weight that phase 0 takes out.
+- **The five decisions stand unchanged.** Worth checking rather than assuming: none
+  of them was shaped to dodge a migration. Depth uses a `parentID` that already
+  exists, inheritance-as-proposal is computed, the Grundlage row is a form, the
+  spice marker is shipped JSON, and dropping the bundling removes a view. They are
+  what they would have been either way.
 
 | Phase | What it buys | Size |
 | --- | --- | --- |
+| 0 — Take out what only the old data needed | ~500 lines and four entities gone | S |
 | 1 — The basis becomes answerable | a mapping can be made, changed and searched | M |
 | 2 — Words with no values say so | the spices stop being a permanent gap | S |
 | 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M |
@@ -23,14 +29,18 @@ its §3 into a sequence of shippable phases.
 
 ## 1 · Rules for the whole round
 
-1. **No schema migration.** If a phase finds itself wanting a new stored field,
-   stop and re-read the target — the decisions were chosen to avoid one. The only
-   store-side work is a search re-index in phase 4, and `RecipeStore.reindexSearch`
-   already exists for exactly that.
+1. **The schema is free — so take the right shape, not the compatible one.** With no
+   data to preserve, a stored field can change outright. None of the phases below
+   needs that, but where the current shape only makes sense as a concession to data
+   that no longer exists, it goes (phase 0). The inverse of the old rule, and it
+   asks for the same alertness: notice when a design is being bent, and this time
+   ask whether it is being bent for nothing.
 2. **The tool before the question.** Phase 3 turns roughly four dozen silent
-   inheritances into open questions. It must not ship before phase 1, which is what
-   makes a question answerable, or before phase 2, which removes the loudest
-   unanswerable ones. This ordering is the plan's one hard constraint.
+   inheritances into open questions. It should not ship before phase 1, which makes
+   a question answerable, or phase 2, which removes the loudest unanswerable ones.
+   With an empty store this is no longer a hard constraint — the questions only
+   appear once recipes using those varieties exist — but it is still the order that
+   makes each phase land as a repair instead of a chore.
 3. **Every phase ships a working app.** Each closes named items of the target and
    leaves the rest alone.
 4. **The cook's decision always outranks shipped data.** Phase 2 puts an answer in
@@ -59,6 +69,43 @@ look before it happens. It is the record of a decision the cook made; changing i
 allowed only because the cook made the new one too.
 
 ## 3 · Phases
+
+### Phase 0 — Take out what only the old data needed
+
+*Closes nothing in the target. Enabled purely by there being no data, and worth
+doing first because every later phase then touches less code.*
+
+The previous round left two one-shot migrations and the legacy tables they read.
+Both run at launch (`SousApp.swift:80-81`) against rows that cannot exist:
+
+- `VocabularyMigration` / `SwiftDataVocabularyMigration` — folded four user tables
+  into the vocabulary.
+- `BundledDataMigration` / `SwiftDataBundledDataMigration` — re-keyed name-keyed
+  user data onto SBLS codes.
+- The four `@Model` types they exist to read: `StoredCatalogIngredient`,
+  `StoredIngredientAliasOverride`, `StoredCatalogNutrition`, `StoredPantryFlag` —
+  reachable from nothing else, and registered in the schema at
+  `SwiftDataRecipeStore.swift:352-355`.
+- Their tests: `BundledDataMigrationTests`, `LegacyStoreFixtures`, the legacy half
+  of `VocabularyTests`.
+
+Roughly 500 lines, plus four entities out of a schema that has to stay
+CloudKit-shaped and is easier to reason about when everything in it is live.
+
+One more thing the old data was paying for: `BasisAssignment.init(from:)` tolerates
+a missing `status` and defaults it to `confirmed`, because a blob written before
+there was a status had to keep working. Nothing has written such a blob. The
+leniency can go, and a decode failure can become loud instead of silently
+confirming a decision nobody made — its own doc comment already calls that the
+worst case.
+
+*Not in this phase:* `RecipeStoreMigration` (`SousApp.swift:343`). It copies a
+household's library between stores, which reads like a live part of the sharing
+architecture rather than a leftover. Whether it is still needed is its own question,
+asked outside this round.
+
+*Verification:* the suite passes with the files gone; the app launches against a
+fresh store.
 
 ### Phase 1 — The basis becomes answerable
 
@@ -121,7 +168,7 @@ Cocktailtomate case gains the proposal status.
 
 ### Phase 4 — The parent becomes something you can make
 
-*Closes target §1 finding 2 and decision A. No schema change; one re-index.*
+*Closes target §1 finding 2 and decision A.*
 
 - A **parent picker**: suggestions from the name plus free search, the shape
   `IngredientAliasPickerView` already has, calling `setParent` instead of
@@ -133,8 +180,8 @@ Cocktailtomate case gains the proposal status.
   stores (`VocabularyStore.swift:68`, `CoreDataVocabularyStore.swift:171`), where it
   currently drops the relation by returning nil and telling nobody.
 - `RecipeIndex.ingredientKeys` indexes the **whole ancestor chain**, so "Pilz" finds
-  a recipe written with braune Champignons. Needs one `reindexSearch` run on
-  upgrade.
+  a recipe written with braune Champignons. `reindexSearch` exists for the
+  upgrade case and has nothing to do here yet.
 
 *Verification:* cycle refused and reported; a three-deep chain resolves basis,
 category and search keys correctly; re-index covered by the existing store tests.
@@ -176,14 +223,21 @@ test that an override wins and a cleared one falls back.
 - **Community values for the spices** — phase 2 makes their absence honest; giving
   them real numbers stays a separate, later question.
 
-## 5 · The one open worry
+## 5 · The one open worry, downgraded
 
-Phase 3 hands the cook roughly four dozen questions at once. Phases 1 and 2 are
-sequenced ahead of it precisely to blunt that, and the three curated rows take the
-worst cases off the pile — but the number is still large, and it is the only part of
-this round that could feel like a chore rather than a repair.
+Phase 3 was the part of this round that could have felt like a chore: four dozen
+inherited bases turning into open questions at once. With an empty store that
+does not happen on the day it ships — the questions appear one at a time, as
+recipes come to use those varieties, which is exactly when a question is worth
+asking.
 
-If it does, the fallback is to mark inheritance as a proposal only where child and
-parent sit in *different* BLS food groups, which would catch Staudensellerie and
-leave Cocktailtomate alone. It is one more heuristic and one more thing to explain,
-so it stays a fallback rather than the plan.
+It comes back at import. The parked recipe rework will bring a large body of
+recipes in one go, and with them a batch of open questions — but that same piece of
+work is where the catalog gets curated properly, so the varieties should arrive
+already mapped rather than inheriting. The two jobs cancel if they are done in that
+order: curate first, import second.
+
+The fallback stands if it turns out noisy anyway: mark inheritance as a proposal
+only where child and parent sit in *different* BLS food groups, which catches
+Staudensellerie and leaves Cocktailtomate alone. One more heuristic and one more
+thing to explain, so it stays a fallback.
