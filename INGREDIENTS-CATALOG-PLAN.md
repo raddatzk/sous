@@ -47,6 +47,14 @@ its §3 into a sequence of shippable phases.
    the bundle for the first time; it is a default, and an override must stay
    possible and obvious.
 5. **Commits only on explicit request**, as everywhere in this repo.
+6. **Verify what can be verified here, and say what cannot.** Off a Mac there
+   is no build: SwiftData, SwiftUI and Core Data do not exist on Linux, and a
+   Swift toolchain would not change that. `Scripts/parse_check.py` closes part
+   of the gap — a real Swift grammar over every file, compared against the
+   commit the work started from — and its own docstring is honest about the
+   ceiling: it knows syntax, not types. Every phase below still owes a
+   `swift test --package-path SousKit` and an app build on a Mac before it is
+   finished.
 
 ## 2 · What this round retires
 
