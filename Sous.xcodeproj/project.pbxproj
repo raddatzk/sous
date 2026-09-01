@@ -67,6 +67,7 @@
 		A254FF73597AA4E6F9C29DB8 /* PlanDinnersSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4859FC7391F344B55EA7F447 /* PlanDinnersSheet.swift */; };
 		A72EB9A35B8972F7FE34899B /* NRFBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22368522EEB68B987EB6F862 /* NRFBadge.swift */; };
 		AAD143278712E842054B39FE /* CookSwitcherBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */; };
+		AB0985D14A9B143EE81A5521 /* IngredientLineButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119494B99883FD983CCE2F2A /* IngredientLineButton.swift */; };
 		B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D887BABFAA022A8033B9EDBE /* ContinueCookingBanner.swift */; };
 		B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */ = {isa = PBXBuildFile; fileRef = E5991E77C580417358950F92 /* sous.icon */; };
 		B1AFE064640D52D8CCD724C4 /* PlanRecipeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E155E60C8508D02CC07CDB18 /* PlanRecipeSheet.swift */; };
@@ -136,6 +137,7 @@
 		016DCB9A57A20D413B827E18 /* ShoppingPickSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingPickSheet.swift; sourceTree = "<group>"; };
 		027C4D97EB668FD81EEF6515 /* RecipeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRow.swift; sourceTree = "<group>"; };
 		0C70498384AEDCBCE42346CB /* IngredientLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineView.swift; sourceTree = "<group>"; };
+		119494B99883FD983CCE2F2A /* IngredientLineButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientLineButton.swift; sourceTree = "<group>"; };
 		13781E7C6571A8D114AB3CD7 /* RecipeTextEditorStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeTextEditorStyles.swift; sourceTree = "<group>"; };
 		17926632D910B9FEE5B9A8A3 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		1E6F8015698D15D392FF7A3F /* SousShare.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -254,6 +256,7 @@
 				A02101285D7B81B10C15BC59 /* IngredientBasisPicker.swift */,
 				6343A2B8A34CDA5210A8E4FF /* IngredientCatalogView.swift */,
 				638E37E83BF54BD476434C1F /* IngredientClarificationSheet.swift */,
+				119494B99883FD983CCE2F2A /* IngredientLineButton.swift */,
 				0C70498384AEDCBCE42346CB /* IngredientLineView.swift */,
 				EAC937BDCB94723ECECBF2FF /* IngredientMeasurePicker.swift */,
 				687730697B4B18B2BA873B0B /* IngredientReviewSheet.swift */,
@@ -603,6 +606,7 @@
 				055EA89DB3BF4388524C0C54 /* IngredientBasisPicker.swift in Sources */,
 				8C832794858BA282AFB0D979 /* IngredientCatalogView.swift in Sources */,
 				CE1627197CCE142FE5490C94 /* IngredientClarificationSheet.swift in Sources */,
+				AB0985D14A9B143EE81A5521 /* IngredientLineButton.swift in Sources */,
 				419B4D0856A1C3D7F12E9C66 /* IngredientLineView.swift in Sources */,
 				A099E34443DFAC11A3163D69 /* IngredientMeasurePicker.swift in Sources */,
 				B28BE3C030C0E9EE75A63AF1 /* IngredientReviewSheet.swift in Sources */,

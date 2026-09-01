@@ -10,6 +10,10 @@ import SwiftUI
 /// inherits everything that entry already knows.
 struct UnknownIngredientButton<Label: View>: View {
     let name: String
+    /// Run once either sheet is gone. Teaching the word changes what the
+    /// recipe it was tapped in can count — the editor and the review sheet
+    /// have nothing to recompute and leave it out.
+    var onClose: () -> Void = {}
     @ViewBuilder var label: () -> Label
 
     @State private var teaching: CatalogIngredient?
@@ -30,10 +34,10 @@ struct UnknownIngredientButton<Label: View>: View {
         // list row in the review sheet — not by a button's own chrome.
         .buttonStyle(.plain)
         .menuIndicator(.hidden)
-        .sheet(item: $teaching) { ingredient in
+        .sheet(item: $teaching, onDismiss: onClose) { ingredient in
             IngredientFormView(ingredient: ingredient)
         }
-        .sheet(isPresented: $isPickingAlias) {
+        .sheet(isPresented: $isPickingAlias, onDismiss: onClose) {
             IngredientAliasPickerView(alias: name)
         }
     }

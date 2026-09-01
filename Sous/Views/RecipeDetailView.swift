@@ -8,6 +8,9 @@ struct RecipeDetailView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(NutritionLibrary.self) private var nutritionLibrary
     @Environment(RecipeSelection.self) private var selection
+    /// Read for the ingredient lines: which of them the app knows a word for
+    /// decides what tapping it opens.
+    @Environment(IngredientCatalogLibrary.self) private var catalog
     /// The way to the shopping list — where there is one. Optional because
     /// this page is also shown as a sheet out of the Mac's cook window,
     /// which is a window of its own and carries no section to switch.
@@ -226,6 +229,9 @@ struct RecipeDetailView: View {
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
         .task { await shopping.loadIfNeeded() }
+        // Same reason for the catalog: this page may be the first thing open,
+        // and every ingredient line asks it what that word is.
+        .task { await catalog.ensureLoaded() }
         .task(id: recipe.id) { await recomputeEffort() }
         .sheet(isPresented: $isPickingForShoppingList) {
             // Topping up shows the amounts the list is showing for the dish
@@ -903,8 +909,13 @@ struct RecipeDetailView: View {
                                 .padding(.top, 4)
                         }
                         ForEach(group.ingredients) { ingredient in
-                            IngredientLineView(ingredient: ingredient, formatter: formatter)
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                            // Each line is the way to what the app knows about
+                            // that word — see `IngredientLineButton`. Salz auf
+                            // Vorrat setzen is then a tap on "Salz", not a trip
+                            // through the catalog to look the word up again.
+                            IngredientLineButton(ingredient: ingredient, formatter: formatter) {
+                                await recomputeNutrition()
+                            }
                         }
                     }
                 }
