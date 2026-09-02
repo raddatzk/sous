@@ -31,10 +31,7 @@ struct RecipeImporter: ViewModifier {
             .overlay { progressOverlay }
             .alert(
                 "Import abgeschlossen",
-                isPresented: Binding(
-                    get: { summary != nil },
-                    set: { if !$0 { summary = nil } }
-                ),
+                isPresented: Binding(presence: $summary),
                 presenting: summary
             ) { _ in
                 Button("OK", role: .cancel) { summary = nil }
@@ -97,7 +94,7 @@ struct RecipeImporter: ViewModifier {
                     }
                 }
                 .padding(24)
-                .background(.regularMaterial, in: .rect(cornerRadius: 16))
+                .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
             }
             .transition(.opacity)
         }

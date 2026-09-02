@@ -26,7 +26,7 @@ struct TrashView: View {
                         .swipeActions { eraseAction(recipe) }
                         .swipeActions(edge: .leading) {
                             restoreAction(recipe)
-                                .tint(.accentColor)
+                                .tint(Color.sousAccent)
                         }
                         // Both again as a menu: a swipe needs a trackpad to
                         // exist at all, and nothing on the row says it does.
@@ -59,10 +59,10 @@ struct TrashView: View {
                 }
             }
             // Emptying cannot be undone, so it asks — once, for all of them.
-            .confirmationDialog(
+            .sousConfirmation(
                 "\(deleted.count) Rezepte endgültig löschen?",
                 isPresented: $isConfirmingEmpty,
-                titleVisibility: .visible
+                message: "Die Rezepte und ihre Bilder sind danach weg."
             ) {
                 Button("Papierkorb leeren", role: .destructive) {
                     Task {
@@ -70,9 +70,6 @@ struct TrashView: View {
                         await load()
                     }
                 }
-                Button("Abbrechen", role: .cancel) {}
-            } message: {
-                Text("Die Rezepte und ihre Bilder sind danach weg.")
             }
             .navigationDestination(item: $openedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe)

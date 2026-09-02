@@ -10,6 +10,8 @@ struct RootView: View {
     @Environment(DataUpdateNotice.self) private var dataUpdate
     @Environment(OnboardingNotice.self) private var onboarding
     @Environment(RecipeLibrary.self) private var library
+    @Environment(MealPlanLibrary.self) private var plan
+    @Environment(ShoppingLibrary.self) private var shopping
     @Environment(LibraryCommands.self) private var commands
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
@@ -100,6 +102,17 @@ struct RootView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: showsBanner)
         .animation(.easeInOut(duration: 0.2), value: orphaned.count)
+        // The libraries every screen writes to report here, above the
+        // sections, because the write and the screen that would show its
+        // failure are rarely the same: a recipe page puts a dish on the
+        // shopping list, a picker adds it to the plan. On the Mac only one
+        // section is mounted at a time, and on the phone a tab not yet
+        // visited has no view at all — an alert bound inside the section
+        // would be silent exactly when the write happened.
+        .sousErrorAlert(library)
+        .sousErrorAlert(plan)
+        .sousErrorAlert(shopping)
+        .sousErrorAlert(nutrition)
         // The welcome, on the first launch of an app with nothing in it —
         // and above everything, because it is about the whole app rather
         // than the section that happens to be showing.

@@ -339,14 +339,7 @@ struct RecipeDetailView: View {
             Task { linkedRecipe = await library.recipe(id: id) }
             return .handled
         })
-        .alert(
-            "Fehler",
-            isPresented: Binding(get: { aiError != nil }, set: { if !$0 { aiError = nil } })
-        ) {
-            Button("OK", role: .cancel) { aiError = nil }
-        } message: {
-            Text(aiError ?? "")
-        }
+        .sousErrorAlert($aiError)
     }
 
     /// The explicit "try again" — `save(_:)` already schedules this
@@ -619,7 +612,7 @@ struct RecipeDetailView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
         // Full width where the page is barely wider than the banner, and no
         // wider than it needs where there is room. Measured rather than asked
         // of the platform: an iPad's page is as wide as a Mac's.
@@ -672,7 +665,7 @@ struct RecipeDetailView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
         .fixedSize(horizontal: isWide, vertical: false)
     }
 
@@ -710,7 +703,7 @@ struct RecipeDetailView: View {
                 .buttonStyle(.borderedProminent)
         }
         .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
         .fixedSize(horizontal: isWide, vertical: false)
     }
 
@@ -732,7 +725,7 @@ struct RecipeDetailView: View {
             .buttonStyle(.borderedProminent)
         }
         .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: 12))
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
         .fixedSize(horizontal: isWide, vertical: false)
     }
 
@@ -947,7 +940,7 @@ struct RecipeDetailView: View {
                     ForEach(Array(group.steps.enumerated()), id: \.element.id) { index, step in
                         HStack(alignment: .firstTextBaseline, spacing: 14) {
                             Text("\(index + 1)")
-                                .font(.system(.headline, design: .serif))
+                                .font(SousStyle.groupHeading)
                                 .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
                             Text(attributedText(for: resolution.segments(for: step)))
@@ -990,8 +983,8 @@ struct RecipeDetailView: View {
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
-                            .background(Color.orange.opacity(SousStyle.chipTint), in: .capsule)
-                            .foregroundStyle(.orange)
+                            .background(Color.sousCaution.opacity(SousStyle.chipTint), in: .capsule)
+                            .foregroundStyle(Color.sousCaution)
                     }
                 }
                 coverageLine(for: nutrition)
@@ -1438,7 +1431,7 @@ struct RecipeDetailView: View {
                 result += markdown(string)
             case .amount(let string):
                 var run = AttributedString(string)
-                run.foregroundColor = .accentColor
+                run.foregroundColor = .sousAccent
                 result += run
             }
         }

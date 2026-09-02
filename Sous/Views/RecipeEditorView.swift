@@ -152,7 +152,7 @@ struct RecipeEditorView: View {
                     ForEach(draft.imageIDs, id: \.self) { imageID in
                         RecipeImageView(imageID: imageID, thumbnail: true)
                             .frame(width: 88, height: 88)
-                            .clipShape(.rect(cornerRadius: 12))
+                            .clipShape(.rect(cornerRadius: SousStyle.fieldRadius))
                             .overlay(alignment: .topTrailing) {
                                 Button("Entfernen", systemImage: "xmark.circle.fill") {
                                     remove(imageID)
@@ -165,7 +165,7 @@ struct RecipeEditorView: View {
                     }
 
                     PhotosPicker(selection: $pickedPhotos, matching: .images) {
-                        RoundedRectangle(cornerRadius: 12)
+                        RoundedRectangle(cornerRadius: SousStyle.fieldRadius)
                             .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
                             .foregroundStyle(.tertiary)
                             .frame(width: 88, height: 88)
@@ -700,13 +700,9 @@ struct RecipeEditorView: View {
         }
     }
 
-    /// Section headings share the serif with the rest of the app; `textCase`
-    /// is cleared because a form would otherwise shout them in capitals.
+    /// Section headings share the serif with the rest of the app.
     private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(SousStyle.groupHeading)
-            .foregroundStyle(.primary)
-            .textCase(nil)
+        Text(title).sousGroupHeader()
     }
 
     @ToolbarContentBuilder

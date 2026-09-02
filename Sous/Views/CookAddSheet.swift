@@ -64,7 +64,7 @@ struct CookAddSheet: View {
                             row(recipe)
                         }
                     } header: {
-                        Text("Gehört zu dem, was schon kocht")
+                        Text("Gehört zu dem, was schon kocht").sousGroupHeader()
                     }
                 }
                 Section {
@@ -77,7 +77,7 @@ struct CookAddSheet: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
-            .searchable(text: $searchText, prompt: "Rezept suchen")
+            .searchable(text: $searchText, prompt: "Titel, Zutat, Kategorie")
             .overlay { emptyState }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

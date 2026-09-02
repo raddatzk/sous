@@ -46,7 +46,12 @@ struct RecipePickerView: View {
                 .disabled(unavailable?(recipe) != nil)
             }
             .navigationTitle(title)
-            .searchable(text: $searchText, prompt: "Rezept suchen")
+            #if os(iOS)
+            // Inline like every other sheet: a large title in a picker
+            // spends a third of a phone's half-height sheet on one word.
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .searchable(text: $searchText, prompt: "Titel, Zutat, Kategorie")
             .overlay {
                 if results.isEmpty {
                     ContentUnavailableView(

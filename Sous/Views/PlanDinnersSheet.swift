@@ -45,8 +45,9 @@ struct PlanDinnersSheet: View {
                         Button("Übernehmen") {
                             let accepted = proposal.placements.filter { !deselected.contains($0.id) }
                             Task {
-                                await planner.apply(accepted)
-                                dismiss()
+                                // Stays open on a failure, so the alert has a
+                                // screen to appear on.
+                                if await planner.apply(accepted) { dismiss() }
                             }
                         }
                         .disabled(proposal.placements.allSatisfy { deselected.contains($0.id) })
@@ -55,6 +56,7 @@ struct PlanDinnersSheet: View {
             }
         }
         .sousSheetSizing(.form)
+        .sousErrorAlert(planner)
         .onDisappear { planner.reset() }
     }
 
@@ -164,7 +166,7 @@ struct PlanDinnersSheet: View {
             if let imageID = planner.recipe(for: placement)?.imageIDs.first {
                 RecipeImageView(imageID: imageID, thumbnail: true)
                     .frame(width: 44, height: 44)
-                    .clipShape(.rect(cornerRadius: 8))
+                    .clipShape(.rect(cornerRadius: SousStyle.thumbnailRadius))
             }
             VStack(alignment: .leading, spacing: 2) {
                 dayLine(placement)

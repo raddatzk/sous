@@ -123,7 +123,7 @@ struct RecipeRow: View {
         // every row.
         .frame(maxHeight: .infinity, alignment: .top)
         .background(Color.sousBackground)
-        .clipShape(.rect(cornerRadius: 18, style: .continuous))
+        .clipShape(.rect(cornerRadius: SousStyle.cardRadius, style: .continuous))
     }
 
     /// The name, and what the four glyphs have to say beside it.
@@ -180,7 +180,7 @@ struct RecipeRow: View {
         #else
         .frame(width: 68, height: 68)
         #endif
-        .clipShape(.rect(cornerRadius: 14, style: .continuous))
+        .clipShape(.rect(cornerRadius: SousStyle.fieldRadius, style: .continuous))
     }
 
     /// Labelled, not decorative: these four glyphs are the row's whole
@@ -190,7 +190,7 @@ struct RecipeRow: View {
     private var markers: some View {
         if recipe.isFavorite {
             Image(systemName: "star.fill")
-                .foregroundStyle(.yellow)
+                .foregroundStyle(Color.sousStar)
                 .imageScale(.small)
                 .accessibilityLabel("Favorit")
         }

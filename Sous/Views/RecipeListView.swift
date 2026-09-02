@@ -76,17 +76,6 @@ struct RecipeListView: View {
             .onChange(of: library.editing) { _, editing in
                 if editing == nil { Task { await library.discardUnsavedDraft() } }
             }
-            .alert(
-                "Fehler",
-                isPresented: Binding(
-                    get: { library.errorMessage != nil },
-                    set: { if !$0 { library.errorMessage = nil } }
-                )
-            ) {
-                Button("OK", role: .cancel) { library.errorMessage = nil }
-            } message: {
-                Text(library.errorMessage ?? "")
-            }
     }
 
     /// The Mac has one split view for the whole window, so this is only its
@@ -405,14 +394,14 @@ struct RecipeListView: View {
                 ) {
                     Task { await library.toggleFavorite(recipe) }
                 }
-                .tint(.yellow)
+                .tint(Color.sousStar)
                 Button(
                     recipe.wantToCook ? "Nicht mehr geplant" : "Will ich kochen",
                     systemImage: recipe.wantToCook ? "bookmark.slash" : "bookmark"
                 ) {
                     Task { await library.toggleWantToCook(recipe) }
                 }
-                .tint(.accentColor)
+                .tint(Color.sousAccent)
             }
             .swipeActions(edge: .trailing) {
                 Button("Löschen", systemImage: "trash", role: .destructive) {

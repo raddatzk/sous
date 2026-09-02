@@ -130,17 +130,14 @@ struct VariantGroupView: View {
         } message: {
             Text("Der Name steht über den Varianten und findet sie in der Suche.")
         }
-        .confirmationDialog(
+        .sousConfirmation(
             "Gruppe auflösen?",
             isPresented: $isConfirmingDissolve,
-            titleVisibility: .visible
+            message: "Die Rezepte bleiben alle erhalten und stehen danach einzeln in der Liste."
         ) {
             Button("Auflösen", role: .destructive) {
                 Task { await library.dissolveVariantGroup(group.id) }
             }
-            Button("Abbrechen", role: .cancel) {}
-        } message: {
-            Text("Die Rezepte bleiben alle erhalten und stehen danach einzeln in der Liste.")
         }
     }
 
@@ -273,7 +270,7 @@ struct VariantGroupView: View {
                 HStack(spacing: 5) {
                     if member.isFavorite {
                         Image(systemName: "star.fill")
-                            .foregroundStyle(.yellow)
+                            .foregroundStyle(Color.sousStar)
                             .imageScale(.small)
                     }
                     if member.wantToCook {

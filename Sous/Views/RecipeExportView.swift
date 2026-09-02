@@ -55,10 +55,7 @@ private struct RecipeExporter: ViewModifier {
     func body(content: Content) -> some View {
         content
             .fileExporter(
-                isPresented: Binding(
-                    get: { export != nil },
-                    set: { if !$0 { export = nil } }
-                ),
+                isPresented: Binding(presence: $export),
                 document: export,
                 contentType: export?.contentType ?? RecipeExport.library,
                 defaultFilename: export?.name
@@ -93,7 +90,7 @@ private struct RecipeExporter: ViewModifier {
                     }
                 }
                 .padding(24)
-                .background(.regularMaterial, in: .rect(cornerRadius: 16))
+                .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
             }
         }
     }

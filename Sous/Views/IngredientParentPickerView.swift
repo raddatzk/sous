@@ -39,13 +39,15 @@ struct IngredientParentPickerView: View {
                     Section {
                         ForEach(proposals) { row($0) }
                     } header: {
-                        Text("Vorschläge")
+                        Text("Vorschläge").sousGroupHeader()
                     } footer: {
                         Text("Nach dem Wortende: was „\(ingredientName)“ dem Namen nach sein könnte.")
                     }
                 }
-                Section(trimmedQuery.isEmpty ? "Alle Zutaten" : "Treffer") {
+                Section {
                     ForEach(results) { row($0) }
+                } header: {
+                    Text(trimmedQuery.isEmpty ? "Alle Zutaten" : "Treffer").sousGroupHeader()
                 }
             }
             .navigationTitle("„\(ingredientName)“ einordnen")
