@@ -3,7 +3,7 @@ import SwiftData
 import Testing
 @testable import SousKit
 
-/// The store's own rules: identity, the one-level variant relation, and the
+/// The store's own rules: identity, the variant relation at any depth but never in a loop, and the
 /// silent sweep of an entry that no longer says anything.
 @Suite("The vocabulary store")
 struct VocabularyStoreTests {
@@ -27,20 +27,51 @@ struct VocabularyStoreTests {
         #expect(entries.contains { $0.key == "tomate" })
     }
 
-    @Test("The relation stays one level deep")
-    func noVarietyOfAVariety() async throws {
+    @Test("The relation may be any depth")
+    func varietiesOfVarieties() async throws {
+        // The shipped data already held Pilz → Champignon → Brauner Champignon
+        // while the store refused to write the same shape — and refused it
+        // silently, by dropping the relation. Catalog target, decision A.
         let store = try store()
         _ = try await store.save(IngredientVocabularyEntry(
             name: "Kirschtomate", parentName: "Tomate", isOwnIngredient: true
         ))
-
         _ = try await store.save(IngredientVocabularyEntry(
             name: "Gelbe Kirschtomate", parentName: "Kirschtomate", isOwnIngredient: true
         ))
 
         let entries = try await store.entries()
         let grandchild = try #require(entries.first { $0.key == "gelbe kirschtomate" })
-        #expect(grandchild.parentName == nil)
+        #expect(grandchild.parentName == "Kirschtomate")
+    }
+
+    @Test("A loop is refused out loud, and the entry stays as it was")
+    func cyclesAreRefused() async throws {
+        let store = try store()
+        _ = try await store.save(IngredientVocabularyEntry(
+            name: "Kirschtomate", parentName: "Tomate", isOwnIngredient: true
+        ))
+
+        // Tomate under Kirschtomate would run in a circle. The old one-level
+        // guard made this impossible by accident and said nothing; now it is
+        // an error the caller can show.
+        await #expect(throws: VocabularyStoreError.wouldCycle(child: "Tomate", parent: "Kirschtomate")) {
+            try await store.save(IngredientVocabularyEntry(
+                name: "Tomate", parentName: "Kirschtomate", isPantry: true
+            ))
+        }
+        // Nothing half-written: the pantry flag that rode along with the
+        // refused parent did not land either.
+        let tomate = try #require(try await store.entries().first { $0.key == "tomate" })
+        #expect(tomate.parentName == nil)
+        #expect(!tomate.isPantry)
+
+        // The shortest loop of all.
+        await #expect(throws: VocabularyStoreError.self) {
+            try await store.save(IngredientVocabularyEntry(
+                name: "Tomate", parentName: "Tomaten", isOwnIngredient: true
+            ))
+        }
     }
 
     @Test("An entry that no longer says anything is swept")

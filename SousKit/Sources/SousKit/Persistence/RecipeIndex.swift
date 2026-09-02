@@ -12,13 +12,16 @@ import Foundation
 /// a failure anyone could read.
 public enum RecipeIndex {
     /// The ingredients a recipe can be filtered by — each line's own key and,
-    /// for a variety, its parent's as well.
+    /// for a variety, every ancestor's as well.
     ///
-    /// Both, because a recipe calling for Cocktailtomaten *is* a recipe with
-    /// tomatoes in it. Filtering by "Tomate" and not finding it would be the
-    /// swallowing the variety relation exists to prevent, in the other
-    /// direction: the shopping list keeps them apart, the library keeps them
-    /// together.
+    /// All of them, because a recipe calling for Cocktailtomaten *is* a
+    /// recipe with tomatoes in it, and one calling for braune Champignons is
+    /// a recipe with mushrooms in it two steps up. Filtering by "Pilz" and
+    /// not finding it would be the swallowing the variety relation exists to
+    /// prevent, in the other direction: the shopping list keeps varieties
+    /// apart, the library keeps them together. It used to take one hop,
+    /// which was exactly one hop short for the chain the shipped data
+    /// already held.
     public static func ingredientKeys(for recipe: Recipe, catalog: IngredientCatalog) -> [String] {
         var seen = Set<String>()
         var keys: [String] = []
@@ -33,8 +36,8 @@ public enum RecipeIndex {
                 resolved = catalog.ingredient(for: head)
                 headKey = resolved.map(\.key)
             }
-            let parent = resolved?.parentName.map(IngredientCatalog.normalize)
-            for key in [own, headKey, parent].compactMap({ $0 }) {
+            let lineage = resolved.map { catalog.ancestors(of: $0.name).map(\.key) } ?? []
+            for key in [own, headKey].compactMap({ $0 }) + lineage {
                 guard !key.isEmpty, seen.insert(key).inserted else { continue }
                 keys.append(key)
             }

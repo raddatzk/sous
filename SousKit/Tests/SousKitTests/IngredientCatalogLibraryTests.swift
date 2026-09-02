@@ -111,6 +111,22 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ingredients.filter { $0.key == "olive" }.count == 1)
     }
 
+    @Test("Filing a parent under its own variety is refused and reported", arguments: StoreBackend.allCases)
+    func cyclicParentIsRefused(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        await library.reload()
+        await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate"))
+        #expect(library.catalog.ingredient(for: "Kirschtomate")?.parentName == "Tomate")
+
+        await library.setParent("Kirschtomate", of: "Tomate")
+
+        // Refused loudly - the library surfaces what the store threw - and
+        // refused whole: Tomate is not a variety of anything afterwards.
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
+    }
+
     @Test("A recipe's unknown ingredients are found, links and knowns skipped", arguments: StoreBackend.allCases)
     func unknownIngredients(_ backend: StoreBackend) async throws {
         let library = try makeLibrary(backend)

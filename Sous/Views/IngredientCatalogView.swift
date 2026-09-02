@@ -179,6 +179,9 @@ struct IngredientFormView: View {
     /// remembered for as long as the form is open. Decision B: asked once,
     /// in passing, at the moment the ingredient comes into being.
     @State private var variantProposal: CatalogIngredient?
+    /// Whether the parent picker is up — the way to the relation that does
+    /// not depend on the heuristic having guessed right at creation time.
+    @State private var isPickingParent = false
     /// The measure fields the cook has touched, by unit symbol. Only what is
     /// in here is written back on save — an untouched field shows what the
     /// app currently believes and must not turn that into a correction just
@@ -282,6 +285,15 @@ struct IngredientFormView: View {
                 measuresSection
             }
             .formStyle(.grouped)
+            .sheet(isPresented: $isPickingParent) {
+                // Into the draft, not the store: the form writes on save, and
+                // a parent chosen for a name that does not exist yet has no
+                // entry to be written onto until then.
+                IngredientParentPickerView(ingredientName: trimmedName) { parent in
+                    parentName = parent.name
+                    variantProposal = nil
+                }
+            }
             .navigationTitle(isNew ? "Neue Zutat" : name)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -391,12 +403,15 @@ struct IngredientFormView: View {
     ///
     /// The proposal at the top appears only while the ingredient is coming
     /// into being, and only when the word ends in another one — decision B's
-    /// single, casual moment. Everything else here is the relation as it
-    /// stands, changeable but never guessed again.
+    /// single, casual moment. The button under it is what used to be missing:
+    /// the relation was acceptable and releasable, never *choosable*, so a
+    /// declined proposal was the end of the matter. Now the section is always
+    /// here, and a parent can be set or changed whenever the ingredient is
+    /// open (catalog target, decision A and §1).
     @ViewBuilder
     private var variantSection: some View {
         let children = trimmedName.isEmpty ? [] : catalog.catalog.variants(of: pantryName)
-        if variantProposal != nil || parentName != nil || !children.isEmpty {
+        if !trimmedName.isEmpty {
             Section {
                 if let proposal = variantProposal, parentName == nil {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -413,7 +428,7 @@ struct IngredientFormView: View {
                 }
                 if let parentName {
                     HStack {
-                        LabeledContent("Sorte von", value: parentName)
+                        LabeledContent("Sorte von", value: parentLineage(from: parentName))
                         Spacer(minLength: 8)
                         Button("Lösen", systemImage: "minus.circle", role: .destructive) {
                             self.parentName = nil
@@ -423,15 +438,28 @@ struct IngredientFormView: View {
                         .help("Sorten-Zuordnung lösen")
                     }
                 }
+                Button(
+                    parentName == nil ? "Als Sorte einordnen" : "Andere Stamm-Zutat wählen",
+                    systemImage: "arrow.triangle.branch"
+                ) {
+                    isPickingParent = true
+                }
                 ForEach(children) { child in
                     LabeledContent("Sorte", value: child.name)
                 }
             } header: {
                 Text("Sorten")
             } footer: {
-                Text("Sorten stehen auf der Einkaufsliste als Unterzeilen der Stammzutat — an einer Stelle, ohne die Unterscheidung zu verlieren. Nährwerte erben sie, solange sie keine eigenen haben.")
+                Text("Eine Sorte erbt Nährwerte und Maße ihrer Stamm-Zutat, solange sie keine eigenen hat — als Vorschlag, den du einmal bestätigst. Auf der Einkaufsliste steht sie als eigene Zeile. Rezepte mit einer Sorte finden sich auch unter der Stamm-Zutat.")
             }
         }
+    }
+
+    /// "Champignon → Pilz" where the chosen parent is itself a variety: the
+    /// chain may be any depth, and the row should say where it leads.
+    private func parentLineage(from parentName: String) -> String {
+        ([parentName] + catalog.catalog.ancestors(of: parentName).map(\.name))
+            .joined(separator: " → ")
     }
 
     // MARK: - Bundled entries

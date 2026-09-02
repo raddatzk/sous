@@ -200,6 +200,7 @@ targets:
       - path: Sous/Views/RecipeTextEditorStyles.swift
       - path: Sous/Views/UnknownIngredientButton.swift
       - path: Sous/Views/IngredientAliasPickerView.swift
+      - path: Sous/Views/IngredientParentPickerView.swift
       - path: Sous/Views/DecimalText.swift
     entitlements:
       path: SousShare/SousShare.entitlements

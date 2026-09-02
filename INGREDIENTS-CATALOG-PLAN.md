@@ -3,8 +3,10 @@
 Companion to [INGREDIENTS-CATALOG.md](INGREDIENTS-CATALOG.md) (the target). Turns
 its §3 into a sequence of shippable phases.
 
-- **Status:** four of seven phases landed on the branch, none of them built or
-  tested — see rule 6. Phases 3, 4 and 6 are open.
+- **Status:** five of seven phases landed on the branch, none of them built or
+  tested — see rule 6. Phases 3 and 6 are open; on review the order became
+  4 → 3 → 6, because phase 4 is what the cook asked for directly and phase 3 is
+  what the round inferred.
 - **Baseline:** `main` @ `44f3273`, 2026-09-01.
 - **There is no existing user data.** Nothing is deployed, nothing has to be carried
   forward. That is not merely a relief — it removes a phase's worth of caution from
@@ -22,7 +24,7 @@ its §3 into a sequence of shippable phases.
 | 1 — The basis becomes answerable | a mapping can be made, changed and searched | M | `416e010`, `80f9fa0` |
 | 2 — Words with no values say so | the spices stop being a permanent gap | S | `257ba8f` |
 | 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M | open |
-| 4 — The parent becomes something you can make | the relation gets a way in | M | open |
+| 4 — The parent becomes something you can make | the relation gets a way in | M | `262ceb0` |
 | 5 — The shopping list stops bundling | varieties are their own errands | S | `bc14811` |
 | 6 — Category is inherited | one inheritance rule instead of an exception | S | open |
 

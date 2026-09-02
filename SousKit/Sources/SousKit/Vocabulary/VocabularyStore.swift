@@ -15,6 +15,26 @@ public protocol VocabularyStore: Sendable {
     func delete(key: String) async throws
 }
 
+/// What a vocabulary store refuses to write.
+public enum VocabularyStoreError: LocalizedError, Equatable {
+    /// Filing `child` under `parent` would make the chain run in a circle.
+    ///
+    /// The relation may be any depth (catalog target, decision A), which is
+    /// exactly why this has to be loud: the old rule — a variety of a variety
+    /// is refused — made a loop impossible as a side effect, and it refused
+    /// *silently*, by handing back nil and dropping the relation with nobody
+    /// told. A cycle check that failed the same way would be a relation that
+    /// vanishes for a reason the cook cannot see.
+    case wouldCycle(child: String, parent: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .wouldCycle(let child, let parent):
+            "„\(parent)“ ist selbst eine Sorte von „\(child)“ — die Zuordnung würde im Kreis laufen."
+        }
+    }
+}
+
 /// A ``VocabularyStore`` backed by SwiftData.
 @ModelActor
 public actor SwiftDataVocabularyStore: VocabularyStore {
@@ -44,11 +64,21 @@ public actor SwiftDataVocabularyStore: VocabularyStore {
             modelContext.insert(made)
             return made
         }()
+        // The parent first, before anything about the row is touched: a
+        // refused parent must leave the entry exactly as it was, not half
+        // applied with the one field that failed left out.
+        let parentID: UUID?
+        do {
+            // A parent named but not yet written comes into being here: the
+            // relation is what makes it part of the vocabulary, and the cook
+            // should not have to open a second form to say so.
+            parentID = try entry.parentName.flatMap { try self.parentID(named: $0, of: row) }
+        } catch {
+            modelContext.rollback()
+            throw error
+        }
         row.apply(entry)
-        // A parent named but not yet written comes into being here: the
-        // relation is what makes it part of the vocabulary, and the cook
-        // should not have to open a second form to say so.
-        row.parentID = try entry.parentName.flatMap { try parentID(named: $0, of: row) }
+        row.parentID = parentID
         try modelContext.save()
         return row.domainValue(parentName: entry.parentName)
     }
@@ -63,18 +93,39 @@ public actor SwiftDataVocabularyStore: VocabularyStore {
     /// The id of the entry `name` refers to, creating a bare row for it if
     /// the cook has never said anything else about it.
     ///
-    /// Refuses to make a variety of a variety — the relation is one level
-    /// deep by design — and refuses to make an entry its own parent.
+    /// Any depth, but never a loop: walking up from the proposed parent must
+    /// not arrive back at the child. An entry as its own parent is the
+    /// shortest loop and is refused the same way. The walk is capped so that
+    /// a store somehow already holding a cycle cannot hang the write.
     private func parentID(named name: String, of child: StoredIngredientVocabulary) throws -> UUID? {
         let key = IngredientCatalog.normalize(name)
-        guard !key.isEmpty, key != child.key else { return nil }
+        guard !key.isEmpty else { return nil }
+        guard key != child.key else {
+            throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)
+        }
         if let existing = try row(key: key) {
-            guard existing.parentID == nil else { return nil }
+            var ancestor: StoredIngredientVocabulary? = existing
+            var steps = 0
+            while let current = ancestor, steps < 64 {
+                if current.id == child.id {
+                    throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)
+                }
+                ancestor = try current.parentID.flatMap { try row(id: $0) }
+                steps += 1
+            }
             return existing.id
         }
         let made = StoredIngredientVocabulary(key: key, name: name)
         modelContext.insert(made)
         return made.id
+    }
+
+    private func row(id: UUID) throws -> StoredIngredientVocabulary? {
+        var descriptor = FetchDescriptor<StoredIngredientVocabulary>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
     }
 
     /// A deleted entry must not leave its varieties pointing at nothing.

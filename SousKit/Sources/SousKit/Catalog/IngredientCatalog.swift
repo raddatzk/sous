@@ -95,8 +95,30 @@ public struct IngredientCatalog: Sendable {
         return ingredient(for: parentName) ?? match
     }
 
-    /// The varieties of an ingredient, in name order — what the shopping
-    /// list groups as sub-lines and what an ingredient form lists.
+    /// Everything `name` is a variety of, nearest first: Brauner Champignon →
+    /// [Champignon, Pilz].
+    ///
+    /// The chain may be any depth (catalog target, decision A), so this is
+    /// what walks it — for the search index, which wants a recipe with braune
+    /// Champignons to answer to "Pilz", and for the parent picker, which must
+    /// not offer a descendant as a parent. A cycle cannot be written (the
+    /// stores refuse one), but the walk still stops if it meets a key twice:
+    /// a data file edited by hand is not a store.
+    public func ancestors(of name: String) -> [CatalogIngredient] {
+        var chain: [CatalogIngredient] = []
+        var seen: Set<String> = [Self.normalize(name)]
+        var current = ingredient(for: name)
+        while let parentName = current?.parentName,
+              let parent = ingredient(for: parentName),
+              seen.insert(parent.key).inserted {
+            chain.append(parent)
+            current = parent
+        }
+        return chain
+    }
+
+    /// The varieties of an ingredient, in name order — what an ingredient
+    /// form lists under "Sorten".
     public func variants(of name: String) -> [CatalogIngredient] {
         let key = Self.normalize(name)
         return ingredients

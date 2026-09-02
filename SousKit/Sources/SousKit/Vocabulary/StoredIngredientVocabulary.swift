@@ -25,8 +25,8 @@ public final class StoredIngredientVocabulary {
     public var aliases: [String] = []
     /// `nil` where the cook has not overridden the aisle.
     public var categoryRaw: String?
-    /// The entry this is a variety of. One level: nothing sets a parent on
-    /// an entry that is itself a variant.
+    /// The entry this is a variety of. Any depth, but never a loop: the
+    /// store refuses a parent that is itself a descendant of this entry.
     public var parentID: UUID?
     /// Whether the cook created this ingredient, as opposed to leaving a note
     /// on a shipped one.
