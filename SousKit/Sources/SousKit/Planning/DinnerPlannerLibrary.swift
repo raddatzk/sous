@@ -87,6 +87,8 @@ public final class DinnerPlannerLibrary {
         recipesByID = [:]
         swappedAway = []
         rejected = []
+        // A message nobody read must not greet the next opening of the sheet.
+        errorMessage = nil
     }
 
     // MARK: - Proposing
@@ -405,7 +407,11 @@ public final class DinnerPlannerLibrary {
 
     /// Writes the accepted placements — the one moment a run touches the
     /// plan.
-    public func apply(_ accepted: [PlanProposal.Placement]) async {
+    /// Says whether every placement landed. On `false` the sheet that asked
+    /// should stay open and show `errorMessage` rather than dismiss over a
+    /// plan that did not change.
+    @discardableResult
+    public func apply(_ accepted: [PlanProposal.Placement]) async -> Bool {
         var placements: [(day: Date?, kind: MealPlanLibrary.PlanPlacementKind)] = []
         for placement in accepted {
             switch placement.candidate.source {
@@ -420,8 +426,14 @@ public final class DinnerPlannerLibrary {
             }
         }
         await mealPlan.apply(placements)
+        // Taken over, not copied: the planner drove this write and its sheet
+        // is the screen up right now, so the message is shown there and not
+        // a second time by the plan behind it.
         if let message = mealPlan.errorMessage {
             errorMessage = message
+            mealPlan.errorMessage = nil
+            return false
         }
+        return true
     }
 }

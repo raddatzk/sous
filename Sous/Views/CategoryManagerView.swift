@@ -65,10 +65,7 @@ struct CategoryManagerView: View {
             }
         }
         .task { await reload() }
-        .alert("Umbenennen", isPresented: Binding(
-            get: { renaming != nil },
-            set: { if !$0 { renaming = nil } }
-        )) {
+        .alert("Umbenennen", isPresented: Binding(presence: $renaming)) {
             TextField("Name", text: $newName)
             Button("Abbrechen", role: .cancel) { renaming = nil }
             Button("Umbenennen") { rename() }

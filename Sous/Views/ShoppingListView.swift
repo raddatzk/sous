@@ -172,7 +172,6 @@ struct ShoppingListView: View {
                 }
             }
         }
-        .sousErrorAlert(shopping)
         .task { await shopping.reload() }
         .refreshable { await shopping.reload() }
     }

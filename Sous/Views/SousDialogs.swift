@@ -16,10 +16,11 @@ import SwiftUI
 extension View {
     /// Shows what `source` last failed at, and clears it once read.
     ///
-    /// Attached by the screen that owns the library's writes — the list for
-    /// the shopping library, the plan for the meal plan — so that every
-    /// library's failures have one place to appear. Attaching it twice for
-    /// one library is harmless but pointless: the first screen up shows it.
+    /// Attached once per library, at the root for the ones every screen
+    /// writes to (`RootView`) and inside the sheet for the ones only that
+    /// sheet drives — the timers in cook mode, the planner in its sheet, the
+    /// catalog in its own screens. Twice for one library would have two
+    /// alerts racing for the same message.
     @MainActor
     func sousErrorAlert(_ source: some ErrorReporting) -> some View {
         sousErrorAlert(Binding(

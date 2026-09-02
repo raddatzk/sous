@@ -58,7 +58,13 @@ public final class NutritionLibrary {
     /// on somebody else having been wired up with it.
     private func settle() async {
         rebuild()
-        try? await store.invalidateAll()
+        do {
+            try await store.invalidateAll()
+        } catch {
+            // A cache that would not clear goes on showing yesterday's
+            // figures, which is worth a word to the cook.
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Rebuilt from the vocabulary the catalog library holds. Called after
@@ -413,7 +419,11 @@ public final class NutritionLibrary {
             perPortion: perPortion, servings: servings,
             nrf93Score: NRF93Score.score(for: perPortion), coverage: report.coverage
         )
-        try? await store.save(result, for: recipe, resolve: resolve)
+        do {
+            try await store.save(result, for: recipe, resolve: resolve)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
         return result
     }
 

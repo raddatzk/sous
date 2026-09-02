@@ -6,7 +6,8 @@ import Foundation
 /// the message has been read. What none of them can do is show it — that is
 /// a screen's job — and for a while only half of them had a screen that did.
 /// A shopping list that could not be written, a plan entry that did not
-/// move, a nutrition cache that failed to clear: set, and never seen. One
+/// move: set, and never seen — and the nutrition cache went one step
+/// further and swallowed its failures without setting anything. One
 /// protocol lets one alert modifier serve all of them, so binding a new
 /// library to the screen is a line rather than a copy of the last one.
 @MainActor

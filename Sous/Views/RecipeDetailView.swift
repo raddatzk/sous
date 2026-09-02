@@ -340,9 +340,6 @@ struct RecipeDetailView: View {
             return .handled
         })
         .sousErrorAlert($aiError)
-        // The recipe page is where the figures are read, so it is where a
-        // failure to compute or cache them is shown.
-        .sousErrorAlert(nutritionLibrary)
     }
 
     /// The explicit "try again" — `save(_:)` already schedules this

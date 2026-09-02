@@ -150,7 +150,6 @@ struct MealPlanView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .task { await plan.reload() }
-        .sousErrorAlert(plan)
         .sheet(item: $pickingSlot) { target in
             RecipePickerView(
                 title: "\(target.slot.title) einplanen",

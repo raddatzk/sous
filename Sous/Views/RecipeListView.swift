@@ -76,7 +76,6 @@ struct RecipeListView: View {
             .onChange(of: library.editing) { _, editing in
                 if editing == nil { Task { await library.discardUnsavedDraft() } }
             }
-            .sousErrorAlert(library)
     }
 
     /// The Mac has one split view for the whole window, so this is only its

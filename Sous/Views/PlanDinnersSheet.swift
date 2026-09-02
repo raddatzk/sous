@@ -45,8 +45,9 @@ struct PlanDinnersSheet: View {
                         Button("Übernehmen") {
                             let accepted = proposal.placements.filter { !deselected.contains($0.id) }
                             Task {
-                                await planner.apply(accepted)
-                                dismiss()
+                                // Stays open on a failure, so the alert has a
+                                // screen to appear on.
+                                if await planner.apply(accepted) { dismiss() }
                             }
                         }
                         .disabled(proposal.placements.allSatisfy { deselected.contains($0.id) })
