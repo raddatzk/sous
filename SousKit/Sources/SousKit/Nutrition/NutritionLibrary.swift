@@ -278,7 +278,7 @@ public final class NutritionLibrary {
 
     /// The rows a typed query finds — the free search beside the proposals.
     ///
-    /// Deliberately not the same question as ``candidates(forName:limit:)``.
+    /// Deliberately not the same question as ``candidates(forName:state:limit:)``.
     /// That one asks *what could this word mean*, and every route it takes
     /// starts from a name the app already holds: the curation's codes, the
     /// kitchen word, the parent, the remembered name of an orphan. This one
@@ -297,15 +297,22 @@ public final class NutritionLibrary {
     /// The rows the picker offers for `name`: what the synonym table already
     /// knows, then everything the catalog's own names turn up, deduplicated
     /// and never longer than a person will read.
-    public func candidates(forName name: String, limit: Int = 30) -> [BLSEntry] {
+    ///
+    /// `state` is the one the picker is asking for. A word answered "bewusst
+    /// ohne" for that state — or in general, under `unspecified` — has
+    /// nothing to propose: every route below is a *guess* at what the word
+    /// might mean, and guessing at a settled question is how Zimt came to be
+    /// offered breakfast cereal at 424 kcal. The free search stays open for a
+    /// cook who disagrees — this only stops the app from volunteering. An
+    /// opt-out filed under some *other* state does not count: it is that
+    /// state's answer, and the cooked row still has its question.
+    public func candidates(
+        forName name: String, state: IngredientState = .unspecified, limit: Int = 30
+    ) -> [BLSEntry] {
         let canonical = catalog.canonicalName(for: name)
         let entry = nutritionCatalog.nutrition(forCanonicalName: canonical)
-        // A word that has been answered has nothing to propose. Every route
-        // below is a *guess* at what the word might mean, and guessing at a
-        // settled question is how Zimt came to be offered breakfast cereal at
-        // 424 kcal. The free search stays open for a cook who disagrees —
-        // this only stops the app from volunteering.
-        if entry?.basis(for: .unspecified)?.status == .deliberatelyWithout { return [] }
+        let settled = entry?.bases[state.rawValue] ?? entry?.bases[IngredientState.unspecified.rawValue]
+        if settled?.status == .deliberatelyWithout { return [] }
         var seen = Set<String>()
         var rows: [BLSEntry] = []
         for code in entry?.candidateCodes ?? [] {

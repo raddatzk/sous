@@ -117,13 +117,15 @@ struct IngredientCatalogLibraryTests {
     func cyclicParentIsRefused(_ backend: StoreBackend) async throws {
         let library = try makeLibrary(backend)
         await library.reload()
-        await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate"))
+        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
         #expect(library.catalog.ingredient(for: "Kirschtomate")?.parentName == "Tomate")
 
-        await library.setParent("Kirschtomate", of: "Tomate")
+        let written = await library.setParent("Kirschtomate", of: "Tomate")
 
-        // Refused loudly - the library surfaces what the store threw - and
+        // Refused loudly - the library surfaces what the store threw and
+        // tells the caller, so a form does not go on saving around it - and
         // refused whole: Tomate is not a variety of anything afterwards.
+        #expect(!written)
         #expect(library.errorMessage?.isEmpty == false)
         #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
         #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
@@ -140,12 +142,31 @@ struct IngredientCatalogLibraryTests {
         await library.reload()
         #expect(library.catalog.ingredient(for: "Cocktailtomate")?.parentName == "Tomate")
 
-        await library.setParent("Cocktailtomate", of: "Tomate")
+        #expect(await library.setParent("Cocktailtomate", of: "Tomate") == false)
 
         #expect(library.errorMessage?.isEmpty == false)
         #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
         #expect(library.wouldCycle(child: "Tomate", parent: "Cocktailtomate"))
         #expect(!library.wouldCycle(child: "Cocktailtomate", parent: "Tomate"))
+    }
+
+    @Test("A child named by one of its spellings is caught in the loop check too", arguments: StoreBackend.allCases)
+    func cycleThroughAnAliasIsRefused(_ backend: StoreBackend) async throws {
+        // "Tomaten" is a spelling of Tomate. Compared as raw keys, "tomaten"
+        // is no ancestor of Kirschtomate and the write went through; on
+        // reload the entry folded onto Tomate, and Tomate → Kirschtomate →
+        // Tomate was in the catalog with every tomato recipe indexed under
+        // Kirschtomate. The check reads both names the way the catalog does.
+        let library = try makeLibrary(backend)
+        await library.reload()
+        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
+
+        #expect(await library.setParent("Kirschtomate", of: "Tomaten") == false)
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.wouldCycle(child: "Tomaten", parent: "Kirschtomate"))
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
     }
 
     @Test("A brand-new ingredient cannot be its own parent, in either store", arguments: StoreBackend.allCases)

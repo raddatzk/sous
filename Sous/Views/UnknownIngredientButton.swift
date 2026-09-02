@@ -54,9 +54,9 @@ struct UnknownIngredientButton<Label: View>: View {
             IngredientParentPickerView(ingredientName: name) { parent in
                 // No category of its own: the variety inherits its parent's
                 // aisle, and keeps inheriting if the parent's ever changes.
-                Task {
-                    await catalog.save(CatalogIngredient(name: name, parentName: parent.name))
-                }
+                // Awaited, so `onClose` recomputes against a catalog that
+                // already holds the variety rather than racing the write.
+                _ = await catalog.save(CatalogIngredient(name: name, parentName: parent.name))
             }
         }
     }

@@ -96,6 +96,28 @@ extension IngredientCatalogTests {
         #expect(catalog.ingredient(for: "Brauner Champignon")?.ownCategory == nil)
         // The index resolves too, not only the list.
         #expect(catalog.ingredient(for: "champignon")?.category == .vegetables)
+        // And the source is nameable: what the form says "wie Pilz" from, and
+        // the same walk the resolution above took - one authority, not two.
+        #expect(catalog.categorySource(for: "Brauner Champignon")?.name == "Pilz")
+        #expect(catalog.categorySource(for: "Pilz")?.name == "Pilz")
+        #expect(catalog.categorySource(for: "Nichts") == nil)
+        // The group is the top of the chain, whatever its depth.
+        #expect(catalog.groupIngredient(for: "Brauner Champignon")?.name == "Pilz")
+    }
+
+    @Test("A parent named by one of its spellings still hands its category down")
+    func parentNamedByAliasResolves() {
+        // The resolution used to look parents up by exact name while every
+        // other walk went through the spellings, so a hand-edited file naming
+        // "Tomaten" as the parent got Sonstiges here and Gemüse everywhere
+        // else. One index, one answer.
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Tomate", aliases: ["Tomaten"], category: .vegetables),
+            CatalogIngredient(name: "Kirschtomate", parentName: "Tomaten"),
+        ])
+        #expect(catalog.category(for: "Kirschtomate") == .vegetables)
+        #expect(catalog.categorySource(for: "Kirschtomate")?.name == "Tomate")
+        #expect(catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
     }
 
     @Test("A written category wins over the inherited one, and clearing it falls back")

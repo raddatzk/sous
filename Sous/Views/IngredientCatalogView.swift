@@ -61,6 +61,7 @@ struct IngredientCatalogView: View {
         .sheet(isPresented: $isAdding) {
             IngredientFormView(ingredient: CatalogIngredient(name: "", category: .other))
         }
+        .catalogErrorAlert(catalog)
         .sousSheetSizing(.page)
     }
 
@@ -349,6 +350,11 @@ struct IngredientFormView: View {
             // Each state carries its own answer, so switching which one is on
             // screen switches the question too.
             .onChange(of: shownState) { loadBasisChoice() }
+            // Where the library refuses — a parent that would run the chain in
+            // a circle — the form stays open and says so. Before this the
+            // message was set and nobody showed it, which is the silent drop
+            // the store's error exists to end.
+            .catalogErrorAlert(catalog)
         }
         .sousSheetSizing(.form)
     }
@@ -377,14 +383,14 @@ struct IngredientFormView: View {
     }
 
     /// What the variety would take if it wrote nothing: the nearest
-    /// ancestor's category, with the ancestor named.
+    /// ancestor's category, with the ancestor named — read from the catalog's
+    /// own resolution, so the form and the list can never disagree about it.
+    /// A parent whose whole chain writes nothing still shows as "wie
+    /// <Parent> (Sonstiges)": that is what the variety would resolve to.
     private var inheritedCategory: (parent: String, category: IngredientCategory)? {
         guard let parentName else { return nil }
-        let chain = [parentName] + catalog.catalog.ancestors(of: parentName).map(\.name)
-        for name in chain {
-            if let own = catalog.catalog.ingredient(for: name)?.ownCategory {
-                return (name, own)
-            }
+        if let source = catalog.catalog.categorySource(for: parentName) {
+            return (source.name, source.category)
         }
         return catalog.catalog.category(for: parentName).map { (parentName, $0) }
     }
@@ -966,39 +972,18 @@ struct IngredientFormView: View {
     private var basisRowList: some View {
         let query = basisQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         let rows = query.isEmpty
-            ? nutrition.candidates(forName: trimmedName)
+            ? nutrition.candidates(forName: trimmedName, state: selectedState.wrappedValue)
             : nutrition.search(query)
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Im Lebensmittelkatalog suchen", text: $basisQuery)
-                .autocorrectionDisabled()
-        }
+        BLSSearchField(text: $basisQuery)
         if rows.isEmpty {
             Text(emptyRowListNote(query: query))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         } else {
             ForEach(rows) { row in
-                Button {
+                BLSRow(row: row, isSelected: chosenRowCode == row.code, indented: true) {
                     chooseRow(row.code)
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: chosenRowCode == row.code
-                            ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(.tint)
-                            .padding(.leading, 14)
-                        Text(row.name)
-                            .multilineTextAlignment(.leading)
-                            .foregroundStyle(.primary)
-                        Spacer(minLength: 8)
-                        Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                    }
-                    .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -1007,7 +992,7 @@ struct IngredientFormView: View {
         if query.isEmpty {
             return "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
         }
-        return query.count < 3 ? "Noch ein Buchstabe." : "Keine Zeile gefunden."
+        return BLSRow.emptySearchNote(query: query)
     }
 
     private var basisFooter: String {
@@ -1193,12 +1178,16 @@ struct IngredientFormView: View {
         let parent = parentName
         let wasParented = original.parentName
         Task {
+            // The identity first, and nothing else if it was refused: a
+            // parent that would run the chain in a circle is reported by the
+            // library, and the form stays open showing it rather than saving
+            // the numbers and measures around a relation that did not land.
             if isOwn {
-                await catalog.save(ingredient)
+                guard await catalog.save(ingredient) else { return }
             } else if parent != wasParented {
                 // A shipped ingredient the cook filed under another one:
                 // everything else about it stays the app's.
-                await catalog.setParent(parent, of: trimmedName)
+                guard await catalog.setParent(parent, of: trimmedName) else { return }
             }
             if basis == .ownValues, editable {
                 if let entered {
@@ -1266,6 +1255,26 @@ private enum BasisChoice: Equatable {
     case catalogRow(String)
     case ownValues
     case deliberatelyWithout
+}
+
+extension View {
+    /// Shows what the catalog library last refused or failed at, and clears
+    /// it once read. Attached by every screen that writes through the
+    /// library, since the library itself has no screen of its own.
+    @MainActor
+    func catalogErrorAlert(_ catalog: IngredientCatalogLibrary) -> some View {
+        alert(
+            "Fehler",
+            isPresented: Binding(
+                get: { catalog.errorMessage != nil },
+                set: { if !$0 { catalog.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { catalog.errorMessage = nil }
+        } message: {
+            Text(catalog.errorMessage ?? "")
+        }
+    }
 }
 
 /// The nutrition form's fields as typed, before they mean anything.

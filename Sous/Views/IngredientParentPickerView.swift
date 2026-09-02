@@ -21,10 +21,16 @@ struct IngredientParentPickerView: View {
     /// The ingredient being filed. Shown so it stays in view while searching,
     /// and kept out of its own list along with everything under it.
     let ingredientName: String
-    /// Handed the chosen parent.
-    let onPick: (CatalogIngredient) -> Void
+    /// Handed the chosen parent. Awaited before the sheet goes: a caller
+    /// that writes to the store on the pick gets to finish before whoever
+    /// is watching the dismissal re-reads the catalog — the form only takes
+    /// the name into its draft and comes back at once.
+    let onPick: (CatalogIngredient) async -> Void
 
     @State private var searchText = ""
+    /// Set once a row was tapped, so a second tap while the first pick is
+    /// still writing does not write again.
+    @State private var isPicking = false
 
     var body: some View {
         NavigationStack {
@@ -70,8 +76,12 @@ struct IngredientParentPickerView: View {
     /// click it expects.
     private func row(_ ingredient: CatalogIngredient) -> some View {
         Button {
-            onPick(ingredient)
-            dismiss()
+            guard !isPicking else { return }
+            isPicking = true
+            Task {
+                await onPick(ingredient)
+                dismiss()
+            }
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 Text(ingredient.name)

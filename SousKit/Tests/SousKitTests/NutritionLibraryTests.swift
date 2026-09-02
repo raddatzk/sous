@@ -71,6 +71,16 @@ struct NutritionLibraryTests {
         #expect(entry.basis(for: .cooked)?.status == .deliberatelyWithout)
         #expect(entry.basis(for: .raw)?.code == "K110100")
         #expect(entry.basis(for: .raw)?.status == .confirmed)
+
+        // The picker follows suit: the opt-out is cooked's answer, so cooked
+        // has nothing to propose and raw still has its rows. Read through
+        // the fallback, the cooked opt-out used to silence every state.
+        #expect(nutrition.candidates(forName: "Kartoffeln", state: .cooked).isEmpty)
+        #expect(!nutrition.candidates(forName: "Kartoffeln", state: .raw).isEmpty)
+        // A general answer, filed under unspecified, does cover every state:
+        // Zimt ships that way, and no state of it should be offered cereal.
+        #expect(nutrition.candidates(forName: "Zimt", state: .raw).isEmpty)
+        #expect(nutrition.candidates(forName: "Zimt").isEmpty)
     }
 
     @Test("A recipe with no ingredient the catalog recognizes comes back as zero, not a crash")

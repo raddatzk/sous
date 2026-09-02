@@ -114,7 +114,7 @@ struct IngredientBasisPicker: View {
     /// step got to answer.
     @ViewBuilder
     private var candidateList: some View {
-        let rows = nutrition.candidates(forName: name)
+        let rows = nutrition.candidates(forName: name, state: state)
         if rows.isEmpty {
             Text("Der Lebensmittelkatalog schlägt zu diesem Namen nichts vor. Such von Hand, trag eigene Werte ein oder lass es bewusst ohne.")
                 .foregroundStyle(.secondary)
@@ -133,9 +133,7 @@ struct IngredientBasisPicker: View {
     private var searchResults: some View {
         let rows = nutrition.search(trimmedQuery)
         if rows.isEmpty {
-            Text(trimmedQuery.count < 3
-                ? "Noch ein Buchstabe."
-                : "Keine Zeile gefunden.")
+            Text(BLSRow.emptySearchNote(query: trimmedQuery))
                 .foregroundStyle(.secondary)
         } else {
             rowList(rows)
@@ -143,19 +141,7 @@ struct IngredientBasisPicker: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-            TextField("Im Lebensmittelkatalog suchen", text: $query)
-                .textFieldStyle(.plain)
-                .autocorrectionDisabled()
-            if !trimmedQuery.isEmpty {
-                Button("Löschen", systemImage: "xmark.circle.fill") { query = "" }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.plain)
-                    .foregroundStyle(.secondary)
-            }
-        }
+        BLSSearchField(text: $query)
     }
 
     private var trimmedQuery: String {
@@ -163,30 +149,16 @@ struct IngredientBasisPicker: View {
     }
 
     /// One shape for both lists, so a proposal and a search hit are picked the
-    /// same way and look the same when picked.
+    /// same way and look the same when picked — and the same shape the form
+    /// uses, see ``BLSRow``.
     private func rowList(_ rows: [BLSEntry]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(rows) { row in
-                Button {
+                BLSRow(row: row, isSelected: current?.code == row.code) {
                     decide {
                         await nutrition.confirmBasis(code: row.code, state: target, forName: name)
                     }
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: current?.code == row.code
-                            ? "largecircle.fill.circle" : "circle")
-                            .foregroundStyle(.tint)
-                        Text(row.name)
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 8)
-                        Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
-                    }
-                    .padding(.vertical, 4)
-                    .contentShape(.rect)
                 }
-                .buttonStyle(.plain)
             }
         }
     }

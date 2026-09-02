@@ -599,6 +599,39 @@ extension ShoppingLibraryTests {
         #expect(shopping.items[0].category == shopping.items[1].category)
     }
 
+    @Test("What a variety inherits comes down the whole chain, nearest first", arguments: StoreBackend.allCases)
+    func inheritanceReachesAnyDepth(_ backend: StoreBackend) async throws {
+        // Pilz → Champignon → Brauner Champignon ships in the data. Store,
+        // shelf note and pantry flag used to reach one step: set on Pilz,
+        // they stopped at Champignon and the braune Champignons stood in
+        // their aisle as though nobody had said anything. Category and
+        // nutrition walk the whole chain; so does this now.
+        let stores = try backend.makeStores()
+        let catalog = IngredientCatalogLibrary(store: stores.vocabulary)
+        let shopping = ShoppingLibrary(
+            store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog
+        )
+        await shopping.add(Recipe(title: "Pfanne", servings: 2, ingredientsText: "200 g Braune Champignons"))
+        let item = try #require(shopping.items.first)
+        #expect(item.name == "Brauner Champignon")
+
+        await catalog.setShoppingPreferences(store: "Markt", note: "feste Köpfe", name: "Pilz")
+        #expect(shopping.preferredStore(of: item) == "Markt")
+        #expect(shopping.shoppingNote(of: item) == "feste Köpfe")
+        #expect(shopping.bySection.map(\.section) == [.store("Markt")])
+
+        // Where two ancestors speak, the nearer one is heard - per field.
+        await catalog.setShoppingPreferences(store: "Hofladen", note: nil, name: "Champignon")
+        #expect(shopping.preferredStore(of: item) == "Hofladen")
+        #expect(shopping.shoppingNote(of: item) == "feste Köpfe")
+
+        // The pantry flag has the same reach, and the walk agrees with the
+        // row's own menu about it.
+        await shopping.setPantry(true, name: "Pilz")
+        #expect(shopping.isPantry(item))
+        #expect(shopping.bySection.map(\.section) == [.pantry])
+    }
+
     @Test("A named store pulls its errands out of the aisle walk")
     func preferredStoreSection() async throws {
         let container = try ModelContainer.sousContainer(inMemory: true)

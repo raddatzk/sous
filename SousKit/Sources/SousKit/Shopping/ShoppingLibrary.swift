@@ -79,11 +79,7 @@ public struct ShoppingRecipeGroup: Identifiable, Sendable {
     /// The subrecipes this section's rows read as coming from, each named
     /// once, in the order they first appear.
     private var subrecipeTitles: [String] {
-        var seen = Set<String>()
-        return items.flatMap(\.demands).compactMap { demand in
-            guard !isOwn(demand), seen.insert(demand.originTitle).inserted else { return nil }
-            return demand.originTitle
-        }
+        items.flatMap(\.demands).filter { !isOwn($0) }.originTitlesInOrder
     }
 
     /// Whether a demand reads as the dish's own. An origin nobody wrote is
@@ -99,6 +95,18 @@ public struct ShoppingRecipeBlock: Identifiable, Sendable {
     /// The subrecipe the lines came from, or `nil` for the dish's own.
     public var subrecipe: String?
     public var items: [ShoppingItem]
+}
+
+extension Sequence where Element == ShoppingDemand {
+    /// The origins these demands were written under, each named once, in the
+    /// order they first appear — the one ordering both the by-recipe view and
+    /// the frozen-origin grouping read titles in.
+    fileprivate var originTitlesInOrder: [String] {
+        var seen = Set<String>()
+        return compactMap { demand in
+            seen.insert(demand.originTitle).inserted ? demand.originTitle : nil
+        }
+    }
 }
 
 extension ShoppingItem {
@@ -195,17 +203,9 @@ public final class ShoppingLibrary {
     /// the recipe again, so what was left out stays left out however far the
     /// dial is turned afterwards.
     public func add(_ recipe: Recipe, servings: Int? = nil, lines: Set<UUID>? = nil) async {
-        let servings = servings ?? recipe.servings
         do {
-            var known: [UUID: Recipe] = [recipe.id: recipe]
-            try await resolveLinks(of: recipe, into: &known)
-            let capture = ShoppingListBuilder.build(
-                from: recipe,
-                servings: servings,
-                selecting: lines,
-                catalog: catalog
-            ) { known[$0] }
-            try await commit(capture, describing: recipe.title)
+            let captured = try await capture(recipe, servings: servings ?? recipe.servings, lines: lines)
+            try await commit(captured, describing: recipe.title)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -226,24 +226,17 @@ public final class ShoppingLibrary {
     public func add(_ recipe: Recipe, lines: Set<UUID>, joining planEntry: ShoppingPlanEntry) async {
         guard !lines.isEmpty else { return }
         do {
-            var known: [UUID: Recipe] = [recipe.id: recipe]
-            try await resolveLinks(of: recipe, into: &known)
-            let capture = ShoppingListBuilder.build(
-                from: recipe,
-                servings: planEntry.servingsCaptured,
-                selecting: lines,
-                catalog: catalog
-            ) { known[$0] }
+            let captured = try await capture(recipe, servings: planEntry.servingsCaptured, lines: lines)
             // The builder always makes an entry — it has no notion of a list
             // that already exists. Dropping it and re-pointing its demands is
             // what turns the capture into an addition to the dish on the
             // list: one heading, one dial, more under it than before.
             let joined = ShoppingCapture(
                 planEntries: [],
-                demands: capture.demands.map { captured in
-                    var captured = captured
-                    captured.demand.planEntryID = planEntry.id
-                    return captured
+                demands: captured.demands.map { demand in
+                    var demand = demand
+                    demand.demand.planEntryID = planEntry.id
+                    return demand
                 }
             )
             try await commit(joined, describing: recipe.title)
@@ -274,6 +267,21 @@ public final class ShoppingLibrary {
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// One recipe's lines as a capture: its links resolved, the picked
+    /// lines (or all of them) taken at `servings`. Both ways of putting a
+    /// recipe on the list start here and differ only in what they do with
+    /// the entry the builder made.
+    private func capture(_ recipe: Recipe, servings: Int, lines: Set<UUID>?) async throws -> ShoppingCapture {
+        var known: [UUID: Recipe] = [recipe.id: recipe]
+        try await resolveLinks(of: recipe, into: &known)
+        return ShoppingListBuilder.build(
+            from: recipe,
+            servings: servings,
+            selecting: lines,
+            catalog: catalog
+        ) { known[$0] }
     }
 
     /// Writes a capture and lets the list catch up.
@@ -430,9 +438,8 @@ public final class ShoppingLibrary {
     // MARK: - Pantry
 
     public func isPantry(_ item: ShoppingItem) -> Bool {
-        pantryKeys.contains(item.key) || groupIngredient(of: item).map {
-            pantryKeys.contains($0.key)
-        } == true
+        let pantry = pantryKeys
+        return pantry.contains(item.key) || inherited(of: item).contains { pantry.contains($0.key) }
     }
 
     /// Loads the vocabulary without touching the list — for screens that
@@ -450,34 +457,44 @@ public final class ShoppingLibrary {
     // MARK: - Stores
 
     /// Where `item` is bought, when the cook said — its own entry first,
-    /// then the ingredient it is a variety of, the same reach `isPantry`
-    /// has: a store named on "Tofu" covers the Räuchertofu on the list.
+    /// then up the chain of what it is a variety of, the same reach
+    /// `isPantry` has: a store named on "Tofu" covers the Räuchertofu on the
+    /// list.
     public func preferredStore(of item: ShoppingItem) -> String? {
         let stores = catalogLibrary?.preferredStores ?? [:]
         if let store = stores[item.key] { return store }
-        return groupIngredient(of: item).flatMap { stores[$0.key] }
+        for ancestor in inherited(of: item) {
+            if let store = stores[ancestor.key] { return store }
+        }
+        return nil
     }
 
     /// What to know at the shelf for `item`, same lookup as its store.
     public func shoppingNote(of item: ShoppingItem) -> String? {
         guard let vocabulary = catalogLibrary?.vocabulary else { return nil }
         if let note = vocabulary[item.key]?.shoppingNote { return note }
-        return groupIngredient(of: item).flatMap { vocabulary[$0.key]?.shoppingNote }
+        for ancestor in inherited(of: item) {
+            if let note = vocabulary[ancestor.key]?.shoppingNote { return note }
+        }
+        return nil
     }
 
     // MARK: - Varieties
 
-    /// The ingredient an item *inherits* from: itself, or the one it is a
-    /// variety of.
+    /// What an item inherits from, nearest first: the ingredients it is a
+    /// variety of, all the way up.
     ///
-    /// Only for what a variety takes over from its parent — which shop it is
-    /// bought in, what to know at the shelf, whether it is a staple. It used
-    /// to decide the list's shape as well, bundling varieties under a shared
-    /// heading; that is gone (catalog target, decision E), because a heading
-    /// summing Champignons and Pfifferlinge into "Pilz 350 g" names a
-    /// purchase nobody can make.
-    private func groupIngredient(of item: ShoppingItem) -> CatalogIngredient? {
-        catalog.groupIngredient(for: item.name)
+    /// Only for what a variety takes over from its ancestors — which shop it
+    /// is bought in, what to know at the shelf, whether it is a staple. The
+    /// chain may be any depth (catalog target, decision A), and it is walked
+    /// whole here for the same reason category and nutrition walk it: a flag
+    /// on Pilz has to reach the braune Champignons two steps below, not stop
+    /// at Champignon. The relation used to decide the list's shape as well,
+    /// bundling varieties under a shared heading; that is gone (decision E),
+    /// because a heading summing Champignons and Pfifferlinge into "Pilz
+    /// 350 g" names a purchase nobody can make.
+    private func inherited(of item: ShoppingItem) -> [CatalogIngredient] {
+        catalog.ancestors(of: item.name)
     }
 
     // MARK: - Readings
@@ -502,7 +519,10 @@ public final class ShoppingLibrary {
         var aisles: [IngredientCategory: [ShoppingItem]] = [:]
 
         for item in items {
-            if pantryKeys.contains(item.key) {
+            // The same question the row's own menu asks, so an item that is
+            // a staple by inheritance is collapsed at the end rather than
+            // standing in its aisle offering "Kein Vorrat mehr".
+            if isPantry(item) {
                 pantry.append(item)
             } else if let store = preferredStore(of: item) {
                 stores[store, default: []].append(item)
@@ -560,7 +580,7 @@ public final class ShoppingLibrary {
         var frozen: [String: [ShoppingItem]] = [:]
         for item in items {
             let orphans = item.demands.filter { $0.planEntryID == nil }
-            for title in orderedTitles(of: orphans) {
+            for title in orphans.originTitlesInOrder {
                 if frozen[title] == nil {
                     frozenOrder.append(title)
                 }
@@ -611,13 +631,6 @@ public final class ShoppingLibrary {
         }
     }
 
-    private func orderedTitles(of demands: [ShoppingDemand]) -> [String] {
-        var seen = Set<String>()
-        return demands.compactMap { demand in
-            guard seen.insert(demand.originTitle).inserted else { return nil }
-            return demand.originTitle
-        }
-    }
 }
 
 extension ShoppingSection {
