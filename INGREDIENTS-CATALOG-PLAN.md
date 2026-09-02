@@ -3,10 +3,14 @@
 Companion to [INGREDIENTS-CATALOG.md](INGREDIENTS-CATALOG.md) (the target). Turns
 its §3 into a sequence of shippable phases.
 
-- **Status:** all seven phases are on the branch. **None of them has been built
-  or tested** — see rule 6; that is the next thing that has to happen, on a Mac.
-  On review the order became 4 → 3 → 6, because phase 4 is what the cook asked
-  for directly and phase 3 is what the round inferred.
+- **Status:** all seven phases are on the branch, and **CI is green** — the first
+  compiler this work saw was the macOS runner on PR #6. It compiled everything at
+  the first attempt and failed twelve test issues in six tests, five of them tests
+  asserting the behaviour the round changed on purpose and one a real API trap
+  (`CatalogIngredient.category` was assignable and the assignment was ignored on
+  save — `internal(set)` now). On review the order became 4 → 3 → 6, because
+  phase 4 is what the cook asked for directly and phase 3 is what the round
+  inferred.
 - **Baseline:** `main` @ `44f3273`, 2026-09-01.
 - **There is no existing user data.** Nothing is deployed, nothing has to be carried
   forward. That is not merely a relief — it removes a phase's worth of caution from
