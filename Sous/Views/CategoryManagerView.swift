@@ -13,6 +13,8 @@ struct CategoryManagerView: View {
     @State private var counts: [(name: String, count: Int)] = []
     @State private var renaming: String?
     @State private var newName = ""
+    /// The category a swipe asked to remove, until the question is answered.
+    @State private var deletionCandidate: String?
 
     var body: some View {
         NavigationStack {
@@ -79,6 +81,21 @@ struct CategoryManagerView: View {
                 Text("Der neue Name gilt für alle Rezepte mit dieser Kategorie.")
             }
         }
+        // Final, and felt in every recipe filed under the name, so it asks.
+        .sousConfirmation(
+            "„\(deletionCandidate ?? "")“ entfernen?",
+            isPresented: Binding(presence: $deletionCandidate),
+            message: "Die Kategorie verschwindet aus allen Rezepten, die sie tragen. Die Rezepte selbst bleiben."
+        ) {
+            if let name = deletionCandidate {
+                Button("Entfernen", role: .destructive) {
+                    Task {
+                        await library.deleteCategory(name)
+                        await reload()
+                    }
+                }
+            }
+        }
         .sousSheetSizing(.form)
     }
 
@@ -94,10 +111,7 @@ struct CategoryManagerView: View {
     @ViewBuilder
     private func deleteAction(_ name: String) -> some View {
         Button("Entfernen", systemImage: "trash", role: .destructive) {
-            Task {
-                await library.deleteCategory(name)
-                await reload()
-            }
+            deletionCandidate = name
         }
     }
 

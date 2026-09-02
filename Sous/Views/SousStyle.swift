@@ -31,6 +31,21 @@ enum SousStyle {
     /// How much accent a tinted chip carries behind its label. One value
     /// so a filter chip and a recipe's category chip look like siblings.
     static let chipTint = 0.15
+
+    /// A timer's remaining time, in cook mode. Rounded digits, because they
+    /// are read from across the kitchen, and monospaced so the seconds do not
+    /// make the minutes jump.
+    static let timerReadout = Font.system(.title2, design: .rounded).monospacedDigit()
+
+    /// The corners of a field, a surface, or a thumbnail large enough to
+    /// read as one: the servings control, an image in the editor.
+    static let fieldRadius: CGFloat = 12
+    /// The corners of a small thumbnail beside a row — 44 points, where
+    /// the field radius would round it into a coin.
+    static let thumbnailRadius: CGFloat = 8
+    /// The corners of a card that stands on the page: a recipe on the shelf,
+    /// the import and export panels.
+    static let cardRadius: CGFloat = 16
 }
 
 extension View {
@@ -47,7 +62,17 @@ extension View {
     func sousFieldBox() -> some View {
         padding(.horizontal, 12)
             .padding(.vertical, 8)
-            .background(Color.sousField, in: .rect(cornerRadius: 12))
+            .background(Color.sousField, in: .rect(cornerRadius: SousStyle.fieldRadius))
+    }
+
+    /// The heading of a group in a list — an aisle, a day, a category of
+    /// ingredients. The serif the rest of the app names things in, and the
+    /// system's capitals switched off, so a heading does not shout what the
+    /// row below it says quietly.
+    func sousGroupHeader() -> some View {
+        font(SousStyle.groupHeading)
+            .foregroundStyle(.primary)
+            .textCase(nil)
     }
 
     /// A value sitting inside such a field: a filter, a category.
@@ -165,6 +190,18 @@ extension Color {
             dark: Color(red: 0.929, green: 0.451, blue: 0.278)
         )
     }
+
+    /// Something that has run out or is about to be taken away: a timer past
+    /// zero, the dial position that removes a row. The system red, named so
+    /// that the five places that mean this say the same thing.
+    static var sousDanger: Color { .red }
+
+    /// Something to look at twice but not to fear: a figure computed from a
+    /// proposal, a meal moved out of its day into the pool.
+    static var sousCaution: Color { .orange }
+
+    /// A favourite's star, and the swipe that sets it.
+    static var sousStar: Color { .yellow }
 
     /// A block set apart from the page: the servings control, a banner.
     static var sousSurface: Color {

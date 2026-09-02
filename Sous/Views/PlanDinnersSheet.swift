@@ -55,6 +55,7 @@ struct PlanDinnersSheet: View {
             }
         }
         .sousSheetSizing(.form)
+        .sousErrorAlert(planner)
         .onDisappear { planner.reset() }
     }
 
@@ -164,7 +165,7 @@ struct PlanDinnersSheet: View {
             if let imageID = planner.recipe(for: placement)?.imageIDs.first {
                 RecipeImageView(imageID: imageID, thumbnail: true)
                     .frame(width: 44, height: 44)
-                    .clipShape(.rect(cornerRadius: 8))
+                    .clipShape(.rect(cornerRadius: SousStyle.thumbnailRadius))
             }
             VStack(alignment: .leading, spacing: 2) {
                 dayLine(placement)

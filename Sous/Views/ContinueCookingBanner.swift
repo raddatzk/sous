@@ -109,7 +109,7 @@ struct ContinueCookingBanner: View {
                 }
             }
             .font(.caption)
-            .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+            .foregroundStyle(finished ? AnyShapeStyle(Color.sousDanger) : AnyShapeStyle(.tint))
             // The bell pulses for the eye; this is the same beat for the
             // hand — only on the way to finished, never on appearing with a
             // timer already rung.

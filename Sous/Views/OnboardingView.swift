@@ -119,6 +119,10 @@ struct OnboardingView: View {
         // A sheet on the Mac takes the size its content asks for, and this
         // content would otherwise be as wide as its longest line.
         .frame(width: 480, height: 560)
+        #else
+        // Sized like the other whole-screen sheets, so the iPad does not
+        // open it as a form sheet a third the size of the editor's.
+        .sousSheetSizing(.page)
         #endif
     }
 

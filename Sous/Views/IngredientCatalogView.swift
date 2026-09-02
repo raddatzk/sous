@@ -10,6 +10,11 @@ struct IngredientCatalogView: View {
     @State private var searchText = ""
     @State private var editing: CatalogIngredient?
     @State private var isAdding = false
+    /// The own ingredient a swipe asked to remove, until the question is
+    /// answered. Removing one is final — everything the cook taught it goes
+    /// with it — so it asks, like every other thing here that cannot be
+    /// taken back.
+    @State private var deletionCandidate: CatalogIngredient?
 
     var body: some View {
         NavigationStack {
@@ -21,8 +26,7 @@ struct IngredientCatalogView: View {
                         }
                     } header: {
                         Text(group.category.title)
-                            .font(SousStyle.groupHeading)
-                            .textCase(nil)
+                            .sousGroupHeader()
                     }
                 }
             }
@@ -61,7 +65,18 @@ struct IngredientCatalogView: View {
         .sheet(isPresented: $isAdding) {
             IngredientFormView(ingredient: CatalogIngredient(name: "", category: .other))
         }
-        .catalogErrorAlert(catalog)
+        .sousErrorAlert(catalog)
+        .sousConfirmation(
+            "„\(deletionCandidate?.name ?? "")“ entfernen?",
+            isPresented: Binding(presence: $deletionCandidate),
+            message: "Die Zutat und alles, was du ihr beigebracht hast, sind danach weg. Rezepte, die sie nennen, kennen das Wort dann nicht mehr."
+        ) {
+            if let ingredient = deletionCandidate {
+                Button("Entfernen", role: .destructive) {
+                    Task { await catalog.delete(ingredient) }
+                }
+            }
+        }
         .sousSheetSizing(.page)
     }
 
@@ -119,7 +134,7 @@ struct IngredientCatalogView: View {
     private func deleteAction(_ ingredient: CatalogIngredient, isOwn: Bool) -> some View {
         if isOwn {
             Button("Entfernen", systemImage: "trash", role: .destructive) {
-                Task { await catalog.delete(ingredient) }
+                deletionCandidate = ingredient
             }
         }
     }
@@ -354,7 +369,7 @@ struct IngredientFormView: View {
             // a circle — the form stays open and says so. Before this the
             // message was set and nobody showed it, which is the silent drop
             // the store's error exists to end.
-            .catalogErrorAlert(catalog)
+            .sousErrorAlert(catalog)
         }
         .sousSheetSizing(.form)
     }
@@ -1255,26 +1270,6 @@ private enum BasisChoice: Equatable {
     case catalogRow(String)
     case ownValues
     case deliberatelyWithout
-}
-
-extension View {
-    /// Shows what the catalog library last refused or failed at, and clears
-    /// it once read. Attached by every screen that writes through the
-    /// library, since the library itself has no screen of its own.
-    @MainActor
-    func catalogErrorAlert(_ catalog: IngredientCatalogLibrary) -> some View {
-        alert(
-            "Fehler",
-            isPresented: Binding(
-                get: { catalog.errorMessage != nil },
-                set: { if !$0 { catalog.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { catalog.errorMessage = nil }
-        } message: {
-            Text(catalog.errorMessage ?? "")
-        }
-    }
 }
 
 /// The nutrition form's fields as typed, before they mean anything.

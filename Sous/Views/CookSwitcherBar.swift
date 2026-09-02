@@ -83,7 +83,7 @@ struct CookSwitcherChips: View {
                 }
             }
             .font(.caption)
-            .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+            .foregroundStyle(finished ? AnyShapeStyle(Color.sousDanger) : AnyShapeStyle(.tint))
             // Same beat as the banner's bell: felt once, when it rings.
             .sensoryFeedback(.warning, trigger: finished) { old, new in !old && new }
         }

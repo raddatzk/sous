@@ -259,3 +259,6 @@ extension CookTimerCenter {
     }
 }
 #endif
+
+/// Its failures surface through the same alert as every library's.
+extension CookTimerCenter: ErrorReporting {}

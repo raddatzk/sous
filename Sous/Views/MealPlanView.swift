@@ -150,6 +150,7 @@ struct MealPlanView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .task { await plan.reload() }
+        .sousErrorAlert(plan)
         .sheet(item: $pickingSlot) { target in
             RecipePickerView(
                 title: "\(target.slot.title) einplanen",
@@ -275,7 +276,7 @@ struct MealPlanView: View {
                     mealRow(item)
                         .swipeActions { removeAction(item.entry) }
                         .swipeActions(edge: .leading) {
-                            toPoolAction(item.entry).tint(.orange)
+                            toPoolAction(item.entry).tint(Color.sousCaution)
                         }
                         // Both again as a menu: a swipe needs a trackpad to
                         // exist at all, and nothing on the row says it does.
@@ -331,7 +332,7 @@ struct MealPlanView: View {
                 mealRow(item)
                     .swipeActions { removeAction(item.entry) }
                     .swipeActions(edge: .leading) {
-                        toDayAction(item.entry).tint(.accentColor)
+                        toDayAction(item.entry).tint(Color.sousAccent)
                     }
                     .contextMenu {
                         toDayAction(item.entry)
@@ -388,7 +389,7 @@ struct MealPlanView: View {
                 if let imageID = item.recipe?.imageIDs.first {
                     RecipeImageView(imageID: imageID, thumbnail: true)
                         .frame(width: 44, height: 44)
-                        .clipShape(.rect(cornerRadius: 8))
+                        .clipShape(.rect(cornerRadius: SousStyle.thumbnailRadius))
                 }
                 Text(item.recipe?.title ?? "Gelöschtes Rezept")
                     .font(SousStyle.recipeName)
@@ -402,7 +403,7 @@ struct MealPlanView: View {
         .padding(.vertical, 4)
         .background(
             isOpen(item) ? AnyShapeStyle(.tint.opacity(0.15)) : AnyShapeStyle(.clear),
-            in: .rect(cornerRadius: 8)
+            in: .rect(cornerRadius: SousStyle.fieldRadius)
         )
         #endif
     }

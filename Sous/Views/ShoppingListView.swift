@@ -156,26 +156,23 @@ struct ShoppingListView: View {
             }
         }
         .overlay { emptyState }
-        .confirmationDialog(
+        .sousConfirmation(
             "Rezept von der Liste nehmen?",
-            isPresented: Binding(
-                get: { removalCandidate != nil },
-                set: { if !$0 { removalCandidate = nil } }
-            ),
-            titleVisibility: .visible,
-            presenting: removalCandidate
-        ) { entry in
-            Button("Von der Liste nehmen", role: .destructive) {
-                Task { await shopping.remove(planEntry: entry) }
-            }
-        } message: { entry in
-            Text(
+            isPresented: Binding(presence: $removalCandidate),
+            message: removalCandidate.map {
                 """
-                „\(entry.title)“ verschwindet mit allem, was dafür noch offen \
+                „\($0.title)“ verschwindet mit allem, was dafür noch offen \
                 ist. Abgehaktes bleibt stehen und wird als entfallen vermerkt.
                 """
-            )
+            }
+        ) {
+            if let entry = removalCandidate {
+                Button("Von der Liste nehmen", role: .destructive) {
+                    Task { await shopping.remove(planEntry: entry) }
+                }
+            }
         }
+        .sousErrorAlert(shopping)
         .task { await shopping.reload() }
         .refreshable { await shopping.reload() }
     }
@@ -447,7 +444,7 @@ struct ShoppingListView: View {
                 } label: {
                     dialGlyph(removes ? "trash" : "minus")
                 }
-                .foregroundStyle(removes ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+                .foregroundStyle(removes ? AnyShapeStyle(Color.sousDanger) : AnyShapeStyle(.tint))
                 .accessibilityLabel(
                     removes ? "Rezept von der Liste nehmen" : "Eine Portion weniger"
                 )
@@ -610,9 +607,7 @@ struct ShoppingListView: View {
     }
 
     private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(SousStyle.groupHeading)
-            .textCase(nil)
+        Text(title).sousGroupHeader()
     }
 
     @ViewBuilder

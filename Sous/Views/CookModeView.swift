@@ -134,40 +134,22 @@ struct CookModeView: View {
                 session.start(picked, servings: servings)
             }
         }
-        .alert(
-            "Timer",
-            isPresented: Binding(
-                get: { timers.errorMessage != nil },
-                set: { if !$0 { timers.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) { timers.errorMessage = nil }
-        } message: {
-            Text(timers.errorMessage ?? "")
-        }
-        // An alert rather than a confirmation dialog: the dialog drops its
-        // cancel button on iOS 26, which would leave "take it off the hob"
-        // as the only thing on screen to press.
-        .alert(
+        .sousErrorAlert(timers)
+        // The way out is "keep cooking", not "cancel": what the cook is
+        // choosing between is two things to do with the dish.
+        .sousConfirmation(
             "Rezept vom Herd nehmen?",
-            isPresented: Binding(
-                get: { confirmingFinish != nil },
-                set: { if !$0 { confirmingFinish = nil } }
-            )
+            isPresented: Binding(presence: $confirmingFinish),
+            cancel: "Weiterkochen",
+            message: confirmingHasRunningTimer
+                ? "Es läuft noch ein Timer für dieses Rezept; er wird mit beendet."
+                : "Der Fortschritt und die abgehakten Zutaten gehen verloren."
         ) {
-            Button("Weiterkochen", role: .cancel) { confirmingFinish = nil }
             Button("Fertig", role: .destructive) {
                 if let id = confirmingFinish, let entry = session.entry(for: id) {
                     complete(entry)
                 }
-                confirmingFinish = nil
             }
-        } message: {
-            Text(
-                confirmingHasRunningTimer
-                    ? "Es läuft noch ein Timer für dieses Rezept; er wird mit beendet."
-                    : "Der Fortschritt und die abgehakten Zutaten gehen verloren."
-            )
         }
         #if os(macOS)
         // The last pot off the hob takes the window with it. Closed here
@@ -564,7 +546,7 @@ struct CookModeView: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 16) {
                 Text("\(number)")
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .font(SousStyle.stepNumber)
                     .foregroundStyle(.tint)
                     .frame(minWidth: 44, alignment: .trailing)
                 Text(attributedText(for: resolution.segments(for: step)))
@@ -640,11 +622,11 @@ struct CookModeView: View {
             let finished = timer.isFinished(at: tick.date)
             HStack(spacing: 12) {
                 Image(systemName: finished ? "bell.fill" : "timer")
-                    .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.tint))
+                    .foregroundStyle(finished ? AnyShapeStyle(Color.sousDanger) : AnyShapeStyle(.tint))
                     .symbolEffect(.pulse, isActive: finished)
                 Text(timer.remaining(at: tick.date).cookTimerBadge)
-                    .font(.system(.title2, design: .rounded).monospacedDigit())
-                    .foregroundStyle(finished ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
+                    .font(SousStyle.timerReadout)
+                    .foregroundStyle(finished ? AnyShapeStyle(Color.sousDanger) : AnyShapeStyle(.primary))
                 Button(finished ? "Aus" : "Stopp") { timers.cancel(timer) }
                     .buttonStyle(.bordered)
             }
@@ -871,7 +853,7 @@ struct CookModeView: View {
                 result += markdown(string)
             case .amount(let string):
                 var run = AttributedString(string)
-                run.foregroundColor = .accentColor
+                run.foregroundColor = .sousAccent
                 result += run
             }
         }

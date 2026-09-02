@@ -93,7 +93,7 @@ private struct RecipeExporter: ViewModifier {
                     }
                 }
                 .padding(24)
-                .background(.regularMaterial, in: .rect(cornerRadius: 16))
+                .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
             }
         }
     }
