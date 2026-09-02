@@ -52,14 +52,10 @@ struct UnknownIngredientButton<Label: View>: View {
         }
         .sheet(isPresented: $isPickingParent, onDismiss: onClose) {
             IngredientParentPickerView(ingredientName: name) { parent in
-                // The variety comes into being with its parent's aisle. Until
-                // the category is inherited outright (catalog plan, phase 6)
-                // this is the copy that stands in for inheritance — and it is
-                // exactly what every variety in the shipped data does today.
+                // No category of its own: the variety inherits its parent's
+                // aisle, and keeps inheriting if the parent's ever changes.
                 Task {
-                    await catalog.save(CatalogIngredient(
-                        name: name, category: parent.category, parentName: parent.name
-                    ))
+                    await catalog.save(CatalogIngredient(name: name, parentName: parent.name))
                 }
             }
         }

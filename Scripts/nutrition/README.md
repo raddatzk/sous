@@ -139,6 +139,11 @@ wrong thing landed in the cart. As a variety it keeps its own line, grouped
 under its parent, and inherits the parent's nutrition basis at run time as long
 as it has none of its own.
 
+A variety **writes no `category`** unless it differs from its parent's — it
+inherits it, the same way it inherits its parent's BLS row when it has none of its
+own. Of the 60 shipped varieties none differs, so none writes one; a root word must.
+`BundledDataTests` holds both halves of that rule.
+
 The rule for curating one: **a variety is a word that names a different product
 on the shelf**, not another word for the same one. "Meersalz" is a variety of
 "Salz"; "Speisesalz" is a spelling of it. "Räucherlachs" is a variety of

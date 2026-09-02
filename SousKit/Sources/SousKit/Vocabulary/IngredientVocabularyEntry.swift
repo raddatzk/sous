@@ -117,7 +117,10 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
         CatalogIngredient(
             name: isOwnIngredient ? name : (fallback?.name ?? name),
             aliases: (fallback?.aliases ?? []) + aliases,
-            category: category ?? fallback?.category ?? .other,
+            // The *written* one on either side: a shipped variety that
+            // inherits must keep inheriting once the cook adds a spelling to
+            // it, rather than have its resolved aisle frozen into an override.
+            category: category ?? fallback?.ownCategory,
             parentName: parentName ?? fallback?.parentName
         )
     }

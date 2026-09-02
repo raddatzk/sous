@@ -158,7 +158,9 @@ public final class IngredientCatalogLibrary {
             entry.name = ingredient.name
             entry.isOwnIngredient = true
             entry.aliases = ingredient.aliases
-            entry.category = ingredient.category
+            // As written, so that a variety saved without one keeps
+            // inheriting rather than freezing today's resolved aisle.
+            entry.category = ingredient.ownCategory
             entry.parentName = ingredient.parentName
         }
     }

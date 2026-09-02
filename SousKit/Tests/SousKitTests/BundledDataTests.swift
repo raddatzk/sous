@@ -597,6 +597,34 @@ struct ListSeparationTests {
         #expect(bls.entry(for: "G220100")?.name.contains("Bleichsellerie") == true)
     }
 
+    @Test("A root word carries a category; a variety inherits one")
+    func categoriesAreWrittenOnceUpTheChain() {
+        // Decision B, held in the data: a variety writes a category only to
+        // differ from its parent, and today none does. A root word has
+        // nothing to inherit from and must say what it is.
+        let byName = Dictionary(kitchen.words.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        for word in kitchen.words {
+            if word.parent == nil {
+                #expect(word.category != nil, "\(word.name) is a root word without a category")
+            } else if let own = word.category, let parent = word.parent.flatMap({ byName[$0] }) {
+                #expect(own != parent.category, "\(word.name) repeats its parent's category")
+            }
+        }
+        // And every word resolves to *something*: the chain never ends in
+        // .other for a shipped word.
+        for ingredient in IngredientCatalog.bundled.ingredients {
+            #expect(ingredient.category != .other || ingredient.ownCategory == .other, "\(ingredient.name) fell through to .other")
+        }
+    }
+
+    @Test("Cocktailtomate is a vegetable because Tomate is")
+    func varietyResolvesToParentCategory() throws {
+        let variety = try #require(IngredientCatalog.bundled.ingredient(for: "Cocktailtomate"))
+        #expect(variety.ownCategory == nil)
+        #expect(variety.category == .vegetables)
+        #expect(kitchen.words.first { $0.name == "Cocktailtomate" }?.category == nil)
+    }
+
     @Test("The table's own names are not in the kitchen's list")
     func theTableStaysOutOfTheVocabulary() {
         // Sampled rather than exhaustive: plenty of BLS rows are named exactly

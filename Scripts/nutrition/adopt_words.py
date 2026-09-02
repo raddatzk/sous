@@ -76,7 +76,9 @@ def main():
         kitchen.append({
             "name": name,
             "aliases": word.get("aliases", []),
-            "category": word["category"],
+            # A variety writes no category of its own unless it differs from
+            # its parent - see the README, "Varieties".
+            **({"category": word["category"]} if "category" in word and not word.get("parent") else {}),
             **({"parent": word["parent"]} if word.get("parent") else {}),
         })
         known.add(name)

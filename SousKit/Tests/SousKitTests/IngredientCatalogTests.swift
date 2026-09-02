@@ -81,4 +81,44 @@ extension IngredientCatalogTests {
         #expect(try #require(matches.first).name == "Tomate")
         #expect(matches.prefix(2).map(\.name) == ["Tomate", "Tomatenmark"])
     }
+
+    // MARK: - Inherited categories
+
+    @Test("A variety without a category takes the nearest ancestor's")
+    func categoryComesDownTheChain() throws {
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Pilz", category: .vegetables),
+            CatalogIngredient(name: "Champignon", parentName: "Pilz"),
+            CatalogIngredient(name: "Brauner Champignon", parentName: "Champignon"),
+        ])
+        #expect(catalog.category(for: "Champignon") == .vegetables)
+        #expect(catalog.category(for: "Brauner Champignon") == .vegetables)
+        #expect(catalog.ingredient(for: "Brauner Champignon")?.ownCategory == nil)
+        // The index resolves too, not only the list.
+        #expect(catalog.ingredient(for: "champignon")?.category == .vegetables)
+    }
+
+    @Test("A written category wins over the inherited one, and clearing it falls back")
+    func overrideWinsAndClearedFallsBack() {
+        let overridden = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Lachs", category: .fish),
+            CatalogIngredient(name: "Räucherlachs", category: .meat, parentName: "Lachs"),
+        ])
+        #expect(overridden.category(for: "Räucherlachs") == .meat)
+
+        let cleared = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Lachs", category: .fish),
+            CatalogIngredient(name: "Räucherlachs", parentName: "Lachs"),
+        ])
+        #expect(cleared.category(for: "Räucherlachs") == .fish)
+    }
+
+    @Test("A chain that never writes a category ends in .other, not in a loop")
+    func unresolvedChainFallsToOther() {
+        let loose = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "A", parentName: "B"),
+            CatalogIngredient(name: "B", parentName: "A"),
+        ])
+        #expect(loose.category(for: "A") == .other)
+    }
 }

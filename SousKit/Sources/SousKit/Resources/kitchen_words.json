@@ -33,7 +33,6 @@
  {
   "name": "Apfelessig",
   "aliases": [],
-  "category": "oils",
   "parent": "Essig"
  },
  {
@@ -104,13 +103,11 @@
  {
   "name": "Bauernbrot",
   "aliases": [],
-  "category": "bakery",
   "parent": "Brot"
  },
  {
   "name": "Belugalinsen",
   "aliases": [],
-  "category": "legumes",
   "parent": "Linsen"
  },
  {
@@ -124,7 +121,6 @@
  {
   "name": "Berglinsen",
   "aliases": [],
-  "category": "legumes",
   "parent": "Linsen"
  },
  {
@@ -142,13 +138,11 @@
  {
   "name": "Blattsalat",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Salat"
  },
  {
   "name": "Blattspinat",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Spinat"
  },
  {
@@ -187,7 +181,6 @@
   "aliases": [
    "Braune Champignons"
   ],
-  "category": "vegetables",
   "parent": "Champignon"
  },
  {
@@ -228,7 +221,6 @@
   "aliases": [
    "Buschbohnen"
   ],
-  "category": "vegetables",
   "parent": "Bohne"
  },
  {
@@ -246,7 +238,6 @@
   "aliases": [
    "Butternusskürbis"
   ],
-  "category": "vegetables",
   "parent": "Kürbis"
  },
  {
@@ -274,7 +265,6 @@
   "aliases": [
    "Champignons"
   ],
-  "category": "vegetables",
   "parent": "Pilz"
  },
  {
@@ -318,7 +308,6 @@
   "aliases": [
    "Cocktailtomaten"
   ],
-  "category": "vegetables",
   "parent": "Tomate"
  },
  {
@@ -351,7 +340,6 @@
  {
   "name": "Dijonsenf",
   "aliases": [],
-  "category": "canned",
   "parent": "Senf"
  },
  {
@@ -362,7 +350,6 @@
  {
   "name": "Dinkelmehl",
   "aliases": [],
-  "category": "grains",
   "parent": "Mehl"
  },
  {
@@ -439,7 +426,6 @@
  {
   "name": "Festkochende Kartoffeln",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Kartoffel"
  },
  {
@@ -472,7 +458,6 @@
  {
   "name": "Frischhefe",
   "aliases": [],
-  "category": "baking",
   "parent": "Hefe"
  },
  {
@@ -519,13 +504,11 @@
  {
   "name": "Gelbe Paprika",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Paprika"
  },
  {
   "name": "Gemahlene Mandeln",
   "aliases": [],
-  "category": "nuts",
   "parent": "Mandel"
  },
  {
@@ -542,7 +525,6 @@
   "aliases": [
    "Gemüsezwiebeln"
   ],
-  "category": "vegetables",
   "parent": "Zwiebel"
  },
  {
@@ -560,7 +542,6 @@
  {
   "name": "Griechischer Joghurt",
   "aliases": [],
-  "category": "dairy",
   "parent": "Joghurt"
  },
  {
@@ -573,7 +554,6 @@
   "aliases": [
    "Grüne Bohnen"
   ],
-  "category": "vegetables",
   "parent": "Bohne"
  },
  {
@@ -607,7 +587,6 @@
  {
   "name": "Hartweizengrieß",
   "aliases": [],
-  "category": "grains",
   "parent": "Grieß"
  },
  {
@@ -640,7 +619,6 @@
  {
   "name": "Hokkaido",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Kürbis"
  },
  {
@@ -651,7 +629,6 @@
  {
   "name": "Honigmelone",
   "aliases": [],
-  "category": "fruit",
   "parent": "Melone"
  },
  {
@@ -772,7 +749,6 @@
    "Cherrytomate",
    "Cherrytomaten"
   ],
-  "category": "vegetables",
   "parent": "Tomate"
  },
  {
@@ -793,13 +769,11 @@
  {
   "name": "Knollensellerie",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Sellerie"
  },
  {
   "name": "Kochschinken",
   "aliases": [],
-  "category": "meat",
   "parent": "Schinken"
  },
  {
@@ -877,7 +851,6 @@
  {
   "name": "Langkornreis",
   "aliases": [],
-  "category": "grains",
   "parent": "Reis"
  },
  {
@@ -919,7 +892,6 @@
  {
   "name": "Magerquark",
   "aliases": [],
-  "category": "dairy",
   "parent": "Quark"
  },
  {
@@ -946,7 +918,6 @@
  {
   "name": "Mandelblättchen",
   "aliases": [],
-  "category": "nuts",
   "parent": "Mandel"
  },
  {
@@ -978,7 +949,6 @@
  {
   "name": "Meersalz",
   "aliases": [],
-  "category": "spices",
   "parent": "Salz"
  },
  {
@@ -989,13 +959,11 @@
  {
   "name": "Mehl Type 405",
   "aliases": [],
-  "category": "grains",
   "parent": "Mehl"
  },
  {
   "name": "Mehl Type 550",
   "aliases": [],
-  "category": "grains",
   "parent": "Mehl"
  },
  {
@@ -1013,7 +981,6 @@
   "aliases": [
    "Miesmuscheln"
   ],
-  "category": "fish",
   "parent": "Muschel"
  },
  {
@@ -1026,7 +993,6 @@
  {
   "name": "Mineralwasser",
   "aliases": [],
-  "category": "drinks",
   "parent": "Wasser"
  },
  {
@@ -1037,7 +1003,6 @@
  {
   "name": "Mittelscharfer Senf",
   "aliases": [],
-  "category": "canned",
   "parent": "Senf"
  },
  {
@@ -1067,7 +1032,6 @@
  {
   "name": "Natives Olivenöl",
   "aliases": [],
-  "category": "oils",
   "parent": "Olivenöl"
  },
  {
@@ -1078,7 +1042,6 @@
  {
   "name": "Naturjoghurt",
   "aliases": [],
-  "category": "dairy",
   "parent": "Joghurt"
  },
  {
@@ -1149,7 +1112,6 @@
  {
   "name": "Parmaschinken",
   "aliases": [],
-  "category": "meat",
   "parent": "Schinken"
  },
  {
@@ -1193,13 +1155,11 @@
  {
   "name": "Pfefferkörner",
   "aliases": [],
-  "category": "spices",
   "parent": "Pfeffer"
  },
  {
   "name": "Pfefferminze",
   "aliases": [],
-  "category": "herbs",
   "parent": "Minze"
  },
  {
@@ -1326,7 +1286,6 @@
  {
   "name": "Rote Paprika",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Paprika"
  },
  {
@@ -1351,19 +1310,16 @@
  {
   "name": "Rotweinessig",
   "aliases": [],
-  "category": "oils",
   "parent": "Essig"
  },
  {
   "name": "Räucherlachs",
   "aliases": [],
-  "category": "fish",
   "parent": "Lachs"
  },
  {
   "name": "Räucherspeck",
   "aliases": [],
-  "category": "meat",
   "parent": "Speck"
  },
  {
@@ -1394,7 +1350,6 @@
   "aliases": [
    "Salatgurken"
   ],
-  "category": "vegetables",
   "parent": "Gurke"
  },
  {
@@ -1421,7 +1376,6 @@
  {
   "name": "Sauerteigbrot",
   "aliases": [],
-  "category": "bakery",
   "parent": "Brot"
  },
  {
@@ -1444,7 +1398,6 @@
  {
   "name": "Schlagsahne",
   "aliases": [],
-  "category": "dairy",
   "parent": "Sahne"
  },
  {
@@ -1477,7 +1430,6 @@
  {
   "name": "Schwarzer Pfeffer",
   "aliases": [],
-  "category": "spices",
   "parent": "Pfeffer"
  },
  {
@@ -1513,7 +1465,6 @@
  {
   "name": "Serranoschinken",
   "aliases": [],
-  "category": "meat",
   "parent": "Schinken"
  },
  {
@@ -1584,7 +1535,6 @@
  {
   "name": "Staudensellerie",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Sellerie"
  },
  {
@@ -1592,7 +1542,6 @@
   "aliases": [
    "Strauchtomaten"
   ],
-  "category": "vegetables",
   "parent": "Tomate"
  },
  {
@@ -1679,7 +1628,6 @@
  {
   "name": "Trockenhefe",
   "aliases": [],
-  "category": "baking",
   "parent": "Hefe"
  },
  {
@@ -1694,7 +1642,6 @@
  {
   "name": "Vollkornbrot",
   "aliases": [],
-  "category": "bakery",
   "parent": "Brot"
  },
  {
@@ -1707,19 +1654,16 @@
  {
   "name": "Vollmilch",
   "aliases": [],
-  "category": "dairy",
   "parent": "Milch"
  },
  {
   "name": "Vollmilchschokolade",
   "aliases": [],
-  "category": "baking",
   "parent": "Schokolade"
  },
  {
   "name": "Waldpilze",
   "aliases": [],
-  "category": "vegetables",
   "parent": "Pilz"
  },
  {
@@ -1737,13 +1681,11 @@
  {
   "name": "Wassermelone",
   "aliases": [],
-  "category": "fruit",
   "parent": "Melone"
  },
  {
   "name": "Weizenmehl",
   "aliases": [],
-  "category": "grains",
   "parent": "Mehl"
  },
  {
@@ -1770,7 +1712,6 @@
  {
   "name": "Weißweinessig",
   "aliases": [],
-  "category": "oils",
   "parent": "Essig"
  },
  {
@@ -1781,7 +1722,6 @@
  {
   "name": "Zartbitterschokolade",
   "aliases": [],
-  "category": "baking",
   "parent": "Schokolade"
  },
  {

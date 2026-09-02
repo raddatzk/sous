@@ -156,7 +156,9 @@ struct IngredientFormView: View {
 
     @State private var name: String
     @State private var aliasText: String
-    @State private var category: IngredientCategory
+    /// The category as *written* — `nil` means "wie die Stamm-Zutat", and
+    /// is only offered while there is one.
+    @State private var category: IngredientCategory?
     /// The one further spelling being typed for a bundled entry.
     @State private var newAlias = ""
     @State private var nutritionDraft: NutritionDraft
@@ -209,7 +211,7 @@ struct IngredientFormView: View {
         self.startsOnOwnValues = startsOnOwnValues
         _name = State(initialValue: ingredient.name)
         _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
-        _category = State(initialValue: ingredient.category)
+        _category = State(initialValue: ingredient.ownCategory)
         _nutritionDraft = State(initialValue: NutritionDraft())
         _parentName = State(initialValue: ingredient.parentName)
         _isEnteringOwnValues = State(initialValue: startsOnOwnValues)
@@ -292,6 +294,9 @@ struct IngredientFormView: View {
                 IngredientParentPickerView(ingredientName: trimmedName) { parent in
                     parentName = parent.name
                     variantProposal = nil
+                    // A category nobody chose yields to the parent's: "Sonstiges"
+                    // was the form's default, not a decision.
+                    if category == .other { category = nil }
                 }
             }
             .navigationTitle(isNew ? "Neue Zutat" : name)
@@ -346,13 +351,34 @@ struct IngredientFormView: View {
         Section {
             TextField("Name", text: $name)
             Picker("Kategorie", selection: $category) {
+                // The inherited choice leads, and only exists while there is
+                // something to inherit from. Set means overridden, empty means
+                // inherited — the same rule as for every other field a variety
+                // takes from its parent.
+                if let inherited = inheritedCategory {
+                    Text("Wie \(inherited.parent) (\(inherited.category.title))")
+                        .tag(IngredientCategory?.none)
+                }
                 ForEach(IngredientCategory.allCases, id: \.self) { option in
-                    Text(option.title).tag(option)
+                    Text(option.title).tag(Optional(option))
                 }
             }
         } footer: {
-            Text("Die Kategorie bestimmt, in welcher Abteilung die Zutat auf der Einkaufsliste steht.")
+            Text("Die Kategorie bestimmt, in welcher Abteilung die Zutat auf der Einkaufsliste steht. Eine Sorte erbt sie von der Stamm-Zutat, solange du keine eigene wählst.")
         }
+    }
+
+    /// What the variety would take if it wrote nothing: the nearest
+    /// ancestor's category, with the ancestor named.
+    private var inheritedCategory: (parent: String, category: IngredientCategory)? {
+        guard let parentName else { return nil }
+        let chain = [parentName] + catalog.catalog.ancestors(of: parentName).map(\.name)
+        for name in chain {
+            if let own = catalog.catalog.ingredient(for: name)?.ownCategory {
+                return (name, own)
+            }
+        }
+        return catalog.catalog.category(for: parentName).map { (parentName, $0) }
     }
 
     private var ownAliasSection: some View {
@@ -420,6 +446,7 @@ struct IngredientFormView: View {
                         Button("Ja") {
                             parentName = proposal.name
                             variantProposal = nil
+                            if category == .other { category = nil }
                         }
                         .buttonStyle(.borderedProminent)
                         Button("Nein") { variantProposal = nil }
@@ -467,7 +494,15 @@ struct IngredientFormView: View {
     private var bundledIdentitySection: some View {
         Section {
             LabeledContent("Name", value: original.name)
-            LabeledContent("Kategorie", value: original.category.title)
+            // "Gemüse — von Tomate" for a shipped variety that inherits: the
+            // aisle is right, and it is somebody else's decision.
+            LabeledContent(
+                "Kategorie",
+                value: original.ownCategory == nil
+                    ? (inheritedCategory.map { "\($0.category.title) — von \($0.parent)" }
+                        ?? original.category.title)
+                    : original.category.title
+            )
         } footer: {
             Text("Diese Zutat gehört zum Bestand der App. Name und Kategorie werden bei jedem Update erneuert — Schreibweisen und Nährwerte, die du ergänzt, bleiben erhalten.")
         }

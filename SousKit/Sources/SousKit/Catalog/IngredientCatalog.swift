@@ -14,19 +14,52 @@ public struct IngredientCatalog: Sendable {
     /// winning — the caller puts the entries that should win in front (the
     /// cook's own before the bundled ones), and a name defined twice has to
     /// resolve to one entry *and* show up once in a list of them.
+    ///
+    /// Categories are resolved here, once, for the whole list: a variety that
+    /// writes none takes the nearest ancestor's, and every reader downstream
+    /// sees a plain `category` without knowing where it came from. Done at
+    /// build time rather than at lookup because the shopping list, the
+    /// filter and the browser all read it in loops.
     public init(ingredients: [CatalogIngredient]) {
-        byKey = [:]
         var representatives: [CatalogIngredient] = []
         var takenKeys = Set<String>()
-        for ingredient in ingredients {
-            if takenKeys.insert(ingredient.key).inserted {
-                representatives.append(ingredient)
-            }
+        for ingredient in ingredients where takenKeys.insert(ingredient.key).inserted {
+            representatives.append(ingredient)
+        }
+        let byName = Dictionary(
+            representatives.map { (IngredientCatalog.normalize($0.name), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let resolved = representatives.map { ingredient -> CatalogIngredient in
+            var copy = ingredient
+            copy.category = Self.resolvedCategory(of: ingredient, in: byName)
+            return copy
+        }
+        byKey = [:]
+        for ingredient in resolved {
             for key in ingredient.keys where byKey[key] == nil {
                 byKey[key] = ingredient
             }
         }
-        self.ingredients = representatives.sorted { $0.name < $1.name }
+        self.ingredients = resolved.sorted { $0.name < $1.name }
+    }
+
+    /// The written category, or the nearest ancestor's, or `.other` when the
+    /// chain ends without one. Stops on a repeated name, as every walk here
+    /// does: a hand-edited data file is not a store.
+    private static func resolvedCategory(
+        of ingredient: CatalogIngredient, in byName: [String: CatalogIngredient]
+    ) -> IngredientCategory {
+        if let own = ingredient.ownCategory { return own }
+        var seen: Set<String> = [ingredient.key]
+        var current = ingredient
+        while let parentName = current.parentName,
+              let parent = byName[normalize(parentName)],
+              seen.insert(parent.key).inserted {
+            if let own = parent.ownCategory { return own }
+            current = parent
+        }
+        return .other
     }
 
     /// The catalog shipped with the app — the identity half of the synonym
