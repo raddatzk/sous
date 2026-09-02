@@ -66,10 +66,12 @@ struct VocabularyStoreTests {
         #expect(tomate.parentName == nil)
         #expect(!tomate.isPantry)
 
-        // The shortest loop of all.
+        // The shortest loop of all: an entry as its own parent. Same key on
+        // both sides - "Tomaten" would be a different word to the store, and
+        // it is not the store's job to know a plural.
         await #expect(throws: VocabularyStoreError.self) {
             try await store.save(IngredientVocabularyEntry(
-                name: "Tomate", parentName: "Tomaten", isOwnIngredient: true
+                name: "Tomate", parentName: "Tomate", isOwnIngredient: true
             ))
         }
     }

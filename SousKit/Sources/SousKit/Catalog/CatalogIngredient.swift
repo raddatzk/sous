@@ -19,7 +19,12 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// reader that sorts, groups or filters by category reads this one, and
     /// none of them has to know where it came from. Filled in by
     /// ``IngredientCatalog``; until then it is `ownCategory ?? .other`.
-    public var category: IngredientCategory
+    ///
+    /// Not settable from outside: a caller that wants a different category
+    /// sets `ownCategory`, which is what gets saved. Assigning here would
+    /// look like it worked right up to the save that ignored it - which is
+    /// exactly what the first CI run caught.
+    public internal(set) var category: IngredientCategory
     /// The category as written for this ingredient, `nil` where it inherits.
     /// Set means overridden, empty means inherited — one rule for every field
     /// a variety takes from its parent (catalog target, decision B). Of the

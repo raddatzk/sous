@@ -103,7 +103,9 @@ struct IngredientCatalogLibraryTests {
         let taught = try #require(library.catalog.ingredient(for: "Olive"))
         #expect(taught.aliases.contains("Kalamata"))
         var own = taught
-        own.category = .canned
+        // The *written* category is what a save stores; the resolved one is
+        // read-only and follows from it.
+        own.ownCategory = .canned
         await library.save(own)
 
         #expect(library.catalog.canonicalName(for: "Kalamata") == "Olive")

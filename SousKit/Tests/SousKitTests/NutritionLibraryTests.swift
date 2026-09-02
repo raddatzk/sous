@@ -301,21 +301,35 @@ struct NutritionLibraryTests {
         #expect(!settled.coverage.isComplete)
     }
 
-    @Test("Confirming an ingredient confirms its varieties with it")
-    func varietiesInheritTheConfirmation() async throws {
+    @Test("Confirming the parent does not confirm the variety; the variety is asked once, itself")
+    func varietiesInheritAProposalNotAConfirmation() async throws {
+        // This test used to assert the opposite - that confirming Tomate
+        // settled Cocktailtomaten with it. Decision B of the catalog target
+        // reverses that on purpose: whether a variety *is* its parent for the
+        // purposes of nutrition is a separate question (Räucherlachs is a
+        // variety of Lachs and inherits its sodium wrong by a factor of 37),
+        // so an inherited basis arrives as a proposal, named as inherited.
         let (nutrition, _) = try makeLibrary()
         let recipe = Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten")
 
         let proposed = try #require(await nutrition.nutrition(for: recipe))
         #expect(proposed.coverage.unconfirmedCount == 1)
+        #expect(proposed.coverage.contributions.first?.inheritedFrom == "Tomate")
 
-        // The mapping is attached per ingredient so the work amortizes — and
-        // a variety with nothing of its own is that ingredient.
+        // The parent's confirmation is about the parent.
         await nutrition.confirmProposedBasis(forName: "Tomate")
+        let stillOpen = try #require(await nutrition.nutrition(for: recipe))
+        #expect(stillOpen.coverage.unconfirmedCount == 1)
+        #expect(stillOpen.coverage.contributions.first?.inheritedFrom == "Tomate")
 
+        // One tap on the variety settles it - and the row it settles on is
+        // the inherited one, written onto the variety as its own decision.
+        await nutrition.confirmProposedBasis(forName: "Cocktailtomaten", state: .raw)
         let confirmed = try #require(await nutrition.nutrition(for: recipe))
         #expect(confirmed.coverage.unconfirmedCount == 0)
         #expect(confirmed.coverage.isComplete)
+        #expect(confirmed.coverage.contributions.first?.inheritedFrom == nil)
+        #expect(nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw)?.code == "G561100")
     }
 
     @Test("An invalid serving count is refused rather than dividing by zero")

@@ -194,16 +194,29 @@ struct BundledDataTests {
         #expect(dangling.isEmpty, "\(dangling.prefix(10))")
     }
 
-    @Test("The words that carry identity without values still do")
+    @Test("The words that carry identity without values still do — and now say so")
     func spicesStayIdentityOnly() throws {
         // These resolve an ingredient but have no defensible BLS row. That is
         // the difference between "nicht im Katalog" and "keine Nährwerte
         // hinterlegt", and the app leans on it for the gap reason it reports.
-        for word in ["Kurkuma", "Zimt", "Cayennepfeffer", "Chili"] {
+        //
+        // What changed with decision D: such a word no longer arrives as an
+        // *absence* in the nutrition catalog - it arrives as an answer. It
+        // still has no target, but it has an entry, and that entry's basis
+        // is the settled "bewusst ohne", which is what stops it counting as a
+        // defect and stops the picker offering it breakfast cereal.
+        //
+        // Chili left this list on the same day: the fresh chilli is in the
+        // table as "Pfefferschote", and is curated - see
+        // ``chiliIsCuratedRatherThanDeclaredMissing``.
+        for word in ["Kurkuma", "Zimt", "Cayennepfeffer"] {
             let entry = try #require(synonyms.entry(for: word), "\(word) is missing")
             #expect(entry.targets.isEmpty, "\(word) suddenly has values")
+            #expect(entry.hasNoValues, "\(word) has no values and does not say so")
             #expect(IngredientCatalog.bundled.ingredient(for: word) != nil)
-            #expect(NutritionCatalog.bundled.nutrition(forCanonicalName: word) == nil)
+            let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: word)?.basis(for: .unspecified)
+            #expect(basis?.status == .deliberatelyWithout, "\(word) should arrive answered, not empty")
+            #expect(basis?.contributes == false)
         }
     }
 
