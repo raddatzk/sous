@@ -31,11 +31,30 @@ public struct IngredientCuration: Sendable {
         /// Why this mapping was chosen, in the curator's words. Not read by
         /// the app; it is here so the next person to look knows.
         public var via: String?
+        /// That this word has no basis and is not waiting for one.
+        ///
+        /// The BLS does not list Zimt, Kurkuma, Oregano or two dozen other
+        /// spices at all — not an omission in the curation but an absence in
+        /// the source. Left unsaid, each of them is a permanent gap in every
+        /// recipe that uses one, and the picker fills the silence with
+        /// whatever the name search scrapes up: Zimt was offered breakfast
+        /// cereal at 424 kcal.
+        ///
+        /// Saying it puts an answer in shipped data for the first time, which
+        /// the concept places with the cook (§3). It is defensible only
+        /// because the answer is the same for every cook and stays an
+        /// override away — a shipped decision is a default, and `via` records
+        /// the reasoning where the next curator will read it.
+        public var withoutValues: Bool
 
-        public init(targets: [String: [String]], candidates: [String] = [], via: String? = nil) {
+        public init(
+            targets: [String: [String]], candidates: [String] = [], via: String? = nil,
+            withoutValues: Bool = false
+        ) {
             self.targets = targets
             self.candidates = candidates
             self.via = via
+            self.withoutValues = withoutValues
         }
 
         public init(from decoder: any Decoder) throws {
@@ -43,7 +62,8 @@ public struct IngredientCuration: Sendable {
             self.init(
                 targets: try container.decodeIfPresent([String: [String]].self, forKey: .targets) ?? [:],
                 candidates: try container.decodeIfPresent([String].self, forKey: .candidates) ?? [],
-                via: try container.decodeIfPresent(String.self, forKey: .via)
+                via: try container.decodeIfPresent(String.self, forKey: .via),
+                withoutValues: try container.decodeIfPresent(Bool.self, forKey: .withoutValues) ?? false
             )
         }
     }

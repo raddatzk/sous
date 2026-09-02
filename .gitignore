@@ -5,3 +5,6 @@ DerivedData/
 *.xcuserstate
 .DS_Store
 xcuserdata/
+
+# Python bytecode from running the Scripts/nutrition pipeline
+__pycache__/

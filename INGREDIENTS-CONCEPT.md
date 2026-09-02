@@ -262,6 +262,16 @@ store, not to the recipes anymore.
 
 ### Bundling without swallowing
 
+> **Superseded, 2026-09-01.** The grouped entry described here — a heading with the
+> total, varieties readable as sub-lines under it — was withdrawn by decision E of
+> [INGREDIENTS-CATALOG.md](INGREDIENTS-CATALOG.md). Varieties are their own rows now.
+> What this section was *for* is kept: the distinction is never swallowed, and two
+> kinds of tomato still stand next to each other, put there by the aisle sort rather
+> than by a heading. What it cost was a total across things that are not one
+> purchase — "Pilz 350 g" is a sum of Champignons and Pfifferlinge, and neither can
+> be asked for by that name. Everything below about *equal units* and about never
+> converting for the list still holds, unchanged.
+
 Bundling goes by ingredient identity, grouping by the variant relation. Within an
 entry only *equal units* are summed; different ones stand side by side ("Tomaten —
 500 g + 2 Stück"). Forced conversion via the measure table would be possible but is

@@ -39,6 +39,16 @@ struct CategoryCompletionTests {
         #expect(CategoryCompletion.adding("  Nachtisch ", to: ["Schnell"]) == ["Schnell", "Nachtisch"])
     }
 
+    @Test("An invisible format character does not become part of a name")
+    func formatCharactersAreNotPartOfTheName() {
+        // The category field keeps a zero-width space at the front of its
+        // text as an anchor. Text typed in front of it carried the anchor
+        // into the name, and "xSalate" typed later never matched again.
+        let added = CategoryCompletion.adding("x\u{200B}Salate", to: [])
+        #expect(added == ["xSalate"])
+        #expect(CategoryCompletion.adding("\u{200B}", to: []).isEmpty)
+    }
+
     @Test("Nothing typed adds nothing")
     func addsNothing() {
         #expect(CategoryCompletion.adding("   ", to: ["Schnell"]) == ["Schnell"])

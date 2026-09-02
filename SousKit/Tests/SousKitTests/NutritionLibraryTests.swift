@@ -35,6 +35,54 @@ struct NutritionLibraryTests {
         )
     }
 
+    @Test("A basis filed under one state is re-pointed without touching the others")
+    func rePointingOneStateLeavesTheOthersAlone() async throws {
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.ensureLoaded()
+
+        // Kartoffel ships raw and cooked as separate rows. Confirm the cooked
+        // one first, so there is a settled answer to change - the case the
+        // form could not reach at all before the Grundlage row, because it
+        // hid the picker for anything that already had values and wrote only
+        // to unspecified when it did show.
+        await nutrition.confirmBasis(code: "K110132", state: .cooked, forName: "Kartoffeln")
+        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.code == "K110132")
+        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.status == .confirmed)
+
+        // Point cooked at a different row. Raw must not move.
+        let rawBefore = nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .raw)
+        await nutrition.confirmBasis(code: "K110182", state: .cooked, forName: "Kartoffeln")
+
+        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
+        #expect(entry.basis(for: .cooked)?.code == "K110182")
+        #expect(entry.basis(for: .raw)?.code == rawBefore?.code)
+        #expect(entry.basis(for: .raw)?.status == rawBefore?.status)
+    }
+
+    @Test("Deliberately without for one state leaves another state's row standing")
+    func optingOutIsPerState() async throws {
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.ensureLoaded()
+
+        await nutrition.confirmBasis(code: "K110100", state: .raw, forName: "Kartoffeln")
+        await nutrition.setDeliberatelyWithoutBasis(forName: "Kartoffeln", state: .cooked)
+
+        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
+        #expect(entry.basis(for: .cooked)?.status == .deliberatelyWithout)
+        #expect(entry.basis(for: .raw)?.code == "K110100")
+        #expect(entry.basis(for: .raw)?.status == .confirmed)
+
+        // The picker follows suit: the opt-out is cooked's answer, so cooked
+        // has nothing to propose and raw still has its rows. Read through
+        // the fallback, the cooked opt-out used to silence every state.
+        #expect(nutrition.candidates(forName: "Kartoffeln", state: .cooked).isEmpty)
+        #expect(!nutrition.candidates(forName: "Kartoffeln", state: .raw).isEmpty)
+        // A general answer, filed under unspecified, does cover every state:
+        // Zimt ships that way, and no state of it should be offered cereal.
+        #expect(nutrition.candidates(forName: "Zimt", state: .raw).isEmpty)
+        #expect(nutrition.candidates(forName: "Zimt").isEmpty)
+    }
+
     @Test("A recipe with no ingredient the catalog recognizes comes back as zero, not a crash")
     func unknownIngredientsAreZeroNotFatal() async throws {
         let (nutrition, _) = try makeLibrary()
@@ -263,21 +311,35 @@ struct NutritionLibraryTests {
         #expect(!settled.coverage.isComplete)
     }
 
-    @Test("Confirming an ingredient confirms its varieties with it")
-    func varietiesInheritTheConfirmation() async throws {
+    @Test("Confirming the parent does not confirm the variety; the variety is asked once, itself")
+    func varietiesInheritAProposalNotAConfirmation() async throws {
+        // This test used to assert the opposite - that confirming Tomate
+        // settled Cocktailtomaten with it. Decision B of the catalog target
+        // reverses that on purpose: whether a variety *is* its parent for the
+        // purposes of nutrition is a separate question (Räucherlachs is a
+        // variety of Lachs and inherits its sodium wrong by a factor of 37),
+        // so an inherited basis arrives as a proposal, named as inherited.
         let (nutrition, _) = try makeLibrary()
         let recipe = Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten")
 
         let proposed = try #require(await nutrition.nutrition(for: recipe))
         #expect(proposed.coverage.unconfirmedCount == 1)
+        #expect(proposed.coverage.contributions.first?.inheritedFrom == "Tomate")
 
-        // The mapping is attached per ingredient so the work amortizes — and
-        // a variety with nothing of its own is that ingredient.
+        // The parent's confirmation is about the parent.
         await nutrition.confirmProposedBasis(forName: "Tomate")
+        let stillOpen = try #require(await nutrition.nutrition(for: recipe))
+        #expect(stillOpen.coverage.unconfirmedCount == 1)
+        #expect(stillOpen.coverage.contributions.first?.inheritedFrom == "Tomate")
 
+        // One tap on the variety settles it - and the row it settles on is
+        // the inherited one, written onto the variety as its own decision.
+        await nutrition.confirmProposedBasis(forName: "Cocktailtomaten", state: .raw)
         let confirmed = try #require(await nutrition.nutrition(for: recipe))
         #expect(confirmed.coverage.unconfirmedCount == 0)
         #expect(confirmed.coverage.isComplete)
+        #expect(confirmed.coverage.contributions.first?.inheritedFrom == nil)
+        #expect(nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw)?.code == "G561100")
     }
 
     @Test("An invalid serving count is refused rather than dividing by zero")

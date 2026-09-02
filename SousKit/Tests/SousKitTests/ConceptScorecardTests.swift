@@ -253,36 +253,51 @@ struct ConceptScorecardTests {
     /// confirms once. On the list: one grouped entry "Tomaten — 700 g" with
     /// sub-lines that keep the 200 g Cocktailtomaten distinguishable.*
     ///
+    /// **The second half of that case was withdrawn.** The grouped entry is
+    /// gone — see the catalog target, decision E — so there is no heading and
+    /// no 700 g total. What the case was *for* survives whole and is what is
+    /// checked here: the two tomatoes stay two things, and the 200 g of
+    /// cocktail tomatoes never melt into an anonymous share of a larger
+    /// number. The aisle sort puts them next to each other without a heading
+    /// claiming they are one purchase.
+    ///
     /// For *this* pair the cook is never asked, which is better than the case
-    /// wanted: the relation is curated in `synonyms.json`, so it holds on a
+    /// wanted: the relation is curated in the kitchen list, so it holds on a
     /// fresh install with nothing decided. The proposal mechanism the case
     /// describes is for a name the app does not ship, and that is exactly
     /// what case 10 plays through — see ``ochsenherztomaten()``.
-    @Test("Tomaten + Cocktailtomaten — one place on the list, the varieties intact under it")
+    @Test("Tomaten + Cocktailtomaten — two errands, and the 200 g stay 200 g")
     func tomatenUndCocktailtomaten() async throws {
         let stack = try stack()
         await stack.catalog.reload()
 
         // Not an alias of Tomate — a word of its own that knows its parent.
         // Pinning it inside Tomate's spellings is what used to melt 200 g of
-        // cocktail tomatoes into an anonymous 700 g.
+        // cocktail tomatoes into an anonymous 700 g, and the relation still
+        // carries nutrition, the aisle and the shelf note.
         #expect(stack.catalog.catalog.canonicalName(for: "Cocktailtomaten") == "Cocktailtomate")
         #expect(stack.catalog.catalog.ingredient(for: "Cocktailtomate")?.parentName == "Tomate")
 
         await stack.shopping.add(recipe("Salat", "500 g Tomaten\n200 g Cocktailtomaten"))
-        let groups = stack.shopping.grouped(stack.shopping.items)
 
-        // One place to walk to…
-        #expect(groups.count == 1)
-        let group = try #require(groups.first)
-        #expect(group.name == "Tomate")
-        #expect(group.quantities == [Quantity(700, .gram)])
-        // …and the distinction still readable underneath it. A single summed
-        // line would send the cook home with the wrong tomatoes.
-        #expect(group.isGrouped)
-        #expect(group.items.count == 2)
-        let variety = try #require(group.items.first { $0.key.contains("cocktail") })
+        // Two rows, each its own errand and each tickable on its own.
+        #expect(stack.shopping.items.count == 2)
+        let variety = try #require(stack.shopping.items.first { $0.key.contains("cocktail") })
         #expect(variety.quantities == [Quantity(200, .gram)])
+        let plain = try #require(stack.shopping.items.first { $0.key == "tomate" })
+        #expect(plain.quantities == [Quantity(500, .gram)])
+
+        // And they are found in the same place without being summed: the
+        // aisle is what puts them together, not a heading.
+        #expect(variety.category == plain.category)
+
+        // The relation's other job. Cocktailtomate has no row of its own and
+        // computes with Tomate's - as a proposal that says so, not as a
+        // confirmation nobody made (catalog target, decision B).
+        await stack.nutrition.ensureLoaded()
+        let inherited = try #require(stack.nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw))
+        #expect(inherited.status == .proposed)
+        #expect(inherited.inheritedFrom == "Tomate")
     }
 
     // MARK: - 6 · 500 g raw / 300 g cooked potatoes
@@ -422,6 +437,11 @@ struct ConceptScorecardTests {
     /// "Ochsenherztomaten" as a variant of "Tomaten"; the demand appears
     /// under the Tomaten entry. The check mark on the already-bought tomatoes
     /// stays untouched — the group shows: done, but something arrived later.*
+    ///
+    /// The grouped entry that last sentence names is withdrawn (decision E),
+    /// so "the group shows" is now the two rows showing it side by side. The
+    /// load-bearing half — a late arrival never un-checks what was bought —
+    /// is untouched and still asserted.
     @Test("Ochsenherztomaten — never missing, and fixing it does not un-check the tomatoes")
     func ochsenherztomaten() async throws {
         let stack = try stack()
@@ -432,7 +452,7 @@ struct ConceptScorecardTests {
         // from the first moment, under its own written name.
         let unknown = try #require(stack.shopping.items.first { $0.key.contains("ochsenherz") })
         #expect(unknown.quantities == [Quantity(300, .gram)])
-        #expect(stack.shopping.grouped(stack.shopping.items).count == 2)
+        #expect(stack.shopping.items.count == 2)
 
         // The cook buys the tomatoes, and only then teaches the app what the
         // other line was.
@@ -456,20 +476,20 @@ struct ConceptScorecardTests {
         ))
         await stack.shopping.reload()
 
-        let groups = stack.shopping.grouped(stack.shopping.items)
-        #expect(groups.count == 1)
-        let group = try #require(groups.first)
-        #expect(group.name == "Tomate")
-        #expect(group.items.count == 2)
+        // The relation now holds, and it is what carries the aisle and the
+        // nutrition across. What it no longer does is put the two lines under
+        // one heading — decision E — so the case's "the group shows: done,
+        // but something arrived later" is now read off the rows themselves.
+        #expect(stack.catalog.catalog.ingredient(for: "Ochsenherztomaten")?.parentName == "Tomate")
+        #expect(stack.shopping.items.count == 2)
 
         // "Done, but something arrived later": the check mark that was earned
-        // stays earned, and the group is not finished while the late line is
-        // open. Re-adding must never un-check what was already bought.
-        let bought = try #require(group.items.first { $0.key == "tomate" })
+        // stays earned, and the late line is open beside it. Re-adding must
+        // never un-check what was already bought.
+        let bought = try #require(stack.shopping.items.first { $0.key == "tomate" })
         #expect(bought.isChecked)
-        let late = try #require(group.items.first { $0.key.contains("ochsenherz") })
+        let late = try #require(stack.shopping.items.first { $0.key.contains("ochsenherz") })
         #expect(!late.isChecked)
-        #expect(!group.isChecked)
     }
 
     // MARK: - 11 · Values added later, twenty recipes

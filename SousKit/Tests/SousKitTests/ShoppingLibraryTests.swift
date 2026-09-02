@@ -305,6 +305,11 @@ extension ShoppingLibraryTests {
         // two, so 300 g for the six the dish already stands at.
         let listed = try #require(shopping.items.first { $0.name == "Gurke" })
         #expect(listed.quantities == [Quantity(300, .gram)])
+        // And marked as what it is: something that arrived after the dish
+        // did. The join path sends no plan entry of its own, which used to
+        // slip past the late-marking that keys on the capture's entries.
+        #expect(listed.demands.allSatisfy { $0.isLate })
+        #expect(shopping.items.first { $0.name == "Tomate" }?.demands.allSatisfy { !$0.isLate } == true)
 
         // And it keeps following it, like everything else under that heading.
         await shopping.setServings(2, for: try #require(shopping.planEntries.first))
@@ -577,47 +582,54 @@ extension ShoppingLibraryTests {
         #expect(shopping.items[0].quantities == [Quantity(800, .gram), Quantity(2, .piece)])
     }
 
-    @Test("A variety keeps its own line, in the parent's place on the list", arguments: StoreBackend.allCases)
-    func varietiesGroupWithoutMerging(_ backend: StoreBackend) async throws {
+    @Test("A variety is its own errand, never a share of its parent's", arguments: StoreBackend.allCases)
+    func varietiesAreNeverMerged(_ backend: StoreBackend) async throws {
         let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(title: "Bauernsalat", servings: 2, ingredientsText: "500 g Tomaten"))
         await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
 
-        // Two items, because two different things are being bought.
+        // Two items, because two different things are being bought — and no
+        // heading over them summing the two into 700 g of something you
+        // cannot ask for at a counter. See the catalog target, decision E.
         #expect(shopping.items.map(\.name) == ["Tomate", "Cocktailtomate"])
-
-        // One place on the list, with the total on the heading and the
-        // distinction intact underneath — the concept's grouped entry.
-        let groups = shopping.grouped(shopping.items)
-        #expect(groups.count == 1)
-        let tomatoes = try #require(groups.first)
-        #expect(tomatoes.name == "Tomate")
-        #expect(tomatoes.isGrouped)
-        #expect(tomatoes.quantities == [Quantity(700, .gram)])
-        #expect(tomatoes.items.map(\.name) == ["Tomate", "Cocktailtomate"])
+        #expect(shopping.items.map(\.quantities) == [
+            [Quantity(500, .gram)], [Quantity(200, .gram)],
+        ])
+        // The aisle is what puts them next to each other now.
+        #expect(shopping.items[0].category == shopping.items[1].category)
     }
 
-    @Test("A sub-line keeps the word the recipe wrote", arguments: StoreBackend.allCases)
-    func varietySublinesKeepTheWrittenName(_ backend: StoreBackend) async throws {
-        let (shopping, _, _) = try makeLibrary(backend)
-        await shopping.add(Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten"))
-
-        // Capture files the item under the catalog's spelling, which is right
-        // for a heading and would destroy the sub-line. The demand keeps what
-        // was written — the only moment it could have been lost in.
+    @Test("What a variety inherits comes down the whole chain, nearest first", arguments: StoreBackend.allCases)
+    func inheritanceReachesAnyDepth(_ backend: StoreBackend) async throws {
+        // Pilz → Champignon → Brauner Champignon ships in the data. Store,
+        // shelf note and pantry flag used to reach one step: set on Pilz,
+        // they stopped at Champignon and the braune Champignons stood in
+        // their aisle as though nobody had said anything. Category and
+        // nutrition walk the whole chain; so does this now.
+        let stores = try backend.makeStores()
+        let catalog = IngredientCatalogLibrary(store: stores.vocabulary)
+        let shopping = ShoppingLibrary(
+            store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog
+        )
+        await shopping.add(Recipe(title: "Pfanne", servings: 2, ingredientsText: "200 g Braune Champignons"))
         let item = try #require(shopping.items.first)
-        #expect(item.name == "Cocktailtomate")
-        #expect(item.writtenNames == ["Cocktailtomaten"])
-    }
+        #expect(item.name == "Brauner Champignon")
 
-    @Test("An ordinary ingredient is a group of one, and renders as it always did", arguments: StoreBackend.allCases)
-    func plainItemsAreNotGrouped(_ backend: StoreBackend) async throws {
-        let (shopping, _, _) = try makeLibrary(backend)
-        await shopping.add(Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten"))
+        await catalog.setShoppingPreferences(store: "Markt", note: "feste Köpfe", name: "Pilz")
+        #expect(shopping.preferredStore(of: item) == "Markt")
+        #expect(shopping.shoppingNote(of: item) == "feste Köpfe")
+        #expect(shopping.bySection.map(\.section) == [.store("Markt")])
 
-        let groups = shopping.grouped(shopping.items)
-        #expect(groups.count == 1)
-        #expect(groups.first?.isGrouped == false)
+        // Where two ancestors speak, the nearer one is heard - per field.
+        await catalog.setShoppingPreferences(store: "Hofladen", note: nil, name: "Champignon")
+        #expect(shopping.preferredStore(of: item) == "Hofladen")
+        #expect(shopping.shoppingNote(of: item) == "feste Köpfe")
+
+        // The pantry flag has the same reach, and the walk agrees with the
+        // row's own menu about it.
+        await shopping.setPantry(true, name: "Pilz")
+        #expect(shopping.isPantry(item))
+        #expect(shopping.bySection.map(\.section) == [.pantry])
     }
 
     @Test("A named store pulls its errands out of the aisle walk")

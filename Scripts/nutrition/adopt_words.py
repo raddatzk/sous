@@ -73,10 +73,17 @@ def main():
         if word is None:
             unknown.append(name)
             continue
+        # A variety writes no category of its own unless it differs from its
+        # parent's - see the README, "Varieties". "Unless it differs" is the
+        # operative half: a genuine override has to survive the adoption.
+        parent_category = table.get(word.get("parent", ""), {}).get("category")
+        writes_category = "category" in word and (
+            not word.get("parent") or word["category"] != parent_category
+        )
         kitchen.append({
             "name": name,
             "aliases": word.get("aliases", []),
-            "category": word["category"],
+            **({"category": word["category"]} if writes_category else {}),
             **({"parent": word["parent"]} if word.get("parent") else {}),
         })
         known.add(name)

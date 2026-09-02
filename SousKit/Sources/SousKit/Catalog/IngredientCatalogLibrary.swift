@@ -135,30 +135,75 @@ public final class IngredientCatalogLibrary {
     /// from being something each new mutation has to remember. A pantry flag
     /// is the one exception that skips it: which shelf an ingredient is
     /// hunted on has never moved a calorie.
+    ///
+    /// Says whether the write landed. A store that refuses — a loop in the
+    /// variety chain, a failed save — puts its reason in `errorMessage`, and
+    /// the caller that was about to write more on the strength of this one
+    /// gets to stop.
+    @discardableResult
     private func mutate(
         _ name: String,
         affectsNutrition: Bool = true,
         _ change: (inout IngredientVocabularyEntry) -> Void
-    ) async {
+    ) async -> Bool {
         let key = IngredientCatalog.normalize(name)
-        guard !key.isEmpty else { return }
+        guard !key.isEmpty else { return false }
         var entry = vocabulary[key] ?? IngredientVocabularyEntry(name: name)
         change(&entry)
         do {
             _ = try await store.save(entry)
             await reload()
             if affectsNutrition { try await nutritionCache?.invalidateAll() }
+            return true
         } catch {
             errorMessage = error.localizedDescription
+            return false
         }
     }
 
-    public func save(_ ingredient: CatalogIngredient) async {
-        await mutate(ingredient.name) { entry in
+    /// Whether filing `child` under `parent` would run the chain in a circle.
+    ///
+    /// The stores refuse a loop among the rows they hold, and cannot see the
+    /// rest: a shipped variety is not a row anywhere, so "Tomate under
+    /// Cocktailtomate" passes both stores and writes Tomate → Cocktailtomate →
+    /// Tomate into the merged catalog. Every walk still terminates on a
+    /// repeated name, but the search index would file every tomato recipe
+    /// under Cocktailtomate. This is the check that knows the whole picture,
+    /// so it runs here, before the store is asked.
+    ///
+    /// Both names are taken as the catalog reads them, not as written: the
+    /// entry for "Tomaten" folds onto Tomate when the catalog is rebuilt, so
+    /// a child passed by one of its spellings would slip past a comparison of
+    /// raw keys and come back as exactly the loop this is here to refuse.
+    public func wouldCycle(child: String, parent: String) -> Bool {
+        let childKey = IngredientCatalog.normalize(catalog.canonicalName(for: child))
+        guard !childKey.isEmpty else { return false }
+        if IngredientCatalog.normalize(catalog.canonicalName(for: parent)) == childKey { return true }
+        return catalog.ancestors(of: parent).contains { $0.key == childKey }
+    }
+
+    /// Refuses a cyclic parent out loud — the same error the stores throw,
+    /// surfaced the same way — and says whether the write may go ahead.
+    private func admitsParent(_ parentName: String?, of name: String) -> Bool {
+        guard let parentName, wouldCycle(child: name, parent: parentName) else { return true }
+        errorMessage = VocabularyStoreError.wouldCycle(child: name, parent: parentName).localizedDescription
+        return false
+    }
+
+    /// Writes the cook's own ingredient — name, spellings, aisle, parent —
+    /// and says whether it landed. `false` means nothing was written and
+    /// `errorMessage` says why; a form that was about to save the numbers and
+    /// measures on top should stop there and show it.
+    @discardableResult
+    public func save(_ ingredient: CatalogIngredient) async -> Bool {
+        guard admitsParent(ingredient.parentName, of: ingredient.name) else { return false }
+        return await mutate(ingredient.name) { entry in
             entry.name = ingredient.name
             entry.isOwnIngredient = true
             entry.aliases = ingredient.aliases
-            entry.category = ingredient.category
+            // As written, so that a variety saved without one keeps
+            // inheriting rather than freezing today's resolved aisle.
+            entry.category = ingredient.ownCategory
             entry.parentName = ingredient.parentName
         }
     }
@@ -216,10 +261,13 @@ public final class IngredientCatalogLibrary {
     }
 
     /// Files an ingredient as a variety of another — or takes the relation
-    /// back with `nil`. One level: the store refuses a parent that is itself
-    /// a variety.
-    public func setParent(_ parentName: String?, of name: String) async {
-        await mutate(name) { entry in
+    /// back with `nil`. Any depth (catalog target, decision A); the one thing
+    /// refused is a loop, and that out loud: `false`, with the reason in
+    /// `errorMessage`.
+    @discardableResult
+    public func setParent(_ parentName: String?, of name: String) async -> Bool {
+        guard admitsParent(parentName, of: name) else { return false }
+        return await mutate(name) { entry in
             if entry.name.isEmpty { entry.name = name }
             entry.parentName = parentName
         }

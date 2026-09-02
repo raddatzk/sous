@@ -207,54 +207,23 @@ struct ShoppingListView: View {
         }
     }
 
-    /// A stretch of the list as the places it occupies: an ingredient and
-    /// its varieties are one place, with the varieties readable underneath.
-    @ViewBuilder
-    private func place(_ items: [ShoppingItem], showingSource: Bool = true) -> some View {
-        ForEach(shopping.grouped(items)) { group in
-            if group.isGrouped {
-                variantGroup(group, showingSource: showingSource)
-            } else if let item = group.items.first {
-                row(item, showingSource: showingSource)
-            }
-        }
-    }
-
-    /// The concept's grouped entry: one heading with the total, and a
-    /// sub-line per variety that keeps the word the recipe wrote.
+    /// A stretch of the list, one row per thing to buy.
     ///
-    /// The heading is not checkable — the sub-lines are. Ticking a group off
-    /// as a whole would be the lossy single line all over again: what went
-    /// into the basket was 200 g of cocktail tomatoes, not a share of 700 g
-    /// of tomatoes.
-    @ViewBuilder
-    private func variantGroup(_ group: ShoppingGroup, showingSource: Bool) -> some View {
-        // Sibling rows rather than one row holding a stack: the sub-lines are
-        // the checkable things here, and a row nested inside another row gets
-        // neither its swipe actions nor its own selection.
-        groupHeadline(group)
-        ForEach(group.items) { item in
-            row(item, showingSource: showingSource, isSubline: true)
+    /// Varieties used to share a place here: "Tomate 700 g" as a heading that
+    /// could not be ticked, with the cocktail tomatoes readable as sub-lines
+    /// under it. That was concept §6's grouped entry, and it is given up on
+    /// purpose — see the catalog target, decision E.
+    ///
+    /// What it was for, one place to walk to, the aisle sort already
+    /// delivers: two kinds of tomato land next to each other in Gemüse
+    /// whether or not a heading says they belong together. What it cost was
+    /// a total across things that are not one purchase — mushrooms are the
+    /// case that shows it, since "Pilz 350 g" is a sum of Champignons and
+    /// Pfifferlinge and you can buy neither of those by that name.
+    private func place(_ items: [ShoppingItem], showingSource: Bool = true) -> some View {
+        ForEach(items) { item in
+            row(item, showingSource: showingSource)
         }
-    }
-
-    private func groupHeadline(_ group: ShoppingGroup) -> some View {
-        let amounts = group.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
-        let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
-        return VStack(alignment: .leading, spacing: 2) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                amounts.isEmpty ? Text(group.name) : Text("\(amount) \(group.name)")
-                Spacer(minLength: 0)
-            }
-            // The heading shows the total, so the heading is where the total
-            // has to admit what part of it was weighed in another state.
-            if let states = stateAnnotation(group.statedQuantities) {
-                Text(states)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .opacity(group.isChecked ? 0.5 : 1)
     }
 
     /// "300 g gegart gewogen" — what an amount says about itself beyond the
@@ -366,8 +335,8 @@ struct ShoppingListView: View {
     /// each of four lines told the same thing four times and still left them
     /// looking like the curry's own.
     ///
-    /// Not checkable, for the reason `groupHeadline` is not: what goes in the
-    /// basket is flour and yeast, one at a time.
+    /// Not checkable: what goes in the basket is flour and yeast, one at a
+    /// time, and a heading that could be ticked would claim otherwise.
     private func subrecipeHeadline(_ title: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "arrow.turn.down.right")
@@ -530,7 +499,6 @@ struct ShoppingListView: View {
     private func row(
         _ item: ShoppingItem,
         showingSource: Bool,
-        isSubline: Bool = false,
         // Set under a subrecipe's heading, where the row keeps the
         // ingredient's own name and only moves in under it.
         indented: Bool = false
@@ -544,7 +512,7 @@ struct ShoppingListView: View {
                 Image(systemName: item.isChecked ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    label(for: item, isSubline: isSubline)
+                    label(for: item)
                         .strikethrough(item.isChecked)
                     if let annotation = annotation(for: item) {
                         Text(annotation)
@@ -567,7 +535,7 @@ struct ShoppingListView: View {
                 Spacer(minLength: 0)
             }
             .opacity(item.isChecked ? 0.5 : 1)
-            .padding(.leading, isSubline || indented ? 16 : 0)
+            .padding(.leading, indented ? 16 : 0)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -628,12 +596,14 @@ struct ShoppingListView: View {
 
     /// The amounts lead, in the accent, because that is what is read while
     /// standing in the shop.
-    private func label(for item: ShoppingItem, isSubline: Bool = false) -> Text {
+    private func label(for item: ShoppingItem) -> Text {
         let amounts = item.quantities.map { formatter.string(for: $0) }.joined(separator: " + ")
-        // Under a grouped heading the row says what makes it different: the
-        // word the recipe wrote. Capture replaces that word with the
-        // catalog's for the heading, and the demand is where it survived.
-        let name = isSubline ? (item.writtenNames.first ?? item.name) : item.name
+        // The catalog's name, not the word a recipe happened to write. A row
+        // used to say the written word when it sat under a grouped heading,
+        // to show what made it different from its siblings; with no heading
+        // above it there is nothing to be different from, and the name the
+        // ingredient is known by is the one to look for on a shelf.
+        let name = item.name
         guard !amounts.isEmpty else { return Text(name) }
         let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
         return Text("\(amount) \(name)")

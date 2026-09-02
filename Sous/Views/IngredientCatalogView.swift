@@ -61,6 +61,7 @@ struct IngredientCatalogView: View {
         .sheet(isPresented: $isAdding) {
             IngredientFormView(ingredient: CatalogIngredient(name: "", category: .other))
         }
+        .catalogErrorAlert(catalog)
         .sousSheetSizing(.page)
     }
 
@@ -156,7 +157,9 @@ struct IngredientFormView: View {
 
     @State private var name: String
     @State private var aliasText: String
-    @State private var category: IngredientCategory
+    /// The category as *written* — `nil` means "wie die Stamm-Zutat", and
+    /// is only offered while there is one.
+    @State private var category: IngredientCategory?
     /// The one further spelling being typed for a bundled entry.
     @State private var newAlias = ""
     @State private var nutritionDraft: NutritionDraft
@@ -179,25 +182,45 @@ struct IngredientFormView: View {
     /// remembered for as long as the form is open. Decision B: asked once,
     /// in passing, at the moment the ingredient comes into being.
     @State private var variantProposal: CatalogIngredient?
+    /// Whether the parent picker is up — the way to the relation that does
+    /// not depend on the heuristic having guessed right at creation time.
+    @State private var isPickingParent = false
     /// The measure fields the cook has touched, by unit symbol. Only what is
     /// in here is written back on save — an untouched field shows what the
     /// app currently believes and must not turn that into a correction just
     /// because the form was opened.
     @State private var measureDraft: [String: String] = [:]
-    /// The catalog row the numbers stand in for, as shown and as loaded.
+    /// The answer this form will write for the state on screen, and the one
+    /// it found there.
+    ///
     /// Part of the draft rather than written on the tap, because a new
     /// ingredient has no entry to write a basis onto until it is saved —
     /// which is the whole reason this used to be a second trip through a
-    /// recipe.
-    @State private var basisCode: String?
-    @State private var storedBasisCode: String?
+    /// recipe. Only a *change* is written: opening a form must never turn a
+    /// proposal the app made into a confirmation the cook did not.
+    @State private var basisChoice: BasisChoice = .unset
+    @State private var storedBasisChoice: BasisChoice = .unset
+    /// Whether the filed answer is only a proposal — inherited from a parent,
+    /// or the curation's guess. Then the row on screen is not a decision yet,
+    /// and tapping it *confirms* rather than un-picks.
+    @State private var storedBasisIsProposed = false
+    /// The cook tapped the proposed row to keep it. Same choice as stored, so
+    /// `basis != storedBasis` would never write it; this is the intent that
+    /// makes the save happen — and it is set only by a tap, never by opening.
+    @State private var confirmsStoredRow = false
+    /// The free search over the catalog, beside the proposals.
+    @State private var basisQuery = ""
+    /// Whether the row list is unfolded. Kept apart from the choice itself:
+    /// tapping "Zeile im Lebensmittelkatalog" with nothing picked yet has to
+    /// open the list, not answer the question with a row nobody chose.
+    @State private var isChoosingRow = false
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
         self.startsOnOwnValues = startsOnOwnValues
         _name = State(initialValue: ingredient.name)
         _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
-        _category = State(initialValue: ingredient.category)
+        _category = State(initialValue: ingredient.ownCategory)
         _nutritionDraft = State(initialValue: NutritionDraft())
         _parentName = State(initialValue: ingredient.parentName)
         _isEnteringOwnValues = State(initialValue: startsOnOwnValues)
@@ -268,11 +291,23 @@ struct IngredientFormView: View {
                 variantSection
                 pantrySection
                 shoppingSection
-                nutritionSection
                 basisSection
+                nutritionSection
                 measuresSection
             }
             .formStyle(.grouped)
+            .sheet(isPresented: $isPickingParent) {
+                // Into the draft, not the store: the form writes on save, and
+                // a parent chosen for a name that does not exist yet has no
+                // entry to be written onto until then.
+                IngredientParentPickerView(ingredientName: trimmedName) { parent in
+                    parentName = parent.name
+                    variantProposal = nil
+                    // A category nobody chose yields to the parent's: "Sonstiges"
+                    // was the form's default, not a decision.
+                    if category == .other { category = nil }
+                }
+            }
             .navigationTitle(isNew ? "Neue Zutat" : name)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -294,9 +329,11 @@ struct IngredientFormView: View {
                 await catalog.ensureLoaded()
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
-                storedBasisCode = nutrition.nutrition(forName: trimmedName)?
-                    .basis(for: .unspecified)?.code
-                basisCode = storedBasisCode
+                loadBasisChoice()
+                // Opened from the picker's "Eigene Werte": the answer was
+                // given on the way in, and the form should show it as given
+                // rather than make the cook say it a second time.
+                if startsOnOwnValues { basisChoice = .ownValues }
                 await shopping.ensurePantryLoaded()
                 storedPantry = shopping.pantryKeys.contains(pantryKey)
                 isPantry = storedPantry
@@ -310,6 +347,14 @@ struct IngredientFormView: View {
             // Retyping the name is still "coming into being": the proposal
             // follows what is being written until the entry is saved.
             .onChange(of: trimmedName) { proposeVariantIfNew() }
+            // Each state carries its own answer, so switching which one is on
+            // screen switches the question too.
+            .onChange(of: shownState) { loadBasisChoice() }
+            // Where the library refuses — a parent that would run the chain in
+            // a circle — the form stays open and says so. Before this the
+            // message was set and nobody showed it, which is the silent drop
+            // the store's error exists to end.
+            .catalogErrorAlert(catalog)
         }
         .sousSheetSizing(.form)
     }
@@ -320,13 +365,34 @@ struct IngredientFormView: View {
         Section {
             TextField("Name", text: $name)
             Picker("Kategorie", selection: $category) {
+                // The inherited choice leads, and only exists while there is
+                // something to inherit from. Set means overridden, empty means
+                // inherited — the same rule as for every other field a variety
+                // takes from its parent.
+                if let inherited = inheritedCategory {
+                    Text("Wie \(inherited.parent) (\(inherited.category.title))")
+                        .tag(IngredientCategory?.none)
+                }
                 ForEach(IngredientCategory.allCases, id: \.self) { option in
-                    Text(option.title).tag(option)
+                    Text(option.title).tag(Optional(option))
                 }
             }
         } footer: {
-            Text("Die Kategorie bestimmt, in welcher Abteilung die Zutat auf der Einkaufsliste steht.")
+            Text("Die Kategorie bestimmt, in welcher Abteilung die Zutat auf der Einkaufsliste steht. Eine Sorte erbt sie von der Stamm-Zutat, solange du keine eigene wählst.")
         }
+    }
+
+    /// What the variety would take if it wrote nothing: the nearest
+    /// ancestor's category, with the ancestor named — read from the catalog's
+    /// own resolution, so the form and the list can never disagree about it.
+    /// A parent whose whole chain writes nothing still shows as "wie
+    /// <Parent> (Sonstiges)": that is what the variety would resolve to.
+    private var inheritedCategory: (parent: String, category: IngredientCategory)? {
+        guard let parentName else { return nil }
+        if let source = catalog.catalog.categorySource(for: parentName) {
+            return (source.name, source.category)
+        }
+        return catalog.catalog.category(for: parentName).map { (parentName, $0) }
     }
 
     private var ownAliasSection: some View {
@@ -377,12 +443,15 @@ struct IngredientFormView: View {
     ///
     /// The proposal at the top appears only while the ingredient is coming
     /// into being, and only when the word ends in another one — decision B's
-    /// single, casual moment. Everything else here is the relation as it
-    /// stands, changeable but never guessed again.
+    /// single, casual moment. The button under it is what used to be missing:
+    /// the relation was acceptable and releasable, never *choosable*, so a
+    /// declined proposal was the end of the matter. Now the section is always
+    /// here, and a parent can be set or changed whenever the ingredient is
+    /// open (catalog target, decision A and §1).
     @ViewBuilder
     private var variantSection: some View {
         let children = trimmedName.isEmpty ? [] : catalog.catalog.variants(of: pantryName)
-        if variantProposal != nil || parentName != nil || !children.isEmpty {
+        if !trimmedName.isEmpty {
             Section {
                 if let proposal = variantProposal, parentName == nil {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -391,6 +460,7 @@ struct IngredientFormView: View {
                         Button("Ja") {
                             parentName = proposal.name
                             variantProposal = nil
+                            if category == .other { category = nil }
                         }
                         .buttonStyle(.borderedProminent)
                         Button("Nein") { variantProposal = nil }
@@ -399,9 +469,16 @@ struct IngredientFormView: View {
                 }
                 if let parentName {
                     HStack {
-                        LabeledContent("Sorte von", value: parentName)
+                        LabeledContent("Sorte von", value: parentLineage(from: parentName))
                         Spacer(minLength: 8)
                         Button("Lösen", systemImage: "minus.circle", role: .destructive) {
+                            // An inherited category has nothing to inherit
+                            // from once the parent is gone. Keep the aisle the
+                            // ingredient was in rather than let it fall to
+                            // Sonstiges behind a picker with no valid choice.
+                            if category == nil {
+                                category = inheritedCategory?.category ?? original.category
+                            }
                             self.parentName = nil
                         }
                         .labelStyle(.iconOnly)
@@ -409,15 +486,28 @@ struct IngredientFormView: View {
                         .help("Sorten-Zuordnung lösen")
                     }
                 }
+                Button(
+                    parentName == nil ? "Als Sorte einordnen" : "Andere Stamm-Zutat wählen",
+                    systemImage: "arrow.triangle.branch"
+                ) {
+                    isPickingParent = true
+                }
                 ForEach(children) { child in
                     LabeledContent("Sorte", value: child.name)
                 }
             } header: {
                 Text("Sorten")
             } footer: {
-                Text("Sorten stehen auf der Einkaufsliste als Unterzeilen der Stammzutat — an einer Stelle, ohne die Unterscheidung zu verlieren. Nährwerte erben sie, solange sie keine eigenen haben.")
+                Text("Eine Sorte erbt Nährwerte und Maße ihrer Stamm-Zutat, solange sie keine eigenen hat — als Vorschlag, den du einmal bestätigst. Auf der Einkaufsliste steht sie als eigene Zeile. Rezepte mit einer Sorte finden sich auch unter der Stamm-Zutat.")
             }
         }
+    }
+
+    /// "Champignon → Pilz" where the chosen parent is itself a variety: the
+    /// chain may be any depth, and the row should say where it leads.
+    private func parentLineage(from parentName: String) -> String {
+        ([parentName] + catalog.catalog.ancestors(of: parentName).map(\.name))
+            .joined(separator: " → ")
     }
 
     // MARK: - Bundled entries
@@ -425,7 +515,15 @@ struct IngredientFormView: View {
     private var bundledIdentitySection: some View {
         Section {
             LabeledContent("Name", value: original.name)
-            LabeledContent("Kategorie", value: original.category.title)
+            // "Gemüse — von Tomate" for a shipped variety that inherits: the
+            // aisle is right, and it is somebody else's decision.
+            LabeledContent(
+                "Kategorie",
+                value: original.ownCategory == nil
+                    ? (inheritedCategory.map { "\($0.category.title) — von \($0.parent)" }
+                        ?? original.category.title)
+                    : original.category.title
+            )
         } footer: {
             Text("Diese Zutat gehört zum Bestand der App. Name und Kategorie werden bei jedem Update erneuert — Schreibweisen und Nährwerte, die du ergänzt, bleiben erhalten.")
         }
@@ -583,7 +681,14 @@ struct IngredientFormView: View {
 
     private func measureField(for unit: IngredientUnit) -> some View {
         HStack {
-            Text("1 \(unit.symbol) wiegt")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("1 \(unit.symbol) wiegt")
+                if let parent = inheritedMeasureSource(for: unit) {
+                    Text("von \(parent)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 8)
             TextField(
                 "g",
@@ -636,7 +741,6 @@ struct IngredientFormView: View {
             // BLS reports sodium; the standard EU label shows salt, in grams
             // — which the formatter drops to milligrams where it has to.
             measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
-            Button("Eigene Werte eintragen") { isEnteringOwnValues = true }
         } header: {
             Text("Nährwerte je 100 g")
         } footer: {
@@ -775,63 +879,239 @@ struct IngredientFormView: View {
         }
     }
 
-    /// Which row of the food table these numbers stand in for — asked here,
-    /// beside the numbers, rather than only in a recipe that happens to use
-    /// the ingredient.
+    // MARK: - Grundlage
+
+    /// The one question the numbers hang on: what do they rest on.
     ///
-    /// It used to be reachable from one direction only. "Eigene Werte" in
-    /// the basis picker opens this form, but this form had no way back: a
-    /// cook who added Leinsamenöl and typed a label off the bottle was told
-    /// to go and find a recipe with it in to finish the job. Adding an
-    /// ingredient and saying what it is are the same thought, so they are
-    /// now the same screen.
+    /// Three answers that exclude one another — a row of the food table, the
+    /// cook's own numbers, or the decision to have neither. The model has
+    /// said so since phase 4; the form used to lay two of them out as
+    /// separate sections with the exclusivity hidden in a footnote, and keep
+    /// the third only in the recipe. Worse, the row picker appeared only
+    /// while `isNutritionEditable` — that is, only for ingredients that had
+    /// no values yet — so an ingredient whose numbers were fine and whose row
+    /// was wrong could not be corrected here at all.
     ///
-    /// Written on save, not on the tap, because a new ingredient has no
-    /// entry to carry a basis until it has one.
+    /// Asked for the state on screen, because that is what a row answers:
+    /// picking one says what a *cooked* potato is. Own values stay a
+    /// statement about the ingredient — see `save()` — and that asymmetry is
+    /// deliberate, not an oversight.
+    ///
+    /// Written on save, not on the tap, because a new ingredient has no entry
+    /// to carry a basis until it has one.
+    ///
+    /// Exclusive on purpose, and decided so on review: a catalog row is *not*
+    /// kept beside own values as a note of what they stand for, although
+    /// `BasisAssignment` could hold both. A subordinate choice under one of
+    /// three answers turns them back into the two questions this section
+    /// exists to replace — and the doubt it answers was the cook's own, about
+    /// having values *and* a reference at once.
     @ViewBuilder
     private var basisSection: some View {
-        if isNutritionEditable, !trimmedName.isEmpty {
-            let rows = nutrition.candidates(forName: trimmedName)
+        if !trimmedName.isEmpty {
             Section {
-                if rows.isEmpty {
-                    Text("Zu diesem Namen findet der Katalog nichts. Die eigenen Werte gelten trotzdem.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(rows) { row in
-                        Button {
-                            // Tapping the chosen row again takes the choice
-                            // back: with no other way to unpick one, a
-                            // mis-tap would be permanent.
-                            basisCode = basisCode == row.code ? nil : row.code
-                        } label: {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Image(systemName: basisCode == row.code
-                                    ? "largecircle.fill.circle" : "circle")
-                                    .foregroundStyle(.tint)
-                                Text(row.name)
-                                    .multilineTextAlignment(.leading)
-                                    .foregroundStyle(.primary)
-                                Spacer(minLength: 8)
-                                Text("\(Int(row.perHundredGrams.kcal.rounded())) kcal")
-                                    .foregroundStyle(.secondary)
-                                    .monospacedDigit()
-                            }
-                            .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                    }
+                basisAnswer(
+                    title: "Zeile im Lebensmittelkatalog",
+                    detail: chosenRowName,
+                    isChosen: chosenRowCode != nil
+                ) { chooseCatalogRow() }
+                if chosenRowCode != nil || isChoosingRow {
+                    basisRowList
                 }
+                basisAnswer(
+                    title: "Eigene Werte",
+                    detail: nil,
+                    isChosen: basisChoice == .ownValues,
+                    action: chooseOwnValues
+                )
+                basisAnswer(
+                    title: "Bewusst ohne Nährwerte",
+                    detail: nil,
+                    isChosen: basisChoice == .deliberatelyWithout
+                ) { choose(.deliberatelyWithout) }
             } header: {
-                Text("Zeile im Lebensmittelkatalog")
+                Text(availableStates.count > 1
+                    ? "Grundlage (\(selectedState.wrappedValue.title.lowercased()))"
+                    : "Grundlage")
             } footer: {
-                // The link is a note, not a source of numbers: own values win
-                // at read time either way. What it buys is that a data update
-                // can still find the row and say if it has gone.
-                Text(nutritionDraft.catalogNutrition(named: trimmedName) == nil
-                    ? "Ohne eigene Werte zählt die gewählte Zeile."
-                    : "Die eigenen Werte zählen; die Zeile hält fest, wofür sie stehen.")
+                Text(basisFooter)
             }
         }
+    }
+
+    /// One of the three answers, as a row that can also be tapped a second
+    /// time to take it back. With no other way to unpick one, a mis-tap would
+    /// otherwise be permanent.
+    private func basisAnswer(
+        title: String, detail: String?, isChosen: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: isChosen ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    if let detail {
+                        Text(detail)
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer(minLength: 8)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The rows to choose between: the proposals for this name, or whatever
+    /// the cook is searching for. Typing replaces the list rather than adding
+    /// a second one beneath it.
+    @ViewBuilder
+    private var basisRowList: some View {
+        let query = basisQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        let rows = query.isEmpty
+            ? nutrition.candidates(forName: trimmedName, state: selectedState.wrappedValue)
+            : nutrition.search(query)
+        BLSSearchField(text: $basisQuery)
+        if rows.isEmpty {
+            Text(emptyRowListNote(query: query))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(rows) { row in
+                BLSRow(row: row, isSelected: chosenRowCode == row.code, indented: true) {
+                    chooseRow(row.code)
+                }
+            }
+        }
+    }
+
+    private func emptyRowListNote(query: String) -> String {
+        if query.isEmpty {
+            return "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
+        }
+        return BLSRow.emptySearchNote(query: query)
+    }
+
+    private var basisFooter: String {
+        switch basisChoice {
+        case .catalogRow:
+            "Die Werte dieser Zeile zählen für jedes Rezept mit dieser Zutat."
+        case .ownValues:
+            "Deine Zahlen zählen — in jedem Rezept mit dieser Zutat und in jedem Zustand."
+        case .deliberatelyWithout:
+            "Diese Zutat zählt bewusst in keiner Summe mit und fragt nicht mehr nach."
+        case .unset:
+            "Ohne Grundlage lässt jede Summe diese Zutat aus und nennt sie als Lücke."
+        }
+    }
+
+    // MARK: - Grundlage, the answering
+
+    private var chosenRowCode: String? {
+        if case .catalogRow(let code) = basisChoice { return code }
+        return nil
+    }
+
+    /// The chosen row's name — and, while the row on screen is still the one
+    /// that came down the chain unchanged, whose it is and that it is only
+    /// proposed. A variety shows its parent's row here until the cook picks;
+    /// showing it without saying so is exactly how inherited numbers used to
+    /// pass for the variety's own.
+    private var chosenRowName: String? {
+        guard let code = chosenRowCode else { return nil }
+        let name = nutrition.row(forCode: code)?.name
+        guard basisChoice == storedBasisChoice, storedBasisIsProposed else { return name }
+        if confirmsStoredRow { return name.map { "\($0) — wird beim Sichern bestätigt" } }
+        let origin = resolvedNutrition?.inheritedFrom.map { "geerbt von \($0), " } ?? ""
+        return name.map { "\($0) — \(origin)vorgeschlagen. Antippen bestätigt." }
+    }
+
+    /// Whether a measure on screen came down the chain rather than being
+    /// this ingredient's own — the same honesty for grams that the basis
+    /// row has for numbers. Compared against the entry as written, since the
+    /// resolved one has already merged its ancestor's weights in.
+    private func inheritedMeasureSource(for unit: IngredientUnit) -> String? {
+        guard let parent = resolvedNutrition?.inheritedFrom,
+              measureDraft[unit.symbol] == nil,
+              nutrition.nutritionCatalog.ownEntry(forCanonicalName: trimmedName)?
+                  .unitWeightsGrams[unit.symbol] == nil
+        else { return nil }
+        return parent
+    }
+
+    /// Reads the answer currently filed for the state on screen. Called again
+    /// when that state changes, because each one carries its own answer.
+    private func loadBasisChoice() {
+        let filed = filedBasis()
+        storedBasisChoice = choice(for: filed)
+        storedBasisIsProposed = filed?.status == .proposed
+        basisChoice = storedBasisChoice
+        confirmsStoredRow = false
+        isChoosingRow = false
+    }
+
+    private func filedBasis() -> NutritionBasis? {
+        guard !trimmedName.isEmpty else { return nil }
+        return nutrition.nutrition(forName: trimmedName)?.basis(for: selectedState.wrappedValue)
+    }
+
+    private func choice(for basis: NutritionBasis?) -> BasisChoice {
+        guard let basis else { return .unset }
+        if basis.status == .deliberatelyWithout { return .deliberatelyWithout }
+        if ownNutrition != nil { return .ownValues }
+        return basis.code.map(BasisChoice.catalogRow) ?? .unset
+    }
+
+    /// Picking an answer, or taking it back by picking it again.
+    private func choose(_ choice: BasisChoice) {
+        basisChoice = basisChoice == choice ? .unset : choice
+        if basisChoice != .ownValues, !startsOnOwnValues {
+            isEnteringOwnValues = false
+        }
+        if chosenRowCode == nil { isChoosingRow = false }
+    }
+
+    /// The catalog-row answer has no value until a row is picked, so tapping
+    /// it opens the list rather than choosing anything.
+    private func chooseCatalogRow() {
+        if chosenRowCode != nil {
+            basisChoice = .unset
+            isChoosingRow = false
+        } else {
+            isChoosingRow.toggle()
+        }
+    }
+
+    /// Picking a row, or unpicking it. The list stays open either way:
+    /// taking one back is usually the first half of choosing a different one.
+    private func chooseRow(_ code: String) {
+        if chosenRowCode == code {
+            // Tapping the row that is already on screen means one of two
+            // things. On a decided row it takes the decision back. On a row
+            // that is only proposed - inherited, or the curation's guess - it
+            // is the confirmation, and un-picking it would leave the cook
+            // with no way to say "yes, this one" from this screen at all.
+            if storedBasisIsProposed, storedBasisChoice == .catalogRow(code) {
+                confirmsStoredRow.toggle()
+            } else {
+                basisChoice = .unset
+            }
+        } else {
+            basisChoice = .catalogRow(code)
+            confirmsStoredRow = false
+        }
+        isChoosingRow = true
+        if !startsOnOwnValues { isEnteringOwnValues = false }
+    }
+
+    /// Own values are chosen by saying so, and the fields appear at once —
+    /// the answer and the place to type it are one thought.
+    private func chooseOwnValues() {
+        choose(.ownValues)
+        if basisChoice == .ownValues { isEnteringOwnValues = true }
     }
 
     private func numberField(_ label: String, text: Binding<String>, indented: Bool = false) -> some View {
@@ -880,8 +1160,13 @@ struct IngredientFormView: View {
             if trimmed.isEmpty { return .some(nil) }
             return DecimalText.number(trimmed).map { .some($0) }
         }
-        let basis = basisCode
-        let basisChanged = basisCode != storedBasisCode
+        let basis = basisChoice
+        let storedBasis = storedBasisChoice
+        // A proposed row the cook tapped to keep is the same choice as stored
+        // and still has to be written - as a confirmation.
+        let basisChanged = basis != storedBasis || confirmsStoredRow
+        let hadOwnValues = ownNutrition != nil
+        let basisState = selectedState.wrappedValue
         let measureTarget = pantryName
         let pantryChanged = isPantry != storedPantry
         let pantryFlagged = isPantry
@@ -893,28 +1178,48 @@ struct IngredientFormView: View {
         let parent = parentName
         let wasParented = original.parentName
         Task {
+            // The identity first, and nothing else if it was refused: a
+            // parent that would run the chain in a circle is reported by the
+            // library, and the form stays open showing it rather than saving
+            // the numbers and measures around a relation that did not land.
             if isOwn {
-                await catalog.save(ingredient)
+                guard await catalog.save(ingredient) else { return }
             } else if parent != wasParented {
                 // A shipped ingredient the cook filed under another one:
                 // everything else about it stays the app's.
-                await catalog.setParent(parent, of: trimmedName)
+                guard await catalog.setParent(parent, of: trimmedName) else { return }
             }
-            if editable {
+            if basis == .ownValues, editable {
                 if let entered {
                     await nutrition.saveIngredientNutrition(entered)
-                } else if ownNutrition != nil {
+                } else if hadOwnValues {
                     // Everything cleared out reads as taking the entry back.
                     await nutrition.deleteIngredientNutrition(name: trimmedName)
                 }
+            } else if storedBasis == .ownValues, hadOwnValues {
+                // Moving off own values takes the numbers with it. They win
+                // over a code at read time, so leaving them behind would mean
+                // picking a row and watching nothing change.
+                await nutrition.deleteIngredientNutrition(name: trimmedName)
             }
             // After the numbers, never before: `confirmBasis` carries own
             // values across, so it has to see the ones just entered.
             if basisChanged {
-                if let basis {
-                    await nutrition.confirmBasis(code: basis, forName: trimmedName)
-                } else {
-                    await nutrition.clearBasis(forName: trimmedName)
+                switch basis {
+                case .catalogRow(let code):
+                    await nutrition.confirmBasis(
+                        code: code, state: basisState, forName: trimmedName
+                    )
+                case .deliberatelyWithout:
+                    await nutrition.setDeliberatelyWithoutBasis(
+                        forName: trimmedName, state: basisState
+                    )
+                case .unset:
+                    await nutrition.clearBasis(forName: trimmedName, state: basisState)
+                case .ownValues:
+                    // The numbers written above are the answer; there is no
+                    // second thing to record.
+                    break
                 }
             }
             for (symbol, grams) in measures {
@@ -934,6 +1239,40 @@ struct IngredientFormView: View {
                 )
             }
             dismiss()
+        }
+    }
+}
+
+/// What an ingredient's numbers rest on, as one question with three answers.
+///
+/// The shape `BasisAssignment` has had since phase 4, in the form's own
+/// terms: a row of the food table, the cook's own numbers, or the decision to
+/// have neither — plus the state of never having said. They exclude one
+/// another, which is exactly what two stacked form sections could not show.
+private enum BasisChoice: Equatable {
+    /// Nothing said yet. A named gap in every sum that uses the ingredient.
+    case unset
+    case catalogRow(String)
+    case ownValues
+    case deliberatelyWithout
+}
+
+extension View {
+    /// Shows what the catalog library last refused or failed at, and clears
+    /// it once read. Attached by every screen that writes through the
+    /// library, since the library itself has no screen of its own.
+    @MainActor
+    func catalogErrorAlert(_ catalog: IngredientCatalogLibrary) -> some View {
+        alert(
+            "Fehler",
+            isPresented: Binding(
+                get: { catalog.errorMessage != nil },
+                set: { if !$0 { catalog.errorMessage = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { catalog.errorMessage = nil }
+        } message: {
+            Text(catalog.errorMessage ?? "")
         }
     }
 }

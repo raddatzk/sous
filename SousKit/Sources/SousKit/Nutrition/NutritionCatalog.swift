@@ -67,6 +67,25 @@ public struct NutritionCatalog: Sendable {
                     source: row.source ?? source
                 )
             }
+            // A word the source does not list at all arrives *answered*,
+            // not empty, and that answer overrules anything the loop above
+            // found: the marker is the curator's last word, not a hint.
+            //
+            // The difference is the whole of decision D. An empty word is a
+            // question every recipe using it asks again; a word carrying
+            // `deliberatelyWithout` is a settled one that stops counting as a
+            // defect. Filed under `unspecified`, because "the BLS has no
+            // cinnamon" is true of cinnamon in every state.
+            if word.hasNoValues {
+                bases = [IngredientState.unspecified.rawValue: NutritionBasis(
+                    values: .zero, status: .deliberatelyWithout,
+                    // The dataset's own name, not `ownSource`: this is the
+                    // curation's decision, and telling the cook it was theirs
+                    // would be a small lie in the one place that explains
+                    // where a number came from.
+                    source: source
+                )]
+            }
             let candidates = word.candidateCodes
             // A word with no basis still sits in a food group, and the group
             // is what a cup of it or a milliliter of it is answered from.
@@ -117,12 +136,28 @@ public struct NutritionCatalog: Sendable {
     /// confirmation on the parent reaches the variant the moment it is made.
     public func nutrition(forCanonicalName name: String) -> CatalogNutrition? {
         guard let entry = byName[IngredientCatalog.normalize(name)] else { return nil }
-        guard !entry.hasBases,
-              let parentName = entry.parentName,
+        guard !entry.hasBases else { return entry }
+        // Up the chain to the nearest ancestor with a basis — any depth, since
+        // the shipped data already held Pilz → Champignon → Brauner Champignon
+        // and the store no longer refuses the shape. A seen-set rather than a
+        // depth cap: a hand-edited data file is the one place a loop could
+        // still come from, and the walk must end either way.
+        var seen: Set<String> = [IngredientCatalog.normalize(entry.name)]
+        var current = entry
+        while let parentName = current.parentName,
               let parent = byName[IngredientCatalog.normalize(parentName)],
-              parent.hasBases
-        else { return entry }
-        return entry.inheriting(from: parent)
+              seen.insert(IngredientCatalog.normalize(parent.name)).inserted {
+            if parent.hasBases { return entry.inheriting(from: parent) }
+            current = parent
+        }
+        return entry
+    }
+
+    /// The entry as it was written, without anything taken from an
+    /// ancestor — what a form compares against to say which of the figures
+    /// it shows are the ingredient's own and which came down the chain.
+    public func ownEntry(forCanonicalName name: String) -> CatalogNutrition? {
+        byName[IngredientCatalog.normalize(name)]
     }
 
     public var entries: [CatalogNutrition] { Array(byName.values) }

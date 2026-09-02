@@ -67,6 +67,12 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
     /// entry, because an ingredient can perfectly well have the cook's own
     /// numbers for one state and the shipped ones for another.
     public var source: String
+    /// The ingredient this basis was taken over from, where it was: a
+    /// variety without numbers of its own computes with its parent's, and
+    /// this names the parent so that every place that explains a figure can
+    /// say "geerbt von Tomate" instead of presenting the parent's row as the
+    /// variety's own. `nil` for a basis that is the ingredient's own.
+    public var inheritedFrom: String?
 
     /// A basis built by hand — a cook's numbers, or a test's — is one whoever
     /// built it stands behind, so it is confirmed unless said otherwise.
@@ -76,7 +82,8 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         catalogName: String? = nil,
         status: Status = .confirmed,
         weight: Double = 0,
-        source: String = CatalogNutrition.blsSource
+        source: String = CatalogNutrition.blsSource,
+        inheritedFrom: String? = nil
     ) {
         self.values = values
         self.code = code
@@ -84,6 +91,27 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         self.status = status
         self.weight = weight
         self.source = source
+        self.inheritedFrom = inheritedFrom
+    }
+
+    /// This basis as a variety receives it from `parent`.
+    ///
+    /// **Inheritance is a proposal, never a confirmation** — catalog target,
+    /// decision B. The parent's row may have been confirmed by the cook, but
+    /// that was a decision about the parent; whether Räucherlachs is Lachs is
+    /// a different question, and one that turned out to be wrong by a factor
+    /// of 37 while nothing on screen said the number had been inherited at
+    /// all. So a confirmed basis arrives as *proposed*: still computed with,
+    /// marked, counted as unconfirmed, and asked about once.
+    ///
+    /// Two statuses pass through unchanged, because they are not numbers to
+    /// doubt but answers to keep: a parent that deliberately has no values
+    /// (Minze, and so Pfefferminze) and a parent whose row is orphaned.
+    func inherited(from parent: String) -> NutritionBasis {
+        var basis = self
+        basis.inheritedFrom = parent
+        if basis.status == .confirmed { basis.status = .proposed }
+        return basis
     }
 
     /// A basis kept as a *decision* rather than as numbers: the cook said
@@ -103,7 +131,8 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
             status: try container.decodeIfPresent(Status.self, forKey: .status) ?? .confirmed,
             weight: try container.decodeIfPresent(Double.self, forKey: .weight) ?? 0,
             source: try container.decodeIfPresent(String.self, forKey: .source)
-                ?? CatalogNutrition.blsSource
+                ?? CatalogNutrition.blsSource,
+            inheritedFrom: try container.decodeIfPresent(String.self, forKey: .inheritedFrom)
         )
     }
 
@@ -146,10 +175,15 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// the line *without* a basis is the one the picker exists for.
     public var candidateCodes: [String]
     /// The ingredient this one is a variety of — "Cocktailtomate" of
-    /// "Tomate". One level deep, and only ever a name: a variant inherits
-    /// its parent's basis and unit knowledge as long as it has none of its
-    /// own, which `NutritionCatalog` resolves at lookup time.
+    /// "Tomate". Any depth, and only ever a name: a variety inherits the
+    /// basis and unit knowledge of the nearest ancestor that has any, as long
+    /// as it has none of its own, which `NutritionCatalog` resolves at lookup
+    /// time.
     public var parentName: String?
+    /// Set on an entry that was resolved *through* its ancestry: the name of
+    /// the ancestor whose bases these are. `nil` on an entry standing on its
+    /// own numbers. What the form reads to label a figure as inherited.
+    public var inheritedFrom: String?
 
     public init(
         name: String,
@@ -287,7 +321,10 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// the confirmation, until the variant says something of its own.
     public func inheriting(from parent: CatalogNutrition) -> CatalogNutrition {
         var merged = self
-        merged.bases = parent.bases
+        // Every basis says whose it was and, unless it is a settled non-answer,
+        // drops from confirmed to proposed — see `NutritionBasis.inherited`.
+        merged.bases = parent.bases.mapValues { $0.inherited(from: parent.name) }
+        merged.inheritedFrom = parent.name
         merged.unitWeightsGrams = parent.unitWeightsGrams.merging(unitWeightsGrams) { _, mine in mine }
         merged.densityGramsPerMl = densityGramsPerMl ?? parent.densityGramsPerMl
         merged.source = parent.source
