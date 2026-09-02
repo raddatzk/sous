@@ -27,10 +27,10 @@ its §3 into a sequence of shippable phases.
 | 0 — Take out what only the old data needed | ~500 lines and four entities gone | S | `3862979` |
 | 1 — The basis becomes answerable | a mapping can be made, changed and searched | M | `416e010`, `80f9fa0` |
 | 2 — Words with no values say so | the spices stop being a permanent gap | S | `257ba8f` |
-| 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M | `00955d5` |
-| 4 — The parent becomes something you can make | the relation gets a way in | M | `262ceb0` |
+| 3 — Inheritance becomes a proposal | the silent wrong numbers become visible | M | `2a1038e` |
+| 4 — The parent becomes something you can make | the relation gets a way in | M | `000de92` |
 | 5 — The shopping list stops bundling | varieties are their own errands | S | `bc14811` |
-| 6 — Category is inherited | one inheritance rule instead of an exception | S | `934ac3a` |
+| 6 — Category is inherited | one inheritance rule instead of an exception | S | `714a043` |
 
 Phase 1 built decision C's three answers as strictly exclusive and left out the
 "steht für" note the target had asked for; on review the cook chose the exclusive
