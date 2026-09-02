@@ -35,6 +35,44 @@ struct NutritionLibraryTests {
         )
     }
 
+    @Test("A basis filed under one state is re-pointed without touching the others")
+    func rePointingOneStateLeavesTheOthersAlone() async throws {
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.ensureLoaded()
+
+        // Kartoffel ships raw and cooked as separate rows. Confirm the cooked
+        // one first, so there is a settled answer to change - the case the
+        // form could not reach at all before the Grundlage row, because it
+        // hid the picker for anything that already had values and wrote only
+        // to unspecified when it did show.
+        await nutrition.confirmBasis(code: "K110132", state: .cooked, forName: "Kartoffeln")
+        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.code == "K110132")
+        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.status == .confirmed)
+
+        // Point cooked at a different row. Raw must not move.
+        let rawBefore = nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .raw)
+        await nutrition.confirmBasis(code: "K110182", state: .cooked, forName: "Kartoffeln")
+
+        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
+        #expect(entry.basis(for: .cooked)?.code == "K110182")
+        #expect(entry.basis(for: .raw)?.code == rawBefore?.code)
+        #expect(entry.basis(for: .raw)?.status == rawBefore?.status)
+    }
+
+    @Test("Deliberately without for one state leaves another state's row standing")
+    func optingOutIsPerState() async throws {
+        let (nutrition, _) = try makeLibrary()
+        await nutrition.ensureLoaded()
+
+        await nutrition.confirmBasis(code: "K110100", state: .raw, forName: "Kartoffeln")
+        await nutrition.setDeliberatelyWithoutBasis(forName: "Kartoffeln", state: .cooked)
+
+        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
+        #expect(entry.basis(for: .cooked)?.status == .deliberatelyWithout)
+        #expect(entry.basis(for: .raw)?.code == "K110100")
+        #expect(entry.basis(for: .raw)?.status == .confirmed)
+    }
+
     @Test("A recipe with no ingredient the catalog recognizes comes back as zero, not a crash")
     func unknownIngredientsAreZeroNotFatal() async throws {
         let (nutrition, _) = try makeLibrary()

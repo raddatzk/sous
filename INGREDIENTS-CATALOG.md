@@ -145,7 +145,9 @@ Pfefferminze under Minze, where the parent has none either).
 
 **An inherited basis arrives as *proposed*, never as confirmed.** This is the one
 correction the round made to itself, and it comes from asking what a parent is
-actually for (see §2½). Inheritance is a good guess, not an answer: it is right for
+actually for (see §2½). It was proposed in answer to that question and confirmed
+separately on review, against the alternative of leaving inheritance silent as the
+concept's "Kind erbt das" reads literally — the price below was weighed and taken. Inheritance is a good guess, not an answer: it is right for
 Cocktailtomate and off by a factor of 37 for Räucherlachs, and today the child takes
 the parent's confirmed status along with its numbers, which is what makes the bad
 cases invisible. As a proposal it is still computed with — concept decision A — but
@@ -168,9 +170,9 @@ a word about where it comes from.
 BLS row · own values · deliberately without. Three answers that exclude one another,
 as `BasisAssignment` already models them — presented as one "Grundlage" row with a
 switch, not as two form sections stacked with the exclusivity hidden in a footnote.
-Where own values are chosen, the BLS row stays available beneath them as a note
-("steht für …"), because that is what lets a data update still report the row as
-gone.
+Exclusive means exclusive: choosing a row while own values stand deletes the values,
+because they win over a code at read time and leaving them behind would mean picking
+a row and watching nothing change.
 
 The asymmetry stays and gets said out loud: **own values are a statement about the
 ingredient, a catalog row is a statement about a state.** Typing numbers for
@@ -183,6 +185,15 @@ repaired there at all.
 *Rejected:* own values per state. It would be consistent, and it would put a state
 switch above eight number fields for a case that arises when somebody copies a
 packet label — where there is only ever one state.
+
+*Also rejected, on review (2026-09-01):* a catalog row kept *beside* own values as a
+note of what they stand for ("steht für …"). An earlier draft of this decision wanted
+it so that a data update could still report the remembered row as gone. The model
+can hold both — `BasisAssignment` carries a code next to values — but the form
+cannot show a subordinate choice without turning three answers back into two
+questions, and the question this whole decision answers was the cook's own doubt
+about having values *and* a reference. What is given up is small: own values never
+orphan, so the update has nothing to repair, only nothing to mention.
 
 ### D · The curation may ship "no values, on purpose"
 

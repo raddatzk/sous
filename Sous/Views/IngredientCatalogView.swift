@@ -809,12 +809,12 @@ struct IngredientFormView: View {
     /// Written on save, not on the tap, because a new ingredient has no entry
     /// to carry a basis until it has one.
     ///
-    /// **Not yet here:** the target's "steht für" note — a catalog row kept
-    /// *beside* own values rather than instead of them, so that a data update
-    /// can still say the row it stood for is gone. `BasisAssignment` holds
-    /// both at once and `confirmBasis` already carries values across, so the
-    /// model is ready; what is missing is a place to put a second, subordinate
-    /// choice without turning three answers back into two questions.
+    /// Exclusive on purpose, and decided so on review: a catalog row is *not*
+    /// kept beside own values as a note of what they stand for, although
+    /// `BasisAssignment` could hold both. A subordinate choice under one of
+    /// three answers turns them back into the two questions this section
+    /// exists to replace — and the doubt it answers was the cook's own, about
+    /// having values *and* a reference at once.
     @ViewBuilder
     private var basisSection: some View {
         if !trimmedName.isEmpty {

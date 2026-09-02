@@ -26,11 +26,9 @@ its §3 into a sequence of shippable phases.
 | 5 — The shopping list stops bundling | varieties are their own errands | S | `bc14811` |
 | 6 — Category is inherited | one inheritance rule instead of an exception | S | open |
 
-Phase 1 left one piece of decision C unbuilt — a catalog row kept *beside* own
-values as a note of what they stand for. `BasisAssignment` holds both and
-`confirmBasis` already carries values across, so the model is ready; what is
-missing is somewhere to put a subordinate choice without turning three answers
-back into two questions. Phase 2 marked 28 words rather than 29: checking each
+Phase 1 built decision C's three answers as strictly exclusive and left out the
+"steht für" note the target had asked for; on review the cook chose the exclusive
+form and the target was changed to match. Phase 2 marked 28 words rather than 29: checking each
 against plausible catalog names instead of its own spelling turned up Chili, which
 the source *does* have, filed as "Pfefferschote".
 
@@ -142,9 +140,9 @@ fresh store.
   lines too (`:1068`, `:1082`), so a confirmed mapping can be revisited from the
   recipe as well.
 
-*Verification:* a new test that every state of an ingredient with a confirmed basis
-can be re-pointed at another row; `BasisStatusTests` extended for the per-state
-write.
+*Verification:* a test that a basis filed under one state can be re-pointed at
+another row without touching the other states — `NutritionLibraryTests`, added after
+the phase landed, since the phase itself shipped only the search tests.
 
 ### Phase 2 — Words with no values say so
 
