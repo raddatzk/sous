@@ -153,7 +153,32 @@ public final class IngredientCatalogLibrary {
         }
     }
 
+    /// Whether filing `child` under `parent` would run the chain in a circle.
+    ///
+    /// The stores refuse a loop among the rows they hold, and cannot see the
+    /// rest: a shipped variety is not a row anywhere, so "Tomate under
+    /// Cocktailtomate" passes both stores and writes Tomate → Cocktailtomate →
+    /// Tomate into the merged catalog. Every walk still terminates on a
+    /// repeated name, but the search index would file every tomato recipe
+    /// under Cocktailtomate. This is the check that knows the whole picture,
+    /// so it runs here, before the store is asked.
+    public func wouldCycle(child: String, parent: String) -> Bool {
+        let childKey = IngredientCatalog.normalize(child)
+        guard !childKey.isEmpty else { return false }
+        if IngredientCatalog.normalize(parent) == childKey { return true }
+        return catalog.ancestors(of: parent).contains { $0.key == childKey }
+    }
+
+    /// Refuses a cyclic parent out loud — the same error the stores throw,
+    /// surfaced the same way — and says whether the write may go ahead.
+    private func admitsParent(_ parentName: String?, of name: String) -> Bool {
+        guard let parentName, wouldCycle(child: name, parent: parentName) else { return true }
+        errorMessage = VocabularyStoreError.wouldCycle(child: name, parent: parentName).localizedDescription
+        return false
+    }
+
     public func save(_ ingredient: CatalogIngredient) async {
+        guard admitsParent(ingredient.parentName, of: ingredient.name) else { return }
         await mutate(ingredient.name) { entry in
             entry.name = ingredient.name
             entry.isOwnIngredient = true
@@ -221,6 +246,7 @@ public final class IngredientCatalogLibrary {
     /// back with `nil`. One level: the store refuses a parent that is itself
     /// a variety.
     public func setParent(_ parentName: String?, of name: String) async {
+        guard admitsParent(parentName, of: name) else { return }
         await mutate(name) { entry in
             if entry.name.isEmpty { entry.name = name }
             entry.parentName = parentName

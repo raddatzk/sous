@@ -113,6 +113,34 @@ extension IngredientCatalogTests {
         #expect(cleared.category(for: "Räucherlachs") == .fish)
     }
 
+    @Test("A Codable round-trip keeps an inheriting variety inheriting")
+    func codableKeepsTheWrittenCategory() throws {
+        // The resolved category must never be encoded as though it were
+        // written: Cocktailtomate would come back frozen to Gemüse, and a later
+        // change to Tomate's aisle would no longer reach it.
+        let catalog = IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Tomate", category: .vegetables),
+            CatalogIngredient(name: "Cocktailtomate", parentName: "Tomate"),
+        ])
+        let resolved = try #require(catalog.ingredient(for: "Cocktailtomate"))
+        #expect(resolved.category == .vegetables)
+
+        let data = try JSONEncoder().encode(resolved)
+        let json = try #require(String(data: data, encoding: .utf8))
+        #expect(!json.contains("\"category\""), "resolved category leaked into the encoding: \(json)")
+        let back = try JSONDecoder().decode(CatalogIngredient.self, from: data)
+        #expect(back.ownCategory == nil)
+        #expect(back.parentName == "Tomate")
+
+        // A written one survives, and an older file that carries only
+        // `category` is read as the written one it was.
+        let override = try JSONDecoder().decode(
+            CatalogIngredient.self,
+            from: Data(#"{"name":"Räucherlachs","category":"meat","parentName":"Lachs"}"#.utf8)
+        )
+        #expect(override.ownCategory == .meat)
+    }
+
     @Test("A chain that never writes a category ends in .other, not in a loop")
     func unresolvedChainFallsToOther() {
         let loose = IngredientCatalog(ingredients: [

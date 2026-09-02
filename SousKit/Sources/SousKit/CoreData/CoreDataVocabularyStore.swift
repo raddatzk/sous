@@ -126,10 +126,17 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
                 row = CDVocabularyEntry(context: self.context)
                 row.id = entry.id
                 row.createdAt = .nowInSyncPrecision
+                // Identity before anything else: the cycle check below
+                // compares keys, and a row still keyed "" would let an entry
+                // become its own parent — and get a second row under its own
+                // key for the privilege. The SwiftData row takes key and name
+                // in its initializer; this is the same moment here.
+                row.key = entry.key
+                row.name = entry.name
             }
-            // The parent first, before anything about the row is touched — a
-            // refused parent must leave the entry exactly as it was. See the
-            // SwiftData store for the same order and the same reason.
+            // The parent first, before anything else about the row is touched
+            // — a refused parent must leave the entry exactly as it was. See
+            // the SwiftData store for the same order and the same reason.
             let parentID: UUID?
             do {
                 parentID = try entry.parentName.flatMap { try self.parentID(named: $0, of: row) }

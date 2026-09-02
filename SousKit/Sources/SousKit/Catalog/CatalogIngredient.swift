@@ -59,17 +59,34 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
         self.parentName = parentName
     }
 
+    /// On the wire, `category` is the *written* one and the resolved value is
+    /// never encoded. A synthesized encoder would have written the resolved
+    /// category under that key and dropped a nil `ownCategory`, so a
+    /// round-trip turned an inheriting variety into an override — Cocktailtomate
+    /// came back frozen to Gemüse, and a later change to Tomate's aisle no
+    /// longer reached it. `ownCategory` is still *read* for files that carry
+    /// it explicitly.
+    private enum CodingKeys: String, CodingKey {
+        case name, aliases, category, ownCategory, parentName
+    }
+
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             name: try container.decode(String.self, forKey: .name),
             aliases: try container.decodeIfPresent([String].self, forKey: .aliases) ?? [],
-            // The written one where a file carries both; an older file carries
-            // only `category`, which was the written one by definition.
             category: try container.decodeIfPresent(IngredientCategory.self, forKey: .ownCategory)
                 ?? container.decodeIfPresent(IngredientCategory.self, forKey: .category),
             parentName: try container.decodeIfPresent(String.self, forKey: .parentName)
         )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(aliases, forKey: .aliases)
+        try container.encodeIfPresent(ownCategory, forKey: .category)
+        try container.encodeIfPresent(parentName, forKey: .parentName)
     }
 
     /// Every spelling this ingredient answers to, normalized.

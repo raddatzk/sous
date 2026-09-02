@@ -129,6 +129,40 @@ struct IngredientCatalogLibraryTests {
         #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
     }
 
+    @Test("A loop through a shipped variety is refused where the store cannot see it", arguments: StoreBackend.allCases)
+    func cycleThroughShippedVarietyIsRefused(_ backend: StoreBackend) async throws {
+        // Cocktailtomate → Tomate ships in the data and is a row in no store.
+        // Filing Tomate under Cocktailtomate passes both stores' checks - they
+        // only walk rows - and would put every tomato recipe under
+        // "cocktailtomate" in the search index. The library knows the merged
+        // catalog, so the library refuses.
+        let library = try makeLibrary(backend)
+        await library.reload()
+        #expect(library.catalog.ingredient(for: "Cocktailtomate")?.parentName == "Tomate")
+
+        await library.setParent("Cocktailtomate", of: "Tomate")
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.wouldCycle(child: "Tomate", parent: "Cocktailtomate"))
+        #expect(!library.wouldCycle(child: "Cocktailtomate", parent: "Tomate"))
+    }
+
+    @Test("A brand-new ingredient cannot be its own parent, in either store", arguments: StoreBackend.allCases)
+    func newIngredientAsItsOwnParentIsRefused(_ backend: StoreBackend) async throws {
+        // The Core Data row used to get its key only after the cycle check,
+        // so a fresh entry naming itself passed the "same key" guard and came
+        // out as two rows keyed alike - one of them its own parent.
+        let library = try makeLibrary(backend)
+        await library.reload()
+
+        await library.save(CatalogIngredient(name: "Gochujang", category: .canned, parentName: "Gochujang"))
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredients.filter { $0.key == "gochujang" }.count <= 1)
+        #expect(library.catalog.ingredient(for: "Gochujang")?.parentName == nil)
+    }
+
     @Test("A recipe's unknown ingredients are found, links and knowns skipped", arguments: StoreBackend.allCases)
     func unknownIngredients(_ backend: StoreBackend) async throws {
         let library = try makeLibrary(backend)

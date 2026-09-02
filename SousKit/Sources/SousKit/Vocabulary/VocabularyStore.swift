@@ -19,6 +19,11 @@ public protocol VocabularyStore: Sendable {
 public enum VocabularyStoreError: LocalizedError, Equatable {
     /// Filing `child` under `parent` would make the chain run in a circle.
     ///
+    /// Thrown by the stores for a loop among the rows they hold. A loop that
+    /// runs through a *shipped* variety is invisible to a store and is caught
+    /// one layer up, in `IngredientCatalogLibrary.wouldCycle`, with the same
+    /// message.
+    ///
     /// The relation may be any depth (catalog target, decision A), which is
     /// exactly why this has to be loud: the old rule — a variety of a variety
     /// is refused — made a loop impossible as a side effect, and it refused

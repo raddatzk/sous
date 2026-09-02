@@ -199,6 +199,14 @@ struct IngredientFormView: View {
     /// proposal the app made into a confirmation the cook did not.
     @State private var basisChoice: BasisChoice = .unset
     @State private var storedBasisChoice: BasisChoice = .unset
+    /// Whether the filed answer is only a proposal — inherited from a parent,
+    /// or the curation's guess. Then the row on screen is not a decision yet,
+    /// and tapping it *confirms* rather than un-picks.
+    @State private var storedBasisIsProposed = false
+    /// The cook tapped the proposed row to keep it. Same choice as stored, so
+    /// `basis != storedBasis` would never write it; this is the intent that
+    /// makes the save happen — and it is set only by a tap, never by opening.
+    @State private var confirmsStoredRow = false
     /// The free search over the catalog, beside the proposals.
     @State private var basisQuery = ""
     /// Whether the row list is unfolded. Kept apart from the choice itself:
@@ -458,6 +466,13 @@ struct IngredientFormView: View {
                         LabeledContent("Sorte von", value: parentLineage(from: parentName))
                         Spacer(minLength: 8)
                         Button("Lösen", systemImage: "minus.circle", role: .destructive) {
+                            // An inherited category has nothing to inherit
+                            // from once the parent is gone. Keep the aisle the
+                            // ingredient was in rather than let it fall to
+                            // Sonstiges behind a picker with no valid choice.
+                            if category == nil {
+                                category = inheritedCategory?.category ?? original.category
+                            }
                             self.parentName = nil
                         }
                         .labelStyle(.iconOnly)
@@ -1023,10 +1038,10 @@ struct IngredientFormView: View {
     private var chosenRowName: String? {
         guard let code = chosenRowCode else { return nil }
         let name = nutrition.row(forCode: code)?.name
-        guard basisChoice == storedBasisChoice,
-              let parent = resolvedNutrition?.inheritedFrom
-        else { return name }
-        return name.map { "\($0) — geerbt von \(parent), vorgeschlagen" }
+        guard basisChoice == storedBasisChoice, storedBasisIsProposed else { return name }
+        if confirmsStoredRow { return name.map { "\($0) — wird beim Sichern bestätigt" } }
+        let origin = resolvedNutrition?.inheritedFrom.map { "geerbt von \($0), " } ?? ""
+        return name.map { "\($0) — \(origin)vorgeschlagen. Antippen bestätigt." }
     }
 
     /// Whether a measure on screen came down the chain rather than being
@@ -1045,16 +1060,21 @@ struct IngredientFormView: View {
     /// Reads the answer currently filed for the state on screen. Called again
     /// when that state changes, because each one carries its own answer.
     private func loadBasisChoice() {
-        storedBasisChoice = filedBasisChoice()
+        let filed = filedBasis()
+        storedBasisChoice = choice(for: filed)
+        storedBasisIsProposed = filed?.status == .proposed
         basisChoice = storedBasisChoice
+        confirmsStoredRow = false
         isChoosingRow = false
     }
 
-    private func filedBasisChoice() -> BasisChoice {
-        guard !trimmedName.isEmpty,
-              let basis = nutrition.nutrition(forName: trimmedName)?
-                  .basis(for: selectedState.wrappedValue)
-        else { return .unset }
+    private func filedBasis() -> NutritionBasis? {
+        guard !trimmedName.isEmpty else { return nil }
+        return nutrition.nutrition(forName: trimmedName)?.basis(for: selectedState.wrappedValue)
+    }
+
+    private func choice(for basis: NutritionBasis?) -> BasisChoice {
+        guard let basis else { return .unset }
         if basis.status == .deliberatelyWithout { return .deliberatelyWithout }
         if ownNutrition != nil { return .ownValues }
         return basis.code.map(BasisChoice.catalogRow) ?? .unset
@@ -1083,7 +1103,21 @@ struct IngredientFormView: View {
     /// Picking a row, or unpicking it. The list stays open either way:
     /// taking one back is usually the first half of choosing a different one.
     private func chooseRow(_ code: String) {
-        basisChoice = chosenRowCode == code ? .unset : .catalogRow(code)
+        if chosenRowCode == code {
+            // Tapping the row that is already on screen means one of two
+            // things. On a decided row it takes the decision back. On a row
+            // that is only proposed - inherited, or the curation's guess - it
+            // is the confirmation, and un-picking it would leave the cook
+            // with no way to say "yes, this one" from this screen at all.
+            if storedBasisIsProposed, storedBasisChoice == .catalogRow(code) {
+                confirmsStoredRow.toggle()
+            } else {
+                basisChoice = .unset
+            }
+        } else {
+            basisChoice = .catalogRow(code)
+            confirmsStoredRow = false
+        }
         isChoosingRow = true
         if !startsOnOwnValues { isEnteringOwnValues = false }
     }
@@ -1143,6 +1177,9 @@ struct IngredientFormView: View {
         }
         let basis = basisChoice
         let storedBasis = storedBasisChoice
+        // A proposed row the cook tapped to keep is the same choice as stored
+        // and still has to be written - as a confirmation.
+        let basisChanged = basis != storedBasis || confirmsStoredRow
         let hadOwnValues = ownNutrition != nil
         let basisState = selectedState.wrappedValue
         let measureTarget = pantryName
@@ -1178,7 +1215,7 @@ struct IngredientFormView: View {
             }
             // After the numbers, never before: `confirmBasis` carries own
             // values across, so it has to see the ones just entered.
-            if basis != storedBasis {
+            if basisChanged {
                 switch basis {
                 case .catalogRow(let code):
                     await nutrition.confirmBasis(
