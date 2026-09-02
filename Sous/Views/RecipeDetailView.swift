@@ -1124,7 +1124,12 @@ struct RecipeDetailView: View {
     private func basisDetail(
         for line: NutritionCoverage.Contribution, basis: String
     ) -> String {
-        let lead = line.isProvisional ? "vorgeschlagen" : "beruht auf"
+        // "geerbt von Lachs" over a bare "vorgeschlagen": the number is a
+        // guess either way, but this says which guess — and it is the guess
+        // that put raw salmon's sodium under Räucherlachs for as long as
+        // nothing on screen mentioned where the figure came from.
+        let lead = line.inheritedFrom.map { "geerbt von \($0)" }
+            ?? (line.isProvisional ? "vorgeschlagen" : "beruht auf")
         guard !line.matchesState, let state = line.state.shoppingAnnotation else {
             return "\(lead): \(basis)"
         }

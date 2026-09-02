@@ -582,6 +582,21 @@ struct ListSeparationTests {
         #expect(BLSCatalog.bundled.entry(for: "G554100")?.name.contains("Pfefferschote") == true)
     }
 
+    @Test("The three varieties whose inheritance was worst carry their own row")
+    func theWorstInheritancesAreCurated() throws {
+        // The head start for inheritance-as-proposal (catalog plan, phase 3):
+        // without these, the three cases that argued for the whole change
+        // would arrive as questions the cook has to answer for the app.
+        let table = SynonymTable.bundled
+        let bls = BLSCatalog.bundled
+        #expect(table.entry(for: "Räucherlachs")?.target(for: .unspecified)?.code == "T410600")
+        #expect(bls.entry(for: "T410600")?.perHundredGrams.sodiumMg ?? 0 > 1000)
+        #expect(table.entry(for: "Trockenhefe")?.target(for: .unspecified)?.code == "R458000")
+        #expect(bls.entry(for: "R458000")?.perHundredGrams.kcal ?? 0 > 300)
+        #expect(table.entry(for: "Staudensellerie")?.target(for: .raw)?.code == "G220100")
+        #expect(bls.entry(for: "G220100")?.name.contains("Bleichsellerie") == true)
+    }
+
     @Test("The table's own names are not in the kitchen's list")
     func theTableStaysOutOfTheVocabulary() {
         // Sampled rather than exhaustive: plenty of BLS rows are named exactly

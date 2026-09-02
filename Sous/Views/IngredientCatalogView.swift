@@ -625,7 +625,14 @@ struct IngredientFormView: View {
 
     private func measureField(for unit: IngredientUnit) -> some View {
         HStack {
-            Text("1 \(unit.symbol) wiegt")
+            VStack(alignment: .leading, spacing: 2) {
+                Text("1 \(unit.symbol) wiegt")
+                if let parent = inheritedMeasureSource(for: unit) {
+                    Text("von \(parent)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer(minLength: 8)
             TextField(
                 "g",
@@ -973,9 +980,31 @@ struct IngredientFormView: View {
         return nil
     }
 
+    /// The chosen row's name — and, while the row on screen is still the one
+    /// that came down the chain unchanged, whose it is and that it is only
+    /// proposed. A variety shows its parent's row here until the cook picks;
+    /// showing it without saying so is exactly how inherited numbers used to
+    /// pass for the variety's own.
     private var chosenRowName: String? {
         guard let code = chosenRowCode else { return nil }
-        return nutrition.row(forCode: code)?.name
+        let name = nutrition.row(forCode: code)?.name
+        guard basisChoice == storedBasisChoice,
+              let parent = resolvedNutrition?.inheritedFrom
+        else { return name }
+        return name.map { "\($0) — geerbt von \(parent), vorgeschlagen" }
+    }
+
+    /// Whether a measure on screen came down the chain rather than being
+    /// this ingredient's own — the same honesty for grams that the basis
+    /// row has for numbers. Compared against the entry as written, since the
+    /// resolved one has already merged its ancestor's weights in.
+    private func inheritedMeasureSource(for unit: IngredientUnit) -> String? {
+        guard let parent = resolvedNutrition?.inheritedFrom,
+              measureDraft[unit.symbol] == nil,
+              nutrition.nutritionCatalog.ownEntry(forCanonicalName: trimmedName)?
+                  .unitWeightsGrams[unit.symbol] == nil
+        else { return nil }
+        return parent
     }
 
     /// Reads the answer currently filed for the state on screen. Called again

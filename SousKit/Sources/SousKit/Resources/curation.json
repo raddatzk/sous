@@ -2668,6 +2668,41 @@
   "Zimt": {
    "withoutValues": true,
    "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Räucherlachs": {
+   "targets": {
+    "unspecified": [
+     "T410600"
+    ]
+   },
+   "via": "Erbte bisher „Lachs roh“ mit 32 mg Natrium; die eigene Zeile hat 1170 mg. Die Zeile war über die Namenssuche immer auffindbar — falsch war die Zuordnung nur, weil die Vererbung die Frage beantwortet hatte, bevor sie jemand gestellt bekam.",
+   "candidates": [
+    "T411700"
+   ]
+  },
+  "Trockenhefe": {
+   "targets": {
+    "unspecified": [
+     "R458000"
+    ]
+   },
+   "via": "Erbte bisher „Backhefe frisch“ mit 128 kcal; getrocknet sind es 334. Das BLS nennt sie „Backhefe getrocknet (Trockenbackhefe)“ — kein Küchenwort steckt in diesem Namen, deshalb hat keine Suche sie je erreicht."
+  },
+  "Staudensellerie": {
+   "targets": {
+    "raw": [
+     "G220100"
+    ],
+    "cooked": [
+     "G220132",
+     "G220152",
+     "G220162"
+    ]
+   },
+   "via": "Erbte bisher Knollensellerie — eine andere Pflanze. Das BLS nennt die Stangen „Bleichsellerie“, was keine Küche schreibt; 17 statt 30 kcal, und vor allem das richtige Gemüse.",
+   "candidates": [
+    "G220142"
+   ]
   }
  }
 }

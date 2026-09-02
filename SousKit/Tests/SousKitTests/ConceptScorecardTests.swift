@@ -290,6 +290,14 @@ struct ConceptScorecardTests {
         // And they are found in the same place without being summed: the
         // aisle is what puts them together, not a heading.
         #expect(variety.category == plain.category)
+
+        // The relation's other job. Cocktailtomate has no row of its own and
+        // computes with Tomate's - as a proposal that says so, not as a
+        // confirmation nobody made (catalog target, decision B).
+        await stack.nutrition.ensureLoaded()
+        let inherited = try #require(stack.nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw))
+        #expect(inherited.status == .proposed)
+        #expect(inherited.inheritedFrom == "Tomate")
     }
 
     // MARK: - 6 · 500 g raw / 300 g cooked potatoes

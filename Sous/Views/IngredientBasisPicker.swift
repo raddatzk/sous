@@ -93,7 +93,7 @@ struct IngredientBasisPicker: View {
                     // Own values name no catalog row, so they say whose they
                     // are instead — never nothing.
                     Text("Zurzeit: \(current?.provenance ?? current?.source ?? "")")
-                    Text(current?.status.label ?? "")
+                    Text(currentStatusLine)
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
@@ -216,6 +216,15 @@ struct IngredientBasisPicker: View {
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
+    }
+
+    /// "vorgeschlagen — geerbt von Lachs": the status, and where the basis
+    /// came from when it was not this ingredient's own. Saying only the first
+    /// half is how a variety's inherited number passed for its own.
+    private var currentStatusLine: String {
+        let label = current?.status.label ?? ""
+        guard let parent = current?.inheritedFrom else { return label }
+        return "\(label) — geerbt von \(parent)"
     }
 
     private func decide(_ work: @escaping () async -> Void) {
