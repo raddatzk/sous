@@ -216,7 +216,7 @@ struct BundledDataTests {
             #expect(IngredientCatalog.bundled.ingredient(for: word) != nil)
             let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: word)?.basis(for: .unspecified)
             #expect(basis?.status == .deliberatelyWithout, "\(word) should arrive answered, not empty")
-            #expect(basis?.contributes == false)
+            #expect(basis?.status.contributes == false)
         }
     }
 
