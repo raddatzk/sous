@@ -305,6 +305,11 @@ extension ShoppingLibraryTests {
         // two, so 300 g for the six the dish already stands at.
         let listed = try #require(shopping.items.first { $0.name == "Gurke" })
         #expect(listed.quantities == [Quantity(300, .gram)])
+        // And marked as what it is: something that arrived after the dish
+        // did. The join path sends no plan entry of its own, which used to
+        // slip past the late-marking that keys on the capture's entries.
+        #expect(listed.demands.allSatisfy(\.isLate))
+        #expect(shopping.items.first { $0.name == "Tomate" }?.demands.allSatisfy { !$0.isLate } == true)
 
         // And it keeps following it, like everything else under that heading.
         await shopping.setServings(2, for: try #require(shopping.planEntries.first))

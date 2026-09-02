@@ -35,8 +35,14 @@ public actor SwiftDataShoppingListStore: ShoppingListStore {
 
         // A recipe the list already knows arrives as a re-add: its demands
         // are marked late, so the list tells what changed since check-off.
-        let knownRecipeIDs = Set(try planEntries().compactMap(\.recipeID))
-        var lateEntryIDs = Set<UUID>()
+        // The same goes for a demand that joins an entry already on the list
+        // (`ShoppingLibrary.add(_:lines:joining:)` sends no entry of its own
+        // and points its demands at the existing one): by definition it
+        // arrives after the dish did. Read before this capture's entries are
+        // inserted, so "existing" means existing.
+        let existing = try planEntries()
+        let knownRecipeIDs = Set(existing.compactMap(\.recipeID))
+        var lateEntryIDs = Set(existing.map(\.id))
         var planPosition = try nextPlanSortOrder()
         for planEntry in capture.planEntries {
             let stored = StoredShoppingPlanEntry(planEntry)

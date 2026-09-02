@@ -157,12 +157,20 @@ struct CategoryField: View {
                     if newValue == typed {
                         deleteMarkedOrLast()
                     } else {
-                        typed = newValue
+                        // The anchor may still be *inside* the text: a cursor
+                        // moved to the very front (Home, or the arrow key on
+                        // a Mac) and a character typed there puts the typing
+                        // before the anchor, not after it. Stripped here, so
+                        // the promise above this binding holds - an
+                        // invisible character in a category name would never
+                        // match the same name typed again.
+                        typed = newValue.replacingOccurrences(of: Self.anchor, with: "")
                         marked = nil
                     }
                     return
                 }
                 let entered = String(newValue.dropFirst(Self.anchor.count))
+                    .replacingOccurrences(of: Self.anchor, with: "")
                 // Only what was actually typed clears the mark. UIKit writes
                 // the field's text back through here when it takes focus,
                 // unchanged — and since marking a chip is what focuses the

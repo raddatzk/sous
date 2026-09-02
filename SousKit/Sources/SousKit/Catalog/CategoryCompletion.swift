@@ -60,7 +60,12 @@ public enum CategoryCompletion {
     ) -> [String] {
         var result = categories
         for part in typed.split(whereSeparator: { $0 == "," || $0.isNewline }) {
+            // Format characters are not whitespace to `trimmingCharacters`,
+            // and a zero-width space is exactly the kind of thing a text
+            // field uses as scaffolding. A name is what can be seen.
             let name = part.trimmingCharacters(in: .whitespacesAndNewlines)
+                .filter { !$0.unicodeScalars.contains { $0.properties.generalCategory == .format } }
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { continue }
             let key = name.lowercased()
             guard !result.contains(where: { $0.lowercased() == key }) else { continue }
