@@ -105,6 +105,22 @@ def normalize(name: str) -> str:
     return name.strip().lower()
 
 
+def resolved_category(entry: dict, by_name: dict[str, dict]) -> str:
+    """The category a kitchen word ends up with: its own, or the nearest
+    ancestor's. A variety writes none unless it differs from its parent
+    (catalog target, decision B), and the app resolves it the same way -
+    `IngredientCatalog.init` in SousKit. Ends on a repeated name, so a loop
+    in a hand-edited file fails towards "other" rather than towards a hang."""
+    seen: set[str] = set()
+    current = entry
+    while current is not None and current["name"] not in seen:
+        if "category" in current:
+            return current["category"]
+        seen.add(current["name"])
+        current = by_name.get(current.get("parent", ""))
+    return "other"
+
+
 def build_bls(rows: list[dict]) -> dict:
     entries = [
         {
@@ -268,12 +284,13 @@ class SynonymBuilder:
         # than guessed at run time: from the outside "Cocktailtomaten" and
         # "Tomaten" look the same, and only curation knows which of them names
         # a different thing on the shelf.
+        by_name = {entry["name"]: entry for entry in self.catalog}
         for entry in self.catalog:
             name = entry["name"]
             words[name] = {
                 "word": name,
                 "aliases": entry.get("aliases", []),
-                "category": entry["category"],
+                "category": resolved_category(entry, by_name),
                 "targets": [],
                 "candidates": [],
                 "origin": "curated",
@@ -523,7 +540,8 @@ def main():
     # A code the curation names is a code the cook is meant to get, whatever
     # the group filter thinks of its letter. It carries the category of the
     # word that asked for it.
-    category_by_word = {entry["name"]: entry["category"] for entry in catalog}
+    by_name = {entry["name"]: entry for entry in catalog}
+    category_by_word = {entry["name"]: resolved_category(entry, by_name) for entry in catalog}
     force_codes = {
         code: category_by_word.get(word, "other")
         for word, spec in curation["words"].items()

@@ -21,7 +21,12 @@ public struct KitchenWords: Sendable {
         public var name: String
         /// Other ways of writing the same thing: "Tomaten", "Marille".
         public var aliases: [String]
-        public var category: IngredientCategory
+        /// What kind of thing it is — and where on the shopping list it goes.
+        /// Optional since a variety inherits it (catalog target, decision B):
+        /// a word with a `parent` and no `category` takes the parent's, and
+        /// writing one on a variety is an override, not a requirement. A root
+        /// word still needs one, and `BundledDataTests` says so.
+        public var category: IngredientCategory?
         /// The word this one is a *variety* of — "Cocktailtomate" of
         /// "Tomate". Curated, never guessed: a spelling and a variety look
         /// the same from outside, and the difference decides whether the
@@ -29,7 +34,7 @@ public struct KitchenWords: Sendable {
         public var parent: String?
 
         public init(
-            name: String, aliases: [String] = [], category: IngredientCategory,
+            name: String, aliases: [String] = [], category: IngredientCategory? = nil,
             parent: String? = nil
         ) {
             self.name = name
@@ -43,7 +48,7 @@ public struct KitchenWords: Sendable {
             self.init(
                 name: try container.decode(String.self, forKey: .name),
                 aliases: try container.decodeIfPresent([String].self, forKey: .aliases) ?? [],
-                category: try container.decode(IngredientCategory.self, forKey: .category),
+                category: try container.decodeIfPresent(IngredientCategory.self, forKey: .category),
                 parent: try container.decodeIfPresent(String.self, forKey: .parent)
             )
         }

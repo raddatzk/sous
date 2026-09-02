@@ -23,7 +23,9 @@ public struct SynonymTarget: Codable, Hashable, Sendable {
 public struct SynonymEntry: Codable, Hashable, Sendable {
     public var word: String
     public var aliases: [String]
-    public var category: IngredientCategory
+    /// As written; `nil` for a variety that takes its parent's. Resolution
+    /// is `IngredientCatalog`'s job, once, for the whole list.
+    public var category: IngredientCategory?
     /// The rows this word resolves to. May be empty — a word can carry
     /// identity without carrying nutrition, which is the whole point of the
     /// spices being here: they are known ingredients whose gap has a name.
@@ -45,11 +47,14 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// word — and the varieties that were hiding among them are their own
     /// words now, with a parent.
     public var parent: String?
+    /// That this word has no basis on purpose — the source does not list the
+    /// food at all. See ``IngredientCuration/Entry/withoutValues``.
+    public var hasNoValues: Bool
 
     public init(
-        word: String, aliases: [String] = [], category: IngredientCategory,
+        word: String, aliases: [String] = [], category: IngredientCategory? = nil,
         targets: [SynonymTarget] = [], candidates: [String] = [],
-        origin: String = "curated", parent: String? = nil
+        origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false
     ) {
         self.word = word
         self.aliases = aliases
@@ -58,6 +63,7 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         self.candidates = candidates
         self.origin = origin
         self.parent = parent
+        self.hasNoValues = hasNoValues
     }
 
     /// Whether `target` is this word's own row rather than a mapping onto
@@ -156,8 +162,12 @@ public struct SynonymTable: Sendable {
                 aliases: word.aliases,
                 category: word.category,
                 targets: targets,
-                candidates: entry?.candidates ?? [],
-                parent: word.parent
+                // A word that says it has none offers none. Otherwise the
+                // picker would keep proposing rows for a question that has
+                // been answered.
+                candidates: entry?.withoutValues == true ? [] : (entry?.candidates ?? []),
+                parent: word.parent,
+                hasNoValues: entry?.withoutValues ?? false
             )
         })
     }

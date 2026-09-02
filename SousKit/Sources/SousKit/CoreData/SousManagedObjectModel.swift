@@ -222,8 +222,8 @@ enum SousManagedObjectModel {
             attribute("aliasesJSON", .stringAttributeType, default: "[]"),
             attribute("categoryRaw", .stringAttributeType, optional: true),
             // The variety relation, as an id rather than a Core Data
-            // relationship — one level deep, and a name changes while an
-            // identity does not.
+            // relationship — any depth but never a loop, and a name changes
+            // while an identity does not.
             attribute("parentID", .UUIDAttributeType, optional: true),
             attribute("isOwnIngredient", .booleanAttributeType, default: false),
             attribute("isPantry", .booleanAttributeType, default: false),

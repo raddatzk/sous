@@ -14,19 +14,44 @@ public struct IngredientCatalog: Sendable {
     /// winning — the caller puts the entries that should win in front (the
     /// cook's own before the bundled ones), and a name defined twice has to
     /// resolve to one entry *and* show up once in a list of them.
+    ///
+    /// Categories are resolved here, once, for the whole list: a variety that
+    /// writes none takes the nearest ancestor's, and every reader downstream
+    /// sees a plain `category` without knowing where it came from. Done at
+    /// build time rather than at lookup because the shopping list, the
+    /// filter and the browser all read it in loops.
+    ///
+    /// Indexed twice: once as written, so the chain can be walked through
+    /// every spelling a parent might be named by, and once more with the
+    /// categories filled in, which is what every reader sees. The walk is
+    /// ``categorySource(for:)`` — the same one the ingredient form uses to
+    /// say "wie Tomate (Gemüse)", so the two can never disagree.
     public init(ingredients: [CatalogIngredient]) {
-        byKey = [:]
         var representatives: [CatalogIngredient] = []
         var takenKeys = Set<String>()
+        for ingredient in ingredients where takenKeys.insert(ingredient.key).inserted {
+            representatives.append(ingredient)
+        }
+        byKey = Self.index(representatives)
+        self.ingredients = representatives
+        let resolved = representatives.map { ingredient -> CatalogIngredient in
+            var copy = ingredient
+            copy.category = categorySource(of: ingredient)?.category ?? .other
+            return copy
+        }
+        byKey = Self.index(resolved)
+        self.ingredients = resolved.sorted { $0.name < $1.name }
+    }
+
+    /// Every spelling pointing at its ingredient, first definition winning.
+    private static func index(_ ingredients: [CatalogIngredient]) -> [String: CatalogIngredient] {
+        var byKey: [String: CatalogIngredient] = [:]
         for ingredient in ingredients {
-            if takenKeys.insert(ingredient.key).inserted {
-                representatives.append(ingredient)
-            }
             for key in ingredient.keys where byKey[key] == nil {
                 byKey[key] = ingredient
             }
         }
-        self.ingredients = representatives.sorted { $0.name < $1.name }
+        return byKey
     }
 
     /// The catalog shipped with the app — the identity half of the synonym
@@ -60,6 +85,23 @@ public struct IngredientCatalog: Sendable {
         ingredient(for: name)?.category
     }
 
+    /// Where an ingredient's category comes from: itself, when it writes one,
+    /// or the nearest ancestor that does — named, so a form can say "wie
+    /// Tomate (Gemüse)" rather than only show the aisle. `nil` when nothing
+    /// up the chain writes one; the resolved category is then `.other`.
+    public func categorySource(for name: String) -> (name: String, category: IngredientCategory)? {
+        guard let match = ingredient(for: name) else { return nil }
+        return categorySource(of: match)
+    }
+
+    private func categorySource(of ingredient: CatalogIngredient) -> (name: String, category: IngredientCategory)? {
+        if let own = ingredient.ownCategory { return (ingredient.name, own) }
+        for ancestor in ancestors(of: ingredient) {
+            if let own = ancestor.ownCategory { return (ancestor.name, own) }
+        }
+        return nil
+    }
+
     /// The name a line's *numbers* are looked up under, which is not always
     /// the name it is bought under.
     ///
@@ -85,18 +127,50 @@ public struct IngredientCatalog: Sendable {
         return base
     }
 
-    /// The ingredient a written name bundles under on the shopping list —
-    /// itself, or the one it is a variety of.
+    /// The ingredient a written name shares a group with — the top of its
+    /// variety chain, or itself where it is not a variety of anything.
+    ///
+    /// What the step resolver matches on when a step says "Pilze" and the
+    /// line says "braune Champignons": the same group, so the same thing.
+    /// Any depth, like every walk here (catalog target, decision A); a
+    /// dangling relation falls back to the ingredient itself, because a
+    /// parent nobody defined must not make a variety disappear. The shopping
+    /// list no longer bundles under this — decision E — and takes what a
+    /// variety inherits from ``ancestors(of:)`` instead, nearest first.
     public func groupIngredient(for name: String) -> CatalogIngredient? {
         guard let match = ingredient(for: name) else { return nil }
-        guard let parentName = match.parentName else { return match }
-        // One level, and a missing parent falls back to the variety itself:
-        // a dangling relation must not make an ingredient disappear.
-        return ingredient(for: parentName) ?? match
+        return ancestors(of: match).last ?? match
     }
 
-    /// The varieties of an ingredient, in name order — what the shopping
-    /// list groups as sub-lines and what an ingredient form lists.
+    /// Everything `name` is a variety of, nearest first: Brauner Champignon →
+    /// [Champignon, Pilz].
+    ///
+    /// The chain may be any depth (catalog target, decision A), so this is
+    /// what walks it — for the search index, which wants a recipe with braune
+    /// Champignons to answer to "Pilz", and for the parent picker, which must
+    /// not offer a descendant as a parent. A cycle cannot be written (the
+    /// stores refuse one), but the walk still stops if it meets a key twice:
+    /// a data file edited by hand is not a store.
+    public func ancestors(of name: String) -> [CatalogIngredient] {
+        guard let match = ingredient(for: name) else { return [] }
+        return ancestors(of: match)
+    }
+
+    private func ancestors(of ingredient: CatalogIngredient) -> [CatalogIngredient] {
+        var chain: [CatalogIngredient] = []
+        var seen: Set<String> = [ingredient.key]
+        var current = ingredient
+        while let parentName = current.parentName,
+              let parent = self.ingredient(for: parentName),
+              seen.insert(parent.key).inserted {
+            chain.append(parent)
+            current = parent
+        }
+        return chain
+    }
+
+    /// The varieties of an ingredient, in name order — what an ingredient
+    /// form lists under "Sorten".
     public func variants(of name: String) -> [CatalogIngredient] {
         let key = Self.normalize(name)
         return ingredients

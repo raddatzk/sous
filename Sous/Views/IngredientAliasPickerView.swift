@@ -15,16 +15,23 @@ struct IngredientAliasPickerView: View {
     let alias: String
 
     @State private var searchText = ""
+    @State private var isPicking = false
 
     var body: some View {
         NavigationStack {
             List(results) { ingredient in
                 // A button rather than a tap gesture: the pointer changes
                 // over it, the keyboard reaches it, and the Mac gets the
-                // click it expects.
+                // click it expects. The write finishes before the sheet
+                // goes, so the recipe page behind it re-reads a catalog that
+                // already knows the spelling.
                 Button {
-                    Task { await catalog.addAlias(alias, to: ingredient) }
-                    dismiss()
+                    guard !isPicking else { return }
+                    isPicking = true
+                    Task {
+                        await catalog.addAlias(alias, to: ingredient)
+                        dismiss()
+                    }
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(ingredient.name)

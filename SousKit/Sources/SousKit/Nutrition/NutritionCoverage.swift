@@ -139,6 +139,11 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// Computed with a basis nobody has confirmed — decision A: the
         /// number counts, and says of itself that it is provisional.
         public var isProvisional: Bool
+        /// The ancestor the basis was taken over from, where it was. The
+        /// commonest reason a line is provisional, and the one the reader
+        /// most needs named: "vorgeschlagen" alone says a guess was made,
+        /// "geerbt von Lachs" says which guess.
+        public var inheritedFrom: String?
         /// The amount as the line wrote it — "2 EL". Kept beside the grams
         /// because the two together are the whole statement the gram bridge
         /// makes, and because correcting it means saying what one EL of this
@@ -161,6 +166,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
             ingredientName: String, sourceRecipeTitle: String? = nil,
             basisName: String? = nil, basisCode: String? = nil,
             candidateCodes: [String] = [], isProvisional: Bool = false,
+            inheritedFrom: String? = nil,
             quantity: Quantity? = nil, grams: Double? = nil, isAssumedGrams: Bool = false,
             state: IngredientState = .unspecified, matchesState: Bool = true
         ) {
@@ -170,6 +176,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
             self.basisCode = basisCode
             self.candidateCodes = candidateCodes
             self.isProvisional = isProvisional
+            self.inheritedFrom = inheritedFrom
             self.quantity = quantity
             self.grams = grams
             self.isAssumedGrams = isAssumedGrams
@@ -193,6 +200,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
                 isProvisional: try container.decodeIfPresent(
                     Bool.self, forKey: .isProvisional
                 ) ?? false,
+                inheritedFrom: try container.decodeIfPresent(String.self, forKey: .inheritedFrom),
                 quantity: try container.decodeIfPresent(Quantity.self, forKey: .quantity),
                 grams: try container.decodeIfPresent(Double.self, forKey: .grams),
                 isAssumedGrams: try container.decodeIfPresent(
@@ -420,6 +428,7 @@ public struct NutritionReport: Hashable, Sendable {
                     basisCode: line.basis?.code,
                     candidateCodes: line.candidateCodes,
                     isProvisional: line.outcome.isProvisional,
+                    inheritedFrom: line.basis?.inheritedFrom,
                     quantity: line.quantity,
                     grams: line.resolvedAmount?.grams,
                     isAssumedGrams: line.resolvedAmount?.isAssumption ?? false,

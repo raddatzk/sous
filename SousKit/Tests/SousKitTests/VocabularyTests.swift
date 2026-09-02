@@ -3,149 +3,7 @@ import SwiftData
 import Testing
 @testable import SousKit
 
-/// The fold of the three legacy tables into one vocabulary entry. Rule 1 of
-/// the migration plan says user data is never lost, and this is the phase
-/// with the most of it to carry: own ingredients, taught spellings, typed
-/// numbers, pantry flags — all keyed by four different ideas of one name.
-@Suite("Folding the user tables into the vocabulary")
-struct VocabularyMigrationTests {
-    private func info(kcal: Double, protein: Double = 0) -> NutritionInfo {
-        NutritionInfo(
-            kcal: kcal, proteinG: protein, fatG: 0, saturatedFatG: 0, carbsG: 0, sugarG: 0,
-            fiberG: 0, sodiumMg: 0, vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0,
-            vitaminEMg: 0, calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
-        )
-    }
-
-    private func store() throws -> ModelContainer { try .sousContainer(inMemory: true) }
-
-    @Test("Everything the four tables held arrives in one entry")
-    func foldIsLossless() async throws {
-        let container = try store()
-        let legacy = LegacyRows(modelContainer: container)
-        try await legacy.addOwnIngredient(CatalogIngredient(
-            name: "Ajvar", aliases: ["Aivar"], category: .canned
-        ))
-        try await legacy.addAlias("Ajvar mild", toKey: "ajvar")
-        try await legacy.addOwnNutrition(CatalogNutrition(
-            name: "Ajvar",
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: 90, protein: 2)],
-            unitWeightsGrams: [IngredientUnit.piece.symbol: 30],
-            source: CatalogNutrition.ownSource
-        ))
-        try await legacy.addPantryFlag(key: "ajvar")
-
-        let report = try await SwiftDataVocabularyMigration(modelContainer: container).run()
-
-        #expect(report.ingredientsFolded == 1)
-        #expect(report.aliasesFolded == 1)
-        #expect(report.nutritionFolded == 1)
-        #expect(report.pantryFlagsFolded == 1)
-
-        let entries = try await SwiftDataVocabularyStore(modelContainer: container).entries()
-        let ajvar = try #require(entries.first { $0.key == "ajvar" })
-        #expect(ajvar.name == "Ajvar")
-        #expect(ajvar.isOwnIngredient)
-        #expect(ajvar.category == .canned)
-        #expect(ajvar.aliases == ["Aivar", "Ajvar mild"])
-        #expect(ajvar.isPantry)
-        #expect(ajvar.unitWeightsGrams[IngredientUnit.piece.symbol] == 30)
-
-        let basis = try #require(ajvar.bases[IngredientState.unspecified.rawValue])
-        #expect(basis.status == .confirmed)
-        #expect(basis.values?.kcal == 90)
-        #expect(basis.values?.proteinG == 2)
-        #expect(basis.source == CatalogNutrition.ownSource)
-
-        // Folded means folded: a row left behind would be folded again.
-        #expect(try await legacy.remainingCount() == 0)
-    }
-
-    @Test("The phase-3 stamps are carried across, not dropped")
-    func stampsSurvive() async throws {
-        let container = try store()
-        let legacy = LegacyRows(modelContainer: container)
-        try await legacy.addOwnNutrition(CatalogNutrition(
-            name: "Kartoffel",
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: 70)],
-            source: CatalogNutrition.ownSource
-        ))
-        try await legacy.addOwnNutrition(CatalogNutrition(
-            name: "Omas Streuselmischung",
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: 420)],
-            source: CatalogNutrition.ownSource
-        ))
-        // Phase 3 first: it is what writes the stamps the fold carries.
-        _ = try await SwiftDataBundledDataMigration(modelContainer: container).run()
-
-        _ = try await SwiftDataVocabularyMigration(modelContainer: container).run()
-
-        let entries = try await SwiftDataVocabularyStore(modelContainer: container).entries()
-        let potato = try #require(entries.first { $0.key == "kartoffel" })
-        // The code the re-key found: the join into the shipped world that
-        // survives a data swap, and the one thing an own-values basis could
-        // not say before there was somewhere to write it down.
-        #expect(potato.bases[IngredientState.unspecified.rawValue]?.code != nil)
-        #expect(!potato.needsBasisReview)
-
-        let grandma = try #require(entries.first { $0.key == "omas streuselmischung" })
-        #expect(grandma.bases[IngredientState.unspecified.rawValue]?.code == nil)
-        // The stamp nobody read until now: a name that maps to nothing is a
-        // question, and this is what puts it on the list of them.
-        #expect(grandma.needsBasisReview)
-        #expect(grandma.bases[IngredientState.unspecified.rawValue]?.values?.kcal == 420)
-    }
-
-    @Test("Running it twice changes nothing the second time")
-    func foldIsIdempotent() async throws {
-        let container = try store()
-        let legacy = LegacyRows(modelContainer: container)
-        try await legacy.addOwnIngredient(CatalogIngredient(name: "Ajvar", category: .canned))
-        try await legacy.addOwnNutrition(CatalogNutrition(
-            name: "Ajvar",
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: 90)],
-            source: CatalogNutrition.ownSource
-        ))
-        let migration = SwiftDataVocabularyMigration(modelContainer: container)
-
-        let first = try await migration.run()
-        let second = try await migration.run()
-
-        #expect(first.didChangeAnything)
-        #expect(!second.didChangeAnything)
-        let entries = try await SwiftDataVocabularyStore(modelContainer: container).entries()
-        #expect(entries.filter { $0.key == "ajvar" }.count == 1)
-    }
-
-    @Test("A row the share extension wrote first is merged into, not doubled")
-    func foldMergesWithRowsItNeverSaw() async throws {
-        let container = try store()
-        // The extension builds its own stack and never runs a migration. It
-        // may perfectly well be the first thing to open the store after an
-        // update, and what it writes is a vocabulary row.
-        let vocabulary = SwiftDataVocabularyStore(modelContainer: container)
-        _ = try await vocabulary.save(IngredientVocabularyEntry(
-            name: "Ajvar", aliases: ["Aivar"], isOwnIngredient: true
-        ))
-        let legacy = LegacyRows(modelContainer: container)
-        try await legacy.addOwnNutrition(CatalogNutrition(
-            name: "Ajvar",
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: 90)],
-            source: CatalogNutrition.ownSource
-        ))
-        try await legacy.addAlias("Ajvar scharf", toKey: "ajvar")
-
-        _ = try await SwiftDataVocabularyMigration(modelContainer: container).run()
-
-        let entries = try await vocabulary.entries()
-        #expect(entries.count == 1)
-        let ajvar = try #require(entries.first)
-        #expect(ajvar.aliases == ["Aivar", "Ajvar scharf"])
-        #expect(ajvar.bases[IngredientState.unspecified.rawValue]?.values?.kcal == 90)
-    }
-}
-
-/// The store's own rules: identity, the one-level variant relation, and the
+/// The store's own rules: identity, the variant relation at any depth but never in a loop, and the
 /// silent sweep of an entry that no longer says anything.
 @Suite("The vocabulary store")
 struct VocabularyStoreTests {
@@ -169,20 +27,53 @@ struct VocabularyStoreTests {
         #expect(entries.contains { $0.key == "tomate" })
     }
 
-    @Test("The relation stays one level deep")
-    func noVarietyOfAVariety() async throws {
+    @Test("The relation may be any depth")
+    func varietiesOfVarieties() async throws {
+        // The shipped data already held Pilz → Champignon → Brauner Champignon
+        // while the store refused to write the same shape — and refused it
+        // silently, by dropping the relation. Catalog target, decision A.
         let store = try store()
         _ = try await store.save(IngredientVocabularyEntry(
             name: "Kirschtomate", parentName: "Tomate", isOwnIngredient: true
         ))
-
         _ = try await store.save(IngredientVocabularyEntry(
             name: "Gelbe Kirschtomate", parentName: "Kirschtomate", isOwnIngredient: true
         ))
 
         let entries = try await store.entries()
         let grandchild = try #require(entries.first { $0.key == "gelbe kirschtomate" })
-        #expect(grandchild.parentName == nil)
+        #expect(grandchild.parentName == "Kirschtomate")
+    }
+
+    @Test("A loop is refused out loud, and the entry stays as it was")
+    func cyclesAreRefused() async throws {
+        let store = try store()
+        _ = try await store.save(IngredientVocabularyEntry(
+            name: "Kirschtomate", parentName: "Tomate", isOwnIngredient: true
+        ))
+
+        // Tomate under Kirschtomate would run in a circle. The old one-level
+        // guard made this impossible by accident and said nothing; now it is
+        // an error the caller can show.
+        await #expect(throws: VocabularyStoreError.wouldCycle(child: "Tomate", parent: "Kirschtomate")) {
+            try await store.save(IngredientVocabularyEntry(
+                name: "Tomate", parentName: "Kirschtomate", isPantry: true
+            ))
+        }
+        // Nothing half-written: the pantry flag that rode along with the
+        // refused parent did not land either.
+        let tomate = try #require(try await store.entries().first { $0.key == "tomate" })
+        #expect(tomate.parentName == nil)
+        #expect(!tomate.isPantry)
+
+        // The shortest loop of all: an entry as its own parent. Same key on
+        // both sides - "Tomaten" would be a different word to the store, and
+        // it is not the store's job to know a plural.
+        await #expect(throws: VocabularyStoreError.self) {
+            try await store.save(IngredientVocabularyEntry(
+                name: "Tomate", parentName: "Tomate", isOwnIngredient: true
+            ))
+        }
     }
 
     @Test("An entry that no longer says anything is swept")

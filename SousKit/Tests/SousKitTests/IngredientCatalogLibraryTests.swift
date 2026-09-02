@@ -103,12 +103,85 @@ struct IngredientCatalogLibraryTests {
         let taught = try #require(library.catalog.ingredient(for: "Olive"))
         #expect(taught.aliases.contains("Kalamata"))
         var own = taught
-        own.category = .canned
+        // The *written* category is what a save stores; the resolved one is
+        // read-only and follows from it.
+        own.ownCategory = .canned
         await library.save(own)
 
         #expect(library.catalog.canonicalName(for: "Kalamata") == "Olive")
         #expect(library.catalog.category(for: "Kalamata") == .canned)
         #expect(library.catalog.ingredients.filter { $0.key == "olive" }.count == 1)
+    }
+
+    @Test("Filing a parent under its own variety is refused and reported", arguments: StoreBackend.allCases)
+    func cyclicParentIsRefused(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        await library.reload()
+        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
+        #expect(library.catalog.ingredient(for: "Kirschtomate")?.parentName == "Tomate")
+
+        let written = await library.setParent("Kirschtomate", of: "Tomate")
+
+        // Refused loudly - the library surfaces what the store threw and
+        // tells the caller, so a form does not go on saving around it - and
+        // refused whole: Tomate is not a variety of anything afterwards.
+        #expect(!written)
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
+    }
+
+    @Test("A loop through a shipped variety is refused where the store cannot see it", arguments: StoreBackend.allCases)
+    func cycleThroughShippedVarietyIsRefused(_ backend: StoreBackend) async throws {
+        // Cocktailtomate → Tomate ships in the data and is a row in no store.
+        // Filing Tomate under Cocktailtomate passes both stores' checks - they
+        // only walk rows - and would put every tomato recipe under
+        // "cocktailtomate" in the search index. The library knows the merged
+        // catalog, so the library refuses.
+        let library = try makeLibrary(backend)
+        await library.reload()
+        #expect(library.catalog.ingredient(for: "Cocktailtomate")?.parentName == "Tomate")
+
+        #expect(await library.setParent("Cocktailtomate", of: "Tomate") == false)
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.wouldCycle(child: "Tomate", parent: "Cocktailtomate"))
+        #expect(!library.wouldCycle(child: "Cocktailtomate", parent: "Tomate"))
+    }
+
+    @Test("A child named by one of its spellings is caught in the loop check too", arguments: StoreBackend.allCases)
+    func cycleThroughAnAliasIsRefused(_ backend: StoreBackend) async throws {
+        // "Tomaten" is a spelling of Tomate. Compared as raw keys, "tomaten"
+        // is no ancestor of Kirschtomate and the write went through; on
+        // reload the entry folded onto Tomate, and Tomate → Kirschtomate →
+        // Tomate was in the catalog with every tomato recipe indexed under
+        // Kirschtomate. The check reads both names the way the catalog does.
+        let library = try makeLibrary(backend)
+        await library.reload()
+        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
+
+        #expect(await library.setParent("Kirschtomate", of: "Tomaten") == false)
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.wouldCycle(child: "Tomaten", parent: "Kirschtomate"))
+        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
+        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
+    }
+
+    @Test("A brand-new ingredient cannot be its own parent, in either store", arguments: StoreBackend.allCases)
+    func newIngredientAsItsOwnParentIsRefused(_ backend: StoreBackend) async throws {
+        // The Core Data row used to get its key only after the cycle check,
+        // so a fresh entry naming itself passed the "same key" guard and came
+        // out as two rows keyed alike - one of them its own parent.
+        let library = try makeLibrary(backend)
+        await library.reload()
+
+        await library.save(CatalogIngredient(name: "Gochujang", category: .canned, parentName: "Gochujang"))
+
+        #expect(library.errorMessage?.isEmpty == false)
+        #expect(library.catalog.ingredients.filter { $0.key == "gochujang" }.count <= 1)
+        #expect(library.catalog.ingredient(for: "Gochujang")?.parentName == nil)
     }
 
     @Test("A recipe's unknown ingredients are found, links and knowns skipped", arguments: StoreBackend.allCases)

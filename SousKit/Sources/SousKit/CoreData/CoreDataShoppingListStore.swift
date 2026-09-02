@@ -45,8 +45,11 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
         try await context.perform {
             // A recipe the list already knows arrives as a re-add: its demands
             // are marked late, so the list tells what changed since check-off.
-            let knownRecipeIDs = Set(try self.planEntries().compactMap(\.recipeID))
-            var lateEntryIDs = Set<UUID>()
+            // A demand joining an entry already on the list is late for the
+            // same reason - see the SwiftData store for the whole note.
+            let existing = try self.planEntries()
+            let knownRecipeIDs = Set(existing.compactMap(\.recipeID))
+            var lateEntryIDs = Set(existing.map(\.id))
             var planPosition = try self.nextPlanSortOrder()
             for planEntry in capture.planEntries {
                 let stored = CDShoppingPlanEntry(context: self.context)

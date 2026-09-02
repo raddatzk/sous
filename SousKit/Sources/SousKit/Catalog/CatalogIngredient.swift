@@ -14,9 +14,25 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// turn 200 g of cocktail tomatoes into an anonymous part of 700 g of
     /// tomatoes. Varieties are their own entries now, with `parentName` set.
     public var aliases: [String]
-    public var category: IngredientCategory
-    /// The ingredient this one is a variety of, by name. One level deep: a
-    /// variety of a variety is a taxonomy, and the app has no use for one.
+    /// What kind of thing this is, *resolved*: the category written for it,
+    /// or — for a variety that says nothing — the nearest ancestor's. Every
+    /// reader that sorts, groups or filters by category reads this one, and
+    /// none of them has to know where it came from. Filled in by
+    /// ``IngredientCatalog``; until then it is `ownCategory ?? .other`.
+    ///
+    /// Not settable from outside: a caller that wants a different category
+    /// sets `ownCategory`, which is what gets saved. Assigning here would
+    /// look like it worked right up to the save that ignored it - which is
+    /// exactly what the first CI run caught.
+    public internal(set) var category: IngredientCategory
+    /// The category as written for this ingredient, `nil` where it inherits.
+    /// Set means overridden, empty means inherited — one rule for every field
+    /// a variety takes from its parent (catalog target, decision B). Of the
+    /// 60 shipped varieties not one differed from its parent, so none of them
+    /// writes one any more.
+    public var ownCategory: IngredientCategory?
+    /// The ingredient this one is a variety of, by name. Any depth: a variety
+    /// inherits from the nearest ancestor that has what it lacks.
     public var parentName: String?
 
     /// Normalized name, used as the identity.
@@ -29,14 +45,29 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
         parentName.map(IngredientCatalog.normalize) ?? key
     }
 
+    /// `category` here is the *written* one; pass `nil` for a variety that
+    /// should take its parent's. A non-optional value still reads naturally
+    /// at every call site that names one.
     public init(
-        name: String, aliases: [String] = [], category: IngredientCategory,
+        name: String, aliases: [String] = [], category: IngredientCategory? = nil,
         parentName: String? = nil
     ) {
         self.name = name
         self.aliases = aliases
-        self.category = category
+        self.ownCategory = category
+        self.category = category ?? .other
         self.parentName = parentName
+    }
+
+    /// On the wire, `category` is the *written* one and the resolved value is
+    /// never encoded. A synthesized encoder would have written the resolved
+    /// category under that key and dropped a nil `ownCategory`, so a
+    /// round-trip turned an inheriting variety into an override — Cocktailtomate
+    /// came back frozen to Gemüse, and a later change to Tomate's aisle no
+    /// longer reached it. `ownCategory` is still *read* for files that carry
+    /// it explicitly.
+    private enum CodingKeys: String, CodingKey {
+        case name, aliases, category, ownCategory, parentName
     }
 
     public init(from decoder: any Decoder) throws {
@@ -44,9 +75,18 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
         self.init(
             name: try container.decode(String.self, forKey: .name),
             aliases: try container.decodeIfPresent([String].self, forKey: .aliases) ?? [],
-            category: try container.decode(IngredientCategory.self, forKey: .category),
+            category: try container.decodeIfPresent(IngredientCategory.self, forKey: .ownCategory)
+                ?? container.decodeIfPresent(IngredientCategory.self, forKey: .category),
             parentName: try container.decodeIfPresent(String.self, forKey: .parentName)
         )
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(aliases, forKey: .aliases)
+        try container.encodeIfPresent(ownCategory, forKey: .category)
+        try container.encodeIfPresent(parentName, forKey: .parentName)
     }
 
     /// Every spelling this ingredient answers to, normalized.

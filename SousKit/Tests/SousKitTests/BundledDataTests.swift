@@ -194,16 +194,29 @@ struct BundledDataTests {
         #expect(dangling.isEmpty, "\(dangling.prefix(10))")
     }
 
-    @Test("The words that carry identity without values still do")
+    @Test("The words that carry identity without values still do — and now say so")
     func spicesStayIdentityOnly() throws {
         // These resolve an ingredient but have no defensible BLS row. That is
         // the difference between "nicht im Katalog" and "keine Nährwerte
         // hinterlegt", and the app leans on it for the gap reason it reports.
-        for word in ["Kurkuma", "Zimt", "Cayennepfeffer", "Chili"] {
+        //
+        // What changed with decision D: such a word no longer arrives as an
+        // *absence* in the nutrition catalog - it arrives as an answer. It
+        // still has no target, but it has an entry, and that entry's basis
+        // is the settled "bewusst ohne", which is what stops it counting as a
+        // defect and stops the picker offering it breakfast cereal.
+        //
+        // Chili left this list on the same day: the fresh chilli is in the
+        // table as "Pfefferschote", and is curated - see
+        // ``chiliIsCuratedRatherThanDeclaredMissing``.
+        for word in ["Kurkuma", "Zimt", "Cayennepfeffer"] {
             let entry = try #require(synonyms.entry(for: word), "\(word) is missing")
             #expect(entry.targets.isEmpty, "\(word) suddenly has values")
+            #expect(entry.hasNoValues, "\(word) has no values and does not say so")
             #expect(IngredientCatalog.bundled.ingredient(for: word) != nil)
-            #expect(NutritionCatalog.bundled.nutrition(forCanonicalName: word) == nil)
+            let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: word)?.basis(for: .unspecified)
+            #expect(basis?.status == .deliberatelyWithout, "\(word) should arrive answered, not empty")
+            #expect(basis?.status.contributes == false)
         }
     }
 
@@ -535,6 +548,94 @@ struct ListSeparationTests {
         for word in kitchen.words where curation.entry(for: word.name) == nil {
             #expect(SynonymTable.bundled.entry(for: word.name)?.targets.isEmpty == true)
         }
+    }
+
+    @Test("A word without a basis has either an answer or a reason to be asked")
+    func everyEmptyWordIsAccountedFor() {
+        // Decision D's rule, and the thing that keeps it from becoming a
+        // dumping ground: a word may carry no values only if it *says* so,
+        // with the reasoning written down where the next curator will read
+        // it. Silence is what this forbids.
+        let table = SynonymTable.bundled
+        for word in kitchen.words {
+            guard let entry = table.entry(for: word.name), entry.targets.isEmpty else { continue }
+            // A variety inherits from its parent and needs nothing of its own.
+            if word.parent != nil { continue }
+            #expect(entry.hasNoValues, "\(word.name) has no basis and does not say why")
+            let via = curation.entry(for: word.name)?.via ?? ""
+            #expect(via.count > 20, "\(word.name) is marked without values but gives no reason")
+        }
+    }
+
+    @Test("A word that says it has no values proposes nothing")
+    func settledWordsOfferNoCandidates() {
+        // The Zimt case. The BLS has no cinnamon, so every route that guesses
+        // at what the word might mean was reaching for whatever the name
+        // search scraped up - breakfast cereal at 424 kcal, offered as if it
+        // were an answer. A settled word has no question left to fill.
+        let zimt = SynonymTable.bundled.entry(for: "Zimt")
+        #expect(zimt?.hasNoValues == true)
+        #expect(zimt?.candidateCodes.isEmpty == true)
+        let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: "Zimt")?
+            .basis(for: .unspecified)
+        #expect(basis?.status == .deliberatelyWithout)
+    }
+
+    @Test("Chili is in the source, under a word no kitchen writes")
+    func chiliIsCuratedRatherThanDeclaredMissing() {
+        // Found while marking the spices, and the reason that pass was worth
+        // making by hand: the fresh chilli *is* in the table, filed as
+        // "Pfefferschote". No cook writes that, so neither the name search nor
+        // any proposal ever reached it, and it was one keystroke away from
+        // being declared absent along with the real gaps.
+        let chili = SynonymTable.bundled.entry(for: "Chili")
+        #expect(chili?.hasNoValues == false)
+        let raw = chili?.target(for: .raw)
+        #expect(raw?.code == "G554100")
+        #expect(BLSCatalog.bundled.entry(for: "G554100")?.name.contains("Pfefferschote") == true)
+    }
+
+    @Test("The three varieties whose inheritance was worst carry their own row")
+    func theWorstInheritancesAreCurated() throws {
+        // The head start for inheritance-as-proposal (catalog plan, phase 3):
+        // without these, the three cases that argued for the whole change
+        // would arrive as questions the cook has to answer for the app.
+        let table = SynonymTable.bundled
+        let bls = BLSCatalog.bundled
+        #expect(table.entry(for: "Räucherlachs")?.target(for: .unspecified)?.code == "T410600")
+        #expect(bls.entry(for: "T410600")?.perHundredGrams.sodiumMg ?? 0 > 1000)
+        #expect(table.entry(for: "Trockenhefe")?.target(for: .unspecified)?.code == "R458000")
+        #expect(bls.entry(for: "R458000")?.perHundredGrams.kcal ?? 0 > 300)
+        #expect(table.entry(for: "Staudensellerie")?.target(for: .raw)?.code == "G220100")
+        #expect(bls.entry(for: "G220100")?.name.contains("Bleichsellerie") == true)
+    }
+
+    @Test("A root word carries a category; a variety inherits one")
+    func categoriesAreWrittenOnceUpTheChain() {
+        // Decision B, held in the data: a variety writes a category only to
+        // differ from its parent, and today none does. A root word has
+        // nothing to inherit from and must say what it is.
+        let byName = Dictionary(kitchen.words.map { ($0.name, $0) }, uniquingKeysWith: { a, _ in a })
+        for word in kitchen.words {
+            if word.parent == nil {
+                #expect(word.category != nil, "\(word.name) is a root word without a category")
+            } else if let own = word.category, let parent = word.parent.flatMap({ byName[$0] }) {
+                #expect(own != parent.category, "\(word.name) repeats its parent's category")
+            }
+        }
+        // And every word resolves to *something*: the chain never ends in
+        // .other for a shipped word.
+        for ingredient in IngredientCatalog.bundled.ingredients {
+            #expect(ingredient.category != .other || ingredient.ownCategory == .other, "\(ingredient.name) fell through to .other")
+        }
+    }
+
+    @Test("Cocktailtomate is a vegetable because Tomate is")
+    func varietyResolvesToParentCategory() throws {
+        let variety = try #require(IngredientCatalog.bundled.ingredient(for: "Cocktailtomate"))
+        #expect(variety.ownCategory == nil)
+        #expect(variety.category == .vegetables)
+        #expect(kitchen.words.first { $0.name == "Cocktailtomate" }?.category == nil)
     }
 
     @Test("The table's own names are not in the kitchen's list")

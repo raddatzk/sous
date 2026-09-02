@@ -24,23 +24,37 @@ public enum VariantHeuristic {
     ///
     /// The longest matching head noun wins, so "Kirschtomate" is offered as a
     /// tomato rather than as anything shorter that happens to end the same
-    /// way. Ingredients that are already varieties are skipped: the relation
-    /// is one level deep.
+    /// way. Only asked of a name the catalog does not know yet — the one
+    /// casual moment of decision B. For a known ingredient the picker asks
+    /// ``candidates(for:in:)`` instead.
     public static func parent(for name: String, in catalog: IngredientCatalog) -> CatalogIngredient? {
-        let candidate = IngredientCatalog.normalize(name)
-        guard candidate.count > minimumPrefix else { return nil }
-        // A name the catalog already knows is not a new ingredient, and this
-        // question is only ever asked of new ones.
         guard catalog.ingredient(for: name) == nil else { return nil }
+        return candidates(for: name, in: catalog).first
+    }
 
-        var best: (ingredient: CatalogIngredient, length: Int)?
-        for ingredient in catalog.ingredients where ingredient.parentName == nil {
-            guard let length = headLength(of: candidate, for: ingredient) else { continue }
-            if best == nil || length > best!.length {
-                best = (ingredient, length)
+    /// Every ingredient `name` reads like a variety of, best first.
+    ///
+    /// What the parent picker leads with: the head-noun matches for the word
+    /// as written, longest match first, before the cook has typed anything
+    /// into the search. Varieties are candidates too — a chain may be any
+    /// depth now (catalog target, decision A), and "Brauner Champignon"
+    /// belongs under Champignon, not beside it under Pilz. The word itself
+    /// is never its own candidate; whether a candidate would close a loop is
+    /// the picker's question, since only it knows which ingredient is asking.
+    public static func candidates(for name: String, in catalog: IngredientCatalog) -> [CatalogIngredient] {
+        let candidate = IngredientCatalog.normalize(name)
+        guard candidate.count > minimumPrefix else { return [] }
+        return catalog.ingredients
+            .compactMap { ingredient -> (CatalogIngredient, Int)? in
+                guard ingredient.key != candidate,
+                      let length = headLength(of: candidate, for: ingredient)
+                else { return nil }
+                return (ingredient, length)
             }
-        }
-        return best?.ingredient
+            .sorted { first, second in
+                first.1 == second.1 ? first.0.name < second.0.name : first.1 > second.1
+            }
+            .map(\.0)
     }
 
     /// How many characters of `candidate` the ingredient's own spellings

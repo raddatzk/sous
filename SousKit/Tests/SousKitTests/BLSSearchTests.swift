@@ -68,4 +68,29 @@ struct BLSSearchTests {
         #expect(try #require(bls.search("Leinöl").first).code == "Q160000")
         #expect(try #require(bls.search("Sonnenblumenöl").first).name == "Sonnenblumenöl")
     }
+
+    @Test("The row a variety needs is there, and typing its name reaches it")
+    func theSmokedSalmonRowIsReachable() throws {
+        // Räucherlachs is the case that argues for making inheritance a
+        // proposal rather than for building a better search. Everything
+        // needed to map it correctly was already in place — this row, this
+        // search, the picker — and the app still counts it as raw salmon at
+        // 32 mg of sodium instead of 1170, because it inherits from Lachs and
+        // inheriting never asks. The tool was never the missing piece.
+        let hits = bls.search("Räucherlachs")
+        let first = try #require(hits.first)
+        #expect(first.code == "T410600")
+        #expect(first.name.contains("geräuchert"))
+    }
+
+    @Test("Where the two languages share no spelling, the search says nothing")
+    func theOtherTwoAreOutOfReach() {
+        // The honest limit, and the reason the picker needs a field rather
+        // than only a proposal list: the table calls dried yeast "Backhefe
+        // getrocknet (Trockenbackhefe)" and celery stalks "Bleichsellerie",
+        // and no amount of matching gets from the kitchen's word to either.
+        // Both are curation's job — see the catalog plan, phase 3.
+        #expect(bls.search("Trockenhefe").isEmpty)
+        #expect(bls.search("Staudensellerie").isEmpty)
+    }
 }

@@ -297,22 +297,22 @@ struct UpdateReconciliationTests {
 
     // MARK: - The blob that swallows its errors
 
-    @Test("A basis blob written before there was a status still decodes")
-    func aBasisWithoutAStatusStillDecodes() throws {
-        // `StoredIngredientVocabulary.bases` reads with `(try? …) ?? [:]`, so
-        // a decode that fails does not surface — it silently erases every
-        // basis decision on that entry. `status` is the one non-optional
-        // field and would take the whole dictionary with it.
+    @Test("A basis blob without a status does not decode as a confirmation")
+    func aBasisWithoutAStatusIsRefused() {
+        // This test used to assert the opposite: that a missing status reads
+        // as `confirmed`, so a blob from before there was a status would keep
+        // working. No such blob was ever written, and of the two ways to fail
+        // that was the wrong one - it turned an unreadable record into a
+        // decision nobody made. The status is required now, and the blob's
+        // readers say so out loud in debug rather than handing back an empty
+        // dictionary (catalog plan, phase 0).
         let json = Data("""
         {"unspecified":{"code":"K110132","catalogName":"Kartoffel geschält, gekocht"}}
         """.utf8)
 
-        let decoded = try SousCoding.decoder.decode([String: BasisAssignment].self, from: json)
-
-        #expect(decoded.count == 1)
-        #expect(decoded["unspecified"]?.status == .confirmed)
-        #expect(decoded["unspecified"]?.code == "K110132")
-        #expect(decoded["unspecified"]?.datasetVersion == nil)
+        #expect(throws: DecodingError.self) {
+            try SousCoding.decoder.decode([String: BasisAssignment].self, from: json)
+        }
     }
 
     @Test("A stored entry's bases round-trip through the blob unharmed")
@@ -442,8 +442,12 @@ struct OrphanRepairTests {
         #expect(nutrition.basisState(forName: "Omas Schmalztopf", asking: .cooked) == .cooked)
         #expect(nutrition.basisState(forName: "Omas Schmalztopf", asking: .raw) == .raw)
         // Nothing stored at all: the line's own state stands, because that is
-        // what the cook is looking at.
-        #expect(nutrition.basisState(forName: "Kurkuma", asking: .cooked) == .cooked)
+        // what the cook is looking at. Kurkuma used to serve here and no
+        // longer can - since the spices ship as "bewusst ohne" it *has* a
+        // basis under unspecified, and that basis is what answers a cooked
+        // line. A word the catalog has never heard of is the empty case now.
+        #expect(nutrition.basisState(forName: "Sternenstaub", asking: .cooked) == .cooked)
+        #expect(nutrition.basisState(forName: "Kurkuma", asking: .cooked) == .unspecified)
     }
 
     @Test("Everything orphaned is listed with the state it has to be answered in")

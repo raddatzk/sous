@@ -60,10 +60,8 @@ struct SousApp: App {
     @State private var dataUpdate = DataUpdateNotice()
     /// Whether this launch is somebody's first, and the welcome is owed.
     @State private var onboarding = OnboardingNotice()
-    /// Held so the once-per-launch migrations can reach the store without
-    /// opening a second container.
-    private let migration: SwiftDataBundledDataMigration
-    private let vocabularyMigration: SwiftDataVocabularyMigration
+    /// Held so the once-per-launch reconciliation can reach the store
+    /// without opening a second container.
     private let orphanReconciliation: VocabularyOrphanReconciliation
     /// What data this device last ran against. Device state, not user
     /// content — see `BundledDataMarker`.
@@ -77,8 +75,6 @@ struct SousApp: App {
             // through NSPersistentCloudKitContainer. Everything else stays
             // where it is — see SHARING-CONCEPT.md for which is which.
             let coreData = try SousPersistentContainer.make()
-            migration = SwiftDataBundledDataMigration(modelContainer: container)
-            vocabularyMigration = SwiftDataVocabularyMigration(modelContainer: container)
 
             let recipes = CoreDataRecipeStore(container: coreData)
             let images = CoreDataRecipeImageStore(container: coreData)
@@ -301,25 +297,6 @@ struct SousApp: App {
         _ = try? await households.adoptOrphanedRows()
     }
 
-    /// Stamps the cook's name-keyed rows with their SBLS code, then folds
-    /// them into the vocabulary — in that order, because the fold carries the
-    /// stamps across and a row stamped afterwards would be stamped in a table
-    /// nobody reads any more.
-    ///
-    /// Both still work on the SwiftData store, and both must run *before* the
-    /// stores move: what they fold is legacy rows into `StoredIngredientVocabulary`,
-    /// which is the very table the migration then carries across. Run the
-    /// other way round and the fold would write into a store nothing reads
-    /// any more.
-    ///
-    /// Both say nothing when there is nothing to do, which is every launch
-    /// after the first. A failure is not worth stopping for: the legacy rows
-    /// are only deleted once their content has been written.
-    private func foldLegacyRows() async {
-        _ = try? await migration.run()
-        _ = try? await vocabularyMigration.run()
-    }
-
     /// Moves the household's rows out of the SwiftData store, if any are
     /// still there — recipes, pictures, plan, shopping list, vocabulary and
     /// the review marks.
@@ -410,12 +387,9 @@ struct SousApp: App {
                 .task { await watchForRemoteChanges() }
                 .task {
                     cloudKitLog.start()
-                    // In this order, and the order is the whole point. The
-                    // fold works on the old store and has to happen while
-                    // anything still reads it; the move then carries its
-                    // result across; only afterwards can the reconciliation
-                    // run, since it reads the vocabulary where it now lives.
-                    await foldLegacyRows()
+                    // The move first, then the reconciliation: the latter
+                    // reads the vocabulary, and the move is what puts it
+                    // where the reading side looks.
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()

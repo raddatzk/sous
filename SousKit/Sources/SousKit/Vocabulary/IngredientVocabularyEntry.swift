@@ -117,7 +117,10 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
         CatalogIngredient(
             name: isOwnIngredient ? name : (fallback?.name ?? name),
             aliases: (fallback?.aliases ?? []) + aliases,
-            category: category ?? fallback?.category ?? .other,
+            // The *written* one on either side: a shipped variety that
+            // inherits must keep inheriting once the cook adds a spelling to
+            // it, rather than have its resolved aisle frozen into an override.
+            category: category ?? fallback?.ownCategory,
             parentName: parentName ?? fallback?.parentName
         )
     }
@@ -202,20 +205,19 @@ public struct BasisAssignment: Codable, Hashable, Sendable {
         self.decidedAt = decidedAt
     }
 
-    /// Decoded leniently, and for a sharper reason than the other lenient
-    /// decodes in this app: the blob these live in is read with
-    /// `(try? …) ?? [:]` (``StoredIngredientVocabulary/bases``), so a decode
-    /// that fails does not surface as an error — it silently empties every
-    /// basis decision the cook ever made for that word. `status` is the one
-    /// non-optional field, and the one that would take the whole dictionary
-    /// down with it; absent, it means a blob written before there was a
-    /// status to record, and everything written then was the cook's own word.
+    /// Every field optional except `status`, which is the one that says what
+    /// this assignment *is*.
+    ///
+    /// It used to be optional too, defaulting to `confirmed`, so that a blob
+    /// written before there was a status to record would keep working. No such
+    /// blob was ever written, and the default was the dangerous direction to
+    /// fail in: it turned an unreadable record into a confirmation nobody had
+    /// given. A missing status is now a decode error, and the blob's reader
+    /// says so out loud — see ``StoredIngredientVocabulary/bases``.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
-            status: try container.decodeIfPresent(
-                NutritionBasis.Status.self, forKey: .status
-            ) ?? .confirmed,
+            status: try container.decode(NutritionBasis.Status.self, forKey: .status),
             code: try container.decodeIfPresent(String.self, forKey: .code),
             catalogName: try container.decodeIfPresent(String.self, forKey: .catalogName),
             datasetVersion: try container.decodeIfPresent(String.self, forKey: .datasetVersion),

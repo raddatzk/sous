@@ -23,8 +23,14 @@ final class CDVocabularyEntry: CDHouseholdMember {
 
     var bases: [String: BasisAssignment] {
         get {
-            guard let basisData else { return [:] }
-            return (try? SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData)) ?? [:]
+            guard let basisData, !basisData.isEmpty else { return [:] }
+            // Loudly in debug, and empty in release — see
+            // `StoredIngredientVocabulary.bases` for why that pairing.
+            do { return try SousCoding.decoder.decode([String: BasisAssignment].self, from: basisData) }
+            catch {
+                assertionFailure("Unreadable basis blob: \(error)")
+                return [:]
+            }
         }
         set { basisData = try? SousCoding.encoder.encode(newValue) }
     }
@@ -120,12 +126,26 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
                 row = CDVocabularyEntry(context: self.context)
                 row.id = entry.id
                 row.createdAt = .nowInSyncPrecision
+                // Identity before anything else: the cycle check below
+                // compares keys, and a row still keyed "" would let an entry
+                // become its own parent — and get a second row under its own
+                // key for the privilege. The SwiftData row takes key and name
+                // in its initializer; this is the same moment here.
+                row.key = entry.key
+                row.name = entry.name
+            }
+            // The parent first, before anything else about the row is touched
+            // — a refused parent must leave the entry exactly as it was. See
+            // the SwiftData store for the same order and the same reason.
+            let parentID: UUID?
+            do {
+                parentID = try entry.parentName.flatMap { try self.parentID(named: $0, of: row) }
+            } catch {
+                self.context.rollback()
+                throw error
             }
             row.apply(entry)
-            // A parent named but not yet written comes into being here: the
-            // relation is what makes it part of the vocabulary, and the cook
-            // should not have to open a second form to say so.
-            row.parentID = try entry.parentName.flatMap { try self.parentID(named: $0, of: row) }
+            row.parentID = parentID
             try self.context.save()
             return row.domainValue(parentName: entry.parentName)
         }
@@ -166,13 +186,24 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     /// The id of the entry `name` refers to, creating a bare row for it if
     /// the cook has never said anything else about it.
     ///
-    /// Refuses to make a variety of a variety — the relation is one level
-    /// deep by design — and refuses to make an entry its own parent.
+    /// Any depth, but never a loop — the same rule as the SwiftData store,
+    /// for the same reasons, and refusing just as loudly.
     private func parentID(named name: String, of child: CDVocabularyEntry) throws -> UUID? {
         let key = IngredientCatalog.normalize(name)
-        guard !key.isEmpty, key != child.key else { return nil }
+        guard !key.isEmpty else { return nil }
+        guard key != child.key else {
+            throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)
+        }
         if let existing = try row(key: key) {
-            guard existing.parentID == nil else { return nil }
+            var ancestor: CDVocabularyEntry? = existing
+            var steps = 0
+            while let current = ancestor, steps < 64 {
+                if let id = current.id, id == child.id {
+                    throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)
+                }
+                ancestor = try current.parentID.flatMap { try row(id: $0) }
+                steps += 1
+            }
             return existing.id
         }
         let made = CDVocabularyEntry(context: context)
@@ -200,6 +231,13 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
         let request = CDVocabularyEntry.fetchRequest()
         request.sortDescriptors = [NSSortDescriptor(key: "name", ascending: true)]
         return try context.fetchInActiveHousehold(request)
+    }
+
+    private func row(id: UUID) throws -> CDVocabularyEntry? {
+        let request = CDVocabularyEntry.fetchRequest()
+        request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+        request.fetchLimit = 1
+        return try context.fetchInActiveHousehold(request).first
     }
 
     private func row(key: String) throws -> CDVocabularyEntry? {
