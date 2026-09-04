@@ -1177,6 +1177,14 @@
    },
    "via": "BLS-Gruppe \"Kokosmilch/Kokosnussmilch\""
   },
+  "Kokosmilch fettarm": {
+   "targets": {
+    "unspecified": [
+     "Z000002"
+    ]
+   },
+   "via": "Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit 12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm — siehe community.json Z000002."
+  },
   "Kokosraspeln": {
    "targets": {
     "unspecified": [

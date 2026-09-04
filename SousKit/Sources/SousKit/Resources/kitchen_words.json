@@ -782,6 +782,17 @@
   "category": "canned"
  },
  {
+  "name": "Kokosmilch fettarm",
+  "aliases": [
+   "Kokosmilch light",
+   "Light Kokosmilch",
+   "Kokosmilch fettreduziert",
+   "fettarme Kokosmilch",
+   "fettreduzierte Kokosmilch"
+  ],
+  "parent": "Kokosmilch"
+ },
+ {
   "name": "Kokosraspeln",
   "aliases": [
    "Kokosflocken"

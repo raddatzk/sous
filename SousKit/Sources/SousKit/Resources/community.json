@@ -2,8 +2,8 @@
  "datasetVersion": "sous Ergänzungen 1",
  "release": "2026-08-26",
  "license": "CC BY 4.0",
- "attribution": "Ergänzungen zum Bundeslebensmittelschlüssel. Enthaltene Quellen: Table de composition nutritionnelle Ciqual 2020, Anses (Frankreich). Welche Zeile woher stammt, steht bei jeder Zutat unter „Quelle“.",
- "changeNote": "Lebensmittel, die der BLS 4.0 nicht führt. Jede Zeile nennt ihre eigene Quelle und ist von Hand übernommen, nicht importiert. Die Namen stehen so da, wie die Quelle sie schreibt — auch wenn das eine andere Sprache ist: ein übersetzter Name wäre in keiner Datenbank wiederzufinden. Codes beginnen mit Z, einem Buchstaben, den der BLS in keiner Version vergibt (er kennt nur B–Y), und werden fortlaufend und nie erneut vergeben — eine gelöschte Zeile lässt ihre Nummer verfallen, damit gespeicherte Zuordnungen nicht auf ein anderes Lebensmittel umspringen.",
+ "attribution": "Ergänzungen zum Bundeslebensmittelschlüssel. Enthaltene Quellen: Table de composition nutritionnelle Ciqual 2020, Anses (Frankreich); Nährwertdeklarationen einzelner Handelsprodukte. Welche Zeile woher stammt, steht bei jeder Zutat unter „Quelle“. Die Lizenz gilt für die übernommenen Datenbankzeilen; eine Nährwertdeklaration ist eine Tatsachenangabe und trägt keine eigene Lizenz — genannt wird sie, damit man sie an der Dose nachprüfen kann.",
+ "changeNote": "Lebensmittel, die der BLS 4.0 nicht führt. Jede Zeile nennt ihre eigene Quelle und ist von Hand übernommen, nicht importiert. Die Namen stehen so da, wie die Quelle sie schreibt — auch wenn das eine andere Sprache ist: ein übersetzter Name wäre in keiner Datenbank wiederzufinden. Eine Zeile darf auch von einer Nährwertdeklaration stammen, wenn keine Datenbank das Lebensmittel führt: dann nennt sie das Produkt mit EAN, und was das Etikett nicht deklariert, wird aus der nächstliegenden BLS-Zeile abgeleitet statt auf null gesetzt — der Decoder liest eine fehlende Angabe als 0, und das wäre eine Behauptung. Codes beginnen mit Z, einem Buchstaben, den der BLS in keiner Version vergibt (er kennt nur B–Y), und werden fortlaufend und nie erneut vergeben — eine gelöschte Zeile lässt ihre Nummer verfallen, damit gespeicherte Zuordnungen nicht auf ein anderes Lebensmittel umspringen.",
  "entries": [
   {
    "code": "Z000001",
@@ -25,6 +25,31 @@
     "ironMg": 4.1,
     "magnesiumMg": 150,
     "potassiumMg": 1700
+   }
+  },
+  {
+   "code": "Z000002",
+   "name": "Kokosmilch fettreduziert, 41 % Kokosmark",
+   "group": "Z",
+   "category": "fruit",
+   "source": "Nährwertdeklaration REWE Beste Wahl „Kokosmilch fettreduziert“, 400 ml, EAN 4388844280076 (Wasser 59 %, Kokosmark 41 %). Deklariert je 100 ml: 119 kcal, 12 g Fett, 10,6 g gesättigt, 1,6 g KH, 0,9 g Zucker, 1,1 g Eiweiß, 0,1 g Salz — hier auf 100 g umgerechnet mit der Dichte 0,98 g/ml aus measures.json. Ballaststoffe und Mikronährstoffe deklariert das Etikett nicht; sie sind aus H154000 „Kokosmilch/Kokosnussmilch“ mit dem Verdünnungsfaktor 0,56 abgeleitet, den das deklarierte Fett gegenüber der BLS-Zeile ergibt.",
+   "perHundredGrams": {
+    "kcal": 121.4,
+    "proteinG": 1.12,
+    "fatG": 12.24,
+    "saturatedFatG": 10.82,
+    "carbsG": 1.63,
+    "sugarG": 0.92,
+    "fiberG": 2.8,
+    "sodiumMg": 40.8,
+    "vitaminAMcg": 0,
+    "vitaminCMg": 0.67,
+    "vitaminDMcg": 0,
+    "vitaminEMg": 0.24,
+    "calciumMg": 4.9,
+    "ironMg": 0.19,
+    "magnesiumMg": 13,
+    "potassiumMg": 87.8
    }
   }
  ]

@@ -426,6 +426,12 @@
    "assumption": true
   },
   {
+   "name": "Kokosmilch fettarm",
+   "gramsPerMl": 0.99,
+   "assumption": true,
+   "note": "Mehr Wasser als die Vollfettdose: 12 % Fett statt 21,9 %. Zwischen Wasser (1,0) und der Vollfettmilch (0,98) linear am Fettanteil interpoliert."
+  },
+  {
    "name": "Tomatenmark",
    "gramsPerMl": 1.1,
    "assumption": true
