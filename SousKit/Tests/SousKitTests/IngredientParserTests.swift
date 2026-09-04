@@ -456,3 +456,95 @@ extension IngredientParserTests {
         #expect(catalog.unknownIngredients(in: "Salz nach Geschmack\netwas Mehl").isEmpty)
     }
 }
+
+extension IngredientParserTests {
+    /// The catalog the size rule is tested against: one name that carries a
+    /// size word of its own, so the guard has something to guard.
+    private var sizeCatalog: IngredientCatalog {
+        IngredientCatalog(ingredients: [
+            CatalogIngredient(name: "Große Sandklaffmuschel", category: .fish),
+            CatalogIngredient(name: "Zimtstange", category: .spices),
+            CatalogIngredient(name: "Zwiebel", category: .vegetables),
+        ])
+    }
+
+    @Test("A size word after the amount belongs to the measure, not to the name")
+    func sizeWordLeavesTheNameClean() {
+        let ingredient = IngredientParser.parseLine("1 kleine Zimtstange", catalog: sizeCatalog)
+
+        #expect(ingredient.quantity == Quantity(1, .piece))
+        #expect(ingredient.size == IngredientSize(word: "kleine", degree: .small))
+        #expect(ingredient.name == "Zimtstange")
+    }
+
+    @Test("A size word is read before the unit it stands in front of")
+    func sizeWordBeforeAUnit() {
+        let ingredient = IngredientParser.parseLine("3 große EL Mandelmus", catalog: sizeCatalog)
+
+        #expect(ingredient.quantity == Quantity(3, .tablespoon))
+        #expect(ingredient.size?.degree == .large)
+        #expect(ingredient.name == "Mandelmus")
+    }
+
+    @Test("Every declension of the three sizes reads as one word")
+    func sizeDeclensions() {
+        let expected: [String: IngredientSize.Degree] = [
+            "kleine": .small, "kleiner": .small, "kleines": .small, "kleinen": .small,
+            "große": .large, "großer": .large, "grosses": .large, "großen": .large,
+            "mittelgroße": .medium, "mittelgroßer": .medium, "mittlere": .medium,
+        ]
+        for (word, degree) in expected {
+            #expect(IngredientSize(word: word)?.degree == degree, "\(word)")
+        }
+        // A comparative says larger than what, and nothing here knows.
+        #expect(IngredientSize(word: "größere") == nil)
+        #expect(IngredientSize(word: "gehackte") == nil)
+    }
+
+    @Test("A size word only reads as one where an amount stands in front of it")
+    func sizeWordNeedsAnAmount() {
+        let ingredient = IngredientParser.parseLine("Kleine Kartoffeln", catalog: sizeCatalog)
+
+        #expect(ingredient.size == nil)
+        #expect(ingredient.name == "Kleine Kartoffeln")
+    }
+
+    @Test("A catalog name that carries its own size word is not split at it")
+    func sizeWordInsideACatalogName() {
+        let ingredient = IngredientParser.parseLine("2 Große Sandklaffmuschel", catalog: sizeCatalog)
+
+        #expect(ingredient.size == nil)
+        #expect(ingredient.name == "Große Sandklaffmuschel")
+    }
+
+    @Test("A line that is only an amount and a size keeps its word")
+    func sizeWordWithoutAName() {
+        let ingredient = IngredientParser.parseLine("2 kleine", catalog: sizeCatalog)
+
+        #expect(ingredient.size == nil)
+        #expect(ingredient.name == "kleine")
+    }
+
+    @Test("A size word renders back exactly where it was written")
+    func sizeRoundTrips() {
+        let source = """
+        1 kleine Zimtstange
+        3 große EL Mandelmus
+        2 mittelgroße Zwiebel (gewürfelt)
+        """
+
+        let rendered = IngredientParser.text(
+            for: IngredientParser.parse(source, catalog: sizeCatalog),
+            formatter: QuantityFormatter(locale: Locale(identifier: "de_DE"))
+        )
+        #expect(rendered == source)
+    }
+
+    @Test("The highlight span covers the size word too")
+    func sizeIsPartOfTheHighlightedMeasure() {
+        let length = IngredientParser.leadingAmountAndUnitLength(
+            in: "1 kleine Zimtstange", catalog: sizeCatalog
+        )
+        #expect(length.map { String("1 kleine Zimtstange".prefix($0)) } == "1 kleine ")
+    }
+}

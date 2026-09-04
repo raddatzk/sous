@@ -74,6 +74,9 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
     public var name: String
     /// `nil` means an unquantified amount ("Salz nach Geschmack").
     public var quantity: Quantity?
+    /// The size word the measure carried, when the line wrote one — see
+    /// ``IngredientSize``.
+    public var size: IngredientSize?
     /// The words that stood in for a number, when the line wrote its amount
     /// that way — see ``UnquantifiedPhrase``.
     public var unquantifiedPhrase: UnquantifiedPhrase?
@@ -94,6 +97,7 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(),
         name: String,
         quantity: Quantity? = nil,
+        size: IngredientSize? = nil,
         unquantifiedPhrase: UnquantifiedPhrase? = nil,
         preparation: String? = nil,
         group: String? = nil,
@@ -105,6 +109,7 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.quantity = quantity
+        self.size = size
         self.unquantifiedPhrase = unquantifiedPhrase
         self.preparation = preparation
         self.group = group

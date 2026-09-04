@@ -20,12 +20,18 @@ public struct QuantityFormatter: Sendable {
         self.locale = locale
     }
 
-    /// The full line as it appears in the ingredient list.
-    public func string(for quantity: Quantity) -> String {
+    /// The measure as it appears in the ingredient list, size word and all:
+    /// "300 g", "1 kleine", "3 große EL".
+    ///
+    /// The size stands between amount and unit because that is where it was
+    /// written — "3 große EL Mandelmus", never "3 EL große".
+    public func string(for quantity: Quantity, size: IngredientSize? = nil) -> String {
         let normalized = normalize(quantity)
         let amount = amountString(normalized.amount, unit: normalized.unit)
         let symbol = normalized.unit.displaySymbol
-        return symbol.isEmpty ? amount : "\(amount) \(symbol)"
+        return [amount, size?.word, symbol.isEmpty ? nil : symbol]
+            .compactMap { $0 }
+            .joined(separator: " ")
     }
 
     /// Promotes to the larger unit once the amount warrants it, and demotes
@@ -104,7 +110,7 @@ extension QuantityFormatter {
     public func string(for ingredient: RecipeIngredient) -> String {
         var line = ""
         if let quantity = ingredient.quantity {
-            line = string(for: quantity)
+            line = string(for: quantity, size: ingredient.size)
         } else if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
             // "etwas Salz" — the words sit where a number would.
             line = phrase.phrase

@@ -48,7 +48,11 @@ struct IngredientLineView: View {
     }
 
     private var amount: String {
-        if let quantity = ingredient.quantity { return formatter.string(for: quantity) }
+        if let quantity = ingredient.quantity {
+            // The size word is part of the measure, so it wears the measure's
+            // accent: "1 kleine" tinted, "Zimtstange" plain.
+            return formatter.string(for: quantity, size: ingredient.size)
+        }
         // "etwas Salz" — the words sit where a number would, styled like one.
         if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
             return phrase.phrase

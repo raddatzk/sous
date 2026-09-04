@@ -85,8 +85,12 @@ public enum IngredientParser {
         var rest = Substring(line.trimmingCharacters(in: .whitespaces))
 
         var quantity: Quantity?
+        var size: IngredientSize?
         if let (amount, remainder) = leadingAmount(in: String(rest)) {
             rest = Substring(remainder)
+            let (parsedSize, afterSize) = leadingSize(in: String(rest), catalog: catalog)
+            size = parsedSize
+            rest = Substring(afterSize)
             let (unit, afterUnit) = leadingUnit(in: String(rest))
             rest = Substring(afterUnit)
             quantity = Quantity(amount, unit ?? .piece)
@@ -142,6 +146,7 @@ public enum IngredientParser {
         return RecipeIngredient(
             name: name,
             quantity: quantity,
+            size: size,
             unquantifiedPhrase: unquantifiedPhrase,
             preparation: preparation?.isEmpty == false ? preparation : nil,
             // Read, not consumed: the words stay where they were written, so
@@ -249,6 +254,36 @@ public enum IngredientParser {
         return (value, remainder)
     }
 
+    /// Reads a leading size word: "1 kleine Zimtstange", "3 große EL
+    /// Mandelmus". It stands between the amount and whatever follows, so it
+    /// is read before the unit — otherwise "große" hides the "EL" behind it
+    /// and the whole rest of the line becomes a name.
+    ///
+    /// Only ever after an amount, which is why the caller asks from inside
+    /// that branch: without a number in front of it the word is as likely to
+    /// name the thing as to measure it.
+    ///
+    /// A name the catalog knows whole keeps its word. "Große
+    /// Sandklaffmuschel" is one of the shipped names, and taking it apart is
+    /// the mistake the comma rule in ``parseLine(_:catalog:)`` exists to
+    /// prevent, made in a second place.
+    private static func leadingSize(
+        in text: String, catalog: IngredientCatalog
+    ) -> (IngredientSize?, String) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard catalog.ingredient(for: trimmed) == nil,
+              let spaceIndex = trimmed.firstIndex(of: " "),
+              let size = IngredientSize(word: String(trimmed[..<spaceIndex]))
+        else { return (nil, trimmed) }
+
+        let rest = String(trimmed[trimmed.index(after: spaceIndex)...])
+            .trimmingCharacters(in: .whitespaces)
+        // "2 kleine" is an amount and nothing else; the word stays where it
+        // was rather than leaving a line with no name at all.
+        guard !rest.isEmpty else { return (nil, trimmed) }
+        return (size, rest)
+    }
+
     /// Reads a unit if the next word is one. An unknown word is the
     /// ingredient's name, not a unit — "2 Zwiebeln" has no unit.
     private static func leadingUnit(in text: String) -> (IngredientUnit?, String) {
@@ -268,14 +303,17 @@ public enum IngredientParser {
         return (nil, trimmed)
     }
 
-    /// How many leading characters of a trimmed line are its amount and
-    /// unit — for colouring a line while it is still being typed, without
-    /// waiting for it to parse into a full ingredient. `nil` if the line
-    /// does not start with an amount at all.
-    public static func leadingAmountAndUnitLength(in line: String) -> Int? {
+    /// How many leading characters of a trimmed line are its measure —
+    /// amount, size word and unit — for colouring a line while it is still
+    /// being typed, without waiting for it to parse into a full ingredient.
+    /// `nil` if the line does not start with an amount at all.
+    public static func leadingAmountAndUnitLength(
+        in line: String, catalog: IngredientCatalog = .bundled
+    ) -> Int? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard let (_, afterAmount) = leadingAmount(in: trimmed) else { return nil }
-        let (_, afterUnit) = leadingUnit(in: afterAmount)
+        let (_, afterSize) = leadingSize(in: afterAmount, catalog: catalog)
+        let (_, afterUnit) = leadingUnit(in: afterSize)
         return trimmed.count - afterUnit.count
     }
 
