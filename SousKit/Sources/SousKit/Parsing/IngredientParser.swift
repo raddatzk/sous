@@ -97,20 +97,33 @@ public enum IngredientParser {
         }
 
         // How it is prepared is written either in trailing parentheses, the
-        // way Mela does it, or after a comma, the way people type.
+        // way Mela does it, or after a comma, the way people type — and a
+        // line may well do both: "½ Limette, Saft davon (optional)". Both
+        // rules therefore run, in the order the words stand. They used to be
+        // one `else if`, which let a line split only once: the parenthesis
+        // won and the comma stayed glued to the name, so "Limette, Saft
+        // davon" was reported as an ingredient nobody has ever heard of.
         var name = String(rest).trimmingCharacters(in: .whitespaces)
-        var preparation: String?
+        var parenthesized: String?
+        var afterComma: String?
 
         if name.hasSuffix(")"), let openIndex = name.lastIndex(of: "("),
            !isMarkdownLink(closingAt: openIndex, in: name) {
-            preparation = String(name[name.index(after: openIndex)..<name.index(before: name.endIndex)])
+            parenthesized = String(name[name.index(after: openIndex)..<name.index(before: name.endIndex)])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<openIndex]).trimmingCharacters(in: .whitespaces)
-        } else if let commaIndex = name.firstIndex(of: ","), catalog.ingredient(for: name) == nil {
-            preparation = String(name[name.index(after: commaIndex)...])
+        }
+        // Asked of what is left after the parenthesis came off, so that a
+        // catalog name carrying its own comma is still recognized as one:
+        // "Sauerrahm/Schmand, mind. 20 % Fett (kalt)".
+        if let commaIndex = name.firstIndex(of: ","), catalog.ingredient(for: name) == nil {
+            afterComma = String(name[name.index(after: commaIndex)...])
                 .trimmingCharacters(in: .whitespaces)
             name = String(name[..<commaIndex]).trimmingCharacters(in: .whitespaces)
         }
+
+        let written = [afterComma, parenthesized].compactMap { $0 }.filter { !$0.isEmpty }
+        var preparation: String? = written.isEmpty ? nil : written.joined(separator: ", ")
 
         // "nach Geschmack" is an amount written in words, not part of the
         // name — left in place it would keep "Salz nach Geschmack" from ever

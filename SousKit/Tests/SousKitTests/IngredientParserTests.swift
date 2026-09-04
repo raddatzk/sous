@@ -548,3 +548,25 @@ extension IngredientParserTests {
         #expect(length.map { String("1 kleine Zimtstange".prefix($0)) } == "1 kleine ")
     }
 }
+
+extension IngredientParserTests {
+    @Test("A line that carries both a comma and parentheses splits at both")
+    func commaAndParenthesesTogether() {
+        // The parenthesis used to win alone, and "Limette, Saft davon" then
+        // stood there as an ingredient nobody has heard of.
+        let ingredient = IngredientParser.parseLine("½ Limette, Saft davon (optional)", catalog: catalog)
+
+        #expect(ingredient.name == "Limette")
+        #expect(ingredient.preparation == "Saft davon, optional")
+    }
+
+    @Test("A catalog name with its own comma survives a parenthesis behind it")
+    func commaInsideACatalogNameWithParentheses() {
+        let ingredient = IngredientParser.parseLine(
+            "150 g Sauerrahm/Schmand, mind. 20 % Fett (kalt)", catalog: catalog
+        )
+
+        #expect(ingredient.name == "Sauerrahm/Schmand, mind. 20 % Fett")
+        #expect(ingredient.preparation == "kalt")
+    }
+}
