@@ -844,6 +844,10 @@ struct RecipeDetailView: View {
     /// resets, and a wrap that separated the two — reset landing alone on
     /// its own line, far from the field it acts on — read as misplaced.
     /// One view keeps them together, on either side of a wrap.
+    /// What a `.glass` button comes out at under `.controlSize(.large)`,
+    /// measured on iOS 26 — the height the servings capsule has to match.
+    private static let actionControlHeight: CGFloat = 50
+
     private var servingsField: some View {
         HStack(spacing: 4) {
             // Icon rather than the word "Portionen": the row already reads
@@ -872,7 +876,10 @@ struct RecipeDetailView: View {
             }
         }
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        // A stepper is shorter than a large glass button, so the capsule
+        // stood six points shy of the buttons beside it. Padding it out to
+        // their height keeps the row on one baseline.
+        .frame(minHeight: Self.actionControlHeight)
         // The same glass the buttons beside it wear, so the action row
         // reads as one family instead of two.
         .glassEffect(in: .capsule)
