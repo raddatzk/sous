@@ -205,6 +205,14 @@ struct IngredientFormView: View {
     /// app currently believes and must not turn that into a correction just
     /// because the form was opened.
     @State private var measureDraft: [String: String] = [:]
+    /// The measures taken back while the form is open, by unit symbol.
+    ///
+    /// Kept apart from the draft, which can only say "this field is empty".
+    /// An emptied field is what `save()` writes as "no longer known", but the
+    /// row has to go the moment it is swiped — and a weight that came from a
+    /// parent is in `unitWeightsGrams` no matter what this ingredient's own
+    /// entry says, so nothing in the draft alone could make it disappear.
+    @State private var removedMeasures: Set<String> = []
     /// The answer this form will write for the state on screen, and the one
     /// it found there.
     ///
@@ -223,11 +231,9 @@ struct IngredientFormView: View {
     /// `basis != storedBasis` would never write it; this is the intent that
     /// makes the save happen — and it is set only by a tap, never by opening.
     @State private var confirmsStoredRow = false
-    /// The free search over the catalog, beside the proposals.
-    @State private var basisQuery = ""
-    /// Whether the row list is unfolded. Kept apart from the choice itself:
+    /// Whether the row page is up. Kept apart from the choice itself:
     /// tapping "Zeile im Lebensmittelkatalog" with nothing picked yet has to
-    /// open the list, not answer the question with a row nobody chose.
+    /// open the page, not answer the question with a row nobody chose.
     @State private var isChoosingRow = false
     /// Whether the question below is up — asked before the delete goes
     /// through, since it cannot be undone.
@@ -321,6 +327,20 @@ struct IngredientFormView: View {
                 }
             }
             .formStyle(.grouped)
+            // Pushed rather than presented: the two buttons that lead here
+            // sit inside a form row, where a `NavigationLink` of their own
+            // would take the whole row.
+            .navigationDestination(isPresented: $isChoosingRow) {
+                // Into the draft, like every other answer here: the form
+                // writes on save, and a row chosen for a name that does not
+                // exist yet has no entry to be written onto until then.
+                BasisRowPickerView(
+                    ingredientName: trimmedName,
+                    state: selectedState.wrappedValue,
+                    chosen: chosenRowCode,
+                    onConfirm: pickRow
+                )
+            }
             .sheet(isPresented: $isPickingParent) {
                 // Into the draft, not the store: the form writes on save, and
                 // a parent chosen for a name that does not exist yet has no
@@ -649,74 +669,68 @@ struct IngredientFormView: View {
             ?? .zero
     }
 
+    /// The values themselves, as a continuation of the Grundlage section
+    /// rather than a heading of their own: which numbers stand here is
+    /// entirely the answer given above, and two headings at the same level
+    /// read as two questions.
+    ///
+    /// Nothing at all once that answer is "bewusst ohne": a block of figures
+    /// under a question just answered with "keine" would be values for
+    /// something that has none.
     @ViewBuilder
     private var nutritionSection: some View {
-        if let resolved = resolvedNutrition, !isNutritionEditable {
-            bundledNutritionSection(resolved)
-            micronutrientSection(resolved)
-        } else {
-            editableNutritionSection
+        if basisChoice != .deliberatelyWithout {
+            if let resolved = resolvedNutrition, !isNutritionEditable {
+                bundledNutritionSection(resolved)
+                micronutrientSection(resolved)
+            } else {
+                editableNutritionSection
+            }
         }
     }
 
     // MARK: - Measures
 
-    /// What a piece, a spoon or a cup of this ingredient weighs — the gram
-    /// bridge, per ingredient, and editable no matter where the nutrition
-    /// numbers come from.
+    /// One line for what a piece, a spoon or a cup of this ingredient weighs,
+    /// and the way into the page that holds them.
     ///
-    /// It used to sit inside the own-values form, which meant a bundled
-    /// ingredient had no piece weight to correct until the cook typed a whole
-    /// nutrition label over it. That is two unrelated decisions welded
-    /// together: what an onion weighs is not a claim about its calories, and
-    /// the concept asks for exactly this one on its own ("the cook can
-    /// override any value on their ingredient — 'my onions are bigger'").
-    ///
-    /// Any unit, not only `Stk.`: the storage was always keyed by unit
-    /// symbol. Mass and the litre stay out — a gram weighs a gram, and a
-    /// millilitre is what the density answers.
-    private static let measurableUnits: [IngredientUnit] = [
-        .piece, .clove, .bunch, .leaf, .package, .pinch, .cup, .teaspoon, .tablespoon,
-        .can, .jar, .stalk, .sprig, .stem, .centimeter,
-    ]
-
-    /// The units worth showing: everything anybody has a weight for, plus
-    /// whatever the cook is in the middle of typing one for.
-    private var shownMeasureUnits: [IngredientUnit] {
-        let known = resolvedNutrition?.unitWeightsGrams ?? [:]
-        return Self.measurableUnits.filter {
-            known[$0.symbol] != nil || measureDraft[$0.symbol] != nil
-        }
-    }
-
-    private var addableMeasureUnits: [IngredientUnit] {
-        let shown = Set(shownMeasureUnits.map(\.symbol))
-        return Self.measurableUnits.filter { !shown.contains($0.symbol) }
-    }
-
+    /// The fields themselves used to stand open here, one row per unit, in
+    /// the middle of a form that already asks about names, aisles, varieties,
+    /// shopping and nutrition. The gram bridge is its own subject and belongs
+    /// with the units it is about — see ``IngredientMeasuresView``. What the
+    /// ingredient sheet needs to say is only whether there are any.
     @ViewBuilder
     private var measuresSection: some View {
         if !trimmedName.isEmpty {
             Section {
-                ForEach(shownMeasureUnits, id: \.symbol) { unit in
-                    measureField(for: unit)
+                NavigationLink {
+                    // Bound to the same draft the form saves, so the page
+                    // edits the ingredient being edited rather than a copy of
+                    // it: there is one "Sichern", and it is the form's.
+                    IngredientMeasuresView(
+                        ingredientName: trimmedName,
+                        draft: $measureDraft,
+                        removed: $removedMeasures
+                    )
+                } label: {
+                    LabeledContent("Maße", value: measuresSummary)
                 }
-                if !addableMeasureUnits.isEmpty {
-                    Menu("Maß hinzufügen") {
-                        ForEach(addableMeasureUnits, id: \.symbol) { unit in
-                            Button(unit.symbol) { measureDraft[unit.symbol] = "" }
-                        }
-                    }
-                }
-                if let density = resolvedNutrition?.densityGramsPerMl {
-                    LabeledContent("1 ml wiegt", value: mass(density))
-                }
-            } header: {
-                Text("Maße")
             } footer: {
-                Text("Angenommene Werte, keine gemessenen. Was du hier änderst, gilt für jedes Rezept mit dieser Zutat — und schlägt für diese Einheit auch die Dichte.")
+                Text("Was ein Stück, ein Löffel oder eine Tasse dieser Zutat wiegt — die Brücke zu Gramm, für jedes Rezept mit dieser Zutat.")
             }
         }
+    }
+
+    /// The units there is a weight for, in the order the page lists them —
+    /// enough to see at a glance whether the question has been answered,
+    /// without repeating the numbers the page is for.
+    private var measuresSummary: String {
+        let units = IngredientMeasuresView.shownUnits(
+            known: resolvedNutrition?.unitWeightsGrams ?? [:],
+            draft: measureDraft,
+            removed: removedMeasures
+        )
+        return units.isEmpty ? "keine" : units.map(\.symbol).joined(separator: ", ")
     }
 
     /// Takes the entry back — a plain button rather than a swipe, since
@@ -730,38 +744,6 @@ struct IngredientFormView: View {
         }
     }
 
-    private func measureField(for unit: IngredientUnit) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("1 \(unit.symbol) wiegt")
-                if let parent = inheritedMeasureSource(for: unit) {
-                    Text("von \(parent)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            TextField(
-                "g",
-                text: Binding(
-                    get: { measureDraft[unit.symbol] ?? initialMeasureText(for: unit) },
-                    set: { measureDraft[unit.symbol] = $0 }
-                )
-            )
-            .frame(maxWidth: 70)
-            .multilineTextAlignment(.trailing)
-            #if os(iOS)
-            .keyboardType(.decimalPad)
-            #endif
-            Text("g").foregroundStyle(.secondary)
-        }
-    }
-
-    private func initialMeasureText(for unit: IngredientUnit) -> String {
-        guard let grams = resolvedNutrition?.unitWeightsGrams[unit.symbol] else { return "" }
-        return DecimalText.text(grams)
-    }
-
     /// The label a packet would carry, in the order it carries it.
     ///
     /// Every secondary figure is shown only when it is above zero: in a table
@@ -770,18 +752,8 @@ struct IngredientFormView: View {
     /// precision the data does not have.
     @ViewBuilder
     private func bundledNutritionSection(_ entry: CatalogNutrition) -> some View {
-        let states = availableStates
         let values = values(of: entry)
         Section {
-            if states.count > 1 {
-                Picker("Zustand", selection: selectedState) {
-                    ForEach(states, id: \.self) { state in
-                        Text(state.title).tag(state)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-            }
             nutrientRow("Energie", Self.nutrients.string(kilocalories: values.kcal), emphasized: true)
             nutrientRow("Fett", mass(values.fatG))
             measuredRow("davon gesättigte Fettsäuren", values.saturatedFatG, indented: true)
@@ -792,8 +764,6 @@ struct IngredientFormView: View {
             // BLS reports sodium; the standard EU label shows salt, in grams
             // — which the formatter drops to milligrams where it has to.
             measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
-        } header: {
-            Text("Nährwerte je 100 g")
         } footer: {
             // What the numbers rest on, in two lines that answer different
             // questions: which row of the catalog these values are, and whose
@@ -801,6 +771,9 @@ struct IngredientFormView: View {
             // word — "Kartoffel" is "Kartoffel geschält, gekocht" there — and
             // until now the app showed the values without ever saying so.
             VStack(alignment: .leading, spacing: 2) {
+                // What the header used to say, now that there is none: the
+                // reference amount belongs to the figures either way.
+                Text("Alle Werte je 100 g.")
                 if let basis = entry.basis(for: selectedState.wrappedValue) {
                     if let catalogName = basis.catalogName {
                         Text("beruht auf: \(catalogName) — \(basis.status.label)")
@@ -911,10 +884,9 @@ struct IngredientFormView: View {
                     }
                 }
             }
-        } header: {
-            Text("Nährwerte je 100 g")
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
+                Text("Alle Angaben je 100 g.")
                 Text("Ohne Nährwerte zählt diese Zutat in keinem Rezept mit. Energie und die vier Hauptwerte reichen — alles Weitere ist freiwillig. Oder mach die Zutat zur Schreibweise einer Zutat, die die App schon kennt.")
                 // Two questions wear the same stamp, and they are not the
                 // same question. The re-key's: these numbers hang on a name
@@ -930,7 +902,7 @@ struct IngredientFormView: View {
         }
     }
 
-    // MARK: - Grundlage
+    // MARK: - The basis
 
     /// The one question the numbers hang on: what do they rest on.
     ///
@@ -957,18 +929,33 @@ struct IngredientFormView: View {
     /// three answers turns them back into the two questions this section
     /// exists to replace — and the doubt it answers was the cook's own, about
     /// having values *and* a reference at once.
+    ///
+    /// Headed "Nährwerte", because that is what the whole group is about:
+    /// the question and the figures it decides are one thing, and the values
+    /// below carry no heading of their own — see `nutritionSection`.
     @ViewBuilder
     private var basisSection: some View {
         if !trimmedName.isEmpty {
             Section {
+                // At the top, not above the figures it switches: with one
+                // heading over question and answer, the state qualifies both
+                // — and where the values are hidden, this would be the only
+                // way to reach the other state's question at all.
+                if availableStates.count > 1 {
+                    Picker("Zustand", selection: selectedState) {
+                        ForEach(availableStates, id: \.self) { state in
+                            Text(state.title).tag(state)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
                 basisAnswer(
                     title: "Zeile im Lebensmittelkatalog",
-                    detail: chosenRowName,
+                    detail: nil,
                     isChosen: chosenRowCode != nil
                 ) { chooseCatalogRow() }
-                if chosenRowCode != nil || isChoosingRow {
-                    basisRowList
-                }
+                chosenRowLine
                 basisAnswer(
                     title: "Eigene Werte",
                     detail: nil,
@@ -982,12 +969,57 @@ struct IngredientFormView: View {
                 ) { choose(.deliberatelyWithout) }
             } header: {
                 Text(availableStates.count > 1
-                    ? "Grundlage (\(selectedState.wrappedValue.title.lowercased()))"
-                    : "Grundlage")
+                    ? "Nährwerte (\(selectedState.wrappedValue.title.lowercased()))"
+                    : "Nährwerte")
             } footer: {
                 Text(basisFooter)
             }
         }
+    }
+
+    /// What the catalog-row answer currently holds, under the answer itself:
+    /// the row that is chosen and the two things that can be done to it, or
+    /// — with nothing chosen yet — the way to choose one.
+    ///
+    /// One line either way. The rows themselves are a page now
+    /// (``BasisRowPickerView``); what belongs in the form is the answer, not
+    /// the choosing.
+    @ViewBuilder
+    private var chosenRowLine: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let name = chosenRowLabel {
+                Text(name)
+                    .font(.subheadline)
+                if let note = chosenRowNote {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            HStack(spacing: 8) {
+                if chosenRowLabel == nil {
+                    Button("Zeile wählen", systemImage: "magnifyingglass") {
+                        isChoosingRow = true
+                    }
+                } else {
+                    Button("Ändern", systemImage: "pencil") { isChoosingRow = true }
+                    Button("Entfernen", systemImage: "trash", role: .destructive) {
+                        clearRow()
+                    }
+                }
+            }
+            // The shape this form's other pair of inline actions already has
+            // — "Ja"/"Nein" on the variety proposal, and the picker under a
+            // recipe line. Bordered, and sized under the row they act on:
+            // a control style alone still labels itself at body size, which
+            // left two capsules towering over the line they belong to.
+            .font(.footnote)
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        // Under the answer's title, clear of the circle that marks it.
+        .padding(.leading, 30)
+        .padding(.vertical, 2)
     }
 
     /// One of the three answers, as a row that can also be tapped a second
@@ -1016,36 +1048,6 @@ struct IngredientFormView: View {
         .buttonStyle(.plain)
     }
 
-    /// The rows to choose between: the proposals for this name, or whatever
-    /// the cook is searching for. Typing replaces the list rather than adding
-    /// a second one beneath it.
-    @ViewBuilder
-    private var basisRowList: some View {
-        let query = basisQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        let rows = query.isEmpty
-            ? nutrition.candidates(forName: trimmedName, state: selectedState.wrappedValue)
-            : nutrition.search(query)
-        BLSSearchField(text: $basisQuery)
-        if rows.isEmpty {
-            Text(emptyRowListNote(query: query))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        } else {
-            ForEach(rows) { row in
-                BLSRow(row: row, isSelected: chosenRowCode == row.code, indented: true) {
-                    chooseRow(row.code)
-                }
-            }
-        }
-    }
-
-    private func emptyRowListNote(query: String) -> String {
-        if query.isEmpty {
-            return "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
-        }
-        return BLSRow.emptySearchNote(query: query)
-    }
-
     private var basisFooter: String {
         switch basisChoice {
         case .catalogRow:
@@ -1055,42 +1057,33 @@ struct IngredientFormView: View {
         case .deliberatelyWithout:
             "Diese Zutat zählt bewusst in keiner Summe mit und fragt nicht mehr nach."
         case .unset:
-            "Ohne Grundlage lässt jede Summe diese Zutat aus und nennt sie als Lücke."
+            "Ohne Angabe lässt jede Summe diese Zutat aus und nennt sie als Lücke."
         }
     }
 
-    // MARK: - Grundlage, the answering
+    // MARK: - The basis, answered
 
     private var chosenRowCode: String? {
         if case .catalogRow(let code) = basisChoice { return code }
         return nil
     }
 
-    /// The chosen row's name — and, while the row on screen is still the one
-    /// that came down the chain unchanged, whose it is and that it is only
-    /// proposed. A variety shows its parent's row here until the cook picks;
-    /// showing it without saying so is exactly how inherited numbers used to
-    /// pass for the variety's own.
-    private var chosenRowName: String? {
-        guard let code = chosenRowCode else { return nil }
-        let name = nutrition.row(forCode: code)?.name
-        guard basisChoice == storedBasisChoice, storedBasisIsProposed else { return name }
-        if confirmsStoredRow { return name.map { "\($0) — wird beim Sichern bestätigt" } }
-        let origin = resolvedNutrition?.inheritedFrom.map { "geerbt von \($0), " } ?? ""
-        return name.map { "\($0) — \(origin)vorgeschlagen. Antippen bestätigt." }
+    /// The chosen row's name, as the catalog writes it.
+    private var chosenRowLabel: String? {
+        chosenRowCode.flatMap { nutrition.row(forCode: $0)?.name }
     }
 
-    /// Whether a measure on screen came down the chain rather than being
-    /// this ingredient's own — the same honesty for grams that the basis
-    /// row has for numbers. Compared against the entry as written, since the
-    /// resolved one has already merged its ancestor's weights in.
-    private func inheritedMeasureSource(for unit: IngredientUnit) -> String? {
-        guard let parent = resolvedNutrition?.inheritedFrom,
-              measureDraft[unit.symbol] == nil,
-              nutrition.nutritionCatalog.ownEntry(forCanonicalName: trimmedName)?
-                  .unitWeightsGrams[unit.symbol] == nil
+    /// Where the row on screen is still the one that came down the chain
+    /// unchanged: whose it is, and that it is only proposed. A variety shows
+    /// its parent's row here until the cook picks; showing it without saying
+    /// so is exactly how inherited numbers used to pass for the variety's
+    /// own.
+    private var chosenRowNote: String? {
+        guard chosenRowCode != nil, basisChoice == storedBasisChoice, storedBasisIsProposed
         else { return nil }
-        return parent
+        if confirmsStoredRow { return "wird beim Sichern bestätigt" }
+        let origin = resolvedNutrition?.inheritedFrom.map { "geerbt von \($0), " } ?? ""
+        return "\(origin)vorgeschlagen — „Ändern“ bestätigt sie oder wählt eine andere."
     }
 
     /// Reads the answer currently filed for the state on screen. Called again
@@ -1122,40 +1115,35 @@ struct IngredientFormView: View {
         if basisChoice != .ownValues, !startsOnOwnValues {
             isEnteringOwnValues = false
         }
-        if chosenRowCode == nil { isChoosingRow = false }
     }
 
     /// The catalog-row answer has no value until a row is picked, so tapping
-    /// it opens the list rather than choosing anything.
+    /// it with nothing chosen opens the page rather than answering. With a
+    /// row chosen it takes the answer back, like the other two.
     private func chooseCatalogRow() {
         if chosenRowCode != nil {
-            basisChoice = .unset
-            isChoosingRow = false
+            clearRow()
         } else {
-            isChoosingRow.toggle()
+            isChoosingRow = true
         }
     }
 
-    /// Picking a row, or unpicking it. The list stays open either way:
-    /// taking one back is usually the first half of choosing a different one.
-    private func chooseRow(_ code: String) {
-        if chosenRowCode == code {
-            // Tapping the row that is already on screen means one of two
-            // things. On a decided row it takes the decision back. On a row
-            // that is only proposed - inherited, or the curation's guess - it
-            // is the confirmation, and un-picking it would leave the cook
-            // with no way to say "yes, this one" from this screen at all.
-            if storedBasisIsProposed, storedBasisChoice == .catalogRow(code) {
-                confirmsStoredRow.toggle()
-            } else {
-                basisChoice = .unset
-            }
-        } else {
-            basisChoice = .catalogRow(code)
-            confirmsStoredRow = false
-        }
-        isChoosingRow = true
+    /// The row the page came back with.
+    ///
+    /// Confirming the one that was already filed is not a no-op: a proposal —
+    /// inherited, or the curation's guess — is a row nobody has said yes to
+    /// yet, and saying yes is exactly what this is. Anything else is a change
+    /// and stands on its own.
+    private func pickRow(_ code: String) {
+        confirmsStoredRow = storedBasisIsProposed && storedBasisChoice == .catalogRow(code)
+        basisChoice = .catalogRow(code)
         if !startsOnOwnValues { isEnteringOwnValues = false }
+    }
+
+    private func clearRow() {
+        basisChoice = .unset
+        confirmsStoredRow = false
+        isChoosingRow = false
     }
 
     /// Own values are chosen by saying so, and the fields appear at once —
@@ -1291,6 +1279,309 @@ struct IngredientFormView: View {
             }
             dismiss()
         }
+    }
+}
+
+/// What a piece, a spoon or a cup of one ingredient weighs — the gram
+/// bridge, on a page of its own.
+///
+/// The weights are editable no matter where the nutrition numbers come from.
+/// They used to sit inside the own-values form, which meant a bundled
+/// ingredient had no piece weight to correct until the cook typed a whole
+/// nutrition label over it: two unrelated decisions welded together, since
+/// what an onion weighs is not a claim about its calories. Then they stood
+/// open in the ingredient form, which was honest but long — a row per unit in
+/// a sheet that already asks about six other things.
+///
+/// Nothing is written here either. The fields edit the form's draft through a
+/// binding, and the form writes it on "Sichern"; going back changes nothing.
+private struct IngredientMeasuresView: View {
+    @Environment(NutritionLibrary.self) private var nutrition
+
+    let ingredientName: String
+    /// The fields the cook has touched, by unit symbol — see the form's own
+    /// note: only what is in here is written back, so an untouched field
+    /// showing what the app believes never turns into a correction.
+    @Binding var draft: [String: String]
+    /// The measures taken back while the form is open.
+    @Binding var removed: Set<String>
+
+    /// Any unit, not only `Stk.`: the storage was always keyed by unit
+    /// symbol. Mass and the litre stay out — a gram weighs a gram, and a
+    /// millilitre is what the density answers.
+    static let measurableUnits: [IngredientUnit] = [
+        .piece, .clove, .bunch, .leaf, .package, .pinch, .cup, .teaspoon, .tablespoon,
+        .can, .jar, .stalk, .sprig, .stem, .centimeter,
+    ]
+
+    /// The units worth showing: everything anybody has a weight for, plus
+    /// whatever the cook is in the middle of typing one for, less whatever
+    /// they have just taken back.
+    ///
+    /// Static because the ingredient form asks the same question to say, in
+    /// one line, whether there is anything in here at all.
+    static func shownUnits(
+        known: [String: Double], draft: [String: String], removed: Set<String>
+    ) -> [IngredientUnit] {
+        measurableUnits.filter {
+            !removed.contains($0.symbol)
+                && (known[$0.symbol] != nil || draft[$0.symbol] != nil)
+        }
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                ForEach(shownUnits, id: \.symbol) { unit in
+                    field(for: unit)
+                        // The same way out as the list behind the form, and
+                        // offered twice, since a swipe needs a trackpad to
+                        // exist and says nothing about being there.
+                        .swipeActions { removeAction(unit) }
+                        .contextMenu { removeAction(unit) }
+                }
+                if !addableUnits.isEmpty {
+                    Menu("Maß hinzufügen") {
+                        ForEach(addableUnits, id: \.symbol) { unit in
+                            Button(unit.symbol) { add(unit) }
+                        }
+                    }
+                }
+                if let density = resolved?.densityGramsPerMl {
+                    LabeledContent("1 ml wiegt", value: mass(density))
+                }
+            } footer: {
+                Text("Angenommene Werte, keine gemessenen. Was du hier änderst, gilt für jedes Rezept mit dieser Zutat — und schlägt für diese Einheit auch die Dichte. Eigene Maße lassen sich nach links wegwischen.")
+            }
+        }
+        .formStyle(.grouped)
+        .navigationTitle("Maße")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+    }
+
+    private func field(for unit: IngredientUnit) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("1 \(unit.symbol) wiegt")
+                if let parent = inheritedSource(for: unit) {
+                    Text("von \(parent)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            TextField(
+                "g",
+                text: Binding(
+                    get: { draft[unit.symbol] ?? initialText(for: unit) },
+                    set: { draft[unit.symbol] = $0 }
+                )
+            )
+            .frame(maxWidth: 70)
+            .multilineTextAlignment(.trailing)
+            #if os(iOS)
+            .keyboardType(.decimalPad)
+            #endif
+            Text("g").foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private func removeAction(_ unit: IngredientUnit) -> some View {
+        if isRemovable(unit) {
+            Button("Entfernen", systemImage: "trash", role: .destructive) {
+                remove(unit)
+            }
+        }
+    }
+
+    /// Puts a measure back on screen — including one taken back a moment ago,
+    /// which is what the menu offers it again for.
+    private func add(_ unit: IngredientUnit) {
+        removed.remove(unit.symbol)
+        draft[unit.symbol] = ""
+    }
+
+    /// Takes a measure back. A row that was only ever typed into this page
+    /// has nothing written down behind it and simply goes. One with a stored
+    /// weight is emptied as well, which is how the form's `save()` writes "no
+    /// longer known" — and if the app or a parent has a weight of its own for
+    /// that unit, that one is what the ingredient falls back to and the row
+    /// returns with it the next time this page is opened.
+    private func remove(_ unit: IngredientUnit) {
+        if ownWeight(for: unit) == nil {
+            draft[unit.symbol] = nil
+        } else {
+            draft[unit.symbol] = ""
+            removed.insert(unit.symbol)
+        }
+    }
+
+    /// Only what the cook put there can be taken back — the row just added,
+    /// or a weight they wrote down before. A weight the app ships or a parent
+    /// lends is the app's knowledge, like the shipped nutrition values:
+    /// nothing here can say "this ingredient has no piece weight" over one,
+    /// only write a different number.
+    private func isRemovable(_ unit: IngredientUnit) -> Bool {
+        draft[unit.symbol] != nil || ownWeight(for: unit) != nil
+    }
+
+    /// This ingredient's own weight for a unit, as opposed to one the app
+    /// ships or a parent lends it.
+    private func ownWeight(for unit: IngredientUnit) -> Double? {
+        nutrition.nutritionCatalog
+            .ownEntry(forCanonicalName: ingredientName)?
+            .unitWeightsGrams[unit.symbol]
+    }
+
+    /// Whether a measure on screen came down the chain rather than being this
+    /// ingredient's own — the same honesty for grams that the basis row has
+    /// for numbers. Compared against the entry as written, since the resolved
+    /// one has already merged its ancestor's weights in.
+    private func inheritedSource(for unit: IngredientUnit) -> String? {
+        guard let parent = resolved?.inheritedFrom,
+              draft[unit.symbol] == nil,
+              ownWeight(for: unit) == nil
+        else { return nil }
+        return parent
+    }
+
+    private func initialText(for unit: IngredientUnit) -> String {
+        guard let grams = resolved?.unitWeightsGrams[unit.symbol] else { return "" }
+        return DecimalText.text(grams)
+    }
+
+    private var resolved: CatalogNutrition? {
+        guard !ingredientName.isEmpty else { return nil }
+        return nutrition.nutritionCatalog.nutrition(forCanonicalName: ingredientName)
+    }
+
+    private var shownUnits: [IngredientUnit] {
+        Self.shownUnits(
+            known: resolved?.unitWeightsGrams ?? [:], draft: draft, removed: removed
+        )
+    }
+
+    private var addableUnits: [IngredientUnit] {
+        let shown = Set(shownUnits.map(\.symbol))
+        return Self.measurableUnits.filter { !shown.contains($0.symbol) }
+    }
+
+    private static let nutrients = NutrientFormatter(locale: .sous)
+
+    private func mass(_ grams: Double) -> String {
+        Self.nutrients.string(grams, in: .grams)
+    }
+}
+
+/// The food catalog's rows, on a page of their own.
+///
+/// They used to unfold inside the form, indented under the answer they
+/// belong to. That put a list as long as the catalog between two of the three
+/// answers: everything below it — the values, the measures — moved out of
+/// reach, and "which row is this ingredient on" was something the cook had to
+/// scroll the list to find out. The form now keeps one line saying what is
+/// chosen, and the choosing gets the room it needs.
+///
+/// A tap selects, the header confirms. The second step is what makes this a
+/// page rather than a menu — and it is also where a *proposed* row is finally
+/// said yes to. That used to be a second tap on a row that already looked
+/// chosen, which is as good as no way to do it at all. Going back instead
+/// leaves the form exactly as it was.
+///
+/// Nothing is written here. The chosen code goes back into the form's draft,
+/// like every other answer, and the form writes it on save.
+private struct BasisRowPickerView: View {
+    @Environment(NutritionLibrary.self) private var nutrition
+    @Environment(\.dismiss) private var dismiss
+
+    /// The ingredient the proposals are for, and the state they answer —
+    /// picking a row says what a *cooked* potato is, not what a potato is.
+    let ingredientName: String
+    let state: IngredientState
+    let onConfirm: (String) -> Void
+
+    @State private var selection: String?
+    @State private var query = ""
+
+    init(
+        ingredientName: String,
+        state: IngredientState,
+        chosen: String?,
+        onConfirm: @escaping (String) -> Void
+    ) {
+        self.ingredientName = ingredientName
+        self.state = state
+        self.onConfirm = onConfirm
+        _selection = State(initialValue: chosen)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(rows) { row in
+                    BLSRow(row: row, isSelected: selection == row.code) {
+                        selection = row.code
+                    }
+                }
+                if rows.isEmpty {
+                    Text(emptyNote)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text(trimmedQuery.isEmpty ? "Vorschläge" : "Treffer")
+                    .sousGroupHeader()
+            } footer: {
+                // Which ingredient this is for belongs here rather than in
+                // the title: an inline navigation title truncates a long name
+                // to nothing.
+                Text("Für „\(ingredientName)“. Küche und Katalog nennen dieselbe Sache selten gleich — such von Hand, wenn nichts davon passt.")
+            }
+        }
+        .navigationTitle("Zeile wählen")
+        #if os(iOS)
+        .navigationBarTitleDisplayMode(.inline)
+        #endif
+        .searchable(text: $query, prompt: "Im Lebensmittelkatalog suchen")
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Bestätigen") {
+                    if let selection { onConfirm(selection) }
+                    dismiss()
+                }
+                .disabled(selection == nil)
+            }
+        }
+    }
+
+    /// What there is to choose between: the catalog's proposals for this
+    /// name, or what the cook is looking for by hand. Typing replaces the
+    /// proposals rather than adding a second list beneath them.
+    ///
+    /// The chosen row leads wherever it is not among them — a page that
+    /// cannot show what it was opened on is no place to confirm it.
+    private var rows: [BLSEntry] {
+        let found = trimmedQuery.isEmpty
+            ? nutrition.candidates(forName: ingredientName, state: state)
+            : nutrition.search(trimmedQuery)
+        guard let selection,
+              !found.contains(where: { $0.code == selection }),
+              let chosen = nutrition.row(forCode: selection)
+        else { return found }
+        return [chosen] + found
+    }
+
+    private var trimmedQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var emptyNote: String {
+        trimmedQuery.isEmpty
+            ? "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
+            : BLSRow.emptySearchNote(query: trimmedQuery)
     }
 }
 

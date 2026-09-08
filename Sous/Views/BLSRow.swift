@@ -2,19 +2,14 @@ import SousKit
 import SwiftUI
 
 /// One row of the food catalog, as both places that offer one draw it: the
-/// picker under a recipe line and the Grundlage section of the ingredient
-/// form. Its name, its calories, and whether it is the one picked.
+/// picker under a recipe line and the window the ingredient form opens to
+/// choose a row. Its name, its calories, and whether it is the one picked.
 ///
 /// One view rather than two copies, so a wording fix, a number format or an
-/// accessibility label reaches the recipe page and the form together. The
-/// two hosts differ only in how the row sits: on its own in the picker, or
-/// indented under the answer row it belongs to in the form.
+/// accessibility label reaches the recipe page and the form together.
 struct BLSRow: View {
     let row: BLSEntry
     let isSelected: Bool
-    /// Set where the row is one of several under a leading answer row, and
-    /// the form's own spacing does the rest.
-    var indented = false
     let onPick: () -> Void
 
     var body: some View {
@@ -22,7 +17,6 @@ struct BLSRow: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: isSelected ? "largecircle.fill.circle" : "circle")
                     .foregroundStyle(.tint)
-                    .padding(.leading, indented ? 14 : 0)
                 Text(row.name)
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(.primary)
@@ -31,7 +25,7 @@ struct BLSRow: View {
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
             }
-            .padding(.vertical, indented ? 0 : 4)
+            .padding(.vertical, 4)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -46,7 +40,9 @@ struct BLSRow: View {
 }
 
 /// The free search over the whole food catalog — the one way in for a word
-/// whose row shares no spelling with it. Same field in both hosts.
+/// whose row shares no spelling with it. Used where the search has to sit
+/// inside a list that is already unfolded in place; a window of its own gets
+/// the platform's `searchable` instead.
 struct BLSSearchField: View {
     @Binding var text: String
 
