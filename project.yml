@@ -37,6 +37,24 @@ schemes:
     run:
       config: Debug
 
+# What a release build signs with.
+#
+# Automatic signing otherwise provisions an "Apple Development" identity even
+# for an archive bound for the store, leaving the export to re-sign it. Which
+# means a machine that only ever archives still needs a development
+# certificate — and a fresh CI runner has none, so every release run minted
+# one through -allowProvisioningUpdates until the account reached its limit
+# and the archive stopped dead, asking for a profile nobody meant it to have.
+# Naming the identity keeps the provisioning on the distribution side, where
+# the certificate the workflow imports already is.
+#
+# Release only: Debug is what Xcode signs with locally, and that wants the
+# development identity it has always used.
+settings:
+  configs:
+    Release:
+      CODE_SIGN_IDENTITY: "Apple Distribution"
+
 targets:
   Sous:
     type: application
@@ -137,6 +155,13 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MDQY93XVHF
         REGISTER_APP_GROUPS: YES
+      # Said again here because xcodegen gives an application target a
+      # CODE_SIGN_IDENTITY of its own ("iPhone Developer") as a preset, and a
+      # target's own setting beats the project's. The two extensions have no
+      # such preset and inherit the project's answer.
+      configs:
+        Release:
+          CODE_SIGN_IDENTITY: "Apple Distribution"
 
   SousWidgets:
     type: app-extension
