@@ -229,6 +229,9 @@ struct IngredientFormView: View {
     /// tapping "Zeile im Lebensmittelkatalog" with nothing picked yet has to
     /// open the list, not answer the question with a row nobody chose.
     @State private var isChoosingRow = false
+    /// Whether the question below is up — asked before the delete goes
+    /// through, since it cannot be undone.
+    @State private var isConfirmingDelete = false
 
     init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
         original = ingredient
@@ -309,6 +312,13 @@ struct IngredientFormView: View {
                 basisSection
                 nutritionSection
                 measuresSection
+                // Only for an entry that already exists: the swipe on the
+                // list row this mirrors never showed on a bundled one
+                // either, and a form still filling in a new name has
+                // nothing yet to take back.
+                if catalog.isOwn(original) {
+                    deleteSection
+                }
             }
             .formStyle(.grouped)
             .sheet(isPresented: $isPickingParent) {
@@ -370,6 +380,21 @@ struct IngredientFormView: View {
             // message was set and nobody showed it, which is the silent drop
             // the store's error exists to end.
             .sousErrorAlert(catalog)
+            // Same question, same wording as the swipe on the list row —
+            // this is the same action reached from the entry itself instead
+            // of from a gesture over it.
+            .sousConfirmation(
+                "„\(original.name)“ entfernen?",
+                isPresented: $isConfirmingDelete,
+                message: "Die Zutat und alles, was du ihr beigebracht hast, sind danach weg. Rezepte, die sie nennen, kennen das Wort dann nicht mehr."
+            ) {
+                Button("Entfernen", role: .destructive) {
+                    Task {
+                        await catalog.delete(original)
+                        dismiss()
+                    }
+                }
+            }
         }
         .sousSheetSizing(.form)
     }
@@ -690,6 +715,17 @@ struct IngredientFormView: View {
                 Text("Maße")
             } footer: {
                 Text("Angenommene Werte, keine gemessenen. Was du hier änderst, gilt für jedes Rezept mit dieser Zutat — und schlägt für diese Einheit auch die Dichte.")
+            }
+        }
+    }
+
+    /// Takes the entry back — a plain button rather than a swipe, since
+    /// this is the one place the form itself, not the row behind it, is
+    /// what the cook has open.
+    private var deleteSection: some View {
+        Section {
+            Button("Zutat entfernen", systemImage: "trash", role: .destructive) {
+                isConfirmingDelete = true
             }
         }
     }
