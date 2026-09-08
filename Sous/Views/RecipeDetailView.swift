@@ -211,6 +211,12 @@ struct RecipeDetailView: View {
         // reopened.
         .onChange(of: library.lastEnrichment) { _, event in
             guard event?.recipeID == recipe.id else { return }
+            // Never while the review sheet is open. It was seeded from the
+            // resolve it was handed, and every resolve mints fresh suggestion
+            // ids — swapping one in under it threw away whatever the cook had
+            // ticked so far. Both ways out of that sheet resolve again on the
+            // way, so nothing is lost by waiting.
+            guard !isReviewingAmounts else { return }
             Task {
                 let (resolution, _) = await library.amountSuggestions(for: recipe)
                 amountReviewResolution = resolution

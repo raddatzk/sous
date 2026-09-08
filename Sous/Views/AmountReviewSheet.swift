@@ -47,10 +47,24 @@ struct AmountReviewSheet: View {
         self.resolution = resolution
         self.onFinish = onFinish
         _accepted = State(initialValue: Set(resolution.allSuggestions.map(\.id)))
-        _edited = State(initialValue: Dictionary(uniqueKeysWithValues: resolution.allSuggestions.map { ($0.id, $0.displayAmount) }))
+        _edited = State(initialValue: Self.amounts(of: resolution))
     }
 
     private var total: Int { resolution.allSuggestions.count }
+
+    /// The suggestions on offer, by id — as a set, because `allSuggestions`
+    /// walks a dictionary's values: the same resolution hands them over in no
+    /// fixed order, and comparing ordered lists would report a change that is
+    /// not one.
+    private var suggestionIDs: Set<AmountSuggestion.ID> {
+        Set(resolution.allSuggestions.map(\.id))
+    }
+
+    private static func amounts(
+        of resolution: StepAmountResolver.Resolution
+    ) -> [AmountSuggestion.ID: String] {
+        Dictionary(uniqueKeysWithValues: resolution.allSuggestions.map { ($0.id, $0.displayAmount) })
+    }
 
     private var suggestionsByStep: [(step: RecipeStep, suggestions: [AmountSuggestion])] {
         recipe.steps.compactMap { step in
@@ -87,6 +101,18 @@ struct AmountReviewSheet: View {
                         }
                     }
                 }
+            }
+            // A later resolve can replace the one this sheet opened on while
+            // it is still up — the background enrichment pass behind the
+            // recipe, most often. Every suggestion carries a fresh `id` per
+            // resolve, so what was ticked then names nothing now: the header
+            // read "23 von 12 ausgewählt", every row showed itself unticked,
+            // and "übernehmen" would have written none of them in while
+            // turning down all twelve. Start again from the list actually on
+            // screen, which is also this sheet's ordinary default.
+            .onChange(of: suggestionIDs) { _, ids in
+                accepted = ids
+                edited = Self.amounts(of: resolution)
             }
             .navigationTitle("Mengen prüfen")
             #if os(iOS)

@@ -35,6 +35,14 @@ struct RecipeEditorView: View {
     /// state so a keystroke re-renders without re-resolving inline.
     @State private var amountSuggestionCount = 0
     @State private var isReviewingAmounts = false
+    /// The resolve the review sheet is working on, taken once when it opens.
+    ///
+    /// Held rather than computed in the sheet's own builder, where it was
+    /// re-resolved on every re-render of the editor behind it. Each resolve
+    /// mints fresh suggestion ids, so the sheet's ticks — seeded from the
+    /// first one — stopped naming anything the moment a keystroke or a
+    /// finished count re-rendered it.
+    @State private var amountReviewResolution: StepAmountResolver.Resolution?
     /// The amount questions turned down for good — what was already on
     /// record when the editor opened, plus whatever this session's review
     /// added. Held here rather than written on the spot because the draft is
@@ -112,18 +120,20 @@ struct RecipeEditorView: View {
                 }
             }
             .sheet(isPresented: $isReviewingAmounts) {
-                // Resolved fresh at presentation and captured, so the apply
-                // works against the exact text the sheet was showing.
-                let resolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
-                    .excluding(declined: declinedAmountKeys)
-                AmountReviewSheet(recipe: draft, resolution: resolution) { outcome in
-                    guard let outcome else { return }
-                    // Both halves of the answer, where this used to keep only
-                    // the first: unticking a line here meant nothing at all,
-                    // so the banner on the recipe was back the moment the
-                    // editor closed.
-                    declinedAmountKeys.formUnion(outcome.declined)
-                    draft = resolution.applying(outcome.accepted, corrections: outcome.corrections, to: draft)
+                // The resolve taken when the sheet was asked for, so the apply
+                // works against the exact list the sheet was showing.
+                if let amountReviewResolution {
+                    AmountReviewSheet(recipe: draft, resolution: amountReviewResolution) { outcome in
+                        guard let outcome else { return }
+                        // Both halves of the answer, where this used to keep
+                        // only the first: unticking a line here meant nothing
+                        // at all, so the banner on the recipe was back the
+                        // moment the editor closed.
+                        declinedAmountKeys.formUnion(outcome.declined)
+                        draft = amountReviewResolution.applying(
+                            outcome.accepted, corrections: outcome.corrections, to: draft
+                        )
+                    }
                 }
             }
             // Recounted off the render path whenever the text settles —
@@ -682,6 +692,8 @@ struct RecipeEditorView: View {
                 : "\(amountSuggestionCount) Mengen könnten ergänzt werden",
             systemImage: "text.badge.checkmark"
         ) {
+            amountReviewResolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                .excluding(declined: declinedAmountKeys)
             isReviewingAmounts = true
         }
     }
