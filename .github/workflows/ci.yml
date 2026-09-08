@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: macos-26
+    runs-on: self-hosted
     timeout-minutes: 45
 
     steps:

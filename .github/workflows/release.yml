@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   testflight:
-    runs-on: macos-26
+    runs-on: self-hosted
     timeout-minutes: 90
 
     env:
