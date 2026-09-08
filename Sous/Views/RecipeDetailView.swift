@@ -1338,6 +1338,18 @@ struct RecipeDetailView: View {
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
                 Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                // The banner below settles for good once it has been
+                // answered — "jetzt nicht" has to mean something, or it
+                // would ask again every time the recipe is opened. But the
+                // sheet behind it is a tool, not only a question, and a tool
+                // that can be reached exactly once is a tool that is gone.
+                // So it keeps a door here for as long as anything is
+                // actually missing.
+                if unknownIngredientCount > 0 {
+                    Button("Zutaten anlegen", systemImage: "text.book.closed") {
+                        isReviewingIngredients = true
+                    }
+                }
                 if !recipe.isDeleted {
                     Button("Variante anlegen", systemImage: "square.on.square") {
                         isAddingVariant = true
