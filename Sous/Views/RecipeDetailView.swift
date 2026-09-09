@@ -638,7 +638,7 @@ struct RecipeDetailView: View {
     /// collection. It is readable — that is the point of keeping it — but the
     /// only thing to do with it here is to take it back.
     @ViewBuilder
-    private func trashBanner(isWide: Bool) -> some View {
+    private var trashBanner: some View {
         HStack(spacing: 12) {
             Label("Im Papierkorb", systemImage: "trash")
                 .font(.subheadline.weight(.medium))
@@ -653,15 +653,11 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-        // Full width where the page is barely wider than the banner, and no
-        // wider than it needs where there is room. Measured rather than asked
-        // of the platform: an iPad's page is as wide as a Mac's.
-        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     /// The row below the title: trashed recipes only get the one banner
     /// that matters to them, everything else gets the normal action bar
-    /// plus, if there is one, the amount-review banner underneath it.
+    /// plus, if there are any, the banners that ask something underneath it.
     ///
     /// Split out of `body` on its own — nesting this `if`/`if let` directly
     /// inside the outer `VStack` was enough branching for the type checker
@@ -669,22 +665,43 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private func actionSection(isWide: Bool) -> some View {
         if recipe.isDeleted {
-            trashBanner(isWide: isWide)
+            trashBanner
         } else {
             actionBar(isWide: isWide)
-            if needsAmountReview, let amountReviewResolution {
-                amountReviewBanner(amountReviewResolution.allSuggestions.count, isWide: isWide)
-            }
-            if needsIngredientReview {
-                ingredientReviewBanner(unknownIngredientCount, isWide: isWide)
-            }
-            if !openIngredients.isEmpty {
-                basisReviewBanner(openIngredients.count, isWide: isWide)
-            }
-            ForEach(nutritionTagSuggestions, id: \.kind) { tag in
-                nutritionTagBanner(tag, isWide: isWide)
+            // Beside each other while the page has room for it, and the same
+            // width once they are there. Each banner used to keep the width
+            // its own sentence needed, which stacked two questions about the
+            // same recipe into two boxes of two different lengths — a ragged
+            // left-hand column with half the page empty beside it. They are
+            // one group asking one thing, so they are laid out as a row that
+            // wraps rather than as a pile.
+            if hasReviewBanners {
+                FlowLayout(spacing: 16, lineSpacing: 16, stretch: true) {
+                    if needsAmountReview, let amountReviewResolution {
+                        amountReviewBanner(amountReviewResolution.allSuggestions.count)
+                    }
+                    if needsIngredientReview {
+                        ingredientReviewBanner(unknownIngredientCount)
+                    }
+                    if !openIngredients.isEmpty {
+                        basisReviewBanner(openIngredients.count)
+                    }
+                    ForEach(nutritionTagSuggestions, id: \.kind) { tag in
+                        nutritionTagBanner(tag)
+                    }
+                }
             }
         }
+    }
+
+    /// Whether anything down there is asking. Checked before the row is
+    /// built rather than inside it: an empty layout is still a view, and the
+    /// stack would keep its 28 points of air for a group with nothing in it.
+    private var hasReviewBanners: Bool {
+        if needsAmountReview, amountReviewResolution != nil { return true }
+        if needsIngredientReview { return true }
+        if !openIngredients.isEmpty { return true }
+        return !nutritionTagSuggestions.isEmpty
     }
 
     /// Offers to add whatever the catalog does not recognize yet — the same
@@ -694,7 +711,7 @@ struct RecipeDetailView: View {
     /// review below it: opening the sheet and tapping "Fertig" without
     /// adding anything still settles it for the text as it stands.
     @ViewBuilder
-    private func ingredientReviewBanner(_ count: Int, isWide: Bool) -> some View {
+    private func ingredientReviewBanner(_ count: Int) -> some View {
         HStack(spacing: 12) {
             Label(
                 count == 1 ? "1 Zutat fehlt im Katalog" : "\(count) Zutaten fehlen im Katalog",
@@ -709,7 +726,6 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     /// The ingredients whose numbers rest on a guess or on nothing — what
@@ -732,7 +748,7 @@ struct RecipeDetailView: View {
     /// "not now" — it disappears when the questions are answered, and
     /// "bewusst ohne" is one of the answers.
     @ViewBuilder
-    private func basisReviewBanner(_ count: Int, isWide: Bool) -> some View {
+    private func basisReviewBanner(_ count: Int) -> some View {
         HStack(spacing: 12) {
             Label(
                 count == 1
@@ -747,7 +763,6 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     /// Offers a category the recipe's own numbers would justify, with the
@@ -758,7 +773,7 @@ struct RecipeDetailView: View {
     /// the app proposes and the cook decides. "Nein" is remembered for good —
     /// the question does not come back because a step was reworded.
     @ViewBuilder
-    private func nutritionTagBanner(_ tag: NutritionTag, isWide: Bool) -> some View {
+    private func nutritionTagBanner(_ tag: NutritionTag) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Label("Kategorie „\(tag.categoryName)“?", systemImage: "tag")
@@ -779,14 +794,13 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     /// Offers to check what the resolver could not write in on its own —
     /// stays up until the cook actually answers it (accepts some, or says
     /// "Nicht jetzt"), not just because they looked at the recipe.
     @ViewBuilder
-    private func amountReviewBanner(_ count: Int, isWide: Bool) -> some View {
+    private func amountReviewBanner(_ count: Int) -> some View {
         HStack(spacing: 12) {
             Label(
                 count == 1 ? "1 Menge könnte ergänzt werden" : "\(count) Mengen könnten ergänzt werden",
@@ -801,7 +815,6 @@ struct RecipeDetailView: View {
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-        .fixedSize(horizontal: isWide, vertical: false)
     }
 
     @ViewBuilder

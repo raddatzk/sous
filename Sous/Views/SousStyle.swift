@@ -28,6 +28,21 @@ enum SousStyle {
     /// than guessed again: it is the same question asked of the same eyes.
     static let readableList: CGFloat = 700
 
+    /// How wide a list has to be before ``readableList`` is worth enforcing.
+    ///
+    /// Between the two numbers a list is wider than a row needs but not by
+    /// enough to pay for the margin: capping there left a third of an
+    /// upright iPad empty beside a list that had nothing else to fill it
+    /// with, which reads as a screen that failed to load rather than as a
+    /// column. So the cap only bites once there is plainly too much room.
+    ///
+    /// The gap between an iPad's two ways up is where this belongs: the
+    /// widest portrait is the 13-inch at 1032, the narrowest landscape the
+    /// mini at 1133. Anything in between separates them, and 1100 is in the
+    /// middle of it. Measured on the list, so a shared window lands wherever
+    /// its own width puts it.
+    static let wideList: CGFloat = 1100
+
     /// How much accent a tinted chip carries behind its label. One value
     /// so a filter chip and a recipe's category chip look like siblings.
     static let chipTint = 0.15
@@ -292,12 +307,12 @@ extension Color {
 /// evenly it would centre the rows under a large navigation title that no
 /// content inset reaches — the title stayed against the leading edge while
 /// everything below it moved in, which reads as a mistake. Left where it is,
-/// the list lines up with the title and with the filter chips above it, which
-/// have been capped and pinned left for the same reason all along.
+/// the list lines up with the title above it.
 ///
-/// A no-op wherever the window is narrower than the cap, which is every
-/// phone, the Mac's list column, and an iPad sharing its screen — the
-/// measurement is of the list, not of the device.
+/// A no-op below ``SousStyle/wideList``, which is every phone, the Mac's list
+/// column, an iPad sharing its screen — and an iPad held upright, which is
+/// what the number is there to decide. Only a screen with room to spare gets
+/// the margin; a screen that merely has enough spends all of it on the list.
 private struct ReadableListWidth: ViewModifier {
     @State private var width: CGFloat = 0
 
@@ -305,7 +320,7 @@ private struct ReadableListWidth: ViewModifier {
         content
             .contentMargins(
                 .trailing,
-                max(0, width - SousStyle.readableList),
+                width >= SousStyle.wideList ? width - SousStyle.readableList : 0,
                 for: .scrollContent
             )
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }

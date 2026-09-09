@@ -138,11 +138,11 @@ struct MealPlanView: View {
 
     @ViewBuilder
     private var planColumn: some View {
-        // The reader wraps both, so the row above the list can scroll it.
+        // The reader wraps both, so the toolbar above the list can scroll it.
         ScrollViewReader { scroll in
             VStack(spacing: 0) {
-                modeRow(scroll: scroll)
-                content
+                modeRow
+                content(scroll: scroll)
             }
         }
         .navigationTitle("Essensplan")
@@ -173,30 +173,25 @@ struct MealPlanView: View {
         }
     }
 
-    /// Which of the two views, and — in the calendar — the way back to today.
+    /// Which of the two views, over the days it switches between.
     ///
-    /// One row rather than two: "Heute" is a single small button and had a
-    /// line of its own above the days, which is a lot of chrome for one word.
+    /// As wide as the week below it. Capped at 320 with the slack behind it,
+    /// the two choices sat in the corner of an upright iPad with the days
+    /// running on past them, which read as a control that had come loose
+    /// from the thing it steers. Nothing shares the line with it any more —
+    /// "Heute" moved to the toolbar — so the picker takes the whole width
+    /// and its two ends land on the ends of the cards underneath.
     @ViewBuilder
-    private func modeRow(scroll: ScrollViewProxy) -> some View {
-        HStack(spacing: 12) {
-            Picker("Ansicht", selection: $mode) {
-                Text(PlanMode.calendar.title).tag(PlanMode.calendar)
-                Text(PlanMode.pool.title).tag(PlanMode.pool)
-            }
-            .pickerStyle(.segmented)
-            // macOS shows a segmented picker's label; iOS hides it. Without
-            // this the word "Ansicht" sits in front of the two choices.
-            .labelsHidden()
-            .frame(maxWidth: 320)
-
-            if mode == .calendar {
-                Button("Heute") {
-                    withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
-                }
-            }
-            Spacer(minLength: 0)
+    private var modeRow: some View {
+        Picker("Ansicht", selection: $mode) {
+            Text(PlanMode.calendar.title).tag(PlanMode.calendar)
+            Text(PlanMode.pool.title).tag(PlanMode.pool)
         }
+        .pickerStyle(.segmented)
+        // macOS shows a segmented picker's label; iOS hides it. Without this
+        // the word "Ansicht" sits in front of the two choices.
+        .labelsHidden()
+        .frame(maxWidth: .infinity)
         .padding(.horizontal)
         .padding(.bottom, 8)
     }
@@ -216,9 +211,9 @@ struct MealPlanView: View {
     /// in both schemes, against a system rule that is not ours to keep. A
     /// skin that changes with the shape is the smaller price.
     @ViewBuilder
-    private var content: some View {
+    private func content(scroll: ScrollViewProxy) -> some View {
         switch mode {
-        case .calendar: calendar
+        case .calendar: calendar(scroll: scroll)
         case .pool: poolList
         }
     }
@@ -226,7 +221,7 @@ struct MealPlanView: View {
     // MARK: - Calendar
 
     @ViewBuilder
-    private var calendar: some View {
+    private func calendar(scroll: ScrollViewProxy) -> some View {
         List {
             ForEach(plan.days, id: \.self) { day in
                 Section {
@@ -244,7 +239,7 @@ struct MealPlanView: View {
                 .listRowSeparator(.hidden)
                 .onAppear { Task { await plan.loadMore() } }
         }
-        .toolbar { calendarToolbar }
+        .toolbar { calendarToolbar(scroll: scroll) }
         .sousReadableList()
     }
 
@@ -426,7 +421,12 @@ struct MealPlanView: View {
     #endif
 
     @ToolbarContentBuilder
-    private var calendarToolbar: some ToolbarContent {
+    private func calendarToolbar(scroll: ScrollViewProxy) -> some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) {
+            Button("Heute") {
+                withAnimation { scroll.scrollTo(plan.days.first, anchor: .top) }
+            }
+        }
         planButton
     }
 

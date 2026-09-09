@@ -6,6 +6,16 @@ import SwiftUI
 struct FlowLayout: Layout {
     var spacing: CGFloat = 6
     var lineSpacing: CGFloat = 6
+    /// Whether a line divides the width among the views it took, instead of
+    /// letting each keep the width it asked for.
+    ///
+    /// Which line a view lands on is still decided by what it asked for —
+    /// only what it gets is different. Chips want their own width, because a
+    /// short word in a wide chip is a chip with a hole in it. Banners want
+    /// the opposite: two notices of the same kind, one wider than the other
+    /// because its sentence is longer, read as a ragged edge rather than as
+    /// a pair. The line's height comes with it, so they end level too.
+    var stretch = false
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width ?? .infinity
@@ -31,7 +41,10 @@ struct FlowLayout: Layout {
                 subviews[item.index].place(
                     at: CGPoint(x: x, y: y),
                     anchor: .topLeading,
-                    proposal: ProposedViewSize(item.size)
+                    proposal: ProposedViewSize(
+                        width: item.size.width,
+                        height: stretch ? line.height : item.size.height
+                    )
                 )
                 x += item.size.width + spacing
             }
@@ -62,6 +75,25 @@ struct FlowLayout: Layout {
             line.height = max(line.height, size.height)
             lines[lines.count - 1] = line
         }
-        return lines
+
+        guard stretch, width.isFinite else { return lines }
+
+        // Re-measured at the share each view ends up with: a banner that fits
+        // its sentence on one line at 520 points may need two at 340, and a
+        // height taken before the division would cut it off.
+        return lines.map { line in
+            let count = CGFloat(line.items.count)
+            let each = (width - spacing * (count - 1)) / count
+            var stretched = line
+            stretched.items = line.items.map { item in
+                let height = subviews[item.index]
+                    .sizeThatFits(ProposedViewSize(width: each, height: nil))
+                    .height
+                return (item.index, CGSize(width: each, height: height))
+            }
+            stretched.width = width
+            stretched.height = stretched.items.map(\.size.height).max() ?? 0
+            return stretched
+        }
     }
 }
