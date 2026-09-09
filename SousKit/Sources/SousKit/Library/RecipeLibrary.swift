@@ -330,6 +330,44 @@ public final class RecipeLibrary {
         return try? await enrichmentStore.suitabilityGuess(for: recipe.id, inputHash: hash)
     }
 
+    // MARK: - Nutrition categories
+
+    /// The nutrition categories this recipe's own figures would support and
+    /// that nobody has answered yet — see ``NutritionTagging``.
+    ///
+    /// Suggestions, never writes: the numbers behind them rest on a catalog
+    /// that does not know every ingredient, so the cook has the last word on
+    /// whether their dish is a protein-rich one.
+    public func nutritionTagSuggestions(
+        for recipe: Recipe, nutrition: RecipeNutrition
+    ) async -> [NutritionTag] {
+        let declined = (try? await enrichmentStore.declinedNutritionTags(for: recipe.id)) ?? []
+        return NutritionTagging.suggestions(
+            for: nutrition, existing: recipe.categories, declined: declined
+        )
+    }
+
+    /// Takes a suggested category on, as an ordinary category — the spelling
+    /// the library already uses wins, the same way a typed one does.
+    public func acceptNutritionTag(_ tag: NutritionTag, for recipe: Recipe) async {
+        var updated = recipe
+        updated.categories = CategoryCompletion.adding(
+            tag.categoryName, to: recipe.categories, known: categories
+        )
+        guard updated.categories != recipe.categories else { return }
+        await save(updated)
+    }
+
+    /// Turns a suggestion down for good. Unstamped, so it survives the recipe
+    /// being edited: it is a judgement about the dish, not about its text.
+    public func declineNutritionTag(_ tag: NutritionTag, for recipe: Recipe) async {
+        do {
+            try await enrichmentStore.declineNutritionTag(tag.kind, for: recipe.id)
+        } catch {
+            report(error)
+        }
+    }
+
     /// Rebuilds the store's denormalized search index against the current
     /// catalog — run when the shipped data changes, so "Kürbis" keeps
     /// finding the recipe that says "Hokkaido" even though that relation

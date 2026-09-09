@@ -42,6 +42,24 @@ public actor SwiftDataRecipeEnrichmentStore: RecipeEnrichmentStore {
         try modelContext.save()
     }
 
+    public func declinedNutritionTags(for recipeID: UUID) async throws -> Set<NutritionTag.Kind> {
+        try stored(recipeID: recipeID)?.declinedNutritionTags ?? []
+    }
+
+    public func declineNutritionTag(_ kind: NutritionTag.Kind, for recipeID: UUID) async throws {
+        if let existing = try stored(recipeID: recipeID) {
+            existing.decline(kind)
+        } else {
+            // Same as the guess above: an empty claim hash never matches a
+            // real recipe, so a row born for a decline says nothing about
+            // claims.
+            let row = StoredRecipeEnrichment(recipeID: recipeID, contentHash: "", claims: [])
+            row.decline(kind)
+            modelContext.insert(row)
+        }
+        try modelContext.save()
+    }
+
     public func delete(recipeID: UUID) async throws {
         guard let existing = try stored(recipeID: recipeID) else { return }
         modelContext.delete(existing)

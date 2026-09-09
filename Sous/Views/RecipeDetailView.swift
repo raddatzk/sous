@@ -77,6 +77,10 @@ struct RecipeDetailView: View {
     @State private var needsAmountReview = false
     @State private var isReviewingAmounts = false
     @State private var nutrition: RecipeNutrition?
+    /// Nutrition categories this recipe's figures would support, that it does
+    /// not carry and that nobody has turned down. Derived from `nutrition`,
+    /// so it is refreshed wherever that is.
+    @State private var nutritionTagSuggestions: [NutritionTag] = []
     /// Which coverage line has the basis picker unfolded under it. One at a
     /// time: the drill-down is a list to read, not a form.
     @State private var clarifying: String?
@@ -203,6 +207,7 @@ struct RecipeDetailView: View {
         // recipe has to recompute it, not just re-scale what is on screen.
         .task(id: "\(recipe.id)-\(servings)") {
             nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
+            await refreshNutritionTagSuggestions()
         }
         // The background pass `save(_:)` schedules can still be running
         // when this screen is already open — most often right after
@@ -564,6 +569,35 @@ struct RecipeDetailView: View {
     /// refresh of what was already on screen.
     private func recomputeNutrition() async {
         nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
+        await refreshNutritionTagSuggestions()
+    }
+
+    /// Settles one suggestion: the banner goes away as the button is pressed,
+    /// and the answer is written behind it.
+    ///
+    /// The banner is dropped here rather than by re-deriving afterwards. An
+    /// accepted category is saved through the library and comes back to this
+    /// view as a fresh `recipe` only on the next reload, so a recompute run
+    /// straight after the write still sees the categories as they were and
+    /// puts the answered question back on screen.
+    private func answer(_ tag: NutritionTag, _ write: @escaping () async -> Void) {
+        nutritionTagSuggestions.removeAll { $0.kind == tag.kind }
+        Task { await write() }
+    }
+
+    /// Re-asks which nutrition categories this recipe's figure would support.
+    ///
+    /// Runs off `nutrition` rather than beside it: a suggestion may only be
+    /// as good as the figure it rests on, and confirming a basis or scaling
+    /// the recipe can move it across a threshold in either direction.
+    private func refreshNutritionTagSuggestions() async {
+        guard let nutrition, !recipe.isDeleted else {
+            nutritionTagSuggestions = []
+            return
+        }
+        nutritionTagSuggestions = await library.nutritionTagSuggestions(
+            for: recipe, nutrition: nutrition
+        )
     }
 
     /// The times worth showing, in the order they happen.
@@ -647,6 +681,9 @@ struct RecipeDetailView: View {
             if !openIngredients.isEmpty {
                 basisReviewBanner(openIngredients.count, isWide: isWide)
             }
+            ForEach(nutritionTagSuggestions, id: \.kind) { tag in
+                nutritionTagBanner(tag, isWide: isWide)
+            }
         }
     }
 
@@ -707,6 +744,38 @@ struct RecipeDetailView: View {
             Spacer()
             Button("Zuordnen") { isClarifyingAll = true }
                 .buttonStyle(.borderedProminent)
+        }
+        .padding(14)
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
+        .fixedSize(horizontal: isWide, vertical: false)
+    }
+
+    /// Offers a category the recipe's own numbers would justify, with the
+    /// figure it rests on said out loud beside it.
+    ///
+    /// Two buttons rather than one, and this is the whole design: the
+    /// numbers come from a catalog that does not know every ingredient, so
+    /// the app proposes and the cook decides. "Nein" is remembered for good —
+    /// the question does not come back because a step was reworded.
+    @ViewBuilder
+    private func nutritionTagBanner(_ tag: NutritionTag, isWide: Bool) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Label("Kategorie „\(tag.categoryName)“?", systemImage: "tag")
+                    .font(.subheadline.weight(.medium))
+                Text(tag.reason)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Nein") {
+                answer(tag) { await library.declineNutritionTag(tag, for: recipe) }
+            }
+            .buttonStyle(.bordered)
+            Button("Übernehmen") {
+                answer(tag) { await library.acceptNutritionTag(tag, for: recipe) }
+            }
+            .buttonStyle(.borderedProminent)
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))

@@ -28,6 +28,15 @@ public final class StoredRecipeEnrichment {
     public var suitabilityInputHash: String?
     public var suitabilityGuessRaw: [String]?
 
+    /// Nutrition categories this cook has turned down for this recipe.
+    ///
+    /// The one derived fact here that carries no staleness stamp, and that is
+    /// the point: the guesses above describe a version of the recipe and
+    /// expire with it, while a decline is a judgement about the dish. Asking
+    /// again because an instruction was reworded would be exactly the nagging
+    /// the suggestion model exists to avoid.
+    public var declinedNutritionTagsRaw: [String]?
+
     public init(recipeID: UUID, contentHash: String, claims: [StoredAmountClaim]) {
         self.recipeID = recipeID
         self.contentHash = contentHash
@@ -42,6 +51,10 @@ public final class StoredRecipeEnrichment {
         suitabilityGuessRaw.map { Set($0.compactMap(MealSlot.init(rawValue:))) }
     }
 
+    public var declinedNutritionTags: Set<NutritionTag.Kind> {
+        Set((declinedNutritionTagsRaw ?? []).compactMap(NutritionTag.Kind.init(rawValue:)))
+    }
+
     public func apply(contentHash: String, claims: [StoredAmountClaim]) {
         self.contentHash = contentHash
         self.claimsData = (try? JSONEncoder().encode(claims)) ?? Data()
@@ -51,6 +64,13 @@ public final class StoredRecipeEnrichment {
     public func applySuitability(inputHash: String, guess: Set<MealSlot>) {
         suitabilityInputHash = inputHash
         suitabilityGuessRaw = guess.map(\.rawValue).sorted()
+        updatedAt = .nowInSyncPrecision
+    }
+
+    public func decline(_ kind: NutritionTag.Kind) {
+        var declined = declinedNutritionTags
+        declined.insert(kind)
+        declinedNutritionTagsRaw = declined.map(\.rawValue).sorted()
         updatedAt = .nowInSyncPrecision
     }
 }

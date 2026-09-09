@@ -23,4 +23,11 @@ public protocol RecipeEnrichmentStore: Sendable {
     func suitabilityGuess(for recipeID: UUID, inputHash: String) async throws -> Set<MealSlot>?
     /// Caches a guess, stamped with the hash of what it was derived from.
     func saveSuitabilityGuess(_ guess: Set<MealSlot>, for recipeID: UUID, inputHash: String) async throws
+
+    /// The nutrition categories this cook has turned down for this recipe.
+    /// Unstamped, and so never stale: see `StoredRecipeEnrichment`.
+    func declinedNutritionTags(for recipeID: UUID) async throws -> Set<NutritionTag.Kind>
+    /// Records that a suggested nutrition category was turned down, so it is
+    /// not offered again.
+    func declineNutritionTag(_ kind: NutritionTag.Kind, for recipeID: UUID) async throws
 }

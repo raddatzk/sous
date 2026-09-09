@@ -32,6 +32,38 @@ struct RecipeEnrichmentStoreTests {
         #expect(read == sampleClaims())
     }
 
+    @Test("A declined nutrition category stays declined")
+    func declinedTagRoundTrip() async throws {
+        let store = try makeStore()
+        let recipe = sampleRecipe()
+        #expect(try await store.declinedNutritionTags(for: recipe.id).isEmpty)
+
+        try await store.declineNutritionTag(.proteinRich, for: recipe.id)
+        #expect(try await store.declinedNutritionTags(for: recipe.id) == [.proteinRich])
+
+        try await store.declineNutritionTag(.fiberRich, for: recipe.id)
+        #expect(try await store.declinedNutritionTags(for: recipe.id) == [.proteinRich, .fiberRich])
+    }
+
+    /// The point of storing declines without a content stamp: the cook said
+    /// this dish is not a protein-rich one, and rewording a step does not
+    /// reopen that question the way it reopens a cached guess.
+    @Test("Editing the recipe does not bring a declined category back")
+    func declineSurvivesAnEdit() async throws {
+        let store = try makeStore()
+        let recipe = sampleRecipe()
+        try await store.save(sampleClaims(), for: recipe)
+        try await store.declineNutritionTag(.proteinRich, for: recipe.id)
+
+        var edited = recipe
+        edited.instructionsText = "300 g Kartoffeln weich kochen, dann stampfen."
+
+        // The claims went stale, as they should...
+        #expect(try await store.claims(for: edited) == nil)
+        // ...and the judgement did not.
+        #expect(try await store.declinedNutritionTags(for: edited.id) == [.proteinRich])
+    }
+
     @Test("Nothing cached yet reads as nil, not an empty list")
     func nothingCachedIsNil() async throws {
         let store = try makeStore()
