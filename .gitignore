@@ -8,3 +8,13 @@ xcuserdata/
 
 # Python bytecode from running the Scripts/nutrition pipeline
 __pycache__/
+
+# Konzeptdokumente: aus der History entfernt, lokal behalten
+INGREDIENTS-*.md
+SHARING-CONCEPT.md
+
+# Persönliche Rezeptsammlung, 46 MB
+Rezepte.melarecipes
+
+# Der JetBrains-Arbeitsbereich, pro Rechner wie xcuserdata/ darüber
+.idea/
