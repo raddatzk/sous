@@ -519,8 +519,8 @@
 			projectRoot = "";
 			targets = (
 				431E661229E6C99F6B5E8474 /* Sous */,
-				83B28C8691FBBCD10A309992 /* SousShare */,
 				B1F0EB969702316EFEC66CC4 /* SousWidgets */,
+				83B28C8691FBBCD10A309992 /* SousShare */,
 			);
 		};
 /* End PBXProject section */
@@ -902,7 +902,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Sous/Supporting/Sous.entitlements;
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = "Sous/Supporting/Sous-macOS.entitlements";
-				CODE_SIGN_IDENTITY = "Apple Distribution";
+				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = MDQY93XVHF;
@@ -960,7 +960,6 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
-				CODE_SIGN_IDENTITY = "Apple Distribution";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;

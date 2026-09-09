@@ -37,23 +37,22 @@ schemes:
     run:
       config: Debug
 
-# What a release build signs with.
+# Signing is left to automatic provisioning on both configurations, and no
+# identity is named anywhere.
 #
-# Automatic signing otherwise provisions an "Apple Development" identity even
-# for an archive bound for the store, leaving the export to re-sign it. Which
-# means a machine that only ever archives still needs a development
-# certificate — and a fresh CI runner has none, so every release run minted
-# one through -allowProvisioningUpdates until the account reached its limit
-# and the archive stopped dead, asking for a profile nobody meant it to have.
-# Naming the identity keeps the provisioning on the distribution side, where
-# the certificate the workflow imports already is.
+# A release archive is therefore signed with a development identity and
+# re-signed for distribution on export, which is exactly what -exportArchive
+# with method app-store-connect does. Naming "Apple Distribution" here
+# instead reads as the more correct thing and is not: automatic signing still
+# picks a development profile for the archive, and Xcode then refuses its own
+# contradiction — "has conflicting provisioning settings", for all three
+# targets at once.
 #
-# Release only: Debug is what Xcode signs with locally, and that wants the
-# development identity it has always used.
-settings:
-  configs:
-    Release:
-      CODE_SIGN_IDENTITY: "Apple Distribution"
+# It was named once, because a fresh GitHub-hosted runner owns no development
+# certificate and minted one per run through -allowProvisioningUpdates until
+# the account reached its limit. That reason left twenty-one minutes later,
+# when the workflow moved to a self-hosted runner which has had that
+# certificate all along.
 
 targets:
   Sous:
@@ -155,14 +154,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: MDQY93XVHF
         REGISTER_APP_GROUPS: YES
-      # Said again here because xcodegen gives an application target a
-      # CODE_SIGN_IDENTITY of its own ("iPhone Developer") as a preset, and a
-      # target's own setting beats the project's. The two extensions have no
-      # such preset and inherit the project's answer.
-      configs:
-        Release:
-          CODE_SIGN_IDENTITY: "Apple Distribution"
-
   SousWidgets:
     type: app-extension
     supportedDestinations: [iOS]
