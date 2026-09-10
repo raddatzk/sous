@@ -35,6 +35,14 @@ struct RecipeEditorView: View {
     /// state so a keystroke re-renders without re-resolving inline.
     @State private var amountSuggestionCount = 0
     @State private var isReviewingAmounts = false
+    /// What the cook chose to teach the app about an unknown ingredient.
+    ///
+    /// Held by the editor rather than by the chip that was tapped: on iPhone
+    /// that chip lives in the keyboard bar, and the bar goes the moment the
+    /// sheet takes the keyboard away — a sheet whose presenter has just been
+    /// torn down is the one that dies under the next tap. See
+    /// ``IngredientTeaching``.
+    @State private var ingredientTeaching: IngredientTeaching?
     /// The resolve the review sheet is working on, taken once when it opens.
     ///
     /// Held rather than computed in the sheet's own builder, where it was
@@ -143,6 +151,7 @@ struct RecipeEditorView: View {
                     .excluding(declined: declinedAmountKeys)
                     .allSuggestions.count
             }
+            .ingredientTeaching($ingredientTeaching)
             .task { await catalog.reload() }
             // What the recipe has already been answered "no" about, so the
             // editor's own count and review sheet agree with the recipe's.
@@ -453,7 +462,7 @@ struct RecipeEditorView: View {
                 }
                 .font(.callout)
                 ForEach(unknown, id: \.self) { name in
-                    UnknownIngredientButton.chip(name: name)
+                    UnknownIngredientMenu.chip(name: name) { ingredientTeaching = $0 }
                 }
             }
             // Keeps the capsules' own edges off the scroll view's bounds,
@@ -640,7 +649,7 @@ struct RecipeEditorView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(unknown, id: \.self) { name in
-                            UnknownIngredientButton.chip(name: name)
+                            UnknownIngredientMenu.chip(name: name) { ingredientTeaching = $0 }
                         }
                     }
                     .padding(.vertical, 2)
