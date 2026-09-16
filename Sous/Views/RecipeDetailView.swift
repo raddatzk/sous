@@ -334,7 +334,7 @@ struct RecipeDetailView: View {
             Color.clear
                 .frame(maxWidth: .infinity)
                 .frame(height: 320)
-                .overlay { RecipeImageView(imageID: imageID) }
+                .overlay { RecipeImageView(imageID: imageID, crop: recipe.crop(for: imageID)) }
                 .clipped()
                 .overlay(alignment: .bottom) {
                     // Keeps the page from starting with a hard edge.

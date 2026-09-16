@@ -44,6 +44,20 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// ``RecipeImageStore`` for why they live outside the aggregate.
     public var imageIDs: [UUID]
 
+    /// Which part of each picture to show, by image id. A picture without an
+    /// entry shows its middle — see ``ImageCrop``.
+    ///
+    /// On the recipe rather than on the image row, so that choosing a crop is
+    /// an edit like any other: it goes through the editor's draft, is thrown
+    /// away with "Abbrechen", and syncs as a string on the recipe instead of
+    /// touching the record that carries the photo itself.
+    public var imageCrops: [UUID: ImageCrop]
+
+    /// The part of a picture to show — its middle where nobody chose.
+    public func crop(for imageID: UUID) -> ImageCrop {
+        imageCrops[imageID] ?? .centered
+    }
+
     /// The meals this recipe suits, where somebody said so.
     ///
     /// `nil` means nobody has: the planner falls back to a cached AI guess
@@ -102,6 +116,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         cookTimeSeconds: Int? = nil,
         totalTimeSeconds: Int? = nil,
         imageIDs: [UUID] = [],
+        imageCrops: [UUID: ImageCrop] = [:],
         suitableSlots: Set<MealSlot>? = nil,
         effortOverride: RecipeEffort.Level? = nil,
         variantGroupID: UUID? = nil,
@@ -125,6 +140,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.cookTimeSeconds = cookTimeSeconds
         self.totalTimeSeconds = totalTimeSeconds
         self.imageIDs = imageIDs
+        self.imageCrops = imageCrops.filter { !$0.value.isCentered }
         self.suitableSlots = suitableSlots.flatMap { $0.isEmpty ? nil : $0 }
         self.effortOverride = effortOverride
         self.variantGroupID = variantGroupID

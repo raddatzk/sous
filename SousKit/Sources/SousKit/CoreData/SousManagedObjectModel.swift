@@ -108,6 +108,9 @@ enum SousManagedObjectModel {
             attribute("cookTimeSeconds", .integer64AttributeType, optional: true),
             attribute("totalTimeSeconds", .integer64AttributeType, optional: true),
             attribute("imageIDsJSON", .stringAttributeType, default: "[]"),
+            // Optional, like everything added after the first sync: `nil`
+            // reads as no picture cropped. See `ImageCrop`.
+            attribute("imageCropsJSON", .stringAttributeType, optional: true),
             // Optional rather than empty-by-default: nobody having chosen a
             // slot is a different statement from every slot being unsuitable,
             // and the domain type keeps that distinction as an optional Set.

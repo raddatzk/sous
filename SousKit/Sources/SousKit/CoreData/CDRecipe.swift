@@ -26,6 +26,7 @@ final class CDRecipe: CDHouseholdMember {
     @NSManaged var cookTimeSeconds: NSNumber?
     @NSManaged var totalTimeSeconds: NSNumber?
     @NSManaged var imageIDsJSON: String
+    @NSManaged var imageCropsJSON: String?
     @NSManaged var suitableSlotsJSON: String?
     @NSManaged var effortOverrideRaw: String?
     @NSManaged var variantGroupID: UUID?
@@ -63,6 +64,7 @@ final class CDRecipe: CDHouseholdMember {
         cookTimeSeconds = recipe.cookTimeSeconds.map(NSNumber.init)
         totalTimeSeconds = recipe.totalTimeSeconds.map(NSNumber.init)
         imageIDsJSON = JSONField.encode(recipe.imageIDs.map(\.uuidString))
+        imageCropsJSON = ImageCrop.encode(recipe.imageCrops)
         suitableSlotsJSON = recipe.suitableSlots.map { slots in
             JSONField.encode(slots.map(\.rawValue).sorted())
         }
@@ -112,6 +114,7 @@ final class CDRecipe: CDHouseholdMember {
             cookTimeSeconds: cookTimeSeconds?.intValue,
             totalTimeSeconds: totalTimeSeconds?.intValue,
             imageIDs: JSONField.decode(imageIDsJSON).compactMap(UUID.init(uuidString:)),
+            imageCrops: ImageCrop.decode(imageCropsJSON),
             suitableSlots: suitableSlotsJSON.map { raw in
                 Set(JSONField.decode(raw).compactMap(MealSlot.init(rawValue:)))
             },

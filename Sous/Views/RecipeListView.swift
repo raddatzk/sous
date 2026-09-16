@@ -607,7 +607,7 @@ private struct RecipePreviewCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let imageID = recipe.imageIDs.first {
-                RecipeImageView(imageID: imageID)
+                RecipeImageView(imageID: imageID, crop: recipe.crop(for: imageID))
                     .frame(width: 340, height: 190)
                     .clipped()
             }

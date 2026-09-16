@@ -29,6 +29,8 @@ struct RecipeEditorView: View {
     /// Pictures stored during this edit, so cancelling does not leave them
     /// behind with nothing referencing them.
     @State private var addedImageIDs: [UUID] = []
+    /// The picture whose crop is being chosen.
+    @State private var croppingImage: CropTarget?
     /// What stands in the category field without being a chip yet. Kept
     /// here rather than inside the field, so that saving straight out of a
     /// half-typed category still keeps it — see `save()`.
@@ -55,6 +57,10 @@ struct RecipeEditorView: View {
     /// in here: they are a `UITextView` and mirror their focus separately,
     /// through `isEditingIngredients` / `isEditingInstructions`.
     @FocusState private var focusedField: EditorField?
+
+    private struct CropTarget: Identifiable {
+        let id: UUID
+    }
 
     /// Which field a picked recipe link should be appended to.
     private enum LinkTarget: String, Identifiable {
@@ -142,9 +148,18 @@ struct RecipeEditorView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 10) {
                     ForEach(draft.imageIDs, id: \.self) { imageID in
-                        RecipeImageView(imageID: imageID, thumbnail: true)
-                            .frame(width: 88, height: 88)
-                            .clipShape(.rect(cornerRadius: SousStyle.fieldRadius))
+                        // The tile shows the crop as the list will, and
+                        // tapping it is how the crop is chosen.
+                        Button {
+                            croppingImage = CropTarget(id: imageID)
+                        } label: {
+                            RecipeImageView(imageID: imageID, thumbnail: true, crop: draft.crop(for: imageID))
+                                .frame(width: 88, height: 88)
+                                .clipShape(.rect(cornerRadius: SousStyle.fieldRadius))
+                                .contentShape(.rect)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Ausschnitt wählen")
                             .overlay(alignment: .topTrailing) {
                                 Button("Entfernen", systemImage: "xmark.circle.fill") {
                                     remove(imageID)
@@ -191,6 +206,11 @@ struct RecipeEditorView: View {
         }
         .listRowBackground(Color.clear)
         .photosPicker(isPresented: $isPickingPhotos, selection: $pickedPhotos, matching: .images)
+        .sheet(item: $croppingImage) { target in
+            ImageCropEditor(imageID: target.id, crop: draft.crop(for: target.id)) { crop in
+                draft.imageCrops[target.id] = crop.isCentered ? nil : crop
+            }
+        }
         #if os(iOS)
         .fullScreenCover(isPresented: $isTakingPhoto) {
             CameraPicker { data in
@@ -752,6 +772,7 @@ struct RecipeEditorView: View {
 
     private func remove(_ imageID: UUID) {
         draft.imageIDs.removeAll { $0 == imageID }
+        draft.imageCrops[imageID] = nil
         if let index = addedImageIDs.firstIndex(of: imageID) {
             addedImageIDs.remove(at: index)
             // Never referenced by a saved recipe, so it can go straight away.

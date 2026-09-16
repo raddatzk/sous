@@ -380,8 +380,8 @@ struct MealPlanView: View {
             open(item)
         } label: {
             HStack(spacing: 12) {
-                if let imageID = item.recipe?.imageIDs.first {
-                    RecipeImageView(imageID: imageID, thumbnail: true)
+                if let recipe = item.recipe, let imageID = recipe.imageIDs.first {
+                    RecipeImageView(imageID: imageID, thumbnail: true, crop: recipe.crop(for: imageID))
                         .frame(width: 44, height: 44)
                         .clipShape(.rect(cornerRadius: SousStyle.thumbnailRadius))
                 }

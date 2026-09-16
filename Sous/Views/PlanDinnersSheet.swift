@@ -163,8 +163,8 @@ struct PlanDinnersSheet: View {
                 // The visible label sits beside the toggle, not in it —
                 // without this, VoiceOver announces a nameless switch.
                 .accessibilityLabel(placement.candidate.title)
-            if let imageID = planner.recipe(for: placement)?.imageIDs.first {
-                RecipeImageView(imageID: imageID, thumbnail: true)
+            if let recipe = planner.recipe(for: placement), let imageID = recipe.imageIDs.first {
+                RecipeImageView(imageID: imageID, thumbnail: true, crop: recipe.crop(for: imageID))
                     .frame(width: 44, height: 44)
                     .clipShape(.rect(cornerRadius: SousStyle.thumbnailRadius))
             }

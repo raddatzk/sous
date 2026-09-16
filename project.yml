@@ -217,6 +217,7 @@ targets:
       - path: Sous/Views/RecipeEditorView.swift
       - path: Sous/Views/CategoryField.swift
       - path: Sous/Views/RecipeImageView.swift
+      - path: Sous/Views/ImageCropEditor.swift
       - path: Sous/Views/RecipePickerView.swift
       - path: Sous/Views/RecipeRow.swift
       - path: Sous/Views/FlowLayout.swift

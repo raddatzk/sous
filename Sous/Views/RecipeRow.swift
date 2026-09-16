@@ -140,7 +140,7 @@ struct RecipeRow: View {
     @ViewBuilder
     private var picture: some View {
         if let imageID = recipe.imageIDs.first {
-            RecipeImageView(imageID: imageID)
+            RecipeImageView(imageID: imageID, crop: recipe.crop(for: imageID))
         } else {
             Rectangle()
                 .fill(.quaternary)
@@ -156,7 +156,7 @@ struct RecipeRow: View {
     private var thumbnail: some View {
         Group {
             if let imageID = recipe.imageIDs.first {
-                RecipeImageView(imageID: imageID, thumbnail: true)
+                RecipeImageView(imageID: imageID, thumbnail: true, crop: recipe.crop(for: imageID))
             } else {
                 Rectangle()
                     .fill(.quaternary)

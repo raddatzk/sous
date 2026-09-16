@@ -121,6 +121,7 @@ extension Recipe {
         copy.title = newTitle
         copy.variantGroupID = groupID
         copy.imageIDs = []
+        copy.imageCrops = [:]
         copy.isFavorite = false
         copy.wantToCook = false
         copy.createdAt = now

@@ -32,6 +32,8 @@ public final class StoredRecipe {
     public var cookTimeSeconds: Int?
     public var totalTimeSeconds: Int?
     public var imageIDs: [UUID] = []
+    /// ``Recipe/imageCrops`` in the same JSON the Core Data row keeps.
+    public var imageCropsJSON: String?
     /// ``Recipe/suitableSlots`` as raw values; `nil` where nobody chose.
     public var suitableSlotsRaw: [String]?
     /// ``Recipe/effortOverride`` as its raw value; `nil` where nobody
@@ -94,6 +96,7 @@ public final class StoredRecipe {
         cookTimeSeconds = recipe.cookTimeSeconds
         totalTimeSeconds = recipe.totalTimeSeconds
         imageIDs = recipe.imageIDs
+        imageCropsJSON = ImageCrop.encode(recipe.imageCrops)
         suitableSlotsRaw = recipe.suitableSlots.map { slots in
             slots.map(\.rawValue).sorted()
         }
@@ -128,6 +131,7 @@ public final class StoredRecipe {
             cookTimeSeconds: cookTimeSeconds,
             totalTimeSeconds: totalTimeSeconds,
             imageIDs: imageIDs,
+            imageCrops: ImageCrop.decode(imageCropsJSON),
             suitableSlots: suitableSlotsRaw.map { raw in
                 Set(raw.compactMap(MealSlot.init(rawValue:)))
             },

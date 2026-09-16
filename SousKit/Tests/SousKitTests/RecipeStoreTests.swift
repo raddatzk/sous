@@ -33,6 +33,24 @@ struct RecipeStoreTests {
         #expect(try await store.recipe(id: recipe.id)?.effortOverride == nil)
     }
 
+    @Test("A picture's crop survives both stores", arguments: StoreBackend.allCases)
+    func imageCropsRoundTrip(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        let imageID = UUID()
+        var recipe = sampleRecipe()
+        recipe.imageIDs = [imageID]
+        recipe.imageCrops = [imageID: ImageCrop(focusX: 0.2, focusY: 0.7, zoom: 1.5)]
+        try await store.save(recipe)
+
+        let read = try #require(try await store.recipe(id: recipe.id))
+        #expect(read.imageCrops == recipe.imageCrops)
+
+        var cleared = read
+        cleared.imageCrops = [:]
+        try await store.save(cleared)
+        #expect(try await store.recipe(id: recipe.id)?.imageCrops.isEmpty == true)
+    }
+
     private func sampleRecipe(title: String = "Zucchinipfanne") -> Recipe {
         Recipe(
             title: title,
