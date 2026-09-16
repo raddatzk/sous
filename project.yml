@@ -50,9 +50,9 @@ schemes:
 #
 # It was named once, because a fresh GitHub-hosted runner owns no development
 # certificate and minted one per run through -allowProvisioningUpdates until
-# the account reached its limit. That reason left twenty-one minutes later,
-# when the workflow moved to a self-hosted runner which has had that
-# certificate all along.
+# the account reached its limit. The runner is hosted again, and the fix now
+# sits in the workflow rather than here: it imports a development certificate
+# from a secret, so automatic signing finds one and mints nothing.
 
 targets:
   Sous:

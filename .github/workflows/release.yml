@@ -20,8 +20,11 @@ concurrency:
 
 jobs:
   testflight:
-    runs-on: self-hosted
-    timeout-minutes: 90
+    # GitHub-hosted, like CI. Only a manual dispatch or a tag starts this job,
+    # and secrets are never handed to a workflow triggered from a fork, so the
+    # signing material stays out of reach of anyone opening a pull request.
+    runs-on: macos-26
+    timeout-minutes: 120
 
     env:
       # Not a secret: it is in project.yml and in every built binary.
@@ -67,16 +70,25 @@ jobs:
       # A keychain of its own, thrown away at the end. Importing into the
       # login keychain would leave the signing identity on a machine that is
       # recycled anyway, and would prompt.
-      # Two of them: "Apple Distribution" signs the apps on both platforms,
+      # Three of them: "Apple Distribution" signs the apps on both platforms,
       # and "3rd Party Mac Developer Installer" signs the .pkg that a Mac App
       # Store submission actually is. The app certificate cannot do the
       # second job, and without it the macOS export fails at the very end.
+      # "Apple Development" signs nothing that ships, but automatic signing
+      # archives with a development identity and only re-signs for distribution
+      # on export — so a hosted runner without one makes
+      # -allowProvisioningUpdates mint a fresh development certificate on every
+      # run, until the account hits Apple's limit and every later run fails.
+      # That is what drove this job onto a self-hosted Mac once; a certificate
+      # it can reuse solves it for one secret.
       - name: Install the signing certificates
         env:
           DIST_CERT_P12: ${{ secrets.DIST_CERT_P12 }}
           DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
           MAC_INSTALLER_P12: ${{ secrets.MAC_INSTALLER_P12 }}
           MAC_INSTALLER_PASSWORD: ${{ secrets.MAC_INSTALLER_PASSWORD }}
+          DEV_CERT_P12: ${{ secrets.DEV_CERT_P12 }}
+          DEV_CERT_PASSWORD: ${{ secrets.DEV_CERT_PASSWORD }}
         run: |
           keychain="$RUNNER_TEMP/build.keychain-db"
           password=$(uuidgen)
@@ -97,6 +109,7 @@ jobs:
 
           import_p12 "Apple Distribution" "$DIST_CERT_P12" "$DIST_CERT_PASSWORD"
           import_p12 "Mac Installer Distribution" "$MAC_INSTALLER_P12" "$MAC_INSTALLER_PASSWORD"
+          import_p12 "Apple Development" "$DEV_CERT_P12" "$DEV_CERT_PASSWORD"
 
           # Say what actually landed, so a wrong or key-less .p12 is caught
           # here rather than forty minutes later in the export step.

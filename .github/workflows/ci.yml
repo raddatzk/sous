@@ -15,16 +15,22 @@ concurrency:
 
 jobs:
   build:
-    runs-on: self-hosted
-    timeout-minutes: 45
+    # GitHub-hosted, not a Mac of ours. This repository is public, so a pull
+    # request can come from anyone, and a self-hosted runner would execute a
+    # stranger's code as a real user on a real machine — home directory, ssh
+    # keys, unlocked login keychain and all. Hosted runners are free for public
+    # repositories and this job signs nothing, so there is nothing to gain by
+    # using one.
+    runs-on: macos-26
+    timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@v4
 
       # The image ships several Xcodes. Take the newest and say out loud
-      # which one it was, because a runner image that quietly moves to an
-      # older Xcode would otherwise fail much later with a confusing SDK
-      # error — the deployment target is iOS 26.5.
+      # which one it was, because GitHub rolls the image forward on its own
+      # schedule and a quiet move to an older Xcode would otherwise fail much
+      # later with a confusing SDK error — the deployment target is iOS 26.5.
       - name: Select Xcode
         run: |
           latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)

@@ -114,13 +114,19 @@ SOUS_TAG_LIBRARY=/path/to/library.melarecipes swift test --filter NutritionTagCa
 ## CI and releases
 
 [`ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and every
-pull request on a self-hosted macOS runner: regenerate the project, `swift
+pull request on GitHub's `macos-26` image: regenerate the project, `swift
 test`, then build for the iOS Simulator and for macOS. Nothing is signed, so it
-needs no secrets.
+needs no secrets. The repository is public, so a pull request can come from
+anyone — which is exactly why this does not run on a Mac of ours.
 
 [`release.yml`](.github/workflows/release.yml) archives and uploads to
-TestFlight. It is started by hand (Actions → Release to TestFlight); a `v*` tag
-is optional and only checks that git and `project.yml` agree on the version.
+TestFlight, on the same hosted image. It is started by hand (Actions → Release
+to TestFlight); a `v*` tag is optional and only checks that git and
+`project.yml` agree on the version. It signs, so it needs the certificates as
+secrets: `DIST_CERT_P12`, `MAC_INSTALLER_P12`, `DEV_CERT_P12` (each with its
+password) and the App Store Connect API key. The development certificate signs
+nothing that ships — it is there so automatic signing has an identity to
+archive with instead of minting a new one on every run.
 
 ## Data and attribution
 
