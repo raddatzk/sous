@@ -25,7 +25,6 @@ public enum RecipeStoreMigration {
         public var mealPlan: (any MealPlanStore)?
         public var vocabulary: (any VocabularyStore)?
         public var shopping: (any ShoppingListStore)?
-        public var amountReviews: (any RecipeAmountReviewStore)?
         public var ingredientReviews: (any RecipeIngredientReviewStore)?
 
         public init(
@@ -34,7 +33,6 @@ public enum RecipeStoreMigration {
             mealPlan: (any MealPlanStore)? = nil,
             vocabulary: (any VocabularyStore)? = nil,
             shopping: (any ShoppingListStore)? = nil,
-            amountReviews: (any RecipeAmountReviewStore)? = nil,
             ingredientReviews: (any RecipeIngredientReviewStore)? = nil
         ) {
             self.recipes = recipes
@@ -42,7 +40,6 @@ public enum RecipeStoreMigration {
             self.mealPlan = mealPlan
             self.vocabulary = vocabulary
             self.shopping = shopping
-            self.amountReviews = amountReviews
             self.ingredientReviews = ingredientReviews
         }
     }
@@ -54,7 +51,6 @@ public enum RecipeStoreMigration {
         public var mealPlan: CoreDataMealPlanStore?
         public var vocabulary: CoreDataVocabularyStore?
         public var shopping: CoreDataShoppingListStore?
-        public var amountReviews: CoreDataRecipeAmountReviewStore?
         public var ingredientReviews: CoreDataRecipeIngredientReviewStore?
 
         public init(
@@ -63,7 +59,6 @@ public enum RecipeStoreMigration {
             mealPlan: CoreDataMealPlanStore? = nil,
             vocabulary: CoreDataVocabularyStore? = nil,
             shopping: CoreDataShoppingListStore? = nil,
-            amountReviews: CoreDataRecipeAmountReviewStore? = nil,
             ingredientReviews: CoreDataRecipeIngredientReviewStore? = nil
         ) {
             self.recipes = recipes
@@ -71,7 +66,6 @@ public enum RecipeStoreMigration {
             self.mealPlan = mealPlan
             self.vocabulary = vocabulary
             self.shopping = shopping
-            self.amountReviews = amountReviews
             self.ingredientReviews = ingredientReviews
         }
     }
@@ -194,12 +188,14 @@ public enum RecipeStoreMigration {
         return report
     }
 
-    /// Both review marks for one recipe.
+    /// The ingredient review mark for one recipe.
     ///
     /// Re-marked rather than copied, and only where the stored hash still
     /// matches the text: the mark means "somebody looked at this version and
     /// settled it", so a hash that no longer matches is a question that has
     /// reopened anyway, and carrying it across would silence it wrongly.
+    /// The amount review mark is no longer carried across: the review it
+    /// recorded no longer exists (2026-09-15).
     private static func copyReviewMarks(
         for recipe: Recipe,
         from source: Source,
@@ -208,12 +204,6 @@ public enum RecipeStoreMigration {
         let current = RecipeContentHash.hash(for: recipe)
         var copied = 0
 
-        if let sourceMarks = source.amountReviews, let target = destination.amountReviews,
-           try await sourceMarks.reviewedHash(for: recipe.id) == current,
-           try await target.reviewedHash(for: recipe.id) != current {
-            try await target.markReviewed(recipe)
-            copied += 1
-        }
         if let sourceMarks = source.ingredientReviews, let target = destination.ingredientReviews,
            try await sourceMarks.reviewedHash(for: recipe.id) == current,
            try await target.reviewedHash(for: recipe.id) != current {

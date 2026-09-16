@@ -6,7 +6,7 @@ import SwiftUI
 /// catalog rather than a fixed snapshot, so adding one visibly shrinks it
 /// instead of leaving an already-handled name sitting there stale.
 ///
-/// Unlike `AmountReviewSheet`, there is no separate "apply" step: each
+/// There is no separate "apply" step: each
 /// addition already saves itself through `IngredientFormView`, so "Fertig"
 /// only ever closes the sheet and settles the review for the text as it
 /// stands — see `RecipeLibrary.markIngredientsReviewed(_:)`.

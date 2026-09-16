@@ -18,20 +18,6 @@ struct RecipeEnrichmentStoreTests {
         )
     }
 
-    private func sampleClaims() -> [StoredAmountClaim] {
-        [StoredAmountClaim(quantityText: "300 g", modifiedNoun: "Kartoffeln", kind: .absolute, fractionValue: nil, stepNumber: 1)]
-    }
-
-    @Test("What is saved comes back for the same recipe")
-    func roundTrip() async throws {
-        let store = try makeStore()
-        let recipe = sampleRecipe()
-        try await store.save(sampleClaims(), for: recipe)
-
-        let read = try await store.claims(for: recipe)
-        #expect(read == sampleClaims())
-    }
-
     @Test("A declined nutrition category stays declined")
     func declinedTagRoundTrip() async throws {
         let store = try makeStore()
@@ -52,49 +38,11 @@ struct RecipeEnrichmentStoreTests {
     func declineSurvivesAnEdit() async throws {
         let store = try makeStore()
         let recipe = sampleRecipe()
-        try await store.save(sampleClaims(), for: recipe)
         try await store.declineNutritionTag(.proteinRich, for: recipe.id)
 
         var edited = recipe
         edited.instructionsText = "300 g Kartoffeln weich kochen, dann stampfen."
-
-        // The claims went stale, as they should...
-        #expect(try await store.claims(for: edited) == nil)
-        // ...and the judgement did not.
         #expect(try await store.declinedNutritionTags(for: edited.id) == [.proteinRich])
-    }
-
-    @Test("Nothing cached yet reads as nil, not an empty list")
-    func nothingCachedIsNil() async throws {
-        let store = try makeStore()
-        let read = try await store.claims(for: sampleRecipe())
-        #expect(read == nil)
-    }
-
-    @Test("A changed instruction text invalidates the cache")
-    func changedTextInvalidatesTheCache() async throws {
-        let store = try makeStore()
-        let original = sampleRecipe()
-        try await store.save(sampleClaims(), for: original)
-
-        let edited = sampleRecipe(instructionsText: "300 g Kartoffeln kochen und pürieren.")
-        let read = try await store.claims(for: edited)
-        #expect(read == nil)
-    }
-
-    @Test("Saving again replaces what was cached, under the same recipe id")
-    func savingAgainReplaces() async throws {
-        let store = try makeStore()
-        let recipe = sampleRecipe()
-        try await store.save(sampleClaims(), for: recipe)
-
-        let replacement = [
-            StoredAmountClaim(quantityText: "restlichen", modifiedNoun: "Kartoffeln", kind: .remaining, fractionValue: nil, stepNumber: 2),
-        ]
-        try await store.save(replacement, for: recipe)
-
-        let read = try await store.claims(for: recipe)
-        #expect(read == replacement)
     }
 
     @Test("A suitability guess comes back for the same inputs, and an empty guess is a real answer")
@@ -117,30 +65,14 @@ struct RecipeEnrichmentStoreTests {
         #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: "other") == nil)
     }
 
-    @Test("The guess and the claims live side by side without disturbing each other")
-    func guessAndClaimsCoexist() async throws {
-        let store = try makeStore()
-        let recipe = sampleRecipe()
-        let hash = MealSuitabilityClassifier.inputHash(for: recipe)
-
-        // Guess first: the claims side still reads as never cached.
-        try await store.saveSuitabilityGuess([.dinner], for: recipe.id, inputHash: hash)
-        #expect(try await store.claims(for: recipe) == nil)
-
-        // Claims arriving later keep the guess.
-        try await store.save(sampleClaims(), for: recipe)
-        #expect(try await store.claims(for: recipe) == sampleClaims())
-        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == [.dinner])
-    }
-
     @Test("Deleting removes the cache; reading it back is the same as never having saved")
     func deleteRemovesTheCache() async throws {
         let store = try makeStore()
         let recipe = sampleRecipe()
-        try await store.save(sampleClaims(), for: recipe)
+        let hash = MealSuitabilityClassifier.inputHash(for: recipe)
+        try await store.saveSuitabilityGuess([.dinner], for: recipe.id, inputHash: hash)
 
         try await store.delete(recipeID: recipe.id)
-        let read = try await store.claims(for: recipe)
-        #expect(read == nil)
+        #expect(try await store.suitabilityGuess(for: recipe.id, inputHash: hash) == nil)
     }
 }

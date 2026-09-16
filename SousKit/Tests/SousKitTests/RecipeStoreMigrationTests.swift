@@ -19,7 +19,6 @@ struct RecipeStoreMigrationTests {
             mealPlan: SwiftDataMealPlanStore(modelContainer: container),
             vocabulary: SwiftDataVocabularyStore(modelContainer: container),
             shopping: SwiftDataShoppingListStore(modelContainer: container),
-            amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
             ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
         )
     }
@@ -32,7 +31,6 @@ struct RecipeStoreMigrationTests {
             mealPlan: CoreDataMealPlanStore(container: container),
             vocabulary: CoreDataVocabularyStore(container: container),
             shopping: CoreDataShoppingListStore(container: container),
-            amountReviews: CoreDataRecipeAmountReviewStore(container: container),
             ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container)
         )
     }
@@ -243,7 +241,7 @@ struct RecipeStoreMigrationTests {
         let destination = try makeDestination()
 
         var settled = try await source.recipes.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
-        try await source.amountReviews?.markReviewed(settled)
+        try await source.ingredientReviews?.markReviewed(settled)
 
         // Reviewed, then edited: the question reopened before the migration
         // ever ran, and must not arrive answered.
@@ -255,7 +253,7 @@ struct RecipeStoreMigrationTests {
         try await RecipeStoreMigration.run(from: source, to: destination)
 
         settled = try #require(try await destination.recipes.recipe(id: settled.id))
-        #expect(try await destination.amountReviews?.reviewedHash(for: settled.id)
+        #expect(try await destination.ingredientReviews?.reviewedHash(for: settled.id)
             == RecipeContentHash.hash(for: settled))
         let migratedReopened = try #require(try await destination.recipes.recipe(id: reopened.id))
         #expect(try await destination.ingredientReviews?.reviewedHash(for: migratedReopened.id)

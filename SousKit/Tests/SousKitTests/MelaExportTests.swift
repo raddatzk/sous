@@ -121,8 +121,7 @@ struct RecipeLibraryExportTests {
         let library = RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
         await library.save(Recipe(title: "Linsensuppe", categories: ["Suppe"]))
         await library.save(Recipe(title: "Zwiebelkuchen", categories: ["Kuchen"]))

@@ -10,72 +10,110 @@ public enum StepAmountSegment: Hashable, Sendable {
     case amount(String)
 }
 
-/// Where a suggestion's amount came from — shown in the review sheet so the
-/// cook knows what they're agreeing to, not just what number it is.
-public enum AmountSuggestionOrigin: Sendable, Hashable {
-    /// A step names the ingredient with no amount of its own at all — the
-    /// long-standing bare-mention chip case.
-    case unmentioned
-    /// `AmountAIExtractor` found this phrase and resolved it against a pot,
-    /// but an AI claim is never trusted into the text on its own — see
-    /// `amount-confirmation-vs-guessing-tension`: the phrase it matched,
-    /// exactly as written, so the cook can judge it against the sentence.
-    case aiExtracted(writtenText: String)
+/// A span of a step's own text that the resolver made sense of — what the
+/// editor underlays so the writer can see what the app read out of the
+/// sentence. Display only: nothing is ever written into the text.
+///
+/// Ranges point into ``RecipeStep/text``, never into the whole instructions
+/// text: the step is the unit the resolver reasons about, and whoever draws
+/// the marks maps them back into its own buffer.
+public struct StepTextMark: Sendable, Hashable {
+    public enum Kind: Sendable, Hashable {
+        /// An amount phrase tied to an ingredient line — the same thing
+        /// cook mode prints accented.
+        case bound
+        /// An amount the scanner read but could not tie to any line. It
+        /// still scales with the serving count, just blindly.
+        case loose
+        /// An ingredient named without an amount after earlier steps have
+        /// already taken all of it out — the basil a previous step picked,
+        /// the pine nuts it roasted. Neither a new withdrawal nor a
+        /// question: marked so the writer can see the name was understood
+        /// and no number belongs there, where no mark would read as missed.
+        case backReference
+    }
+
+    public let kind: Kind
+    public let range: Range<String.Index>
+    /// The ingredient line this span speaks about, where one is known.
+    public let ingredientName: String?
+
+    init(kind: Kind, range: Range<String.Index>, ingredientName: String?) {
+        self.kind = kind
+        self.range = range
+        self.ingredientName = ingredientName
+    }
+
+    /// The same mark with any whitespace at either edge left out, or `nil`
+    /// where nothing but whitespace was there.
+    ///
+    /// The scanner's spans are cut where the grammar ends, not where the ink
+    /// does — "die Hälfte der Zwiebeln" hands back "Hälfte der ", trailing
+    /// space and all. Underlining that space is a smudge, and accenting it
+    /// shows nothing.
+    func trimmed(in text: String) -> StepTextMark? {
+        var lower = range.lowerBound
+        var upper = range.upperBound
+        while lower < upper, text[lower].isWhitespace { lower = text.index(after: lower) }
+        while lower < upper, text[text.index(before: upper)].isWhitespace { upper = text.index(before: upper) }
+        guard lower < upper else { return nil }
+        return StepTextMark(kind: kind, range: lower..<upper, ingredientName: ingredientName)
+    }
 }
 
-/// A proposed amount for an ingredient in a step, not yet written into the
-/// text — either a bare mention with no amount of its own, or a value
-/// `AmountAIExtractor` found that has not been confirmed by a person yet.
+/// One share of an ingredient a step works with, and where it came from —
+/// an entry in the resolver's register of withdrawals.
 ///
-/// Never applied on its own: this only proposes. See
-/// `StepAmountResolver.Resolution.applying(_:corrections:to:)` for the one
-/// place a suggestion is allowed to become real text, and VISION.md,
-/// "amounts written into a step name an ingredient", for why a guess never
-/// gets written in silently.
-public struct AmountSuggestion: Identifiable, Sendable, Hashable {
-    public let id: UUID
-    public let stepID: UUID
-    /// The ingredient's name as written on its line — not the normalized
-    /// catalog key used for matching, which reads like nothing a cook
-    /// wrote.
-    public let ingredientName: String
-    public let displayAmount: String
-    public let origin: AmountSuggestionOrigin
-    /// What identifies this question across edits, so that "no, not in the
-    /// text" can be remembered.
-    ///
-    /// `id` cannot: it is a fresh `UUID` per resolve, so nothing said about
-    /// a suggestion survives the next one. `stepID` cannot either — it hashes
-    /// the step's *index* along with its line, so inserting a step anywhere
-    /// above renames every question below it. This hashes only what the
-    /// question is actually about: the sentence, and the ingredient in it.
-    /// Reorder the steps and the answer holds; rewrite the sentence and it
-    /// is a different question again, which is the point.
-    public let declineKey: String
-    /// Exactly one of these is set — mirrors the `insertAfter`/`replace`
-    /// split `StepAmountResolver` already makes for a mention that writes
-    /// itself in directly. A bare mention only ever inserts; an AI claim
-    /// inserts or replaces depending on whether it named a written amount.
-    fileprivate let insertionPoint: String.Index?
-    fileprivate let replaceRange: Range<String.Index>?
+/// Most of what a step handles comes straight off the ingredient list and
+/// costs its pot what it takes. But a recipe that prepares each ingredient
+/// on its own before combining them names the same pine nuts twice: once
+/// where they are roasted, once where the roasted ones go into the blender.
+/// The second is no new withdrawal — it draws on what the first step
+/// already holds, and the pot is not charged again. See VISION.md,
+/// "Amounts written into a step name an ingredient".
+///
+/// Derived on every resolve and never stored, like every share.
+struct StepIntake: Sendable, Hashable {
+    enum Source: Sendable, Hashable {
+        /// Taken off the ingredient list.
+        case list
+        /// Out of what the steps with these ids had already taken from the
+        /// pot, in step order.
+        case steps([UUID])
+    }
 
-    fileprivate init(
-        stepID: UUID, stepText: String, ingredientName: String, displayAmount: String,
-        origin: AmountSuggestionOrigin,
-        insertionPoint: String.Index? = nil, replaceRange: Range<String.Index>? = nil
-    ) {
-        self.id = UUID()
-        self.declineKey = StableID.make(
-            namespace: "decline",
-            index: 0,
-            content: "\(IngredientCatalog.normalize(stepText))|\(IngredientCatalog.normalize(ingredientName))"
-        ).uuidString
-        self.stepID = stepID
-        self.ingredientName = ingredientName
-        self.displayAmount = displayAmount
-        self.origin = origin
-        self.insertionPoint = insertionPoint
-        self.replaceRange = replaceRange
+    let source: Source
+    /// The ingredient lines of the pot the share belongs to — of every
+    /// pot, where one word covered several variants at once.
+    let ingredientLineIDs: [UUID]
+    /// The share of the pot's whole amount. `nil` for a back-reference
+    /// (the step names what earlier steps hold) and for a name that stayed
+    /// ambiguous between pots.
+    let share: Double?
+    /// The amount itself, at the serving count the resolution was made
+    /// for — what the chip under the step says. `nil` wherever `share` is.
+    let quantity: Quantity?
+    /// Whether the amount is written in the sentence and rendered there,
+    /// accented, rather than as a chip beneath it.
+    let inline: Bool
+    /// What to call the chip where it stands for several variant pots at
+    /// once — the word as the step wrote it ("Paprika"), not the first
+    /// variant's line ("Paprika rot").
+    let label: String?
+
+    init(source: Source, ingredientLineIDs: [UUID], share: Double?, quantity: Quantity?, inline: Bool, label: String? = nil) {
+        self.source = source
+        self.ingredientLineIDs = ingredientLineIDs
+        self.share = share
+        self.quantity = quantity
+        self.inline = inline
+        self.label = label
+    }
+
+    /// Named after earlier steps emptied the pot: nothing new is taken.
+    var isBackReference: Bool {
+        if case .steps = source, share == nil { return true }
+        return false
     }
 }
 
@@ -99,7 +137,10 @@ public enum StepAmountResolver {
         /// under a step can collapse lines that share one pot instead of
         /// presenting the same butter twice.
         fileprivate let potIndexByLineID: [UUID: Int]
-        fileprivate private(set) var suggestionsByStep: [UUID: [AmountSuggestion]]
+        fileprivate let settledMarksByStep: [UUID: [StepTextMark]]
+        /// What each step works with and where it came from — see
+        /// `StepIntake`.
+        fileprivate let intakesByStep: [UUID: [StepIntake]]
 
         /// Whether the steps between them account for every pot's whole
         /// amount — the recipe's text answers every "how much of it here?"
@@ -115,6 +156,17 @@ public enum StepAmountResolver {
             segmentsByStep[step.id] ?? [.text(step.text)]
         }
 
+        /// What `step`'s text says that the resolver understood, in ranges
+        /// into that text — for an editor to mark up while the recipe is
+        /// still being written. Ordered by where they sit in the sentence.
+        /// Display only. See VISION.md, "amounts written into a step name
+        /// an ingredient".
+        public func marks(for step: RecipeStep) -> [StepTextMark] {
+            (settledMarksByStep[step.id] ?? [])
+                .compactMap { $0.trimmed(in: step.text) }
+                .sorted { $0.range.lowerBound < $1.range.lowerBound }
+        }
+
         /// Whether `step` already names `ingredient`'s amount inline —
         /// used to drop it from a separate ingredient list under the step
         /// once its number is already part of the sentence.
@@ -122,87 +174,13 @@ public enum StepAmountResolver {
             boundIngredientIDsByStep[step.id]?.contains(ingredient.id) ?? false
         }
 
-        /// Ingredients `step` names without ever giving them a share of
-        /// their own — candidates for the review screen to offer, never
-        /// written in on their own.
-        public func suggestions(for step: RecipeStep) -> [AmountSuggestion] {
-            suggestionsByStep[step.id] ?? []
+        /// What `step` works with, and whether each share came off the
+        /// ingredient list or out of an earlier step — in the order the
+        /// resolver met them.
+        func intakes(for step: RecipeStep) -> [StepIntake] {
+            intakesByStep[step.id] ?? []
         }
 
-        /// Every suggestion across every step, for a count without
-        /// walking each one — the recipe list's "needs review" marker and
-        /// the detail view's banner both just want a number.
-        public var allSuggestions: [AmountSuggestion] {
-            suggestionsByStep.values.flatMap { $0 }
-        }
-
-        /// The same resolution with the questions already answered "no" left
-        /// out — of the count, of the sheet, and of the banner that offers
-        /// the sheet.
-        ///
-        /// Applied here rather than at each of those three, so a suggestion
-        /// the cook has settled cannot reappear at one of them because
-        /// somebody forgot to ask.
-        public func excluding(declined keys: Set<String>) -> Resolution {
-            guard !keys.isEmpty else { return self }
-            var copy = self
-            copy.suggestionsByStep = suggestionsByStep.compactMapValues { list in
-                let kept = list.filter { !keys.contains($0.declineKey) }
-                return kept.isEmpty ? nil : kept
-            }
-            return copy
-        }
-
-        /// `recipe` with `accepted` written into its step text — the only
-        /// place a suggestion is allowed to change what the cook wrote,
-        /// and only for the ones they said yes to. `corrections` overrides
-        /// an accepted suggestion's `displayAmount` with what the cook
-        /// actually typed in the review sheet, for the ones they corrected
-        /// rather than took as offered.
-        ///
-        /// `recipe` must be the same recipe this resolution was computed
-        /// from (same step text, same step ids) — the suggestions carry
-        /// positions into that exact text.
-        public func applying(
-            _ accepted: Set<AmountSuggestion.ID>,
-            corrections: [AmountSuggestion.ID: String] = [:],
-            to recipe: Recipe
-        ) -> Recipe {
-            guard !accepted.isEmpty else { return recipe }
-            var recipe = recipe
-            let updatedSteps = recipe.steps.map { step -> RecipeStep in
-                let toInsert = suggestions(for: step).filter { accepted.contains($0.id) }
-                guard !toInsert.isEmpty else { return step }
-                let operations = toInsert.map { suggestion -> Operation in
-                    let text = corrections[suggestion.id] ?? suggestion.displayAmount
-                    if let range = suggestion.replaceRange {
-                        return .replace(range: range, text: text, resolved: true)
-                    }
-                    return .insertAfter(point: suggestion.insertionPoint!, amount: text)
-                }
-                var updated = step
-                updated.text = buildSegments(text: step.text, operations: operations)
-                    .map { segment -> String in
-                        switch segment {
-                        case .text(let s), .amount(let s): s
-                        }
-                    }
-                    .joined()
-                return updated
-            }
-            recipe.instructionsText = StepParser.text(for: updatedSteps)
-            return recipe
-        }
-    }
-
-    /// Where a mention came from — decides what happens once it binds to a
-    /// pot: a regex mention writes straight into the text (trusted by
-    /// construction, VISION.md §113), an AI mention becomes a suggestion
-    /// pending confirmation (never trusted on its own, see
-    /// `amount-confirmation-vs-guessing-tension`).
-    private enum MentionOrigin: Equatable {
-        case regex
-        case ai
     }
 
     /// Resolves every amount mentioned across `recipe`'s steps against its
@@ -210,7 +188,6 @@ public enum StepAmountResolver {
     public static func resolve(
         _ recipe: Recipe,
         toServings targetServings: Int,
-        additionalMentions: [UUID: [AmountMention]] = [:],
         catalog: IngredientCatalog = .bundled,
         formatter: QuantityFormatter = QuantityFormatter()
     ) -> Resolution {
@@ -222,7 +199,8 @@ public enum StepAmountResolver {
                 segmentsByStep: Dictionary(uniqueKeysWithValues: steps.map { ($0.id, [.text($0.text)]) }),
                 boundIngredientIDsByStep: [:],
                 potIndexByLineID: [:],
-                suggestionsByStep: [:],
+                settledMarksByStep: [:],
+                intakesByStep: [:],
                 isFullyClaimed: false
             )
         }
@@ -232,195 +210,267 @@ public enum StepAmountResolver {
         let canonicalNames = lines.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) }
         let pots = pots(lines: lines, scaledLines: scaledLines, canonicalNames: canonicalNames, catalog: catalog)
 
-        // `additionalMentions` — e.g. from `AmountAIExtractor` — supplements
-        // the regex scanner rather than replacing it: both compete for the
-        // same pot capacity in the solve below. `origin` only matters once
-        // a mention has bound — a regex mention writes straight into the
-        // text, an AI one becomes a suggestion pending confirmation, see
-        // `amount-confirmation-vs-guessing-tension`.
-        var fixedShareMentions: [(stepIndex: Int, mention: AmountMention, origin: MentionOrigin)] = []
-        var remainingMentions: [(stepIndex: Int, mention: AmountMention, origin: MentionOrigin)] = []
+        struct Entry {
+            let stepIndex: Int
+            let mention: AmountMention
+        }
+        var entries: [Entry] = []
         for (stepIndex, step) in steps.enumerated() {
-            let regexMentions = AmountMentionScanner.mentions(in: step.text)
-            let aiMentions = supplementary(additionalMentions[step.id] ?? [], notAlreadyFoundBy: regexMentions)
-            let tagged = regexMentions.map { ($0, MentionOrigin.regex) } + aiMentions.map { ($0, MentionOrigin.ai) }
-            for (mention, origin) in tagged {
-                if case .remaining = mention.kind {
-                    remainingMentions.append((stepIndex, mention, origin))
-                } else {
-                    fixedShareMentions.append((stepIndex, mention, origin))
-                }
-            }
+            entries += AmountMentionScanner.mentions(in: step.text).map { Entry(stepIndex: stepIndex, mention: $0) }
         }
 
-        // Each fixed-share mention's candidate pots, together with the
-        // fraction of that pot's total it would claim.
-        let domains: [[Candidate]] = fixedShareMentions.map { entry in
-            candidatePots(
-                for: entry.mention, stepGroup: steps[entry.stepIndex].group,
-                pots: pots, catalog: catalog
-            ).compactMap { potIndex in
-                fraction(for: entry.mention.kind, against: pots[potIndex]).map {
-                    Candidate(potIndex: potIndex, fraction: $0)
-                }
+        // Which ingredient groups each step's heading speaks for — see
+        // `groups(addressedBy:among:)`.
+        let potGroups = Set(pots.compactMap(\.group))
+        let addressedGroups: [Set<String>?] = steps.map { groups(addressedBy: $0.group, among: potGroups) }
+
+        // The written numbers first, solved for the whole recipe at once: a
+        // written amount is a withdrawal wherever it stands, so what they
+        // take between them is spoken for before any step is walked.
+        let writtenIndices = entries.indices.filter {
+            switch entries[$0].mention.kind {
+            case .absolute, .bareCount: true
+            case .fraction, .remaining: false
             }
         }
-
+        let domains: [[Candidate]] = writtenIndices.map { index in
+            let entry = entries[index]
+            let step = steps[entry.stepIndex]
+            var candidates = candidatePots(for: entry.mention, addressed: addressedGroups[entry.stepIndex], pots: pots, catalog: catalog)
+            if candidates.count > 1, case .each(let narrowed) = disambiguate(candidates, in: step.text, pots: pots, lines: lines, catalog: catalog) {
+                candidates = narrowed
+            }
+            return candidates.compactMap { potIndex in
+                fraction(for: entry.mention.kind, against: pots[potIndex]).map { Candidate(potIndex: potIndex, fraction: $0) }
+            }
+        }
         let assignment = solve(domains: domains, potCount: pots.count)
 
-        var remainingCapacity = [Double](repeating: 1.0, count: pots.count)
-        var boundPot: [Int: Int] = [:]        // index into fixedShareMentions/remainingMentions -> pot index
-        var boundFraction: [Int: Double] = [:]
-
-        for (order, potIndex) in assignment {
-            guard let candidate = domains[order].first(where: { $0.potIndex == potIndex }) else { continue }
-            boundPot[order] = potIndex
-            boundFraction[order] = candidate.fraction
-            remainingCapacity[potIndex] -= candidate.fraction
+        // The register. `balance` is what the list still has of each pot
+        // once every written number is accounted for; `held` is what
+        // earlier steps have taken out and still hold, which is what a
+        // back-reference draws on; `holders` are those steps.
+        var balance = [Double](repeating: 1.0, count: pots.count)
+        var held = [Double](repeating: 0.0, count: pots.count)
+        var holders = [[Int]](repeating: [], count: pots.count)
+        var writtenBinding: [Int: (potIndex: Int, share: Double)] = [:]
+        for (order, candidate) in assignment {
+            writtenBinding[writtenIndices[order]] = (candidate.potIndex, candidate.fraction)
+            balance[candidate.potIndex] -= candidate.fraction
         }
 
-        // "Restliche" only resolves where exactly one pot could mean it —
-        // splitting a remainder across candidates is not a share anyone
-        // wrote down.
-        for (index, entry) in remainingMentions.enumerated() {
-            let candidates = candidatePots(
-                for: entry.mention, stepGroup: steps[entry.stepIndex].group,
-                pots: pots, catalog: catalog
-            )
-            guard candidates.count == 1 else { continue }
-            let potIndex = candidates[0]
-            let share = remainingCapacity[potIndex]
-            guard share > 0.001 else { continue }
-            let offset = fixedShareMentions.count + index
-            boundPot[offset] = potIndex
-            boundFraction[offset] = share
-            // "Restliche" takes everything the fixed shares left, so the
-            // pot is spoken for — which is exactly what `isFullyClaimed`
-            // wants to know below.
-            remainingCapacity[potIndex] = 0
-        }
-
-        let allMentions = fixedShareMentions + remainingMentions
+        let epsilon = 0.001
         var segmentsByStep: [UUID: [StepAmountSegment]] = [:]
         var boundIngredientIDsByStep: [UUID: Set<UUID>] = [:]
-        var suggestionsByStep: [UUID: [AmountSuggestion]] = [:]
+        var settledMarksByStep: [UUID: [StepTextMark]] = [:]
+        var intakesByStep: [UUID: [StepIntake]] = [:]
+
+        func holderIDs(of potIndex: Int) -> [UUID] {
+            Set(holders[potIndex]).sorted().map { steps[$0].id }
+        }
+        func lineIDs(of potIndices: [Int]) -> [UUID] {
+            potIndices.flatMap { pots[$0].lineIndices.map { lines[$0].id } }
+        }
+
+        /// Takes `draw` out of every pot in `potIndices` for the step at
+        /// `stepIndex`, from the list where it still has some and from what
+        /// earlier steps hold where it does not — the one rule every share
+        /// under a step follows. `nil` where the pots cannot give it.
+        func withdraw(_ potIndices: [Int], _ draw: Draw, at stepIndex: Int, inline: Bool, label: String? = nil) -> StepIntake? {
+            var fromList: [(Int, Double)] = []
+            var fromHeld: [(Int, Double)] = []
+            for potIndex in potIndices {
+                switch draw {
+                case .share(let share):
+                    // Off the list, a share is of the pot; off what earlier
+                    // steps hold, it is a share of that — "die Hälfte der
+                    // Butter" after 200 g were melted is half the melted
+                    // butter, not half the packet.
+                    if balance[potIndex] + epsilon >= share {
+                        fromList.append((potIndex, share))
+                    } else if held[potIndex] > epsilon {
+                        fromHeld.append((potIndex, share * held[potIndex]))
+                    } else {
+                        return nil
+                    }
+                case .rest:
+                    if balance[potIndex] > epsilon {
+                        fromList.append((potIndex, balance[potIndex]))
+                    } else if held[potIndex] > epsilon {
+                        fromHeld.append((potIndex, held[potIndex]))
+                    } else {
+                        return nil
+                    }
+                case .whole:
+                    if balance[potIndex] > epsilon {
+                        fromList.append((potIndex, balance[potIndex]))
+                    } else if held[potIndex] > epsilon {
+                        // A back-reference: what earlier steps hold, named
+                        // again. Nothing is taken out, nothing is charged.
+                        return StepIntake(
+                            source: .steps(holderIDs(of: potIndex)), ingredientLineIDs: lineIDs(of: potIndices),
+                            share: nil, quantity: nil, inline: false
+                        )
+                    } else {
+                        return nil
+                    }
+                }
+            }
+            // One word, one source: a share drawn half from the list and
+            // half from an earlier step is not a share anybody wrote down.
+            guard fromList.isEmpty || fromHeld.isEmpty else { return nil }
+            let taken = fromList.isEmpty ? fromHeld : fromList
+            var quantity: Quantity?
+            for (potIndex, share) in taken {
+                // Rounded past the noise of a share like 1 − 200/300, so
+                // 100 g is 100 g and not 100.00000000000001.
+                let amount = (share * pots[potIndex].scaledTotal.amount * 1_000_000).rounded() / 1_000_000
+                let part = Quantity(amount, pots[potIndex].scaledTotal.unit)
+                guard let sum = quantity.map({ $0.adding(part) }) ?? part else { return nil }
+                quantity = sum
+            }
+            for (potIndex, share) in taken {
+                if fromList.isEmpty {
+                    held[potIndex] -= share
+                } else {
+                    balance[potIndex] -= share
+                    held[potIndex] += share
+                    holders[potIndex].append(stepIndex)
+                }
+            }
+            let source: StepIntake.Source = fromList.isEmpty ? .steps(holderIDs(of: taken[0].0)) : .list
+            let share = taken.count == 1 ? taken[0].1 : nil
+            return StepIntake(source: source, ingredientLineIDs: lineIDs(of: taken.map(\.0)), share: share, quantity: quantity, inline: inline, label: label)
+        }
 
         for (stepIndex, step) in steps.enumerated() {
             var operations: [Operation] = []
             var boundIDs: Set<UUID> = []
-            // Both a bare mention (below) and an AI claim pending
-            // confirmation (here) land in the same list — one review sheet,
-            // regardless of which case a step turns out to need.
-            var stepSuggestions: [AmountSuggestion] = []
+            var settledMarks: [StepTextMark] = []
+            var intakes: [StepIntake] = []
+            var handledPots: Set<Int> = []
+            let negated = negatedRanges(in: step.text)
 
-            for (offset, entry) in allMentions.enumerated() where entry.stepIndex == stepIndex {
+            for index in entries.indices where entries[index].stepIndex == stepIndex {
+                let entry = entries[index]
                 let mention = entry.mention
-                if let potIndex = boundPot[offset], let fraction = boundFraction[offset] {
-                    let pot = pots[potIndex]
-                    let amount = displayAmount(
-                        for: mention.kind, fraction: fraction,
-                        scaledQuantity: pot.scaledTotal, formatter: formatter
-                    )
-                    switch entry.origin {
-                    case .regex:
-                        if mention.replacesWrittenRange {
-                            operations.append(.replace(range: mention.writtenRange, text: amount, resolved: true))
-                        } else {
-                            // Right after the name as matched, not after
-                            // whatever the phrase scan happened to also pick up.
-                            let point = matchedNameEnd(
-                                in: mention.namePhrase, for: pot, catalog: catalog
-                            ) ?? mention.namePhrase.endIndex
-                            operations.append(.insertAfter(point: point, amount: amount))
-                        }
-                    case .ai:
-                        // Never written straight into the text — an AI claim
-                        // only ever becomes a suggestion, confirmed or
-                        // corrected once through the review sheet before it
-                        // can render as a resolved amount anywhere. But a
-                        // claim whose own written span already sits inside
-                        // parentheses — "Rapsöl (3 EL)" — or whose insertion
-                        // point already has a parenthetical right after it
-                        // is not a new finding: it is either a prior
-                        // suggestion already confirmed, or a "Name (Menge)"
-                        // amount the person themselves wrote. The model
-                        // re-recognizes both just as readily as a genuinely
-                        // new one, and without this check every step naming
-                        // an already-answered amount would ask again after
-                        // every edit that changes the recipe's content hash.
-                        if mention.replacesWrittenRange {
-                            if !isEnclosedInParens(mention.writtenRange, in: step.text) {
-                                let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
-                                stepSuggestions.append(AmountSuggestion(
-                                    stepID: step.id, stepText: step.text, ingredientName: lines[pot.lineIndices[0]].name,
-                                    displayAmount: amount, origin: origin, replaceRange: mention.writtenRange
-                                ))
-                            }
-                        } else {
-                            let point = matchedNameEnd(
-                                in: mention.namePhrase, for: pot, catalog: catalog
-                            ) ?? mention.namePhrase.endIndex
-                            if !isAlreadyAnswered(at: point, in: step.text) {
-                                let origin = AmountSuggestionOrigin.aiExtracted(writtenText: String(step.text[mention.writtenRange]))
-                                stepSuggestions.append(AmountSuggestion(
-                                    stepID: step.id, stepText: step.text, ingredientName: lines[pot.lineIndices[0]].name,
-                                    displayAmount: amount, origin: origin, insertionPoint: point
-                                ))
-                            }
+                switch mention.kind {
+                case .absolute, .bareCount:
+                    if let (potIndex, share) = writtenBinding[index] {
+                        let pot = pots[potIndex]
+                        let amount = displayAmount(for: mention.kind, fraction: share, scaledQuantity: pot.scaledTotal, formatter: formatter)
+                        let quantity = Quantity(share * pot.scaledTotal.amount, pot.scaledTotal.unit)
+                        handledPots.insert(potIndex)
+                        held[potIndex] += share
+                        holders[potIndex].append(stepIndex)
+                        for lineIndex in pot.lineIndices { boundIDs.insert(lines[lineIndex].id) }
+                        intakes.append(StepIntake(source: .list, ingredientLineIDs: lineIDs(of: [potIndex]), share: share, quantity: quantity, inline: true))
+                        settledMarks.append(StepTextMark(kind: .bound, range: mention.writtenRange, ingredientName: lines[pot.lineIndices[0]].name))
+                        operations.append(.replace(range: mention.writtenRange, text: amount, resolved: true))
+                    } else {
+                        // A written number that binds nowhere still speaks
+                        // for its ingredient: the name beside it is not a
+                        // bare mention on top of the number.
+                        handledPots.formUnion(candidatePots(for: mention, addressed: addressedGroups[stepIndex], pots: pots, catalog: catalog))
+                    }
+                    if writtenBinding[index] == nil, case .absolute(let quantity) = mention.kind,
+                       scalesBlindly(quantity.unit, writtenRange: mention.writtenRange, in: step.text) {
+                        // Unresolved falls back to the old, whole-recipe
+                        // scale — still moving with the serving count, just
+                        // without knowing which line it came from.
+                        let blind = formatter.string(for: Quantity(quantity.amount * factor, quantity.unit))
+                        operations.append(.replace(range: mention.writtenRange, text: blind, resolved: false))
+                        settledMarks.append(StepTextMark(kind: .loose, range: mention.writtenRange, ingredientName: nil))
+                    }
+                    // A bare count that binds to nothing never scales on
+                    // its own: "in 2 Hälften schneiden" stays two halves.
+
+                case .fraction, .remaining:
+                    // Relative wording is resolved in step order, against
+                    // what the pot has left by then — "die restlichen
+                    // Kartoffeln" only means something once every earlier
+                    // step's claim is known. Never rewritten: the words
+                    // already read correctly at every serving count, so
+                    // the amount goes on the chip beneath, not into the
+                    // sentence.
+                    var candidates = candidatePots(for: mention, addressed: addressedGroups[stepIndex], pots: pots, catalog: catalog)
+                    if candidates.count > 1 {
+                        switch disambiguate(candidates, in: step.text, pots: pots, lines: lines, catalog: catalog) {
+                        case .each(let narrowed) where narrowed.count == 1: candidates = narrowed
+                        case .sum(let variants): candidates = variants
+                        case .each, .ambiguous: candidates = []
                         }
                     }
-                    // Binding a pot binds every line in it — the step's
-                    // amount covers the ingredient, however many lines the
-                    // list happens to spell it across. True for an AI claim
-                    // too, even while it is still unconfirmed: it must not
-                    // also turn up as a bare-mention suggestion below, and
-                    // the pot's remaining capacity is real either way.
-                    for lineIndex in pot.lineIndices { boundIDs.insert(lines[lineIndex].id) }
-                } else if case .absolute(let quantity) = mention.kind, entry.origin == .regex {
-                    // Unresolved falls back to the old, whole-recipe scale —
-                    // still moving with the serving count, just without
-                    // knowing which line it came from. Only for a written
-                    // number a person can see is being blindly scaled; an
-                    // unresolved AI claim has nothing written to fall back
-                    // to and is simply dropped.
-                    let blind = formatter.string(for: Quantity(quantity.amount * factor, quantity.unit))
-                    operations.append(.replace(range: mention.writtenRange, text: blind, resolved: false))
+                    guard !candidates.isEmpty else { continue }
+                    let draw: Draw
+                    if case .fraction(let share) = mention.kind {
+                        draw = .share(share)
+                    } else {
+                        draw = .rest
+                    }
+                    guard let intake = withdraw(candidates, draw, at: stepIndex, inline: false), !intake.isBackReference else { continue }
+                    handledPots.formUnion(candidates)
+                    let name = lines[pots[candidates[0]].lineIndices[0]].name
+                    settledMarks.append(StepTextMark(kind: .bound, range: mention.writtenRange, ingredientName: name))
+                    intakes.append(intake)
                 }
-                // `bareCount`, `fraction` and `remaining` are left untouched
-                // when they do not resolve: a bare number never scales on
-                // its own, and wording that already reads correctly must
-                // not gain a number it cannot back up.
             }
 
             segmentsByStep[step.id] = buildSegments(text: step.text, operations: operations)
-            boundIngredientIDsByStep[step.id] = boundIDs
 
-            // Pots this step names but never gave a share of its own —
-            // candidates for the review screen, never written in here.
-            let negated = negatedRanges(in: step.text)
-            for (potIndex, pot) in pots.enumerated() where !boundIDs.contains(lines[pot.lineIndices[0]].id) {
-                if let stepGroup = step.group, let potGroup = pot.group, stepGroup != potGroup { continue }
-                guard let end = firstBareNameEnd(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog)
-                    ?? pot.headCanonicalName.flatMap({ firstBareNameEnd(of: $0, in: step.text, avoiding: negated, catalog: catalog) })
-                    ?? pot.groupKey.flatMap({ firstGroupNameEnd(groupKey: $0, in: step.text, avoiding: negated, catalog: catalog) })
-                    ?? firstCompoundHeadEnd(claimedBy: potIndex, pots: pots, stepGroup: step.group, in: step.text, avoiding: negated, catalog: catalog)
+            // Pots this step names without giving them a share of their
+            // own. The first such mention takes what the list has left; a
+            // later one, after earlier steps emptied the pot, is a
+            // back-reference. Pots one word covers together are decided
+            // together — see `disambiguate`.
+            var bareByStart: [String.Index: [(potIndex: Int, range: Range<String.Index>)]] = [:]
+            for (potIndex, pot) in pots.enumerated() where !handledPots.contains(potIndex) {
+                if let addressed = addressedGroups[stepIndex], let potGroup = pot.group, !addressed.contains(potGroup) { continue }
+                guard let nameRange = firstBareName(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog)
+                    ?? pot.headCanonicalName.flatMap({ firstBareName(of: $0, in: step.text, avoiding: negated, catalog: catalog) })
+                    ?? pot.groupKey.flatMap({ firstGroupName(groupKey: $0, in: step.text, avoiding: negated, catalog: catalog) })
+                    ?? firstCompoundHead(claimedBy: potIndex, pots: pots, addressed: addressedGroups[stepIndex], in: step.text, avoiding: negated, catalog: catalog)
                 else { continue }
-                // A parenthetical right after the name is an amount someone
-                // already accepted — `AmountMentionScanner` does not read it
-                // back as a mention (nothing follows it that looks like a
-                // name), so without this check the same suggestion would
-                // keep reappearing every time the recipe is resolved again.
-                guard !isAlreadyAnswered(at: end, in: step.text) else { continue }
-                stepSuggestions.append(AmountSuggestion(
-                    stepID: step.id,
-                    stepText: step.text,
-                    ingredientName: lines[pot.lineIndices[0]].name,
-                    displayAmount: formatter.string(for: pot.scaledTotal),
-                    origin: .unmentioned,
-                    insertionPoint: end
-                ))
+                bareByStart[nameRange.lowerBound, default: []].append((potIndex, nameRange))
             }
-            suggestionsByStep[step.id] = stepSuggestions
+            for start in bareByStart.keys.sorted() {
+                let group = bareByStart[start]!
+                let range = group[0].range
+                let word = String(step.text[range])
+                var each: [[Int]] = group.map { [$0.potIndex] }
+                var label: String?
+                if group.count > 1 {
+                    switch disambiguate(group.map(\.potIndex), in: step.text, pots: pots, lines: lines, catalog: catalog) {
+                    case .each(let chosen):
+                        each = chosen.map { [$0] }
+                    case .sum(let variants):
+                        each = [variants]
+                        label = word
+                    case .ambiguous:
+                        // Left as a name without an amount: the pots are
+                        // not charged, the cook sees what was named and
+                        // nothing the text cannot back up.
+                        intakes.append(StepIntake(
+                            source: .list, ingredientLineIDs: lineIDs(of: group.map(\.potIndex)),
+                            share: nil, quantity: nil, inline: false, label: word
+                        ))
+                        continue
+                    }
+                }
+                for potIndices in each {
+                    guard let intake = withdraw(potIndices, .whole, at: stepIndex, inline: false, label: label) else { continue }
+                    handledPots.formUnion(potIndices)
+                    let name = lines[pots[potIndices[0]].lineIndices[0]].name
+                    settledMarks.append(StepTextMark(
+                        kind: intake.isBackReference ? .backReference : .bound, range: range, ingredientName: name
+                    ))
+                    intakes.append(intake)
+                }
+            }
+
+            boundIngredientIDsByStep[step.id] = boundIDs
+            settledMarksByStep[step.id] = settledMarks
+            intakesByStep[step.id] = intakes
         }
 
         var potIndexByLineID: [UUID: Int] = [:]
@@ -432,24 +482,147 @@ public enum StepAmountResolver {
             segmentsByStep: segmentsByStep,
             boundIngredientIDsByStep: boundIngredientIDsByStep,
             potIndexByLineID: potIndexByLineID,
-            suggestionsByStep: suggestionsByStep,
-            isFullyClaimed: !pots.isEmpty && remainingCapacity.allSatisfy { $0 <= 0.001 }
+            settledMarksByStep: settledMarksByStep,
+            intakesByStep: intakesByStep,
+            isFullyClaimed: !pots.isEmpty && balance.allSatisfy { $0 <= epsilon }
         )
     }
 
-    /// Drops an extra mention (from `additionalMentions`) wherever the
-    /// regex scanner already found one naming the same noun over an
-    /// overlapping span — the two sources agreeing is not two shares to
-    /// claim, just one mention seen twice. What regex could not name at
-    /// all — a second noun under one shared "restlichen", say — has no
-    /// overlapping regex mention to match here and always survives.
-    private static func supplementary(_ extra: [AmountMention], notAlreadyFoundBy regexMentions: [AmountMention]) -> [AmountMention] {
-        extra.filter { candidate in
-            !regexMentions.contains { regex in
-                regex.writtenRange.overlaps(candidate.writtenRange)
-                    && regex.namePhrase.lowercased().hasPrefix(candidate.namePhrase.lowercased())
+    /// What a step takes of a pot.
+    private enum Draw {
+        /// A bare mention: all the list has left — or, once earlier steps
+        /// have taken it all, a back-reference to what they hold.
+        case whole
+        /// "Restliche": all the list has left, or all earlier steps hold.
+        case rest
+        /// "Die Hälfte": a fixed share.
+        case share(Double)
+    }
+
+    // MARK: - Which pot a name means
+
+    /// What to do with a word that fits several pots at once.
+    private enum Disambiguation {
+        /// These pots, each on its own — the step names each of them
+        /// ("weißen Spargel … grünen Spargel"), or the sentence settled on
+        /// one.
+        case each([Int])
+        /// One name over every variant the list has, added up — "Paprika"
+        /// for the red, the yellow and the green one.
+        case sum([Int])
+        /// Nothing in the sentence tells them apart.
+        case ambiguous
+    }
+
+    /// Tells `candidates` — pots one word fits — apart by what else the
+    /// sentence says, for the recipes that write no step headings. The
+    /// tiers, in order: the line's own qualifier is in the sentence
+    /// ("stückigen Tomaten"), the group's name is ("für die Streusel …"),
+    /// ingredients only one candidate's group lists are named alongside,
+    /// or the candidates are variants of one thing in one group and add up.
+    private static func disambiguate(
+        _ candidates: [Int], in text: String, pots: [Pot], lines: [RecipeIngredient], catalog: IngredientCatalog
+    ) -> Disambiguation {
+        guard candidates.count > 1 else { return .each(candidates) }
+        let words = text.matches(of: /[\p{L}][\p{L}\-]*/).map { text[$0.range].lowercased() }
+
+        let byQualifier = candidates.filter { potIndex in
+            qualifierStems(of: lines[pots[potIndex].lineIndices[0]].name).contains { stem in
+                words.contains { $0.hasPrefix(stem) && $0.count <= stem.count + 3 }
             }
         }
+        if !byQualifier.isEmpty { return .each(byQualifier) }
+
+        let byGroup = candidates.filter { potIndex in
+            guard let group = pots[potIndex].group else { return false }
+            return groupCueWords(of: group).contains { cue in words.contains { $0 == cue || $0.hasSuffix(cue) } }
+        }
+        if Set(byGroup.map { pots[$0].group }).count == 1 { return .each(byGroup) }
+
+        // Company: an ingredient named in the same sentence that only one
+        // candidate's group lists.
+        var company: [Int: Int] = [:]
+        for potIndex in candidates {
+            let group = pots[potIndex].group
+            let otherGroups = candidates.filter { $0 != potIndex }.map { pots[$0].group }
+            for (otherIndex, other) in pots.enumerated()
+            where otherIndex != potIndex && other.group == group && !candidates.contains(otherIndex) {
+                let sharedElsewhere = pots.contains { $0.canonicalName == other.canonicalName && otherGroups.contains($0.group) }
+                guard !sharedElsewhere,
+                      firstBareName(of: other.canonicalName, in: text, avoiding: [], catalog: catalog) != nil
+                else { continue }
+                company[potIndex, default: 0] += 1
+            }
+        }
+        let accompanied = company.filter { $0.value > 0 }
+        if accompanied.count == 1, let potIndex = accompanied.keys.first { return .each([potIndex]) }
+
+        let groups = Set(candidates.map { pots[$0].group })
+        let heads = Set(candidates.map { pots[$0].headCanonicalName })
+        if groups.count == 1, heads.count == 1, heads.first! != nil {
+            var total: Quantity? = nil
+            for potIndex in candidates {
+                guard let sum = total.map({ $0.adding(pots[potIndex].scaledTotal) }) ?? pots[potIndex].scaledTotal else { return .ambiguous }
+                total = sum
+            }
+            return .sum(candidates)
+        }
+        return .ambiguous
+    }
+
+    private static let cueStopWords: Set<String> = [
+        "für", "die", "der", "den", "das", "dem", "des", "zum", "zur", "mit", "und", "oder", "extra", "etwas",
+        "ca", "nach", "bedarf", "geschmack", "belieben", "zutaten", "portionen", "portion", "alternativ", "oder",
+    ]
+
+    /// The words of a line's name that are not its head noun, cut down to
+    /// a stem the sentence's inflected form starts with: "weißer Spargel"
+    /// → "weiß", "stückige Tomaten" → "stückig", "Rote-Bete-Saft für die
+    /// Masse" → "mass".
+    private static func qualifierStems(of name: String) -> [String] {
+        let head = headWord(of: name).map { IngredientCatalog.normalize($0) }
+        var stems: [String] = []
+        for raw in name.split(whereSeparator: { $0 == " " || $0 == "," || $0 == "(" || $0 == ")" || $0 == "/" }) {
+            let word = raw.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: ".:"))
+            guard word.count >= 3, !cueStopWords.contains(word), IngredientCatalog.normalize(word) != head,
+                  IngredientCatalog.normalize(word) != IngredientCatalog.normalize(name),
+                  case .custom = IngredientUnit(symbol: word), Double(word) == nil
+            else { continue }
+            var stem = word
+            for ending in ["en", "er", "es", "em", "e", "s"] where stem.hasSuffix(ending) && stem.count - ending.count >= 3 {
+                stem = String(stem.dropLast(ending.count))
+                break
+            }
+            stems.append(stem)
+        }
+        return stems
+    }
+
+    /// The ingredient groups a step heading speaks for, or `nil` where it
+    /// speaks for none of them and so restricts nothing. Headings match
+    /// literally first; otherwise by a shared cue word, so "Tofu-Feta
+    /// zubereiten" reaches "Für den Tofu-Feta". A heading like "Lauch
+    /// braten" or "Panieren und braten" names a phase, not a group — read
+    /// as a group it would hide every ingredient from the step.
+    private static func groups(addressedBy stepGroup: String?, among potGroups: Set<String>) -> Set<String>? {
+        guard let stepGroup, !potGroups.isEmpty else { return nil }
+        if potGroups.contains(stepGroup) { return [stepGroup] }
+        let cues = Set(groupCueWords(of: stepGroup))
+        guard !cues.isEmpty else { return nil }
+        let matched = potGroups.filter { group in
+            let groupCues = groupCueWords(of: group)
+            return groupCues.contains { cue in cues.contains { $0 == cue || $0.hasSuffix(cue) || cue.hasSuffix($0) } }
+        }
+        return matched.isEmpty ? nil : matched
+    }
+
+    /// The words a group heading is known by in running text: "Für den
+    /// Teig" → "teig", "Tahini Dip" → "tahini", "Kokosmilchsoße:" →
+    /// "kokosmilchsoße".
+    private static func groupCueWords(of group: String) -> [String] {
+        group.split(whereSeparator: { !$0.isLetter })
+            .map { $0.lowercased() }
+            .filter { $0.count >= 4 && !cueStopWords.contains($0) }
     }
 
     // MARK: - Pots
@@ -594,12 +767,12 @@ public enum StepAmountResolver {
 
     private static func candidatePots(
         for mention: AmountMention,
-        stepGroup: String?,
+        addressed: Set<String>?,
         pots: [Pot],
         catalog: IngredientCatalog
     ) -> [Int] {
         let direct = pots.indices.filter { index in
-            if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+            if let addressed, let potGroup = pots[index].group, !addressed.contains(potGroup) { return false }
             if mention.namePrecedesAmount {
                 return matchedNameStart(in: mention.namePhrase, for: pots[index], catalog: catalog) != nil
             }
@@ -611,7 +784,7 @@ public enum StepAmountResolver {
         // no pot matched by name. `groupKey` is already cleared on pots
         // whose bundle is shared, so a match here is unambiguous.
         let grouped = pots.indices.filter { index in
-            if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+            if let addressed, let potGroup = pots[index].group, !addressed.contains(potGroup) { return false }
             guard let key = pots[index].groupKey else { return false }
             if mention.namePrecedesAmount {
                 return groupMatchedNameStart(in: mention.namePhrase, groupKey: key, catalog: catalog) != nil
@@ -624,7 +797,7 @@ public enum StepAmountResolver {
         // through `compoundHeadPot`'s uniqueness guard.
         let words = mention.namePhrase.split(separator: " ")
         guard let word = mention.namePrecedesAmount ? words.last : words.first,
-              let potIndex = compoundHeadPot(claiming: word, pots: pots, stepGroup: stepGroup, catalog: catalog)
+              let potIndex = compoundHeadPot(claiming: word, pots: pots, addressed: addressed, catalog: catalog)
         else { return [] }
         return [potIndex]
     }
@@ -641,7 +814,7 @@ public enum StepAmountResolver {
     /// compound ending in it. Two oils on the list, and a bare "Öl" means
     /// neither.
     private static func compoundHeadPot(
-        claiming word: Substring, pots: [Pot], stepGroup: String?, catalog: IngredientCatalog
+        claiming word: Substring, pots: [Pot], addressed: Set<String>?, catalog: IngredientCatalog
     ) -> Int? {
         // A unit word is never the noun of a compound. "EL" passes the
         // capitalized-word filter and the two-letter minimum, and "Zwiebel"
@@ -653,7 +826,7 @@ public enum StepAmountResolver {
         else { return nil }
         func matches(_ related: (Substring, String) -> Bool) -> [Int] {
             pots.indices.filter { index in
-                if let stepGroup, let potGroup = pots[index].group, stepGroup != potGroup { return false }
+                if let addressed, let potGroup = pots[index].group, !addressed.contains(potGroup) { return false }
                 guard let host = pots[index].suffixHost else { return false }
                 return related(word, host)
             }
@@ -702,7 +875,50 @@ public enum StepAmountResolver {
     }
 
     private static func stemMatches(_ word: String, host: String) -> Bool {
-        word.count >= 4 && host.count - word.count >= 3 && host.hasPrefix(word)
+        guard word.count >= 4, host.count - word.count >= 3, host.hasPrefix(word) else { return false }
+        // The stem direction's false friend is a *derivative*: Chilipulver
+        // is not a Chili, Tomatenmark not a Tomate, Gemüsebrühe not the
+        // Gemüse. A host whose remainder names such a product is refused
+        // here rather than left to the uniqueness guard, which cannot help
+        // when the real thing is not on the list at all.
+        var remainder = host.dropFirst(word.count)
+        for linking in ["en", "n", "s", "es", "e"] where remainder.hasPrefix(linking) && remainder.count > linking.count + 3 {
+            remainder = remainder.dropFirst(linking.count)
+            break
+        }
+        return !derivativeTails.contains { remainder.hasPrefix($0) }
+    }
+
+    /// Word tails that turn an ingredient into a different product.
+    private static let derivativeTails: [String] = [
+        "pulver", "paste", "saft", "öl", "wasser", "mark", "sirup", "essig", "brühe", "fond", "mehl",
+        "flocken", "granulat", "creme", "soße", "sauce", "salat", "gemüse", "käse", "milch", "butter",
+        "reis", "masse", "menge", "chips", "extrakt", "aroma",
+    ]
+
+    /// Word tails under which a step still names the ingredient itself,
+    /// just prepared — "Zwiebelwürfel", "Blumenkohlröschen",
+    /// "Zitronenzesten", "Thymianblättchen" — as opposed to a derivative
+    /// (`derivativeTails`) or an unrelated compound ("Salzwasser").
+    private static let preparedFormTails: [String] = [
+        "würfel", "scheibe", "streifen", "ring", "stück", "röschen", "blatt", "blätt", "hälfte", "spalte",
+        "stift", "nadel", "korn", "körner", "faden", "fäden", "zeste", "strunk", "strünk", "raspel", "spitze",
+        "viertel", "achtel", "schnitz", "brocken", "kugel", "stange", "abrieb", "schale",
+    ]
+
+    /// Whether `tail` — what follows an ingredient's name inside a longer
+    /// step word — still leaves that word naming the ingredient: an
+    /// inflection ("Karotte**n**", "Wirsing**s**") or a prepared form. An
+    /// optional linking element ("Zitrone**n**zesten") is stripped first.
+    static func isInflectionOrPreparedForm(_ tail: Substring) -> Bool {
+        let lower = tail.lowercased()
+        if ["", "n", "en", "s", "es", "e", "er", "nen", "ern"].contains(lower) { return true }
+        var rest = Substring(lower)
+        for linking in ["en", "n", "s", "es", "e"] where rest.hasPrefix(linking) && rest.count > linking.count + 3 {
+            rest = rest.dropFirst(linking.count)
+            break
+        }
+        return preparedFormTails.contains { rest.hasPrefix($0) }
     }
 
     /// `matchedNameEnd` against everything a pot answers to: its full
@@ -822,9 +1038,9 @@ public enum StepAmountResolver {
     /// from one number's aftermath.
     /// A match starting inside one of `avoiding`'s ranges is skipped, not
     /// returned — see `negatedRanges(in:)`.
-    private static func firstBareNameEnd(
+    private static func firstBareName(
         of canonicalTarget: String, in text: String, avoiding: [Range<String.Index>], catalog: IngredientCatalog
-    ) -> String.Index? {
+    ) -> Range<String.Index>? {
         var cursor = text.startIndex
         while cursor < text.endIndex {
             guard text[cursor].isLetter else {
@@ -835,24 +1051,36 @@ public enum StepAmountResolver {
             let phrase = AmountMentionScanner.namePhrase(after: cursor, in: text)
             if let end = matchedNameEnd(in: phrase, canonicalTarget: canonicalTarget, catalog: catalog),
                !avoiding.contains(where: { $0.contains(wordStart) }) {
-                return end
+                // `matchedNameEnd` trims a *prefix* of the phrase, and the
+                // phrase starts at this very word — so the name is exactly
+                // what lies between the two.
+                return wordStart..<end
             }
             // This word didn't start a match — skip past all of it, not
             // into it, so "utter" inside "Butter" is never tried on its own.
             while cursor < text.endIndex, text[cursor].isLetter || text[cursor] == "-" {
                 cursor = text.index(after: cursor)
             }
+            // The prepared form: "Zwiebelwürfel" still names the onions.
+            // The name at the start of the word, and after it nothing but
+            // an inflection or a preparation — see `isInflectionOrPreparedForm`.
+            let word = text[wordStart..<cursor].lowercased()
+            if canonicalTarget.count >= 4, word.hasPrefix(canonicalTarget),
+               isInflectionOrPreparedForm(Substring(word.dropFirst(canonicalTarget.count))),
+               !avoiding.contains(where: { $0.contains(wordStart) }) {
+                return wordStart..<cursor
+            }
         }
         return nil
     }
 
     /// Where a bundle member is first named bare in `text` — the
-    /// counterpart of `firstBareNameEnd` for the tier that matches through
+    /// counterpart of `firstBareName` for the tier that matches through
     /// the catalog's variant relation instead of by name. Same walk over
     /// every word start, same negation rule.
-    private static func firstGroupNameEnd(
+    private static func firstGroupName(
         groupKey: String, in text: String, avoiding: [Range<String.Index>], catalog: IngredientCatalog
-    ) -> String.Index? {
+    ) -> Range<String.Index>? {
         var cursor = text.startIndex
         while cursor < text.endIndex {
             guard text[cursor].isLetter else {
@@ -863,7 +1091,7 @@ public enum StepAmountResolver {
             let phrase = AmountMentionScanner.namePhrase(after: cursor, in: text)
             if let end = groupMatchedNameEnd(in: phrase, groupKey: groupKey, catalog: catalog),
                !avoiding.contains(where: { $0.contains(wordStart) }) {
-                return end
+                return wordStart..<end
             }
             while cursor < text.endIndex, text[cursor].isLetter || text[cursor] == "-" {
                 cursor = text.index(after: cursor)
@@ -873,63 +1101,25 @@ public enum StepAmountResolver {
     }
 
     /// Where a bare step word first names `pots[potIndex]` as the head of a
-    /// compound — the counterpart of `firstBareNameEnd` for the tier where
+    /// compound — the counterpart of `firstBareName` for the tier where
     /// no pot is named outright. Only capitalized words are tried: the
     /// compound head is a noun, and skipping the lowercase ones keeps a
     /// verb like "braten" from ever being read as the tail of one.
-    private static func firstCompoundHeadEnd(
-        claimedBy potIndex: Int, pots: [Pot], stepGroup: String?, in text: String,
+    private static func firstCompoundHead(
+        claimedBy potIndex: Int, pots: [Pot], addressed: Set<String>?, in text: String,
         avoiding: [Range<String.Index>], catalog: IngredientCatalog
-    ) -> String.Index? {
+    ) -> Range<String.Index>? {
         for match in text.matches(of: /[\p{L}][\p{L}\-]*/) {
             let word = text[match.range]
             guard word.first?.isUppercase == true,
                   !avoiding.contains(where: { $0.contains(match.range.lowerBound) })
             else { continue }
-            if compoundHeadPot(claiming: word, pots: pots, stepGroup: stepGroup, catalog: catalog) == potIndex {
-                return match.range.upperBound
+            if compoundHeadPot(claiming: word, pots: pots, addressed: addressed, catalog: catalog) == potIndex {
+                return match.range
             }
         }
         return nil
     }
-
-    /// Whether `text` already carries a parenthetical right after `index` —
-    /// the same shape `buildSegments` writes a resolved amount in.
-    ///
-    /// A parenthetical that opens with a negation trigger — "Tomate
-    /// (abgesehen vom Öl)" — is an exclusion clause, not an answered
-    /// amount, so it does not count. See `negationTriggerWords`.
-    fileprivate static func isAlreadyAnswered(at index: String.Index, in text: String) -> Bool {
-        var cursor = index
-        while cursor < text.endIndex, text[cursor] == " " { cursor = text.index(after: cursor) }
-        guard cursor < text.endIndex, text[cursor] == "(" else { return false }
-        let inside = text[text.index(after: cursor)...].lowercased()
-        return !negationTriggerWords.contains { inside.hasPrefix($0) }
-    }
-
-    /// Whether `range` sits directly inside a pair of parentheses — "(3 EL)"
-    /// — immediately preceded by `(` and immediately followed by `)`.
-    ///
-    /// An AI claim whose own written span already has this shape is not a
-    /// fresh finding: either the person wrote "Name (Menge)" themselves, or
-    /// this is exactly the shape a prior confirmation left behind (a
-    /// `replace`-shaped `AmountSuggestion` never adds its own parentheses —
-    /// it substitutes text in place, keeping whatever punctuation the
-    /// written amount already sat inside of). Without this check, the model
-    /// — which is specifically good at reading "Name (Menge)" order — would
-    /// re-find the same phrase on every enrichment pass and turn it back
-    /// into an unconfirmed suggestion, undoing the point of confirming it.
-    private static func isEnclosedInParens(_ range: Range<String.Index>, in text: String) -> Bool {
-        guard range.lowerBound > text.startIndex, range.upperBound < text.endIndex else { return false }
-        let before = text.index(before: range.lowerBound)
-        return text[before] == "(" && text[range.upperBound] == ")"
-    }
-
-    /// Words that turn what follows into an exclusion, not a use — "alles
-    /// abgesehen vom Öl" names the oil while saying not to touch it. Kept
-    /// in sync with the pattern `negatedRanges(in:)` builds below by hand,
-    /// since a `Regex` cannot be derived from this array without throwing.
-    private static let negationTriggerWords = ["abgesehen von", "abgesehen vom", "außer", "ausgenommen", "bis auf", "ohne"]
 
     /// The spans `text` explicitly excludes something in — from a trigger
     /// word like "abgesehen vom" to the end of that clause. A name found
@@ -1001,8 +1191,7 @@ public enum StepAmountResolver {
     /// joins it for the shortest names — "Öl" and "Tee" must stand alone,
     /// or they hit inside "Ölivenöl"-style compounds and "Teelöffel".
     fileprivate static func mentionedAsBareName(
-        _ name: String, in text: String, negated: [Range<String.Index>],
-        requiringWordStart: Bool = false, requiringWordEnd: Bool = false
+        _ name: String, in text: String, negated: [Range<String.Index>]
     ) -> Bool {
         var searchStart = text.startIndex
         while searchStart < text.endIndex,
@@ -1011,8 +1200,19 @@ public enum StepAmountResolver {
                 || !text[text.index(before: found.lowerBound)].isLetter
             let endsWord = found.upperBound == text.endIndex
                 || !text[found.upperBound].isLetter
-            if !requiringWordStart || startsWord, !requiringWordEnd || endsWord,
-               !negated.contains(where: { $0.overlaps(found) }), !isAlreadyAnswered(at: found.upperBound, in: text) {
+            // A name found inside a longer word only counts where that
+            // word still names the ingredient: at its start, and followed
+            // by nothing but an inflection or a prepared form. "Lauch"
+            // inside "Knoblauch" and "Salz" inside "Salzwasser" are
+            // different things; "Zwiebel" inside "Zwiebelwürfel" is not.
+            var wordEnd = found.upperBound
+            while wordEnd < text.endIndex, text[wordEnd].isLetter { wordEnd = text.index(after: wordEnd) }
+            // The shortest names get no such latitude: "Ei" plus an
+            // inflection is "ein", "Öl" plus a tail is a different oil.
+            let endsAcceptably = endsWord
+                || (name.count >= 4 && isInflectionOrPreparedForm(text[found.upperBound..<wordEnd]))
+            if startsWord, endsAcceptably,
+               !negated.contains(where: { $0.overlaps(found) }) {
                 return true
             }
             searchStart = found.upperBound
@@ -1065,19 +1265,19 @@ public enum StepAmountResolver {
         let fraction: Double
     }
 
-    /// Brute-force backtracking over which pot each mention claims, with
-    /// the ones that are not part of any bottleneck resolved outright by
-    /// having only one candidate to begin with.
+    /// Brute-force backtracking over which pot each written number claims,
+    /// with the ones that are not part of any bottleneck resolved outright
+    /// by having only one candidate to begin with.
     ///
     /// Ambiguity is only worth resolving where it changes the outcome: two
     /// solutions that both leave every mention with the same assignment are
     /// one solution as far as the cook is concerned, so only mentions whose
     /// assignment actually varies across the assignments claiming the most
     /// mentions are left unresolved.
-    private static func solve(domains: [[Candidate]], potCount: Int) -> [Int: Int] {
+    private static func solve(domains: [[Candidate]], potCount: Int) -> [Int: Candidate] {
         let order = domains.indices.sorted { domains[$0].count < domains[$1].count }
         var bestCount = -1
-        var bestSolutions: [[Int: Int]] = []
+        var bestSolutions: [[Int: Int]] = []  // mention index -> index into its domain
         var current: [Int: Int] = [:]
         var remaining = [Double](repeating: 1.0, count: potCount)
         var explored = 0
@@ -1099,10 +1299,10 @@ public enum StepAmountResolver {
             if bestCount >= 0, current.count + (order.count - position) < bestCount { return }
 
             let mentionIndex = order[position]
-            for candidate in domains[mentionIndex] {
+            for (candidateIndex, candidate) in domains[mentionIndex].enumerated() {
                 guard remaining[candidate.potIndex] + 1e-6 >= candidate.fraction else { continue }
                 remaining[candidate.potIndex] -= candidate.fraction
-                current[mentionIndex] = candidate.potIndex
+                current[mentionIndex] = candidateIndex
                 backtrack(position + 1)
                 current[mentionIndex] = nil
                 remaining[candidate.potIndex] += candidate.fraction
@@ -1113,9 +1313,9 @@ public enum StepAmountResolver {
         backtrack(0)
 
         guard let first = bestSolutions.first else { return [:] }
-        var resolved: [Int: Int] = [:]
-        for (mentionIndex, potIndex) in first where bestSolutions.allSatisfy({ $0[mentionIndex] == potIndex }) {
-            resolved[mentionIndex] = potIndex
+        var resolved: [Int: Candidate] = [:]
+        for (mentionIndex, candidateIndex) in first where bestSolutions.allSatisfy({ $0[mentionIndex] == candidateIndex }) {
+            resolved[mentionIndex] = domains[mentionIndex][candidateIndex]
         }
         return resolved
     }
@@ -1142,12 +1342,10 @@ public enum StepAmountResolver {
 
     private enum Operation {
         case replace(range: Range<String.Index>, text: String, resolved: Bool)
-        case insertAfter(point: String.Index, amount: String)
 
         var lowerBound: String.Index {
             switch self {
             case .replace(let range, _, _): range.lowerBound
-            case .insertAfter(let point, _): point
             }
         }
     }
@@ -1168,12 +1366,6 @@ public enum StepAmountResolver {
                 flush(to: range.lowerBound)
                 segments.append(resolved ? .amount(text) : .text(text))
                 cursor = range.upperBound
-            case .insertAfter(let point, let amount):
-                flush(to: point)
-                segments.append(.text(" ("))
-                segments.append(.amount(amount))
-                segments.append(.text(")"))
-                cursor = point
             }
         }
         flush(to: text.endIndex)
@@ -1183,6 +1375,33 @@ public enum StepAmountResolver {
     /// The primitive `AmountScaler` delegates to for text with no recipe
     /// context at all — every recognized unit scaled blindly, exactly as
     /// before the resolver existed.
+    /// Whether a number no ingredient line claims may still move with the
+    /// serving count. Two shapes never do, and on the library they were
+    /// more common among loose numbers than amounts were: a size ("in 3 cm
+    /// große Würfel", "Ø 26 cm") and an amount given per piece ("je ca. 90
+    /// g", "Bällchen, etwa 40 g schwer", "mit je 120 g Gewicht"). Doubling
+    /// the servings does not double the dice or the form.
+    static func scalesBlindly(_ unit: IngredientUnit, writtenRange: Range<String.Index>, in text: String) -> Bool {
+        if unit == .centimeter { return false }
+        let before = wordsBefore(writtenRange.lowerBound, in: text, count: 3)
+            .filter { !approximationWords.contains($0) }
+        if let last = before.last, perPieceLeadWords.contains(last) { return false }
+        let after = AmountMentionScanner.namePhrase(after: writtenRange.upperBound, in: text, maxWords: 3)
+            .split(separator: " ").map { $0.lowercased() }
+        if after.contains(where: { perPieceTrailWords.contains($0) }) { return false }
+        return true
+    }
+
+    private static let approximationWords: Set<String> = ["ca", "ca.", "etwa", "circa", "ungefähr", "rund", "gut", "knapp"]
+    private static let perPieceLeadWords: Set<String> = ["je", "jeweils", "pro", "à"]
+    private static let perPieceTrailWords: Set<String> = ["schwer", "gewicht", "durchmesser", "pro", "je"]
+
+    /// The last `count` words before `index`, lowercased, in text order.
+    private static func wordsBefore(_ index: String.Index, in text: String, count: Int) -> [String] {
+        let head = text[..<index]
+        return head.split(whereSeparator: { $0 == " " || $0 == "," }).suffix(count).map { $0.lowercased() }
+    }
+
     static func blindlyScaled(_ text: String, by factor: Double, formatter: QuantityFormatter) -> String {
         guard factor > 0, factor != 1 else { return text }
 
@@ -1197,6 +1416,7 @@ public enum StepAmountResolver {
 
             // An unrecognized word is not a unit — it is the thing being counted.
             guard case .custom = unit else {
+                guard scalesBlindly(unit, writtenRange: match.range, in: text) else { continue }
                 let scaled = Quantity(amount * factor, unit)
                 result.replaceSubrange(match.range, with: formatter.string(for: scaled))
                 continue
@@ -1255,114 +1475,51 @@ extension Recipe {
         catalog: IngredientCatalog = .bundled
     ) -> [RecipeIngredient] {
         let all = scaledIngredients(toServings: targetServings ?? servings)
-        let negated = StepAmountResolver.negatedRanges(in: step.text)
-        // The names other lines own outright, so a head noun never stands
-        // in where the list also says exactly that: with "rote Zwiebel"
-        // and "Zwiebeln" both listed, a bare "Zwiebel" means the latter.
-        let ownedKeys = Set(all.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) })
+        let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+        var result: [RecipeIngredient] = []
+        var covered = Set<UUID>()
 
-        // One walk over the step's capitalized words feeds two tiers the
-        // substring search cannot serve. The catalog tier: a word whose
-        // canonical entry is a line's — "Brühe" is an alias of
-        // "Gemüsebrühe", "Zwiebel" the singular of "Zwiebeln" — matches
-        // that line the way the resolver's own name matching always has.
-        // The compound tier, mirroring `compoundHeadPot` at line level: a
-        // word nothing owns outright, ending exactly one line's host word
-        // — "Tofu" reaching the line that says "Räuchertofu". Both are
-        // collected up front because ownership and uniqueness are
-        // questions about all lines at once, not about one at a time.
-        let ownersByCanonical = Dictionary(grouping: all) {
-            IngredientCatalog.normalize(catalog.canonicalName(for: $0.name))
+        // What the register says this step takes, as chips — the amount at
+        // the resolution's own serving count. An amount written in the
+        // sentence is rendered there instead, and a back-reference names
+        // what an earlier step already holds: neither gets a chip.
+        for intake in resolution.intakes(for: step) {
+            covered.formUnion(intake.ingredientLineIDs)
+            guard !intake.inline, !intake.isBackReference,
+                  let firstID = intake.ingredientLineIDs.first, var line = byID[firstID]
+            else { continue }
+            line.quantity = intake.quantity
+            if let label = intake.label { line.name = label }
+            result.append(line)
         }
-        let bundles: [(id: UUID, groupKey: String, canonical: String)] = all.compactMap { ingredient in
-            guard let group = catalog.groupIngredient(for: ingredient.name) else { return nil }
-            return (ingredient.id, group.key, IngredientCatalog.normalize(catalog.canonicalName(for: ingredient.name)))
-        }
-        let hosts: [(id: UUID, host: String)] = all.compactMap { ingredient in
-            let name = ingredient.name.trimmingCharacters(in: .whitespaces)
-            if let head = StepAmountResolver.headWord(of: name) {
-                return (ingredient.id, IngredientCatalog.normalize(catalog.canonicalName(for: head)))
-            }
-            guard !name.contains(" ") else { return nil }
-            return (ingredient.id, IngredientCatalog.normalize(catalog.canonicalName(for: name)))
-        }
-        var wordMatched = Set<UUID>()
-        for match in step.text.matches(of: /[\p{L}][\p{L}\-]*/) {
+
+        // Lines without a quantity never form a pot — "Salz", "Pfeffer" —
+        // so they are matched by name here, the way every chip once was.
+        let negated = StepAmountResolver.negatedRanges(in: step.text)
+        let ownedKeys = Set(all.map { IngredientCatalog.normalize(catalog.canonicalName(for: $0.name)) })
+        let words = step.text.matches(of: /[\p{L}][\p{L}\-]*/).compactMap { match -> String? in
             let word = step.text[match.range]
             guard word.first?.isUppercase == true,
-                  !negated.contains(where: { $0.contains(match.range.lowerBound) }),
-                  !StepAmountResolver.isAlreadyAnswered(at: match.range.upperBound, in: step.text)
-            else { continue }
-            if let owners = ownersByCanonical[IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))] {
-                wordMatched.formUnion(owners.map(\.id))
-                continue
-            }
-            // The bundle tier: the word names the parent (or a sibling) of
-            // exactly one listed variant — "Tomaten" reaching the line
-            // that says "Kirschtomaten". Two distinct variants of the same
-            // bundle, and the word means neither.
-            if let wordGroup = catalog.groupIngredient(for: String(word))?.key {
-                let members = bundles.filter { $0.groupKey == wordGroup }
-                if !members.isEmpty {
-                    if Set(members.map(\.canonical)).count == 1 {
-                        for member in members { wordMatched.insert(member.id) }
-                    }
-                    continue
-                }
-            }
-            // Head direction before stem direction, and an ambiguous head
-            // never falls through to a stem — same order, same reasons as
-            // `compoundHeadPot`.
-            var claimants = hosts.filter { StepAmountResolver.isCompoundHead(word, of: $0.host, catalog: catalog) }
-            if claimants.isEmpty {
-                claimants = hosts.filter { StepAmountResolver.isCompoundStem(word, of: $0.host, catalog: catalog) }
-            }
-            // Two lines spelling the same host are one supply, not an
-            // ambiguity — the pot dedupe below folds them back together.
-            if Set(claimants.map(\.host)).count == 1 {
-                for claimant in claimants { wordMatched.insert(claimant.id) }
-            }
+                  !negated.contains(where: { $0.contains(match.range.lowerBound) })
+            else { return nil }
+            return IngredientCatalog.normalize(catalog.canonicalName(for: String(word)))
         }
-
-        let matching = all.filter { ingredient in
-            guard !resolution.mentionsAmount(of: ingredient, in: step) else { return false }
-            let name = ingredient.name.trimmingCharacters(in: .whitespaces)
-            guard name.count >= 2 else { return false }
-            // The shortest names must stand alone as a word — "Öl" and
-            // "Tee" would otherwise hit inside "Kokosöl" and "Teelöffel".
-            let standalone = name.count < 4
-            if StepAmountResolver.mentionedAsBareName(
-                name, in: step.text, negated: negated,
-                requiringWordStart: standalone, requiringWordEnd: standalone
-            ) { return true }
-            if let head = StepAmountResolver.headWord(of: name),
-               !ownedKeys.contains(IngredientCatalog.normalize(catalog.canonicalName(for: head))),
-               StepAmountResolver.mentionedAsBareName(head, in: step.text, negated: negated, requiringWordStart: true) {
-                return true
+        for line in all where line.quantity == nil && !covered.contains(line.id) {
+            let name = line.name.trimmingCharacters(in: .whitespaces)
+            guard name.count >= 2 else { continue }
+            let canonical = catalog.canonicalName(for: name)
+            var mentioned = StepAmountResolver.mentionedAsBareName(name, in: step.text, negated: negated)
+                || words.contains(IngredientCatalog.normalize(canonical))
+            if !mentioned, canonical.count >= 4, canonical.lowercased() != name.lowercased() {
+                mentioned = StepAmountResolver.mentionedAsBareName(canonical, in: step.text, negated: negated)
             }
-            return wordMatched.contains(ingredient.id)
-        }
-
-        // Lines sharing a pot are one supply, and this list is answering
-        // "what does this step need" — two `150 g Butter` entries would read
-        // as 300 grams twice, not once. The first line stands for the pot,
-        // carrying the summed amount (its `id` stays, so a `ForEach` over
-        // this list keeps a stable identity).
-        var result: [RecipeIngredient] = []
-        var potPosition: [Int: Int] = [:]
-        for ingredient in matching {
-            guard let potIndex = resolution.potIndexByLineID[ingredient.id] else {
-                result.append(ingredient)
-                continue
+            if !mentioned, let head = StepAmountResolver.headWord(of: name),
+               !ownedKeys.contains(IngredientCatalog.normalize(catalog.canonicalName(for: head))) {
+                mentioned = StepAmountResolver.mentionedAsBareName(head, in: step.text, negated: negated)
             }
-            if let position = potPosition[potIndex] {
-                if let total = result[position].quantity, let quantity = ingredient.quantity,
-                   let sum = total.adding(quantity) {
-                    result[position].quantity = sum
-                }
-            } else {
-                potPosition[potIndex] = result.count
-                result.append(ingredient)
+            if mentioned {
+                covered.insert(line.id)
+                result.append(line)
             }
         }
         return result

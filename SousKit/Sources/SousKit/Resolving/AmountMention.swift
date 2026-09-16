@@ -8,10 +8,6 @@ import Foundation
 /// any, a mention actually belongs to is answered later, across the whole
 /// recipe at once: a step reading "die restlichen Kartoffeln" only means
 /// something once every other step's claim on the same line is known.
-///
-/// Public because ``AmountAIExtractor`` — a second, optional source of
-/// mentions living outside this module's regex scanner — builds these too,
-/// to hand `StepAmountResolver` exactly what the scanner would have found.
 public struct AmountMention {
     public enum Kind {
         /// A written amount with a recognized unit: "300 g", "1 EL".
@@ -21,11 +17,9 @@ public struct AmountMention {
         case bareCount(Double)
         /// A fixed share of the line's total, independent of the number the
         /// line itself scales to: "die Hälfte der Zwiebeln" is `0.5`, "ein
-        /// Drittel des Teigs" is `1.0 / 3.0`. Regex only ever writes `0.5`
-        /// here — the open-ended wording ("ein Viertel", "zwei Fünftel", …)
-        /// is exactly what `AmountAIExtractor` is for, since hand-listing
-        /// every fraction word regex would need to recognize is the same
-        /// brittleness the model exists to avoid.
+        /// Drittel des Teigs" is `1.0 / 3.0`, "2/3 der Heidelbeeren" is
+        /// `2.0 / 3.0`. The fraction words are a closed list — the library
+        /// uses Hälfte, Drittel and Viertel and nothing else.
         case fraction(Double)
         /// "die restlichen Kartoffeln" — whatever the other mentions of the
         /// same line have not already claimed.
@@ -80,9 +74,40 @@ enum AmountMentionScanner {
     static func mentions(in text: String) -> [AmountMention] {
         var result = numberMentions(in: text)
         result += parenthesizedMentions(in: text)
-        result += phraseMentions(of: /[Hh]älfte\s+(?:der|des|von)\s+/, kind: .fraction(0.5), in: text)
-        result += phraseMentions(of: /[Rr]estlich(?:e|en|es|er)\s+/, kind: .remaining, in: text)
+        result += phraseMentions(of: /[Hh]älfte\s+(?:der|des|den|dem|vom|von)\s+/, kind: .fraction(0.5), in: text)
+        // The other fraction words a recipe actually uses. A closed list
+        // on purpose: every one of these is grammar, not language, and
+        // the library holds no others — see the 2026-09-15 analysis.
+        result += phraseMentions(of: /(?:[Ee]in|1)\s+[Dd]rittel\s+(?:der|des|den|dem|vom|von)\s+/, kind: .fraction(1.0 / 3.0), in: text)
+        result += phraseMentions(of: /[Zz]wei\s+[Dd]rittel\s+(?:der|des|den|dem|vom|von)\s+/, kind: .fraction(2.0 / 3.0), in: text)
+        result += phraseMentions(of: /(?:[Ee]in|1)\s+[Vv]iertel\s+(?:der|des|den|dem|vom|von)\s+/, kind: .fraction(0.25), in: text)
+        result += phraseMentions(of: /[Dd]rei\s+[Vv]iertel\s+(?:der|des|den|dem|vom|von)\s+/, kind: .fraction(0.75), in: text)
+        result += writtenFractionMentions(in: text)
+        result += phraseMentions(of: /(?:[Rr]estlich|[Üü]brig)(?:e|en|es|er|em)\s+/, kind: .remaining, in: text)
+        result += phraseMentions(of: /(?:[Dd]en|[Dd]er|[Dd]as)\s+Rest\s+(?:der|des|vom|von)\s+/, kind: .remaining, in: text)
         return result.sorted { $0.writtenRange.lowerBound < $1.writtenRange.lowerBound }
+    }
+
+    /// "2/3 der Heidelbeeren" — a fraction written in digits, which
+    /// `numberMentions` cannot read because no unit word follows the
+    /// number.
+    private static func writtenFractionMentions(in text: String) -> [AmountMention] {
+        let pattern = /(\d)\s*\/\s*(\d)\s+(?:der|des|den|dem|vom|von)\s+/
+        var result: [AmountMention] = []
+        for match in text.matches(of: pattern) {
+            guard let numerator = Double(String(match.1)), let denominator = Double(String(match.2)), denominator > 0,
+                  numerator < denominator
+            else { continue }
+            let phrase = namePhrase(afterQualifiers: match.range.upperBound, in: text)
+            guard !phrase.isEmpty else { continue }
+            result.append(AmountMention(
+                kind: .fraction(numerator / denominator),
+                writtenRange: match.range,
+                replacesWrittenRange: false,
+                namePhrase: phrase
+            ))
+        }
+        return result
     }
 
     /// "300 g Kartoffeln" and "2 Kartoffeln" both start as a number
@@ -176,7 +201,7 @@ enum AmountMentionScanner {
     ) -> [AmountMention] {
         var result: [AmountMention] = []
         for match in text.matches(of: pattern) {
-            let phrase = namePhrase(after: match.range.upperBound, in: text)
+            let phrase = namePhrase(afterQualifiers: match.range.upperBound, in: text)
             guard !phrase.isEmpty else { continue }
             result.append(AmountMention(
                 kind: kind,
@@ -189,6 +214,24 @@ enum AmountMentionScanner {
             ))
         }
         return result
+    }
+
+    /// The name phrase after `index`, skipping the qualifiers a cook puts
+    /// between a share word and the name: "restliche **gekühlte**
+    /// Pinienkerne", "die Hälfte des **noch warmen** Milchreises". German
+    /// capitalizes its nouns, so a lowercase word before another word is a
+    /// qualifier and never the name itself; the last word is kept whatever
+    /// its case, so a phrase is never skipped down to nothing.
+    static func namePhrase(afterQualifiers index: String.Index, in text: String) -> Substring {
+        var start = index
+        while true {
+            let word = namePhrase(after: start, in: text, maxWords: 1)
+            guard let first = word.first, first.isLowercase else { break }
+            let next = namePhrase(after: word.endIndex, in: text, maxWords: 1)
+            guard !next.isEmpty else { break }
+            start = word.endIndex
+        }
+        return namePhrase(after: start, in: text)
     }
 
     /// Up to four words right after `index` — enough for any ingredient

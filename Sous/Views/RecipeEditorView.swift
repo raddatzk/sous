@@ -30,11 +30,11 @@ struct RecipeEditorView: View {
     /// cannot hand its focus state to a child to own directly.
     @State private var isEditingIngredients = false
     @State private var isEditingInstructions = false
-    /// How many amounts the resolver could write into the draft's steps —
-    /// the editor's own copy of the detail view's review count, kept in
-    /// state so a keystroke re-renders without re-resolving inline.
-    @State private var amountSuggestionCount = 0
-    @State private var isReviewingAmounts = false
+    /// What the resolver made of the steps, in the instructions editor's own
+    /// offsets — drawn under the words it made it of, so the writer can see
+    /// what the app read out of a sentence. Display only: the text is never
+    /// changed by the app.
+    @State private var stepMarks: [RecipeStepMarkup.Mark] = []
     /// What the cook chose to teach the app about an unknown ingredient.
     ///
     /// Held by the editor rather than by the chip that was tapped: on iPhone
@@ -43,20 +43,6 @@ struct RecipeEditorView: View {
     /// torn down is the one that dies under the next tap. See
     /// ``IngredientTeaching``.
     @State private var ingredientTeaching: IngredientTeaching?
-    /// The resolve the review sheet is working on, taken once when it opens.
-    ///
-    /// Held rather than computed in the sheet's own builder, where it was
-    /// re-resolved on every re-render of the editor behind it. Each resolve
-    /// mints fresh suggestion ids, so the sheet's ticks — seeded from the
-    /// first one — stopped naming anything the moment a keystroke or a
-    /// finished count re-rendered it.
-    @State private var amountReviewResolution: StepAmountResolver.Resolution?
-    /// The amount questions turned down for good — what was already on
-    /// record when the editor opened, plus whatever this session's review
-    /// added. Held here rather than written on the spot because the draft is
-    /// not the saved recipe yet: writing a decision about text that may still
-    /// be abandoned would settle a question the cook never asked.
-    @State private var declinedAmountKeys: Set<String> = []
     /// Which of the plain fields is being typed in, so that "Fertig" above
     /// the keyboard has something to let go of. The two big editors are not
     /// in here: they are a `UITextView` and mirror their focus separately,
@@ -127,35 +113,15 @@ struct RecipeEditorView: View {
                     insert(link: picked, at: target)
                 }
             }
-            .sheet(isPresented: $isReviewingAmounts) {
-                // The resolve taken when the sheet was asked for, so the apply
-                // works against the exact list the sheet was showing.
-                if let amountReviewResolution {
-                    AmountReviewSheet(recipe: draft, resolution: amountReviewResolution) { outcome in
-                        guard let outcome else { return }
-                        // Both halves of the answer, where this used to keep
-                        // only the first: unticking a line here meant nothing
-                        // at all, so the banner on the recipe was back the
-                        // moment the editor closed.
-                        declinedAmountKeys.formUnion(outcome.declined)
-                        draft = amountReviewResolution.applying(
-                            outcome.accepted, corrections: outcome.corrections, to: draft
-                        )
-                    }
-                }
-            }
-            // Recounted off the render path whenever the text settles —
-            // the editor's version of the detail view's review banner.
+            // Recounted off the render path whenever the text settles.
             .task(id: "\(draft.ingredientsText)|\(draft.instructionsText)|\(draft.servings)") {
-                amountSuggestionCount = StepAmountResolver.resolve(draft, toServings: draft.servings)
-                    .excluding(declined: declinedAmountKeys)
-                    .allSuggestions.count
+                let resolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
+                stepMarks = RecipeStepMarkup.marks(
+                    in: draft.instructionsText, of: draft, resolution: resolution
+                )
             }
             .ingredientTeaching($ingredientTeaching)
             .task { await catalog.reload() }
-            // What the recipe has already been answered "no" about, so the
-            // editor's own count and review sheet agree with the recipe's.
-            .task { declinedAmountKeys = await library.declinedAmountKeys(for: draft.id) }
         }
         // A recipe is written, not glanced at.
         .sousSheetSizing(.page)
@@ -516,9 +482,6 @@ struct RecipeEditorView: View {
                 keyboardBarChrome {
                     HStack(spacing: 16) {
                         instructionLinkButton
-                        if amountSuggestionCount > 0 {
-                            amountLintButton
-                        }
                         Spacer(minLength: 0)
                         dismissEditorButton { isEditingInstructions = false }
                     }
@@ -666,19 +629,25 @@ struct RecipeEditorView: View {
                 text: $draft.instructionsText,
                 cursorOffset: $instructionsCursor,
                 isFocused: $isEditingInstructions,
-                restyle: RecipeTextEditorStyle.instructions
+                styleVersion: stepMarks.hashValue,
+                restyle: RecipeTextEditorStyle.instructions(marking: stepMarks)
             )
             .frame(minHeight: 70, alignment: .top)
             if !isCompactPhone {
                 instructionLinkButton
-                if amountSuggestionCount > 0 {
-                    amountLintButton
-                }
             }
         } header: {
             sectionHeader("Zubereitung")
         } footer: {
-            Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
+                // Only once there is something marked: on a step text the
+                // resolver made nothing of, a legend explains a colour that
+                // is not on the screen.
+                if !stepMarks.isEmpty {
+                    Text("Farbige Mengen und Zutaten hat die App einer Zutatenzeile zugeordnet, blass gefärbte Zutaten hat ein früherer Schritt schon geholt. Grau gepunktet ist eine Menge ohne passende Zutat.")
+                }
+            }
         }
     }
 
@@ -688,22 +657,6 @@ struct RecipeEditorView: View {
     private var instructionLinkButton: some View {
         Button("Rezept verlinken", systemImage: "link") {
             linkTarget = .instructions
-        }
-    }
-
-    /// The editor's amount lint — the same finding the detail view banners
-    /// after the fact, offered while the text is still being written: steps
-    /// that name an ingredient without giving it an amount.
-    private var amountLintButton: some View {
-        Button(
-            amountSuggestionCount == 1
-                ? "1 Menge könnte ergänzt werden"
-                : "\(amountSuggestionCount) Mengen könnten ergänzt werden",
-            systemImage: "text.badge.checkmark"
-        ) {
-            amountReviewResolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
-                .excluding(declined: declinedAmountKeys)
-            isReviewingAmounts = true
         }
     }
 
@@ -805,16 +758,8 @@ struct RecipeEditorView: View {
             to: recipe.categories,
             known: library.categories
         )
-        let declined = declinedAmountKeys
         Task {
             await onSave(recipe)
-            // After the save, and only if the cook actually answered
-            // something: the review sheet reached from here used to drop its
-            // answers on the floor, so a recipe reviewed while editing asked
-            // the whole list again on the way back out.
-            if !declined.isEmpty {
-                await library.markAmountsReviewed(recipe, declining: declined)
-            }
             dismiss()
         }
     }

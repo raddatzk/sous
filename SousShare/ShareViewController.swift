@@ -182,8 +182,7 @@ final class Libraries {
         recipes = RecipeLibrary(
             store: recipeStore,
             imageStore: CoreDataRecipeImageStore(container: coreData),
-            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: CoreDataRecipeAmountReviewStore(container: coreData)
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
         // The extension never runs the migrations — it may well be the first
         // thing to open the store after an update. Writing a vocabulary entry

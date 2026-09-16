@@ -203,8 +203,7 @@ struct RecipeImportLibraryTests {
         let library = RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: images,
-            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
         return (library, images)
     }

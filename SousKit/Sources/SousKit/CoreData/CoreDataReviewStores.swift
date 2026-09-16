@@ -88,34 +88,6 @@ private extension CDReviewMark {
     }
 }
 
-/// A ``RecipeAmountReviewStore`` backed by Core Data.
-public final class CoreDataRecipeAmountReviewStore: RecipeAmountReviewStore, @unchecked Sendable {
-    private let marks: CoreDataReviewMarkStore
-
-    public init(container: NSPersistentContainer) {
-        marks = CoreDataReviewMarkStore(
-            container: container,
-            entityName: SousManagedObjectModel.amountReviewEntityName
-        )
-    }
-
-    public func reviewedHash(for recipeID: UUID) async throws -> String? {
-        try await marks.reviewedHash(for: recipeID)
-    }
-
-    public func markReviewed(_ recipe: Recipe, declining: Set<String>) async throws {
-        try await marks.markReviewed(recipe, declining: declining)
-    }
-
-    public func declinedKeys(for recipeID: UUID) async throws -> Set<String> {
-        try await marks.declinedKeys(for: recipeID)
-    }
-
-    public func delete(recipeID: UUID) async throws {
-        try await marks.delete(recipeID: recipeID)
-    }
-}
-
 /// A ``RecipeIngredientReviewStore`` backed by Core Data.
 public final class CoreDataRecipeIngredientReviewStore: RecipeIngredientReviewStore, @unchecked Sendable {
     private let marks: CoreDataReviewMarkStore

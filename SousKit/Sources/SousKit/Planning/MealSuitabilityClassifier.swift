@@ -55,8 +55,8 @@ public enum MealSuitabilityError: Error, LocalizedError {
 }
 
 /// Guesses which meals a recipe suits, for recipes whose
-/// ``Recipe/suitableSlots`` nobody has set. The same division of labour as
-/// ``AmountAIExtractor``: this is genuinely a question about language and
+/// ``Recipe/suitableSlots`` nobody has set. The division of labour VISION.md
+/// asks for: this is genuinely a question about language and
 /// the world — nothing in "Porridge mit Beeren" says breakfast except
 /// knowing what porridge is — so it goes to the model, once per recipe,
 /// and the answer is cached in ``RecipeEnrichmentStore`` until the words

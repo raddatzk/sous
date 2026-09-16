@@ -30,11 +30,8 @@ struct RecipeRow: View {
 
     @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
-    /// Whether this recipe still has amount suggestions nobody has looked
-    /// at — a plain, non-AI resolver read, cheap enough to run per row.
-    @State private var needsAmountReview = false
-    /// A cache read, same as `needsAmountReview` — cheap once nutrition has
-    /// been computed for this recipe once.
+    /// A cache read — cheap once nutrition has been computed for this
+    /// recipe once.
     @State private var kcalPerPortion: Int?
     /// Whether that figure covers every accountable ingredient — an
     /// incomplete one is still shown, but never naked.
@@ -61,9 +58,6 @@ struct RecipeRow: View {
             case .row: rowShape
             case .card: cardShape
             }
-        }
-        .task(id: recipe.id) {
-            needsAmountReview = await library.needsAmountReview(recipe)
         }
         .task(id: recipe.id) {
             // Without a resolver for linked recipes: a row would have to go
@@ -199,12 +193,6 @@ struct RecipeRow: View {
                 .foregroundStyle(.tint)
                 .imageScale(.small)
                 .accessibilityLabel("Will ich kochen")
-        }
-        if needsAmountReview {
-            Image(systemName: "text.badge.checkmark")
-                .foregroundStyle(.secondary)
-                .imageScale(.small)
-                .accessibilityLabel("Mengen zu prüfen")
         }
         if needsIngredientReview {
             Image(systemName: "text.book.closed")

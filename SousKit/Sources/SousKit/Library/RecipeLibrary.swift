@@ -23,19 +23,12 @@ public final class RecipeLibrary {
         }
     }
 
-    /// One AI enrichment finishing — see `lastEnrichment`.
-    public struct EnrichmentEvent: Equatable, Sendable {
-        public let recipeID: UUID
-        let generation: Int
-    }
-
     private let store: any RecipeStore
     private let imageStore: any RecipeImageStore
     private let enrichmentStore: any RecipeEnrichmentStore
-    private let amountReviewStore: any RecipeAmountReviewStore
     /// `nil` in tests that have no reason to care about the nutrition cache
     /// — only `erase(_:)` ever touches it, to clean up after a deleted
-    /// recipe the way it already does for the enrichment and review caches.
+    /// recipe the way it already does for the enrichment cache.
     private let nutritionStore: (any RecipeNutritionStore)?
     /// `nil` where nothing cares whether a recipe's ingredients have been
     /// checked against the catalog — `needsIngredientReview` then always
@@ -69,15 +62,6 @@ public final class RecipeLibrary {
     /// two — every picture is read back at full size.
     public private(set) var exportProgress: RecipeImportProgress?
 
-    /// The most recent recipe an AI enrichment finished for, so a view
-    /// already open on that recipe can notice without polling — see
-    /// `scheduleEnrichment(for:)`. Distinct on every completion, even a
-    /// second one for the same recipe, which is why this carries a
-    /// generation rather than being a plain `UUID?`: setting the exact
-    /// same value twice would not trigger `.onChange` a second time.
-    public private(set) var lastEnrichment: EnrichmentEvent?
-    private var enrichmentGeneration = 0
-
     public var searchText = "" { didSet { scheduleReload(if: oldValue != searchText) } }
     public var filter: Filter = .all { didSet { scheduleReload(if: oldValue != filter) } }
     /// Ingredients and categories recognized in what was typed, applied as
@@ -90,7 +74,6 @@ public final class RecipeLibrary {
         store: any RecipeStore,
         imageStore: any RecipeImageStore,
         enrichmentStore: any RecipeEnrichmentStore,
-        amountReviewStore: any RecipeAmountReviewStore,
         nutritionStore: (any RecipeNutritionStore)? = nil,
         ingredientReviewStore: (any RecipeIngredientReviewStore)? = nil,
         catalogLibrary: IngredientCatalogLibrary? = nil
@@ -98,7 +81,6 @@ public final class RecipeLibrary {
         self.store = store
         self.imageStore = imageStore
         self.enrichmentStore = enrichmentStore
-        self.amountReviewStore = amountReviewStore
         self.nutritionStore = nutritionStore
         self.ingredientReviewStore = ingredientReviewStore
         self.catalogLibrary = catalogLibrary
@@ -388,151 +370,9 @@ public final class RecipeLibrary {
             // than lingering as orphans nothing references.
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: recipe.imageIDs)
             await reload()
-            scheduleEnrichment(for: recipe)
         } catch {
             report(error)
         }
-    }
-
-    // MARK: - AI mentions
-
-    /// What `AmountAIExtractor` found the last time it ran, if the recipe's
-    /// ingredients and instructions haven't changed since — a plain cache
-    /// read, never a model call, so a view can call this from `.task`
-    /// without worrying about cost.
-    public func aiMentions(for recipe: Recipe) async -> [UUID: [AmountMention]] {
-        guard let claims = try? await enrichmentStore.claims(for: recipe) else { return [:] }
-        return AmountAIExtractor.mentions(from: claims.map(\.asExtractedQuantity), steps: recipe.steps)
-    }
-
-    /// Calls the model regardless of what is cached, and replaces the
-    /// cache with what it finds — the explicit "try again" a person can
-    /// reach for, as opposed to the automatic pass `save(_:)` schedules.
-    @discardableResult
-    public func refreshAIMentions(for recipe: Recipe) async throws -> [UUID: [AmountMention]] {
-        let claims = try await AmountAIExtractor.extractClaims(from: recipe)
-        try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
-        recordEnrichment(for: recipe.id)
-        return AmountAIExtractor.mentions(from: claims, steps: recipe.steps)
-    }
-
-    /// Runs after a save, not as part of it: `save(_:)` returns exactly as
-    /// fast as before, since a toggled favorite goes through here too and
-    /// must not wait on a model call it does not need.
-    ///
-    /// Skips the call entirely when the cache already matches this
-    /// recipe's text — the only reason `save(_:)` fires this often is that
-    /// favoriting, marking "will ich kochen" and cooking-through all save
-    /// too, and none of them touch the ingredients or instructions.
-    private func scheduleEnrichment(for recipe: Recipe) {
-        Task { [weak self, enrichmentStore] in
-            if (try? await enrichmentStore.claims(for: recipe)) != nil { return }
-            guard let claims = try? await AmountAIExtractor.extractClaims(from: recipe) else { return }
-            try? await enrichmentStore.save(claims.map(StoredAmountClaim.init), for: recipe)
-            self?.recordEnrichment(for: recipe.id)
-        }
-    }
-
-    /// Stamps a fresh generation so `.onChange(of: library.lastEnrichment)`
-    /// fires even for a second enrichment of the same recipe — an `EnrichmentEvent`
-    /// equal to the last one would not trigger a change at all.
-    private func recordEnrichment(for recipeID: UUID) {
-        enrichmentGeneration += 1
-        lastEnrichment = EnrichmentEvent(recipeID: recipeID, generation: enrichmentGeneration)
-    }
-
-    // MARK: - Amount review
-
-    /// The suggestions the resolver could not write in on its own, paired
-    /// with the resolution they came from — applying an accepted one needs
-    /// that exact resolution back, since it carries where in the text each
-    /// suggestion belongs.
-    ///
-    /// A plain read, cheap enough for a list row's `.task`: no model call,
-    /// just the same regex/pot logic the detail and cook views already run
-    /// on every open.
-    public func amountSuggestions(for recipe: Recipe) async -> (resolution: StepAmountResolver.Resolution, suggestions: [AmountSuggestion]) {
-        let mentions = await aiMentions(for: recipe)
-        let resolved = StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
-        // The ones the cook has already said no to are gone from here on:
-        // this is the one door the banner, the list marker and the sheet all
-        // come through, so a settled question cannot slip back in through
-        // one of them.
-        let declined = (try? await amountReviewStore.declinedKeys(for: recipe.id)) ?? []
-        let resolution = resolved.excluding(declined: declined)
-        return (resolution, resolution.allSuggestions)
-    }
-
-    /// Whether `recipe` has suggestions nobody has answered yet for its
-    /// current text — the recipe list's marker and the detail view's
-    /// banner both ask this.
-    public func needsAmountReview(_ recipe: Recipe) async -> Bool {
-        let (_, suggestions) = await amountSuggestions(for: recipe)
-        guard !suggestions.isEmpty else { return false }
-        let reviewed = try? await amountReviewStore.reviewedHash(for: recipe.id)
-        return reviewed != RecipeContentHash.hash(for: recipe)
-    }
-
-    /// Marks `recipe` reviewed against its current text — called whether
-    /// the cook accepted some suggestions or dismissed the screen without
-    /// changing anything at all; either way, nothing about this exact text
-    /// should be asked about again.
-    ///
-    /// `declining` are the questions turned down for good rather than just
-    /// for this text: they survive later edits elsewhere in the recipe, which
-    /// the content hash on its own cannot. Passing none is the "Nicht jetzt"
-    /// answer, and leaves the ones already turned down where they are.
-    public func markAmountsReviewed(_ recipe: Recipe, declining: Set<String> = []) async {
-        try? await amountReviewStore.markReviewed(recipe, declining: await remembered(declining, for: recipe))
-    }
-
-    /// The questions already turned down for good, for a caller that resolves
-    /// a recipe itself rather than going through ``amountSuggestions(for:)``
-    /// — the editor, which works on an unsaved draft.
-    public func declinedAmountKeys(for recipeID: UUID) async -> Set<String> {
-        (try? await amountReviewStore.declinedKeys(for: recipeID)) ?? []
-    }
-
-    /// What to write as `recipe`'s declined set: the new answers, plus the
-    /// old ones the recipe still asks.
-    ///
-    /// Old keys are dropped rather than kept forever. A key names a sentence,
-    /// and a sentence that has been rewritten away is not a question anybody
-    /// can answer again — keeping it would grow the row by every edit the
-    /// recipe ever saw, for nothing.
-    private func remembered(_ declining: Set<String>, for recipe: Recipe) async -> Set<String> {
-        let previous = (try? await amountReviewStore.declinedKeys(for: recipe.id)) ?? []
-        guard !previous.isEmpty else { return declining }
-        let mentions = await aiMentions(for: recipe)
-        let asked = Set(
-            StepAmountResolver.resolve(recipe, toServings: recipe.servings, additionalMentions: mentions)
-                .allSuggestions.map(\.declineKey)
-        )
-        return declining.union(previous.intersection(asked))
-    }
-
-    /// Writes the accepted suggestions into `recipe`'s steps, saves it, and
-    /// marks the result reviewed — the only path a suggestion ever takes
-    /// from a guess to real text. `corrections` carries whatever the cook
-    /// edited a suggestion's amount to before accepting it, keyed by
-    /// suggestion id — see `StepAmountResolver.Resolution.applying(_:
-    /// corrections:to:)`. Returns the updated recipe, since the caller's own
-    /// copy is now stale the moment this returns.
-    @discardableResult
-    public func applyAmountSuggestions(
-        _ accepted: Set<AmountSuggestion.ID>,
-        corrections: [AmountSuggestion.ID: String] = [:],
-        declining: Set<String> = [],
-        resolution: StepAmountResolver.Resolution,
-        to recipe: Recipe
-    ) async -> Recipe {
-        let updated = resolution.applying(accepted, corrections: corrections, to: recipe)
-        await save(updated)
-        // Against the updated recipe: accepting a suggestion rewrites the
-        // sentence it was about, so the keys still worth keeping are the ones
-        // the *new* text asks.
-        try? await amountReviewStore.markReviewed(updated, declining: await remembered(declining, for: updated))
-        return updated
     }
 
     // MARK: - Ingredient review
@@ -621,9 +461,6 @@ public final class RecipeLibrary {
             let variant = recipe.variantCopy(title: title, in: groupID)
             try await store.save(variant)
             await reload()
-            // Saved separately from the copy above, because the enrichment
-            // pass keys off the text and the copy's text is the original's.
-            scheduleEnrichment(for: variant)
             return variant
         } catch {
             report(error)
@@ -893,7 +730,6 @@ public final class RecipeLibrary {
         do {
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
             try? await enrichmentStore.delete(recipeID: recipe.id)
-            try? await amountReviewStore.delete(recipeID: recipe.id)
             try? await nutritionStore?.delete(recipeID: recipe.id)
             try? await ingredientReviewStore?.delete(recipeID: recipe.id)
             try await store.erase(id: recipe.id)

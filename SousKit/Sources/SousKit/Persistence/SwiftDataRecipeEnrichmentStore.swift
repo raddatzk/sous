@@ -4,23 +4,6 @@ import SwiftData
 /// A ``RecipeEnrichmentStore`` backed by SwiftData.
 @ModelActor
 public actor SwiftDataRecipeEnrichmentStore: RecipeEnrichmentStore {
-    public func claims(for recipe: Recipe) async throws -> [StoredAmountClaim]? {
-        guard let stored = try stored(recipeID: recipe.id),
-              stored.contentHash == RecipeContentHash.hash(for: recipe)
-        else { return nil }
-        return stored.claims
-    }
-
-    public func save(_ claims: [StoredAmountClaim], for recipe: Recipe) async throws {
-        let hash = RecipeContentHash.hash(for: recipe)
-        if let existing = try stored(recipeID: recipe.id) {
-            existing.apply(contentHash: hash, claims: claims)
-        } else {
-            modelContext.insert(StoredRecipeEnrichment(recipeID: recipe.id, contentHash: hash, claims: claims))
-        }
-        try modelContext.save()
-    }
-
     public func suitabilityGuess(for recipeID: UUID, inputHash: String) async throws -> Set<MealSlot>? {
         guard let stored = try stored(recipeID: recipeID),
               stored.suitabilityInputHash == inputHash
@@ -32,10 +15,7 @@ public actor SwiftDataRecipeEnrichmentStore: RecipeEnrichmentStore {
         if let existing = try stored(recipeID: recipeID) {
             existing.applySuitability(inputHash: inputHash, guess: guess)
         } else {
-            // A row born for the guess alone: its claim hash stays empty,
-            // which can never match a real recipe, so the claims side keeps
-            // reading as "nothing cached".
-            let row = StoredRecipeEnrichment(recipeID: recipeID, contentHash: "", claims: [])
+            let row = StoredRecipeEnrichment(recipeID: recipeID)
             row.applySuitability(inputHash: inputHash, guess: guess)
             modelContext.insert(row)
         }
@@ -50,10 +30,7 @@ public actor SwiftDataRecipeEnrichmentStore: RecipeEnrichmentStore {
         if let existing = try stored(recipeID: recipeID) {
             existing.decline(kind)
         } else {
-            // Same as the guess above: an empty claim hash never matches a
-            // real recipe, so a row born for a decline says nothing about
-            // claims.
-            let row = StoredRecipeEnrichment(recipeID: recipeID, contentHash: "", claims: [])
+            let row = StoredRecipeEnrichment(recipeID: recipeID)
             row.decline(kind)
             modelContext.insert(row)
         }

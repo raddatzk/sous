@@ -81,7 +81,6 @@ struct SousApp: App {
             let vocabulary = CoreDataVocabularyStore(container: coreData)
             let plan = CoreDataMealPlanStore(container: coreData)
             let shoppingStore = CoreDataShoppingListStore(container: coreData)
-            let amountReviews = CoreDataRecipeAmountReviewStore(container: coreData)
             let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
 
             households = CoreDataHouseholds(container: coreData)
@@ -92,7 +91,6 @@ struct SousApp: App {
                 mealPlan: SwiftDataMealPlanStore(modelContainer: container),
                 vocabulary: SwiftDataVocabularyStore(modelContainer: container),
                 shopping: SwiftDataShoppingListStore(modelContainer: container),
-                amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
                 ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
             )
             migrationDestination = RecipeStoreMigration.Destination(
@@ -101,7 +99,6 @@ struct SousApp: App {
                 mealPlan: plan,
                 vocabulary: vocabulary,
                 shopping: shoppingStore,
-                amountReviews: amountReviews,
                 ingredientReviews: ingredientReviews
             )
 
@@ -121,7 +118,6 @@ struct SousApp: App {
                 store: recipes,
                 imageStore: images,
                 enrichmentStore: enrichmentStore,
-                amountReviewStore: amountReviews,
                 nutritionStore: nutritionStore,
                 ingredientReviewStore: ingredientReviews,
                 catalogLibrary: catalogLibrary

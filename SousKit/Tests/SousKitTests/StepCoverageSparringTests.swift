@@ -164,9 +164,6 @@ struct StepCoverageSparringTests {
             for line in lines where resolution.mentionsAmount(of: line, in: step) {
                 reached.insert(potKey(group: line.group, name: line.name, catalog: catalog))
             }
-            for suggestion in resolution.suggestions(for: step) {
-                reached.insert(potKey(group: nil, name: suggestion.ingredientName, catalog: catalog))
-            }
             for chip in recipe.ingredients(mentionedIn: step, resolution: resolution) {
                 reached.insert(potKey(group: chip.group, name: chip.name, catalog: catalog))
             }

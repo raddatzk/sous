@@ -11,8 +11,7 @@ struct RecipeLibraryTests {
         let store = SwiftDataRecipeStore(modelContainer: container)
         let images = SwiftDataRecipeImageStore(modelContainer: container)
         let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
-        let amountReview = SwiftDataRecipeAmountReviewStore(modelContainer: container)
-        return (RecipeLibrary(store: store, imageStore: images, enrichmentStore: enrichment, amountReviewStore: amountReview), store)
+        return (RecipeLibrary(store: store, imageStore: images, enrichmentStore: enrichment), store)
     }
 
     @Test("The query mirrors the selected filters")
@@ -44,8 +43,7 @@ struct RecipeLibraryTests {
         let library = RecipeLibrary(
             store: store,
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: enrichment,
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            enrichmentStore: enrichment
         )
 
         let stated = try await store.save(Recipe(title: "Porridge", suitableSlots: [.breakfast]))
@@ -75,8 +73,7 @@ struct RecipeLibraryTests {
         let library = RecipeLibrary(
             store: store,
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: enrichment,
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            enrichmentStore: enrichment
         )
 
         var recipe = try await store.save(Recipe(title: "Overnight Oats", ingredientsText: "Haferflocken"))
@@ -219,8 +216,7 @@ struct RecipeTrashTests {
             RecipeLibrary(
                 store: SwiftDataRecipeStore(modelContainer: container),
                 imageStore: images,
-                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-                amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+                enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
             ),
             images
         )
@@ -285,243 +281,6 @@ struct RecipeTrashTests {
 }
 
 @MainActor
-@Suite("AI mentions caching")
-struct RecipeLibraryAIMentionsTests {
-    private func makeLibrary() throws -> (library: RecipeLibrary, enrichment: SwiftDataRecipeEnrichmentStore) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
-        let library = RecipeLibrary(
-            store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: enrichment,
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
-        )
-        return (library, enrichment)
-    }
-
-    @Test("A cached mention comes back through the library, resolved for the current recipe")
-    func readsWhatIsCached() async throws {
-        let (library, enrichment) = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "1 kg Kartoffel",
-            instructionsText: "300 g Kartoffeln kochen."
-        )
-        try await enrichment.save(
-            [StoredAmountClaim(quantityText: "300 g", modifiedNoun: "Kartoffeln", kind: .absolute, fractionValue: nil, stepNumber: 1)],
-            for: recipe
-        )
-
-        let mentions = await library.aiMentions(for: recipe)
-        #expect(mentions[recipe.steps[0].id]?.count == 1)
-    }
-
-    @Test("Nothing cached yet is an empty result, not an error")
-    func emptyWhenNothingCached() async throws {
-        let (library, _) = try makeLibrary()
-        let recipe = Recipe(title: "Ofengemüse", instructionsText: "Gemüse schneiden.")
-        #expect(await library.aiMentions(for: recipe).isEmpty)
-    }
-
-    @Test("A metadata-only save — toggling a favorite — leaves an already-cached result untouched")
-    func metadataOnlySaveDoesNotDisturbTheCache() async throws {
-        let (library, enrichment) = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "1 kg Kartoffel",
-            instructionsText: "300 g Kartoffeln kochen."
-        )
-        await library.save(recipe)
-        let claims = [StoredAmountClaim(quantityText: "300 g", modifiedNoun: "Kartoffeln", kind: .absolute, fractionValue: nil, stepNumber: 1)]
-        try await enrichment.save(claims, for: recipe)
-
-        // Toggling a favorite goes through `save(_:)` too, but never touches
-        // the ingredients or instructions — the cache must still match.
-        guard let stored = library.recipes.first else {
-            Issue.record("Expected the saved recipe to be in the library")
-            return
-        }
-        await library.toggleFavorite(stored)
-
-        #expect(try await enrichment.claims(for: recipe) == claims)
-    }
-
-    @Test("Two enrichments of the same recipe are never equal, so a still-open view's onChange always fires")
-    func enrichmentEventsForTheSameRecipeAreDistinct() {
-        let recipeID = UUID()
-        let first = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 1)
-        let second = RecipeLibrary.EnrichmentEvent(recipeID: recipeID, generation: 2)
-        #expect(first != second)
-    }
-}
-
-@MainActor
-@Suite("Amount review")
-struct RecipeLibraryAmountReviewTests {
-    private func makeLibrary() throws -> RecipeLibrary {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        return RecipeLibrary(
-            store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
-        )
-    }
-
-    @Test("A freshly imported recipe with a bare mention needs review")
-    func freshRecipeNeedsReview() async throws {
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        #expect(await library.needsAmountReview(recipe))
-    }
-
-    @Test("A recipe with nothing bare to suggest never needs review")
-    func recipeWithNoSuggestionsNeedsNoReview() async throws {
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "150 g Butter erhitzen."
-        )
-        #expect(!(await library.needsAmountReview(recipe)))
-    }
-
-    @Test("Applying accepted suggestions writes them in and settles the review")
-    func applyingSuggestionsSettlesTheReview() async throws {
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        let (resolution, suggestions) = await library.amountSuggestions(for: recipe)
-        #expect(suggestions.count == 1)
-
-        await library.applyAmountSuggestions(Set(suggestions.map(\.id)), resolution: resolution, to: recipe)
-
-        guard let saved = library.recipes.first else {
-            Issue.record("Expected the recipe to be saved")
-            return
-        }
-        #expect(saved.instructionsText.contains("Die Butter (150 g) erhitzen."))
-        #expect(!(await library.needsAmountReview(saved)))
-    }
-
-    @Test("Dismissing without any change also settles the review, for the text as it stands")
-    func dismissingWithoutChangesSettlesTheReview() async throws {
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        await library.markAmountsReviewed(recipe)
-        #expect(!(await library.needsAmountReview(recipe)))
-    }
-
-    @Test("Editing the recipe again after a review reopens the question")
-    func furtherEditingReopensTheReview() async throws {
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        await library.markAmountsReviewed(recipe)
-
-        var edited = recipe
-        edited.ingredientsText = "150 g Butter\n1 Ei"
-        edited.instructionsText = "Die Butter erhitzen. Das Ei verquirlen."
-        #expect(await library.needsAmountReview(edited))
-    }
-
-    @Test("An amount turned down stays turned down when the recipe is edited elsewhere")
-    func aDeclinedAmountSurvivesLaterEdits() async throws {
-        // The gap the content hash left. It settles a recipe against its
-        // exact text, which is right for "I have looked at these" and wrong
-        // for "not this one": one further line anywhere and every amount the
-        // cook had already waved off was being offered again.
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        let (_, suggestions) = await library.amountSuggestions(for: recipe)
-        let butter = try #require(suggestions.first)
-
-        await library.markAmountsReviewed(recipe, declining: [butter.declineKey])
-
-        // A second ingredient, and a step that says nothing about the butter:
-        // the recipe has changed, so the *recipe* is unreviewed again — but
-        // the sentence the answer was about has not.
-        var edited = recipe
-        edited.ingredientsText = "150 g Butter\n2 Eier"
-        edited.instructionsText = "Die Butter erhitzen. Die Eier verquirlen."
-        let (_, after) = await library.amountSuggestions(for: edited)
-        #expect(!after.contains { $0.declineKey == butter.declineKey })
-        #expect(after.contains { $0.ingredientName.contains("Eier") })
-    }
-
-    @Test("Rewriting the sentence itself asks again")
-    func rewritingTheStepReopensItsQuestion() async throws {
-        // The other half of the bargain. The key hangs on the sentence, so a
-        // rewritten sentence is a new question — otherwise "no" would outlive
-        // the text that made it make sense.
-        let library = try makeLibrary()
-        let recipe = Recipe(
-            title: "Kartoffelpüree", servings: 2,
-            ingredientsText: "150 g Butter",
-            instructionsText: "Die Butter erhitzen."
-        )
-        let (_, suggestions) = await library.amountSuggestions(for: recipe)
-        await library.markAmountsReviewed(recipe, declining: [try #require(suggestions.first).declineKey])
-
-        var edited = recipe
-        edited.instructionsText = "Die Butter in der Pfanne langsam zerlassen."
-        #expect(await library.needsAmountReview(edited))
-    }
-
-    @Test("A cached AI claim needs review too — it never resolves on its own, only through the sheet")
-    func cachedAIClaimNeedsReview() async throws {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
-        let library = RecipeLibrary(
-            store: SwiftDataRecipeStore(modelContainer: container),
-            imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: enrichment,
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
-        )
-        let recipe = Recipe(
-            title: "Ofengemüse", servings: 2,
-            ingredientsText: "300 g Paprika",
-            instructionsText: "Ein Drittel der Paprika in Scheiben schneiden."
-        )
-        try await enrichment.save(
-            [StoredAmountClaim(quantityText: "Ein Drittel", modifiedNoun: "Paprika", kind: .fraction, fractionValue: 1.0 / 3.0, stepNumber: 1)],
-            for: recipe
-        )
-
-        let (resolution, suggestions) = await library.amountSuggestions(for: recipe)
-        #expect(suggestions.count == 1)
-        #expect(suggestions.first?.displayAmount == "100 g")
-        #expect(await library.needsAmountReview(recipe))
-
-        await library.applyAmountSuggestions(Set(suggestions.map(\.id)), resolution: resolution, to: recipe)
-        guard let saved = library.recipes.first else {
-            Issue.record("Expected the recipe to be saved")
-            return
-        }
-        #expect(saved.instructionsText.contains("Ein Drittel der Paprika (100 g) in Scheiben schneiden."))
-        #expect(!(await library.needsAmountReview(saved)))
-    }
-}
-
-@MainActor
 @Suite("Ingredient review")
 struct RecipeLibraryIngredientReviewTests {
     private func makeLibrary() async throws -> RecipeLibrary {
@@ -532,7 +291,6 @@ struct RecipeLibraryIngredientReviewTests {
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
             enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container),
             ingredientReviewStore: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
             catalogLibrary: catalogLibrary
         )

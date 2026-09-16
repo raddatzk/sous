@@ -4,6 +4,84 @@ import SwiftUI
 /// The two `restyle` closures `HighlightedTextEditor` runs for the recipe
 /// editor: what a "# Section" heading, an ingredient line and a step look
 /// like while they are still being typed.
+/// Where the resolver's findings land in the instructions editor's own
+/// buffer.
+///
+/// `StepAmountResolver` reasons about one step at a time and reports its
+/// ranges into that step's own text. The editor holds all of the steps in a
+/// single string — and shows a third string again, with recipe links
+/// collapsed to chips. This is the arithmetic between the three, kept here
+/// beside the styling that consumes it rather than inside the text view,
+/// for the same reason ``RecipeLinkChipping`` lives apart from it: the
+/// mapping is the part that is easy to get quietly wrong.
+enum RecipeStepMarkup {
+    struct Mark: Hashable {
+        let kind: StepTextMark.Kind
+        /// A span of the text the editor *draws* — chips already collapsed —
+        /// in UTF-16 units, ready to hand to `NSMutableAttributedString`.
+        let range: NSRange
+    }
+
+    /// Every mark `resolution` found, lifted out of the steps and into
+    /// `instructionsText` as the editor draws it.
+    ///
+    /// `recipe` must be the one `resolution` was computed from: the marks
+    /// carry positions into that exact step text.
+    static func marks(
+        in instructionsText: String, of recipe: Recipe, resolution: StepAmountResolver.Resolution
+    ) -> [Mark] {
+        let steps = recipe.steps
+        guard !steps.isEmpty else { return [] }
+        let display = RecipeLinkChipping.display(of: instructionsText).text
+
+        var result: [Mark] = []
+        var stepIndex = 0
+        var lineStart = 0
+        // The same walk `StepParser.parse` makes, so the nth step here is the
+        // nth step there — headings and blank lines skipped alike.
+        for rawLine in instructionsText.split(separator: "\n", omittingEmptySubsequences: false) {
+            defer { lineStart += rawLine.count + 1 }
+            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { continue }
+            guard stepIndex < steps.count else { break }
+            let step = steps[stepIndex]
+            stepIndex += 1
+
+            // Where the step's text sits inside the raw line: the parser only
+            // trims it and strips a pasted "1. " off the front, so the two are
+            // the same characters at an offset — never different ones.
+            guard let inLine = rawLine.range(of: step.text) else { continue }
+            let textStart = lineStart + rawLine.distance(from: rawLine.startIndex, to: inLine.lowerBound)
+
+            for mark in resolution.marks(for: step) {
+                let lower = textStart + step.text.distance(from: step.text.startIndex, to: mark.range.lowerBound)
+                let upper = textStart + step.text.distance(from: step.text.startIndex, to: mark.range.upperBound)
+                guard let range = utf16Range(
+                    fromStored: lower..<upper, in: instructionsText, drawnAs: display
+                ) else { continue }
+                result.append(Mark(kind: mark.kind, range: range))
+            }
+        }
+        return result
+    }
+
+    /// A character span of the stored text as a UTF-16 span of the drawn
+    /// one. A span that a chip swallowed whole comes back `nil` — there is
+    /// nothing left on screen to draw it under.
+    private static func utf16Range(
+        fromStored stored: Range<Int>, in text: String, drawnAs display: String
+    ) -> NSRange? {
+        let lower = RecipeLinkChipping.displayOffset(forStored: stored.lowerBound, in: text)
+        let upper = RecipeLinkChipping.displayOffset(forStored: stored.upperBound, in: text)
+        guard lower < upper,
+              let start = display.index(display.startIndex, offsetBy: lower, limitedBy: display.endIndex),
+              let end = display.index(display.startIndex, offsetBy: upper, limitedBy: display.endIndex)
+        else { return nil }
+        let location = start.utf16Offset(in: display)
+        return NSRange(location: location, length: end.utf16Offset(in: display) - location)
+    }
+}
+
 enum RecipeTextEditorStyle {
     /// Headings sit flush left in the serif; an ingredient line is indented
     /// a few points in, with its amount and unit picked out in the accent —
@@ -41,7 +119,19 @@ enum RecipeTextEditorStyle {
     /// itself, and can never be edited into the wrong count. A heading
     /// starts a fresh list, the same restart `Recipe.stepGroups` gives the
     /// finished recipe.
-    static func instructions(_ attributed: NSMutableAttributedString) {
+    ///
+    /// `marks` is what the resolver made of the same text, drawn under the
+    /// words it made it of — see `markUp(_:with:)`. Empty while a recipe is
+    /// too fresh to have been resolved yet, which is simply the styling this
+    /// editor had before.
+    static func instructions(marking marks: [RecipeStepMarkup.Mark] = []) -> (NSMutableAttributedString) -> Void {
+        { attributed in
+            instructions(attributed)
+            markUp(attributed, with: marks)
+        }
+    }
+
+    private static func instructions(_ attributed: NSMutableAttributedString) {
         let text = attributed.string
         resetBase(attributed)
 
@@ -63,6 +153,36 @@ enum RecipeTextEditorStyle {
             style.headIndent = stepIndent
             style.textLists = [currentList]
             attributed.addAttribute(.paragraphStyle, value: style, range: line.paragraphRange)
+        }
+    }
+
+    /// Draws what the resolver understood over the writer's own words.
+    ///
+    /// Three states, and no more: an amount or a name the app tied to an
+    /// ingredient line is accented — the amount exactly as cook mode prints
+    /// it back, the name as the chip beneath the step; a name whose
+    /// ingredient an earlier step already took out whole is accented
+    /// faintly — understood, and owed no number of its own; and a number
+    /// tied to nothing at all is dotted in grey, which after a web import
+    /// usually means the ingredient list never named it. Nothing here
+    /// rewrites a character — see VISION.md, "the text is the only truth".
+    private static func markUp(_ attributed: NSMutableAttributedString, with marks: [RecipeStepMarkup.Mark]) {
+        let whole = NSRange(location: 0, length: attributed.length)
+        for mark in marks {
+            guard NSIntersectionRange(mark.range, whole).length == mark.range.length else { continue }
+            switch mark.kind {
+            case .bound:
+                attributed.addAttribute(.foregroundColor, value: PlatformColor(.sousAccent), range: mark.range)
+            case .backReference:
+                attributed.addAttribute(
+                    .foregroundColor, value: PlatformColor(.sousAccent).withAlphaComponent(0.55), range: mark.range
+                )
+            case .loose:
+                attributed.addAttributes([
+                    .underlineStyle: NSUnderlineStyle.patternDot.union(.single).rawValue,
+                    .underlineColor: PlatformColor(.secondary),
+                ], range: mark.range)
+            }
         }
     }
 

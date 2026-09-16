@@ -133,13 +133,11 @@ struct VariantGroupLibraryTests {
         let store = SwiftDataRecipeStore(modelContainer: container)
         let images = SwiftDataRecipeImageStore(modelContainer: container)
         let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: container)
-        let amountReview = SwiftDataRecipeAmountReviewStore(modelContainer: container)
         return (
             RecipeLibrary(
                 store: store,
                 imageStore: images,
-                enrichmentStore: enrichment,
-                amountReviewStore: amountReview
+                enrichmentStore: enrichment
             ),
             store
         )
@@ -262,8 +260,7 @@ struct VariantJoinTests {
         return RecipeLibrary(
             store: SwiftDataRecipeStore(modelContainer: container),
             imageStore: SwiftDataRecipeImageStore(modelContainer: container),
-            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container),
-            amountReviewStore: SwiftDataRecipeAmountReviewStore(modelContainer: container)
+            enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
     }
 

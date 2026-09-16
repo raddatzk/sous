@@ -64,18 +64,6 @@ struct RecipeDetailView: View {
     @State private var effort: RecipeEffort.Level?
     @State private var isPlanning = false
     @State private var export: RecipeExport?
-    @State private var isResolvingWithAI = false
-    @State private var aiError: String?
-    /// What the review sheet would show — bare mentions and any AI-found
-    /// amount pending confirmation alike. Never fed into the step text shown
-    /// on this page: an AI claim only ever renders once it has been through
-    /// that sheet, see `amount-confirmation-vs-guessing-tension`.
-    @State private var amountReviewResolution: StepAmountResolver.Resolution?
-    /// Drives the banner, separately from whether suggestions exist at all:
-    /// a recipe the cook already dismissed keeps its suggestions (editing it
-    /// again should still find them) but stops nagging about them.
-    @State private var needsAmountReview = false
-    @State private var isReviewingAmounts = false
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
     /// not carry and that nobody has turned down. Derived from `nutrition`,
@@ -188,17 +176,7 @@ struct RecipeDetailView: View {
             // as the plan hands it one planned recipe after another, and
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
-            amountReviewResolution = nil
-            needsAmountReview = false
             needsIngredientReview = false
-        }
-        // A cache read, not a model call — whatever the last save's
-        // background pass found, if anything. Fires again whenever the
-        // recipe shown changes, same as `onChange(of: recipe.id)` above.
-        .task(id: recipe.id) {
-            let (resolution, _) = await library.amountSuggestions(for: recipe)
-            amountReviewResolution = resolution
-            needsAmountReview = await library.needsAmountReview(recipe)
         }
         .task(id: recipe.id) {
             needsIngredientReview = await library.needsIngredientReview(recipe)
@@ -208,25 +186,6 @@ struct RecipeDetailView: View {
         .task(id: "\(recipe.id)-\(servings)") {
             nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
             await refreshNutritionTagSuggestions()
-        }
-        // The background pass `save(_:)` schedules can still be running
-        // when this screen is already open — most often right after
-        // editing this very recipe and landing straight back on it. This
-        // is how it shows up without waiting for the recipe to be left and
-        // reopened.
-        .onChange(of: library.lastEnrichment) { _, event in
-            guard event?.recipeID == recipe.id else { return }
-            // Never while the review sheet is open. It was seeded from the
-            // resolve it was handed, and every resolve mints fresh suggestion
-            // ids — swapping one in under it threw away whatever the cook had
-            // ticked so far. Both ways out of that sheet resolve again on the
-            // way, so nothing is lost by waiting.
-            guard !isReviewingAmounts else { return }
-            Task {
-                let (resolution, _) = await library.amountSuggestions(for: recipe)
-                amountReviewResolution = resolution
-                needsAmountReview = await library.needsAmountReview(recipe)
-            }
         }
         // The plan row this came from stays on screen beside this column —
         // a stepper pressed there while this recipe is still the one open
@@ -277,27 +236,6 @@ struct RecipeDetailView: View {
                 was beim Hinzufügen abgewählt war.
                 """
             )
-        }
-        .sheet(isPresented: $isReviewingAmounts) {
-            if let amountReviewResolution {
-                AmountReviewSheet(recipe: recipe, resolution: amountReviewResolution) { outcome in
-                    Task {
-                        let updated: Recipe
-                        if let outcome {
-                            updated = await library.applyAmountSuggestions(
-                                outcome.accepted, corrections: outcome.corrections,
-                                resolution: amountReviewResolution, to: recipe
-                            )
-                        } else {
-                            await library.markAmountsReviewed(recipe)
-                            updated = recipe
-                        }
-                        let (resolution, _) = await library.amountSuggestions(for: updated)
-                        self.amountReviewResolution = resolution
-                        needsAmountReview = await library.needsAmountReview(updated)
-                    }
-                }
-            }
         }
         .sheet(isPresented: $isReviewingIngredients) {
             IngredientReviewSheet(ingredientsText: recipe.ingredientsText) {
@@ -350,26 +288,6 @@ struct RecipeDetailView: View {
             Task { linkedRecipe = await library.recipe(id: id) }
             return .handled
         })
-        .sousErrorAlert($aiError)
-    }
-
-    /// The explicit "try again" — `save(_:)` already schedules this
-    /// automatically, but a background pass can fail quietly (the device
-    /// went to sleep, the model was briefly unavailable) with nothing else
-    /// to retry it. Updates the cache too, not just this screen.
-    private func resolveMentionsWithAI() {
-        isResolvingWithAI = true
-        Task {
-            defer { isResolvingWithAI = false }
-            do {
-                try await library.refreshAIMentions(for: recipe)
-                let (resolution, _) = await library.amountSuggestions(for: recipe)
-                amountReviewResolution = resolution
-                needsAmountReview = await library.needsAmountReview(recipe)
-            } catch {
-                aiError = error.localizedDescription
-            }
-        }
     }
 
     /// Edge to edge, the way a dish deserves to be seen.
@@ -677,9 +595,6 @@ struct RecipeDetailView: View {
             // wraps rather than as a pile.
             if hasReviewBanners {
                 FlowLayout(spacing: 16, lineSpacing: 16, stretch: true) {
-                    if needsAmountReview, let amountReviewResolution {
-                        amountReviewBanner(amountReviewResolution.allSuggestions.count)
-                    }
                     if needsIngredientReview {
                         ingredientReviewBanner(unknownIngredientCount)
                     }
@@ -698,7 +613,6 @@ struct RecipeDetailView: View {
     /// built rather than inside it: an empty layout is still a view, and the
     /// stack would keep its 28 points of air for a group with nothing in it.
     private var hasReviewBanners: Bool {
-        if needsAmountReview, amountReviewResolution != nil { return true }
         if needsIngredientReview { return true }
         if !openIngredients.isEmpty { return true }
         return !nutritionTagSuggestions.isEmpty
@@ -789,27 +703,6 @@ struct RecipeDetailView: View {
             .buttonStyle(.bordered)
             Button("Übernehmen") {
                 answer(tag) { await library.acceptNutritionTag(tag, for: recipe) }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-    }
-
-    /// Offers to check what the resolver could not write in on its own —
-    /// stays up until the cook actually answers it (accepts some, or says
-    /// "Nicht jetzt"), not just because they looked at the recipe.
-    @ViewBuilder
-    private func amountReviewBanner(_ count: Int) -> some View {
-        HStack(spacing: 12) {
-            Label(
-                count == 1 ? "1 Menge könnte ergänzt werden" : "\(count) Mengen könnten ergänzt werden",
-                systemImage: "text.badge.checkmark"
-            )
-            .font(.subheadline.weight(.medium))
-            Spacer()
-            Button("Prüfen") {
-                isReviewingAmounts = true
             }
             .buttonStyle(.borderedProminent)
         }
@@ -1015,10 +908,7 @@ struct RecipeDetailView: View {
     private var steps: some View {
         if !recipe.steps.isEmpty {
             // Resolved once for the whole recipe: which line an amount
-            // belongs to can depend on every other step's claim on it. No
-            // `additionalMentions` here on purpose — an AI-found amount only
-            // ever renders once it has been confirmed through the review
-            // sheet and is part of the written text, never live.
+            // belongs to can depend on every other step's claim on it.
             let resolution = StepAmountResolver.resolve(
                 recipe, toServings: servings, formatter: formatter
             )
@@ -1463,15 +1353,6 @@ struct RecipeDetailView: View {
                             export = RecipeExport(recipe: recipe, data: data)
                         }
                     }
-                }
-                if !recipe.steps.isEmpty {
-                    Button(
-                        isResolvingWithAI ? "Wird zugeordnet…" : "Mengen mit KI neu zuordnen",
-                        systemImage: "sparkles"
-                    ) {
-                        resolveMentionsWithAI()
-                    }
-                    .disabled(isResolvingWithAI)
                 }
                 if !recipe.isDeleted {
                     Divider()

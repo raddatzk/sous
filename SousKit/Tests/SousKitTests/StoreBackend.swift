@@ -32,7 +32,6 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
         let recipes: any RecipeStore
         let images: any RecipeImageStore
         let mealPlan: any MealPlanStore
-        let amountReviews: any RecipeAmountReviewStore
         let ingredientReviews: any RecipeIngredientReviewStore
         let vocabulary: any VocabularyStore
         let shopping: any ShoppingListStore
@@ -46,7 +45,6 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
                 recipes: SwiftDataRecipeStore(modelContainer: container),
                 images: SwiftDataRecipeImageStore(modelContainer: container),
                 mealPlan: SwiftDataMealPlanStore(modelContainer: container),
-                amountReviews: SwiftDataRecipeAmountReviewStore(modelContainer: container),
                 ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
                 vocabulary: SwiftDataVocabularyStore(modelContainer: container),
                 shopping: SwiftDataShoppingListStore(modelContainer: container)
@@ -57,7 +55,6 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
                 recipes: CoreDataRecipeStore(container: container),
                 images: CoreDataRecipeImageStore(container: container),
                 mealPlan: CoreDataMealPlanStore(container: container),
-                amountReviews: CoreDataRecipeAmountReviewStore(container: container),
                 ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container),
                 vocabulary: CoreDataVocabularyStore(container: container),
                 shopping: CoreDataShoppingListStore(container: container)
@@ -68,7 +65,6 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
     func makeStore() throws -> any RecipeStore { try makeStores().recipes }
     func makeImageStore() throws -> any RecipeImageStore { try makeStores().images }
     func makeMealPlanStore() throws -> any MealPlanStore { try makeStores().mealPlan }
-    func makeAmountReviewStore() throws -> any RecipeAmountReviewStore { try makeStores().amountReviews }
     func makeIngredientReviewStore() throws -> any RecipeIngredientReviewStore { try makeStores().ingredientReviews }
     func makeVocabularyStore() throws -> any VocabularyStore { try makeStores().vocabulary }
 }

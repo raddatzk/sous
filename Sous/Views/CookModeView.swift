@@ -389,9 +389,6 @@ struct CookModeView: View {
         let focused = focusedStep(entry, steps: steps)
         // Resolved once for the whole page: which line an amount belongs to
         // can depend on every other step's claim on it, not just this one's.
-        // No `additionalMentions` here on purpose — an AI-found amount only
-        // ever renders once it has been confirmed and is part of the
-        // written text, never live in cook mode.
         let resolution = StepAmountResolver.resolve(
             recipe, toServings: entry.servings, formatter: formatter
         )
@@ -553,23 +550,17 @@ struct CookModeView: View {
                     .font(.title3)
             }
 
-            // A fully claimed recipe answers every amount in its own
-            // sentences — the guessed list would only repeat what the text
-            // already says, so it stands down entirely.
-            let used = resolution.isFullyClaimed
-                ? []
-                : recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
+            // What this step takes, by the resolver's register: the
+            // remainder for a first mention, the computed share for "die
+            // Hälfte" and "restliche", nothing for an ingredient an earlier
+            // step already holds. A name the sentence could not tell apart
+            // from a twin in another group shows without an amount. See
+            // VISION.md, "Amounts written into a step name an ingredient".
+            let used = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
             if !used.isEmpty {
-                // What this step appears to need, so the cook does not swipe
-                // away mid-task — a name-match guess, and labeled as one:
-                // the word up front, the amounts outside the accent that
-                // marks resolved facts.
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Vermutlich dabei")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     ForEach(used) { ingredient in
-                        IngredientLineView(ingredient: ingredient, formatter: formatter, provisional: true)
+                        IngredientLineView(ingredient: ingredient, formatter: formatter)
                             .font(.callout)
                     }
                 }

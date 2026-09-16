@@ -31,12 +31,20 @@ struct HighlightedTextEditor: View {
     /// hand its `@FocusState` to a child to own, so this is a plain `Bool`
     /// kept in step with it instead.
     var isFocused: Binding<Bool>?
+    /// Changes whenever `restyle` would draw the same characters
+    /// differently — the text view reloads on a text change by itself, and
+    /// this is the only way it hears about anything else. Left alone by a
+    /// styling that reads nothing but the text.
+    var styleVersion: Int = 0
     /// Rewrites the attributes of the passed-in string in place from its
     /// own current characters — never the characters themselves.
     let restyle: (NSMutableAttributedString) -> Void
 
     var body: some View {
-        RepresentableTextView(text: $text, cursorOffset: $cursorOffset, isFocused: isFocused, restyle: restyle)
+        RepresentableTextView(
+            text: $text, cursorOffset: $cursorOffset, isFocused: isFocused,
+            styleVersion: styleVersion, restyle: restyle
+        )
     }
 }
 
@@ -101,6 +109,7 @@ private struct RepresentableTextView: UIViewRepresentable {
     @Binding var text: String
     @Binding var cursorOffset: Int?
     var isFocused: Binding<Bool>?
+    let styleVersion: Int
     let restyle: (NSMutableAttributedString) -> Void
 
     func makeUIView(context: Context) -> UITextView {
@@ -113,12 +122,12 @@ private struct RepresentableTextView: UIViewRepresentable {
         // This editor grows to show all of its text; only the surrounding
         // Form scrolls.
         textView.isScrollEnabled = false
-        context.coordinator.apply(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
+        context.coordinator.apply(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
         return textView
     }
 
     func updateUIView(_ textView: UITextView, context: Context) {
-        context.coordinator.syncIfNeeded(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
+        context.coordinator.syncIfNeeded(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
         if isFocused?.wrappedValue == true, !textView.isFirstResponder {
             textView.becomeFirstResponder()
         } else if isFocused?.wrappedValue == false, textView.isFirstResponder {
@@ -173,6 +182,7 @@ private struct RepresentableTextView: NSViewRepresentable {
     @Binding var text: String
     @Binding var cursorOffset: Int?
     var isFocused: Binding<Bool>?
+    let styleVersion: Int
     let restyle: (NSMutableAttributedString) -> Void
 
     func makeNSView(context: Context) -> NSTextView {
@@ -190,12 +200,12 @@ private struct RepresentableTextView: NSViewRepresentable {
         textView.isHorizontallyResizable = false
         textView.textContainer?.widthTracksTextView = true
         context.coordinator.textView = textView
-        context.coordinator.apply(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
+        context.coordinator.apply(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
         return textView
     }
 
     func updateNSView(_ textView: NSTextView, context: Context) {
-        context.coordinator.syncIfNeeded(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
+        context.coordinator.syncIfNeeded(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
         if isFocused?.wrappedValue == true, textView.window?.firstResponder !== textView {
             textView.window?.makeFirstResponder(textView)
         }
@@ -263,6 +273,9 @@ final class TextViewCoordinator: NSObject {
     /// sibling view (link insertion, autocomplete) changed `text` for us",
     /// which needs a full reload instead.
     fileprivate private(set) var lastKnownText = ""
+    /// The `styleVersion` the text view was last drawn for — see
+    /// ``HighlightedTextEditor/styleVersion``.
+    private var lastStyleVersion = 0
     /// Set while this coordinator is itself assigning the selected range,
     /// so the resulting selection-changed callback doesn't re-report a
     /// cursor position nobody actually moved to.
@@ -280,8 +293,12 @@ final class TextViewCoordinator: NSObject {
     typealias TextView = NSTextView
     #endif
 
-    func apply(text: String, cursorOffset: Int?, to textView: TextView, restyle: @escaping (NSMutableAttributedString) -> Void) {
+    func apply(
+        text: String, cursorOffset: Int?, styleVersion: Int, to textView: TextView,
+        restyle: @escaping (NSMutableAttributedString) -> Void
+    ) {
         currentRestyle = restyle
+        lastStyleVersion = styleVersion
         let attributed = Self.rendered(text, restyle: restyle)
         isProgrammaticChange = true
         setAttributedText(attributed, on: textView)
@@ -308,10 +325,16 @@ final class TextViewCoordinator: NSObject {
         return attributed
     }
 
-    func syncIfNeeded(text: String, cursorOffset: Int?, to textView: TextView, restyle: @escaping (NSMutableAttributedString) -> Void) {
+    func syncIfNeeded(
+        text: String, cursorOffset: Int?, styleVersion: Int, to textView: TextView,
+        restyle: @escaping (NSMutableAttributedString) -> Void
+    ) {
         currentRestyle = restyle
-        guard text != lastKnownText else { return }
-        apply(text: text, cursorOffset: cursorOffset, to: textView, restyle: restyle)
+        // The version too, not just the text: what the resolver has to say
+        // about a sentence arrives a moment after the sentence itself, and
+        // the characters are unchanged by then.
+        guard text != lastKnownText || styleVersion != lastStyleVersion else { return }
+        apply(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
     }
 
     /// Restyles after the user's own edit, keeping the cursor where they
