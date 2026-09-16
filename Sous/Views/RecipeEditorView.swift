@@ -1,6 +1,7 @@
 import PhotosUI
 import SousKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 #if os(iOS)
 import UIKit
@@ -15,6 +16,12 @@ struct RecipeEditorView: View {
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
     @State private var pickedPhotos: [PhotosPickerItem] = []
+    @State private var isPickingPhotos = false
+    @State private var isTakingPhoto = false
+    /// Whether "Einfügen" has anything to paste. Asking that is free; only
+    /// reading the picture makes the system ask the cook for permission.
+    @State private var pasteboardHasImages = false
+    @Environment(\.scenePhase) private var scenePhase
     /// Where the cursor sits in each editor, in characters, so a link lands
     /// where the writer is looking instead of at the very end.
     @State private var ingredientsCursor: Int?
@@ -149,7 +156,22 @@ struct RecipeEditorView: View {
                             }
                     }
 
-                    PhotosPicker(selection: $pickedPhotos, matching: .images) {
+                    Menu {
+                        Button("Fotomediathek", systemImage: "photo.on.rectangle") {
+                            isPickingPhotos = true
+                        }
+                        #if os(iOS)
+                        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+                            Button("Foto aufnehmen", systemImage: "camera") {
+                                isTakingPhoto = true
+                            }
+                        }
+                        #endif
+                        Button("Einfügen", systemImage: "doc.on.clipboard") {
+                            Task { await store(ImagePasteboard.images()) }
+                        }
+                        .disabled(!pasteboardHasImages)
+                    } label: {
                         RoundedRectangle(cornerRadius: SousStyle.fieldRadius)
                             .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5]))
                             .foregroundStyle(.tertiary)
@@ -159,6 +181,7 @@ struct RecipeEditorView: View {
                                     .font(.title3)
                                     .foregroundStyle(.tint)
                             }
+                            .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
                 }
@@ -167,6 +190,23 @@ struct RecipeEditorView: View {
             .scrollIndicators(.hidden)
         }
         .listRowBackground(Color.clear)
+        .photosPicker(isPresented: $isPickingPhotos, selection: $pickedPhotos, matching: .images)
+        #if os(iOS)
+        .fullScreenCover(isPresented: $isTakingPhoto) {
+            CameraPicker { data in
+                Task { await store([data]) }
+            }
+            .ignoresSafeArea()
+        }
+        // Copying inside the app says so; copying in another app is only
+        // noticed on the way back, when the scene becomes active again.
+        .onReceive(NotificationCenter.default.publisher(for: UIPasteboard.changedNotification)) { _ in
+            pasteboardHasImages = ImagePasteboard.hasImages
+        }
+        #endif
+        .onChange(of: scenePhase, initial: true) { _, phase in
+            if phase == .active { pasteboardHasImages = ImagePasteboard.hasImages }
+        }
         .onChange(of: pickedPhotos) { _, items in
             Task { await store(items) }
         }
@@ -693,13 +733,21 @@ struct RecipeEditorView: View {
     /// Reads picked photos into storage and references them on the draft.
     private func store(_ items: [PhotosPickerItem]) async {
         for item in items {
-            guard let data = try? await item.loadTransferable(type: Data.self),
-                  let id = await library.addImage(data, to: draft.id)
-            else { continue }
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            await store([data])
+        }
+        pickedPhotos = []
+    }
+
+    /// Stores pictures and references them on the draft. Whatever format
+    /// they come in, the store re-encodes them, so anything an image source
+    /// can read will do.
+    private func store(_ images: [Data]) async {
+        for data in images {
+            guard let id = await library.addImage(data, to: draft.id) else { continue }
             draft.imageIDs.append(id)
             addedImageIDs.append(id)
         }
-        pickedPhotos = []
     }
 
     private func remove(_ imageID: UUID) {
@@ -818,3 +866,82 @@ private struct MinutesField: View {
         )
     }
 }
+
+/// The pictures on the pasteboard, in whatever image format they were
+/// copied as — the image store re-encodes them anyway.
+private enum ImagePasteboard {
+    #if os(iOS)
+    static var hasImages: Bool { UIPasteboard.general.hasImages }
+
+    static func images() async -> [Data] {
+        var images: [Data] = []
+        for provider in UIPasteboard.general.itemProviders {
+            guard let type = provider.registeredContentTypes.first(where: { $0.conforms(to: .image) }),
+                  let data = await data(of: type, from: provider)
+            else { continue }
+            images.append(data)
+        }
+        return images
+    }
+
+    private static func data(of type: UTType, from provider: NSItemProvider) async -> Data? {
+        await withCheckedContinuation { continuation in
+            _ = provider.loadDataRepresentation(for: type) { data, _ in
+                continuation.resume(returning: data)
+            }
+        }
+    }
+    #else
+    static var hasImages: Bool {
+        NSPasteboard.general.canReadItem(withDataConformingToTypes: [UTType.image.identifier])
+    }
+
+    static func images() async -> [Data] {
+        (NSPasteboard.general.pasteboardItems ?? []).compactMap { item in
+            item.types
+                .first { UTType($0.rawValue)?.conforms(to: .image) == true }
+                .flatMap(item.data(forType:))
+        }
+    }
+    #endif
+}
+
+#if os(iOS)
+/// The system camera, for a photo of the dish taken right there.
+private struct CameraPicker: UIViewControllerRepresentable {
+    let onCapture: (Data) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        return picker
+    }
+
+    func updateUIViewController(_ picker: UIImagePickerController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraPicker
+
+        init(_ parent: CameraPicker) { self.parent = parent }
+
+        func imagePickerController(
+            _ picker: UIImagePickerController,
+            didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+        ) {
+            if let image = info[.originalImage] as? UIImage,
+               let data = image.jpegData(compressionQuality: 0.9) {
+                parent.onCapture(data)
+            }
+            parent.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+    }
+}
+#endif

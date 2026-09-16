@@ -117,6 +117,8 @@ targets:
           - remote-notification
         UILaunchScreen: {}
         NSSupportsLiveActivities: true
+        NSCameraUsageDescription: >-
+          Damit du ein Foto von deinem Gericht direkt zum Rezept legen kannst.
         NSAlarmKitUsageDescription: >-
           Damit ein Küchentimer klingelt, auch wenn das Gerät stumm
           geschaltet ist oder ein Fokus läuft.
