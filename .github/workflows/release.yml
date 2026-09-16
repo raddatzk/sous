@@ -1,37 +1,45 @@
 name: Release to TestFlight
 
 # Run it by hand for every TestFlight build: Actions -> Release to TestFlight
-# -> Run workflow. The marketing version comes from project.yml and the build
-# number from the run number, so repeated runs are new builds of the same
-# version — which is what external TestFlight wants, since only a new version
-# triggers another Beta App Review.
+# -> Run workflow. The version is <major>.<commits on main>, with the major
+# number from MARKETING_VERSION in project.yml, so every new state of main is a
+# new, higher version on its own and the iOS and the macOS build of the same
+# state carry the same version. The build is 10 × run number + attempt, unique
+# even when the same state is uploaded twice or a run is re-run. Every new
+# version goes through a Beta App Review before external testers get it;
+# internal testers do not wait.
 #
-# A tag is optional and marks a release in git rather than driving it. Push
-# one and the job checks it agrees with project.yml, so a forgotten version
-# bump fails here instead of arriving in App Store Connect as the wrong one.
+# After a successful upload the tag job marks the commit as v<version>.
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
 
 concurrency:
   group: release
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
 jobs:
   testflight:
-    # GitHub-hosted, like CI. Only a manual dispatch or a tag starts this job,
-    # and secrets are never handed to a workflow triggered from a fork, so the
+    # GitHub-hosted, like CI. Only a manual dispatch starts this job, and
+    # secrets are never handed to a workflow triggered from a fork, so the
     # signing material stays out of reach of anyone opening a pull request.
     runs-on: macos-26
     timeout-minutes: 120
+
+    outputs:
+      version: ${{ steps.version.outputs.marketing }}
 
     env:
       # Not a secret: it is in project.yml and in every built binary.
       TEAM_ID: MDQY93XVHF
 
     steps:
+      # The whole history: the version counts the commits.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Select Xcode
         run: |
@@ -47,25 +55,29 @@ jobs:
       - name: Work out the version
         id: version
         run: |
-          # One source of truth, the same one the Info.plist reads.
-          version=$(sed -n 's/^ *MARKETING_VERSION: *"\(.*\)"/\1/p' project.yml | head -1)
-          if [ -z "$version" ]; then
+          marketing=$(sed -n 's/^ *MARKETING_VERSION: *"\(.*\)"/\1/p' project.yml | head -1)
+          major="${marketing%%.*}"
+          if [ -z "$major" ]; then
             echo "::error::No MARKETING_VERSION found in project.yml."
             exit 1
           fi
 
-          # `v1.0` is a tag; `1.0` is what CFBundleShortVersionString wants.
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            tagged="${GITHUB_REF_NAME#v}"
-            if [ "$tagged" != "$version" ]; then
-              echo "::error::Tag $GITHUB_REF_NAME says $tagged but project.yml says $version — bump one of them."
-              exit 1
-            fi
+          # A shallow clone would count one commit and ship 1.1 forever.
+          if [ "$(git rev-parse --is-shallow-repository)" = true ]; then
+            echo "::error::The checkout is shallow; the version needs the full history (fetch-depth: 0)."
+            exit 1
           fi
+          # Only ever grows, unless main's history is rewritten — App Store
+          # Connect would then reject the lower version.
+          version="$major.$(git rev-list --count HEAD)"
+
+          # Unique within the version even when the same state is uploaded
+          # twice, and for up to nine attempts of one run.
+          build=$(( ${{ github.run_number }} * 10 + ${{ github.run_attempt }} ))
 
           echo "marketing=$version" >> "$GITHUB_OUTPUT"
-          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "Shipping $version (build ${{ github.run_number }})"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+          echo "Shipping $version (build $build)"
 
       # A keychain of its own, thrown away at the end. Importing into the
       # login keychain would leave the signing identity on a machine that is
@@ -112,8 +124,24 @@ jobs:
           import_p12 "Apple Development" "$DEV_CERT_P12" "$DEV_CERT_PASSWORD"
 
           # Say what actually landed, so a wrong or key-less .p12 is caught
-          # here rather than forty minutes later in the export step.
+          # here rather than forty minutes later in the export step. Printing
+          # is not enough: `find-identity` reports "0 valid identities found"
+          # and still exits 0, so the count has to be asserted. The installer
+          # certificate is not a code-signing identity and needs its own
+          # policy to be listed.
           security find-identity -v "$keychain"
+          for kind in "Apple Distribution" "Apple Development"; do
+            if ! security find-identity -v "$keychain" | grep -q "$kind"; then
+              echo "::error::No $kind identity in the keychain — the matching" \
+                   "secret is not a .p12 containing both certificate and private key."
+              exit 1
+            fi
+          done
+          security find-identity -v -p basic "$keychain" | grep -q "3rd Party Mac Developer Installer" || {
+            echo "::error::No 3rd Party Mac Developer Installer identity in the keychain —" \
+                 "MAC_INSTALLER_P12 is not a .p12 containing both certificate and private key."
+            exit 1
+          }
 
           # Without this codesign stops to ask for permission it cannot get.
           security set-key-partition-list \
@@ -134,13 +162,34 @@ jobs:
           echo "$ASC_KEY_P8" | base64 --decode > "$path"
           echo "ASC_KEY_PATH=$path" >> "$GITHUB_ENV"
 
+      # An upload needs an app record in App Store Connect; without one the
+      # export step fails with "Error Downloading App Information", which names
+      # neither the app nor the reason. Ask first, and say what was found.
+      # Never fatal: this is a diagnosis, and `--list-apps` is not worth a
+      # failed release of its own.
+      - name: Check the app exists in App Store Connect
+        continue-on-error: true
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          API_PRIVATE_KEYS_DIR: ${{ runner.temp }}/private_keys
+        run: |
+          bundle_id=$(sed -n 's/^ *PRODUCT_BUNDLE_IDENTIFIER: *\(.*\)$/\1/p' project.yml | head -1)
+          echo "Looking for $bundle_id"
+          apps=$(xcrun altool --list-apps --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1)
+          echo "$apps"
+          if ! printf '%s' "$apps" | grep -qF "$bundle_id"; then
+            echo "::warning::$bundle_id is not among the apps this key can see." \
+                 "Create the app record in App Store Connect, or check the key is App Manager."
+          fi
+
       - name: Generate the project
         run: |
           brew install xcodegen xcbeautify
           xcodegen generate
 
       # Uploading straight from the export step, so no separate altool call
-      # and no intermediate .ipa to keep track of.
+      # and no intermediate .ipa or .pkg to keep track of.
       - name: Write the export options
         run: |
           for platform in iOS macOS; do
@@ -164,16 +213,16 @@ jobs:
           PLIST
           done
 
-      - name: Archive and upload
+      # Both platforms are archived before either is uploaded, so a macOS build
+      # that does not compile leaves no lone iOS build of that version behind.
+      - name: Archive
         run: |
           set -o pipefail
           for platform in iOS macOS; do
-            archive="$RUNNER_TEMP/Sous-$platform.xcarchive"
-
             xcodebuild archive \
               -scheme Sous \
               -destination "generic/platform=$platform" \
-              -archivePath "$archive" \
+              -archivePath "$RUNNER_TEMP/Sous-$platform.xcarchive" \
               -allowProvisioningUpdates \
               -authenticationKeyPath "$ASC_KEY_PATH" \
               -authenticationKeyID "${{ secrets.ASC_KEY_ID }}" \
@@ -181,9 +230,43 @@ jobs:
               MARKETING_VERSION="${{ steps.version.outputs.marketing }}" \
               CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build }}" \
               | xcbeautify --renderer github-actions
+          done
 
+      # The manifests are picked up implicitly, because they sit inside the
+      # sources paths. Implicit means one can silently stop being copied, and
+      # App Store Connect only complains by e-mail hours later. The extensions
+      # are iOS-only; the Mac app keeps its manifest under Contents/Resources.
+      - name: Check the privacy manifests made it into the bundles
+        run: |
+          ios="$RUNNER_TEMP/Sous-iOS.xcarchive/Products/Applications/Sous.app"
+          mac="$RUNNER_TEMP/Sous-macOS.xcarchive/Products/Applications/Sous.app"
+          missing=0
+          for manifest in \
+            "$ios/PrivacyInfo.xcprivacy" \
+            "$ios/PlugIns/SousShare.appex/PrivacyInfo.xcprivacy" \
+            "$ios/PlugIns/SousWidgets.appex/PrivacyInfo.xcprivacy" \
+            "$mac/Contents/Resources/PrivacyInfo.xcprivacy"; do
+            if [ ! -f "$manifest" ]; then
+              echo "::error::${manifest#"$RUNNER_TEMP"/} is missing from the built app."
+              missing=1
+            else
+              plutil -lint "$manifest"
+            fi
+          done
+          exit $missing
+
+      - name: Export and upload
+        # `IDEDistribution` drops its log bundle in TMPDIR, which is a random
+        # path under /var/folders. Point it somewhere known so the step below
+        # can pick the logs up without searching the whole runner.
+        env:
+          TMPDIR: ${{ runner.temp }}/distlogs
+        run: |
+          mkdir -p "$TMPDIR"
+          set -o pipefail
+          for platform in iOS macOS; do
             xcodebuild -exportArchive \
-              -archivePath "$archive" \
+              -archivePath "$RUNNER_TEMP/Sous-$platform.xcarchive" \
               -exportPath "$RUNNER_TEMP/export-$platform" \
               -exportOptionsPlist "$RUNNER_TEMP/ExportOptions-$platform.plist" \
               -allowProvisioningUpdates \
@@ -193,6 +276,19 @@ jobs:
               | xcbeautify --renderer github-actions
           done
 
+      # `xcodebuild` writes Apple's actual answer into an .xcdistributionlogs
+      # bundle in a temporary directory and the runner takes it to the grave.
+      # The step above only prints the one-line summary, which for a missing
+      # app record is "Error Downloading App Information" and nothing else.
+      - name: Keep the distribution logs when the upload failed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcdistributionlogs
+          path: ${{ runner.temp }}/distlogs/**/*.xcdistributionlogs/**
+          if-no-files-found: warn
+          retention-days: 7
+
       # Runs even when the archive failed, so a broken run leaves no identity
       # behind on the runner.
       - name: Clean up
@@ -200,3 +296,28 @@ jobs:
         run: |
           security delete-keychain "$KEYCHAIN_PATH" || true
           rm -rf "$RUNNER_TEMP/private_keys"
+
+  tag:
+    # Marks the commit that just went to TestFlight, so git shows what shipped
+    # when. A job of its own: only these few lines hold a token that can write
+    # to the repository, not the job running the build tools with the signing
+    # material. A tag created with this token starts no workflow.
+    needs: testflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Tag the released commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v${{ needs.testflight.outputs.version }}
+        run: |
+          # The same state uploaded again (a new build of the same version)
+          # keeps its first tag instead of failing the run.
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
+            echo "$TAG already exists; left as it is."
+            exit 0
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA" > /dev/null
+          echo "Tagged $GITHUB_SHA as $TAG"

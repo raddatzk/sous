@@ -144,6 +144,10 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: me.raddatz.sous
         PRODUCT_NAME: Sous
+        # Only the major number is maintained here, and the release job reads
+        # it from this target. It ships <major>.<commits on main> as the version
+        # and 10 × run number + attempt as the build, for all three targets;
+        # local builds are simply 1.0 (1).
         MARKETING_VERSION: "1.0"
         CURRENT_PROJECT_VERSION: "1"
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor

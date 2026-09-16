@@ -12,7 +12,7 @@ trade-offs were made, and what is deliberately out of scope.
 
 ## Status
 
-Version 1.0, distributed through TestFlight. Requires iOS 26.5 or macOS 26.
+Version 1.x, distributed through TestFlight. Requires iOS 26.5 or macOS 26.
 
 ## What it does
 
@@ -119,14 +119,47 @@ test`, then build for the iOS Simulator and for macOS. Nothing is signed, so it
 needs no secrets. The repository is public, so a pull request can come from
 anyone — which is exactly why this does not run on a Mac of ours.
 
-[`release.yml`](.github/workflows/release.yml) archives and uploads to
-TestFlight, on the same hosted image. It is started by hand (Actions → Release
-to TestFlight); a `v*` tag is optional and only checks that git and
-`project.yml` agree on the version. It signs, so it needs the certificates as
-secrets: `DIST_CERT_P12`, `MAC_INSTALLER_P12`, `DEV_CERT_P12` (each with its
-password) and the App Store Connect API key. The development certificate signs
-nothing that ships — it is there so automatic signing has an identity to
-archive with instead of minting a new one on every run.
+[`release.yml`](.github/workflows/release.yml) archives the iOS and the macOS
+app and uploads both to TestFlight, on the same hosted image. It is started by
+hand (Actions → Release to TestFlight → Run workflow). It signs, so it needs the
+certificates as secrets: `DIST_CERT_P12`, `MAC_INSTALLER_P12`, `DEV_CERT_P12`
+(each with its password) and the App Store Connect API key. The development
+certificate signs nothing that ships — it is there so automatic signing has an
+identity to archive with instead of minting a new one on every run.
+
+### Versioning
+
+Nobody bumps a version by hand for a build. The release job computes it:
+
+- `CFBundleShortVersionString` = `<major>.<commits on main>`, the major number
+  taken from `MARKETING_VERSION` in `project.yml` (`1.0`).
+- `CFBundleVersion` = 10 × run number + attempt.
+
+The commit count grows with every commit on `main`, so each new state is a
+higher version on its own — App Store Connect demands that for every App Store
+release and closes a version to further builds once it is out — and the iOS and
+the macOS build of one run carry the same version. The build number only has to
+be unique within a version; ten per run keeps a re-run (same run number, next
+attempt) from repeating the build of an upload that already went through. The
+job checks out the full history and fails on a shallow clone, which would count
+a single commit. Local builds are `1.0` with build 1.
+
+Two consequences. Rewriting `main`'s history (a force-push after a rebase or
+squash) can lower the count and get uploads rejected as older versions. And
+since every build is a new version, every TestFlight build for external testers
+goes through a Beta App Review first; internal testers are not affected. Raise
+the major number only to say something to users — it is never needed to get past
+a store check.
+
+Tags are set by the workflow, not by hand: after a successful upload a small
+follow-up job tags the built commit `v1.252`, so git shows which state went to
+TestFlight. Uploading the same state again keeps the first tag. That job is the
+only one with write access to the repository; the build and upload job can only
+read. The version a commit would get:
+
+```bash
+echo "1.$(git rev-list --count HEAD)"
+```
 
 ## Data and attribution
 
