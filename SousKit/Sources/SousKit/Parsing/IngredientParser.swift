@@ -17,21 +17,32 @@ public enum IngredientParser {
     ///
     /// A line that carries no amount and ends in a colon — or starts with a
     /// markdown heading — opens a group that the following lines belong to.
+    /// A blank line after a group's lines closes it: what follows belongs to
+    /// no group, the way "Vegane Butter" set apart under the filling is for
+    /// the pan and not for the filling.
     ///
     /// `catalog` is consulted only to tell a name that happens to contain a
     /// comma from a name followed by a preparation — see `parseLine`.
     public static func parse(_ text: String, catalog: IngredientCatalog = .bundled) -> [RecipeIngredient] {
         var result: [RecipeIngredient] = []
         var currentGroup: String?
+        // A blank line straight under the heading is layout, not the end
+        // of a group that has not had a line yet.
+        var groupHasLines = false
 
         for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
-            guard !line.isEmpty else { continue }
+            guard !line.isEmpty else {
+                if groupHasLines { currentGroup = nil }
+                continue
+            }
 
             if let heading = groupHeading(in: line) {
                 currentGroup = heading
+                groupHasLines = false
                 continue
             }
+            groupHasLines = currentGroup != nil
 
             var ingredient = parseLine(line, catalog: catalog)
             ingredient.id = StableID.make(namespace: "ingredient", index: result.count, content: line)
@@ -48,8 +59,10 @@ public enum IngredientParser {
 
         for ingredient in ingredients {
             if lastGroup == nil || lastGroup! != ingredient.group {
+                // Leaving a group for no group needs the blank line too,
+                // or the ungrouped lines would parse back into the group.
+                if !lines.isEmpty { lines.append("") }
                 if let group = ingredient.group {
-                    if !lines.isEmpty { lines.append("") }
                     lines.append("# \(group)")
                 }
                 lastGroup = ingredient.group

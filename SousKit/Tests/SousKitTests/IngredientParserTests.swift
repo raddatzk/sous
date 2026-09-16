@@ -274,7 +274,14 @@ struct IngredientParserTests {
         """)
 
         #expect(ingredients.map(\.name) == ["Mehl", "Ei", "Sahne", "Salz"])
-        #expect(ingredients.map(\.group) == ["Für den Teig", "Für den Teig", "Für die Sauce", "Für die Sauce"])
+        #expect(ingredients.map(\.group) == ["Für den Teig", "Für den Teig", "Für die Sauce", nil])
+    }
+
+    @Test("A blank line closes a group only once it has lines")
+    func blankLineClosesGroup() {
+        let ingredients = IngredientParser.parse("# Füllung\n\n80 g Kokosraspeln\n1/3 TL Salz\n\n\nVegane Butter")
+
+        #expect(ingredients.map(\.group) == ["Füllung", "Füllung", nil])
     }
 
     @Test("A line with an amount is not mistaken for a heading")
@@ -296,6 +303,8 @@ struct IngredientParserTests {
         # Für die Sauce
         200 ml Sahne
         Salz
+
+        Butter für die Pfanne
         """
 
         let ingredients = IngredientParser.parse(source)
