@@ -20,6 +20,7 @@ struct RecipeDetailView: View {
     /// back in the collection, and the reader came from the trash list.
     /// A no-op where the view is not presented, like the Mac's detail column.
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.sousTab) private var tab
     let recipe: Recipe
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
@@ -84,6 +85,25 @@ struct RecipeDetailView: View {
     private let formatter = QuantityFormatter(locale: .sous)
 
     private var servings: Int { servingsOverride ?? recipe.servings }
+
+    /// Whether this page is what the other devices are offered.
+    ///
+    /// Not a recipe in the trash — the other device would open nothing. Not
+    /// while cooking: then the cooking is what is offered. And only the page
+    /// actually on screen: two activities in view at once would take turns
+    /// at being the current one.
+    private var offersHandoff: Bool {
+        guard !recipe.isDeleted, !session.isPresented else { return false }
+        #if os(iOS)
+        // A page pushed in a tab the cook has since left is still alive.
+        return tab == nil || tab == navigation?.section
+        #else
+        // The detail column outlives the section beside it. With the
+        // shopping list open on the left, the list is what is being used.
+        return navigation?.section != .shopping
+        #endif
+    }
+
     private var unknownIngredientCount: Int { library.unknownIngredients(in: recipe).count }
 
     var body: some View {
@@ -290,14 +310,8 @@ struct RecipeDetailView: View {
             return .handled
         })
         // Offered to the cook's other devices: the page open on the phone
-        // turns up in the Mac's Dock, and the other way round. Not for a
-        // recipe in the trash — the other device would open nothing. And not
-        // while cooking: then the cooking is what is offered, and two
-        // activities would take turns at being the current one.
-        .userActivity(
-            RecipeHandoff.activityType,
-            element: recipe.isDeleted || session.isPresented ? nil : recipe.id
-        ) { id, activity in
+        // turns up in the Mac's Dock, and the other way round.
+        .userActivity(RecipeHandoff.activityType, element: offersHandoff ? recipe.id : nil) { id, activity in
             activity.title = recipe.title
             activity.userInfo = RecipeHandoff.userInfo(for: id)
             activity.isEligibleForHandoff = true

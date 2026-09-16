@@ -47,6 +47,7 @@
 	<array>
 		<string>me.raddatz.sous.recipe</string>
 		<string>me.raddatz.sous.cooking</string>
+		<string>me.raddatz.sous.shopping</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>

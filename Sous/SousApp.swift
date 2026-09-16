@@ -515,6 +515,10 @@ struct SousApp: App {
                     guard let id = RecipeHandoff.recipeID(from: activity.userInfo) else { return }
                     Task { await continueReading(id) }
                 }
+                // The shopping list another device had open.
+                .onContinueUserActivity(ShoppingListHandoff.activityType) { _ in
+                    navigation.section = .shopping
+                }
                 // Cooking another device was doing, with its timers.
                 .onContinueUserActivity(CookHandoff.activityType) { activity in
                     guard let payload = CookHandoff.payload(from: activity.userInfo) else { return }

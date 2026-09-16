@@ -312,17 +312,20 @@ struct RootView: View {
         TabView(selection: $navigation.section) {
             ForEach(SousSection.mainSections) { section in
                 Tab(section.title, systemImage: section.symbol, value: section) {
-                    switch section {
-                    // The recipes tab reads; searching lives in the search
-                    // tab and has a view of its own. Keeping `searchable`
-                    // off this instance is what lets its collapsed title sit
-                    // centered like every other native bar — a nav-bar
-                    // search field pushes it into the leading edge.
-                    case .recipes: RecipeListView(showsSearch: false)
-                    case .mealPlan: MealPlanView()
-                    case .shopping: ShoppingListView()
-                    case .search: RecipeSearchView()
+                    Group {
+                        switch section {
+                        // The recipes tab reads; searching lives in the search
+                        // tab and has a view of its own. Keeping `searchable`
+                        // off this instance is what lets its collapsed title sit
+                        // centered like every other native bar — a nav-bar
+                        // search field pushes it into the leading edge.
+                        case .recipes: RecipeListView(showsSearch: false)
+                        case .mealPlan: MealPlanView()
+                        case .shopping: ShoppingListView()
+                        case .search: RecipeSearchView()
+                        }
                     }
+                    .environment(\.sousTab, section)
                 }
             }
             // The system search circle beside the tab bar — where a tabbed
@@ -331,6 +334,7 @@ struct RootView: View {
             // the library again: see ``RecipeSearchView``.
             Tab(value: SousSection.search, role: .search) {
                 RecipeSearchView()
+                    .environment(\.sousTab, .search)
             }
         }
         // The floating bar along the top of an iPad, the bar along the foot
@@ -408,6 +412,16 @@ final class SousNavigation {
         shoppingRecipeID = recipeID
         section = .shopping
     }
+}
+
+extension EnvironmentValues {
+    /// The phone's tab a view lives in, `nil` outside the tabs and on the Mac.
+    ///
+    /// A tab the cook has left keeps its views alive, pushed pages and all —
+    /// so a page cannot tell from being there whether anyone sees it. What
+    /// it offers to the other devices has to be what is on screen, and this
+    /// is how it finds out.
+    @Entry var sousTab: SousSection?
 }
 
 /// The three places the app is used from, named once so the tab bar and the

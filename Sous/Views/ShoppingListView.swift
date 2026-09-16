@@ -173,6 +173,13 @@ struct ShoppingListView: View {
             }
         }
         .task { await shopping.reload() }
+        // Offered to the cook's other devices, so the list planned at the
+        // Mac is one tap away on the phone in the shop. Only the way there
+        // travels — the list itself is in CloudKit already.
+        .userActivity(ShoppingListHandoff.activityType, isActive: offersHandoff) { activity in
+            activity.title = "Einkaufsliste"
+            activity.isEligibleForHandoff = true
+        }
         .refreshable { await shopping.reload() }
     }
 
@@ -620,9 +627,27 @@ struct ShoppingListView: View {
         }
     }
 
+    /// Whether the list is what the other devices are offered: only while it
+    /// is on screen, and on the phone not while a dish is pushed over it —
+    /// then that page offers itself.
+    private var offersHandoff: Bool {
+        #if os(iOS)
+        navigation.section == .shopping && openedRecipe == nil
+        #else
+        navigation.section == .shopping
+        #endif
+    }
+
     private func add() {
         let line = newItem
         newItem = ""
         Task { await shopping.addItem(line) }
     }
+}
+
+/// The shopping list, as Handoff names it.
+enum ShoppingListHandoff {
+    /// Declared under `NSUserActivityTypes` in `project.yml` as well; an
+    /// activity whose type the app does not list is never offered.
+    static let activityType = "me.raddatz.sous.shopping"
 }
