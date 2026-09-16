@@ -13,6 +13,7 @@ struct CookModeView: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(CookTimerCenter.self) private var timers
     @Environment(CookSession.self) private var session
+    @Environment(CookHandoff.self) private var handoff
     #if os(macOS)
     /// Cooking is a window of its own here, and this closes it.
     @Environment(\.dismiss) private var dismiss
@@ -164,6 +165,17 @@ struct CookModeView: View {
         .task(id: session.entries.map(\.recipeID)) { await resolveRecipes() }
         .onAppear { keepDisplayAwake(true) }
         .onDisappear { keepDisplayAwake(false) }
+        // Offered to the cook's other devices, and kept current with every
+        // step scrolled to and every timer started — see `CookHandoff`.
+        .onChange(of: session.entries, initial: true) { offerHandoff() }
+        .onChange(of: session.activeRecipeID) { offerHandoff() }
+        .onChange(of: timers.timers) { offerHandoff() }
+        .onChange(of: activeRecipe?.title) { offerHandoff() }
+        .onDisappear { handoff.withdraw() }
+    }
+
+    private func offerHandoff() {
+        handoff.offer(session, timers: timers, title: activeRecipe?.title)
     }
 
     // MARK: - Chrome

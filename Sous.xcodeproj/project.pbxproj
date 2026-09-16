@@ -76,6 +76,7 @@
 		B1AFE064640D52D8CCD724C4 /* PlanRecipeSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E155E60C8508D02CC07CDB18 /* PlanRecipeSheet.swift */; };
 		B28BE3C030C0E9EE75A63AF1 /* IngredientReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687730697B4B18B2BA873B0B /* IngredientReviewSheet.swift */; };
 		B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E17F156912A3CDF5E6CA988B /* Assets.xcassets */; };
+		B71C9E0EE08870E16CCFB7C4 /* CookHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7EE678090F638FDC966AA9 /* CookHandoff.swift */; };
 		B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */; };
 		B984C5734F5D6DA69B42AEFA /* DataUpdateNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */; };
 		BB7EFD38EA70A0036C04AEE2 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
@@ -148,6 +149,7 @@
 		1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousWidgetBundle.swift; sourceTree = "<group>"; };
 		20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookAddSheet.swift; sourceTree = "<group>"; };
 		22368522EEB68B987EB6F862 /* NRFBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRFBadge.swift; sourceTree = "<group>"; };
+		2D7EE678090F638FDC966AA9 /* CookHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookHandoff.swift; sourceTree = "<group>"; };
 		2FB8435F0A0BC9D7BF7B1F7D /* SousWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookSwitcherBar.swift; sourceTree = "<group>"; };
@@ -306,6 +308,7 @@
 		16E4774220314313C4F7B5ED /* Cooking */ = {
 			isa = PBXGroup;
 			children = (
+				2D7EE678090F638FDC966AA9 /* CookHandoff.swift */,
 				4B6026111A4BDC9288A3121F /* CookSession.swift */,
 				6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */,
 			);
@@ -599,6 +602,7 @@
 				0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */,
 				B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */,
 				027DB14287C4B8F7C448B5C6 /* CookAddSheet.swift in Sources */,
+				B71C9E0EE08870E16CCFB7C4 /* CookHandoff.swift in Sources */,
 				C9037E1C2FF887B28090B806 /* CookModeView.swift in Sources */,
 				21102CFF51F26CED67D7FDC6 /* CookSession.swift in Sources */,
 				B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */,

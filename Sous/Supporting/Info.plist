@@ -43,6 +43,11 @@
 	<string>Damit dein Essensplan als Termine in deinem Kalender steht. Sous schreibt nur in seinen eigenen Kalender.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>me.raddatz.sous.recipe</string>
+		<string>me.raddatz.sous.cooking</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

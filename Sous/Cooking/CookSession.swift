@@ -64,6 +64,25 @@ final class CookSession {
         save()
     }
 
+    /// Takes over what another device was cooking, and opens cook mode on it.
+    ///
+    /// The handed-over entries win over any this device had for the same
+    /// recipe: the other device is where the cook actually was a moment ago.
+    /// Whatever else is on this hob stays.
+    func adopt(_ handed: [CookSessionEntry], activeRecipeID handedActive: UUID?) {
+        guard !handed.isEmpty else { return }
+        for entry in handed {
+            if let index = entries.firstIndex(where: { $0.recipeID == entry.recipeID }) {
+                entries[index] = entry
+            } else {
+                entries.append(entry)
+            }
+        }
+        activeRecipeID = handedActive ?? handed.first?.recipeID
+        isPresented = true
+        save()
+    }
+
     func show(_ recipeID: UUID) {
         guard entries.contains(where: { $0.recipeID == recipeID }) else { return }
         activeRecipeID = recipeID

@@ -1,3 +1,4 @@
+import AppIntents
 import SousKit
 import SwiftUI
 
@@ -288,6 +289,25 @@ struct RecipeDetailView: View {
             Task { linkedRecipe = await library.recipe(id: id) }
             return .handled
         })
+        // Offered to the cook's other devices: the page open on the phone
+        // turns up in the Mac's Dock, and the other way round. Not for a
+        // recipe in the trash — the other device would open nothing. And not
+        // while cooking: then the cooking is what is offered, and two
+        // activities would take turns at being the current one.
+        .userActivity(
+            RecipeHandoff.activityType,
+            element: recipe.isDeleted || session.isPresented ? nil : recipe.id
+        ) { id, activity in
+            activity.title = recipe.title
+            activity.userInfo = RecipeHandoff.userInfo(for: id)
+            activity.isEligibleForHandoff = true
+            // What the receiving side's scene routing matches against — see
+            // `handlesExternalEvents` on the root.
+            activity.targetContentIdentifier = RecipeLink.url(for: id).absoluteString
+            // Also tells Siri which recipe is on screen, so "koch das" has
+            // something to refer to.
+            activity.appEntityIdentifier = EntityIdentifier(for: RecipeEntity(recipe: recipe))
+        }
     }
 
     /// Edge to edge, the way a dish deserves to be seen.

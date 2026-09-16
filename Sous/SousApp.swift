@@ -48,6 +48,9 @@ struct SousApp: App {
     /// And so does the cooking itself: what is on the hob is app state, not
     /// something the screen showing it owns.
     @State private var session = CookSession()
+    /// Hands the cooking over to the cook's other device and stops it here
+    /// once that one has it.
+    @State private var cookHandoff = CookHandoff()
     /// Which recipe the Mac's detail column is showing — outlives the section
     /// on the left, so it does not belong to any one of them.
     @State private var selection = RecipeSelection()
@@ -344,6 +347,76 @@ struct SousApp: App {
         dataUpdate.didFindOrphans = !report.orphanedNames.isEmpty
     }
 
+    /// Opens a recipe handed over from another device, the way Spotlight's
+    /// `OpenRecipeIntent` does.
+    private func continueReading(_ id: UUID) async {
+        let showing = selection.target
+        guard let recipe = await handedOverRecipes([id], while: { selection.target == showing })?.first
+        else { return }
+        navigation.section = .recipes
+        selection.plannedEntryID = nil
+        selection.target = .recipe(recipe)
+    }
+
+    /// Picks up cooking where another device left it: the pots and their
+    /// progress first, so cook mode opens, then the timers with what they
+    /// had left. That device stops its own once it hears this one took over
+    /// — see `CookHandoff`.
+    private func continueCooking(_ payload: CookHandoff.Payload) async {
+        let showing = selection.target
+        let wasCooking = session.isPresented
+        let ids = payload.entries.map(\.recipeID)
+        guard await handedOverRecipes(ids, while: {
+            selection.target == showing && session.isPresented == wasCooking
+        }) != nil else { return }
+
+        session.adopt(payload.entries, activeRecipeID: payload.activeRecipeID)
+        for timer in payload.timers {
+            guard let recipeID = timer.recipeID else { continue }
+            // Counted from now, so the time the handover itself took is not
+            // added on top.
+            let left = timer.remaining()
+            guard left >= 1 else { continue }
+            await timers.start(
+                seconds: left,
+                stepID: timer.stepID,
+                stepNumber: timer.stepNumber,
+                recipeID: recipeID,
+                recipeTitle: timer.recipeTitle,
+                askedFor: timer.duration
+            )
+        }
+    }
+
+    /// The recipes a handoff names, once they are all here.
+    ///
+    /// They may not be yet: one imported on the other device a moment ago is
+    /// still on its way through CloudKit — and cook mode drops any pot whose
+    /// recipe it cannot find. So the lookup is repeated for a while, but
+    /// only for as long as `stillWanted` holds: a page or cook mode jumping
+    /// in unasked a quarter of a minute later, over whatever the cook has
+    /// turned to meanwhile, would be worse than the handoff doing nothing.
+    private func handedOverRecipes(
+        _ ids: [UUID],
+        while stillWanted: () -> Bool
+    ) async -> [Recipe]? {
+        guard !ids.isEmpty else { return nil }
+        for attempt in 0..<15 {
+            if attempt > 0 {
+                try? await Task.sleep(for: .seconds(1))
+                guard stillWanted() else { return nil }
+            }
+            var found: [Recipe] = []
+            for id in ids {
+                guard let recipe = await library.recipe(id: id) else { break }
+                found.append(recipe)
+            }
+            guard found.count == ids.count else { continue }
+            return found.contains(where: \.isDeleted) ? nil : found
+        }
+        return nil
+    }
+
     /// Every live recipe into the system index, so the collection answers
     /// from Spotlight without the app open.
     private func indexRecipesForSpotlight() async {
@@ -365,6 +438,7 @@ struct SousApp: App {
                 .environment(dinnerPlanner)
                 .environment(timers)
                 .environment(session)
+                .environment(cookHandoff)
                 .environment(selection)
                 .environment(commands)
                 .environment(dataUpdate)
@@ -435,6 +509,22 @@ struct SousApp: App {
                     else { return }
                     Task { await library.importFromWeb(target) }
                 }
+                // A recipe another device was showing, picked up from the
+                // Dock or the app switcher.
+                .onContinueUserActivity(RecipeHandoff.activityType) { activity in
+                    guard let id = RecipeHandoff.recipeID(from: activity.userInfo) else { return }
+                    Task { await continueReading(id) }
+                }
+                // Cooking another device was doing, with its timers.
+                .onContinueUserActivity(CookHandoff.activityType) { activity in
+                    guard let payload = CookHandoff.payload(from: activity.userInfo) else { return }
+                    Task { await continueCooking(payload) }
+                }
+                // The window already open takes what arrives from outside.
+                // Without a preference the Mac opens a fresh window per
+                // handed-over recipe or shared page, each one a second copy
+                // of the whole library.
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
         }
         // The Mac's only, and deliberately so. On iPadOS this reaches the
         // scene as a size restriction with the minimum and the maximum both
@@ -519,6 +609,7 @@ struct SousApp: App {
                 .environment(nutrition)
                 .environment(timers)
                 .environment(session)
+                .environment(cookHandoff)
                 .environment(selection)
                 // Cook mode names the appearance itself; the locale it needs
                 // from here, since it no longer sits inside `RootView`.

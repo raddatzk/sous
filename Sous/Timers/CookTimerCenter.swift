@@ -54,12 +54,16 @@ final class CookTimerCenter {
     /// One step is one thing on the hob, so a second timer on it is a
     /// correction — five minutes was meant to be fifteen — not a second pot.
     /// Different steps run side by side.
+    ///
+    /// `askedFor` is the duration originally set, where that is not `seconds`
+    /// — a timer carried over from another device runs for what it had left.
     func start(
         seconds: TimeInterval,
         stepID: UUID,
         stepNumber: Int,
         recipeID: UUID,
-        recipeTitle: String
+        recipeTitle: String,
+        askedFor: TimeInterval? = nil
     ) async {
         guard seconds > 0 else { return }
         for existing in timers(forStep: stepID) { cancel(existing) }
@@ -70,7 +74,7 @@ final class CookTimerCenter {
             recipeID: recipeID,
             recipeTitle: recipeTitle,
             stepNumber: stepNumber,
-            duration: seconds,
+            duration: askedFor ?? seconds,
             fireDate: Date().addingTimeInterval(seconds)
         )
 

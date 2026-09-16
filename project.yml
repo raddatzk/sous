@@ -123,6 +123,13 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: me.raddatz.sous.import
             CFBundleURLSchemes: [sous]
+        # The recipe being read and the cooking in progress, offered to the
+        # other devices on the same account. Must match
+        # `RecipeHandoff.activityType` and `CookHandoff.activityType`, or the
+        # system never offers them.
+        NSUserActivityTypes:
+          - me.raddatz.sous.recipe
+          - me.raddatz.sous.cooking
     dependencies:
       - package: SousKit
         product: SousKit
