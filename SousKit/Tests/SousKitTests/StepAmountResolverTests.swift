@@ -947,6 +947,13 @@ struct GroupCueTests {
             == [["400 g passierte Tomaten"]])
     }
 
+    @Test("A qualifier every candidate carries tells nothing apart — the next cue decides")
+    func sharedQualifierFallsThrough() {
+        #expect(chips("# Teig\n150 g Weizenmehl\n300 ml fettarme Kokosmilch\n# Füllung\n80 g Kokosraspeln\n100 ml fettarme Kokosmilch",
+                      "Weizenmehl vermengen. Fettarme Kokosmilch einarbeiten.\nFettarme Kokosmilch erhitzen und über die Kokosraspeln gießen.")
+            == [["150 g Weizenmehl", "300 ml fettarme Kokosmilch"], ["100 ml fettarme Kokosmilch", "80 g Kokosraspeln"]])
+    }
+
     @Test("The group's name in the sentence picks the group")
     func groupNameInTheSentence() {
         #expect(chips("# Für den Teig\n200 g Butter\n# Für die Streusel\n100 g Butter",
@@ -960,6 +967,40 @@ struct GroupCueTests {
     func companyInTheSentence() {
         #expect(chips("# Teig\n300 g Mehl\n100 g Butter\n# Füllung\n500 g Milchreis\n50 g Butter", "Mehl, Puderzucker und Butter verkneten.")
             == [["300 g Mehl", "100 g Butter"]])
+    }
+
+    @Test("Company counts an ingredient named the way a step names it, by its head noun")
+    func companyByHeadNoun() {
+        #expect(chips("# Teig\n300 ml fettarme Kokosmilch\n# Füllung\n80 g getrocknete Kokosraspeln\n100 ml fettarme Kokosmilch",
+                      "Getrocknete Kokosraspeln anrösten.\nFettarme Kokosmilch erhitzen und über die Kokosraspeln gießen.")
+            == [["80 g getrocknete Kokosraspeln"], ["100 ml fettarme Kokosmilch"]])
+    }
+
+    @Test("A later mention in the same step reaches the pot the first one was not given to")
+    func laterMentionReachesTheOtherPot() {
+        #expect(Set(chips("# Teig\n230 g Mehl\n120 g kalte Butter\n# Füllung\n170 g Milchreis\n80 g kalte Butter",
+                          "Mehl vermischen. Kalte Butter zugeben und den Teig verkneten. Butter in den warmen Milchreis rühren.")[0])
+            == ["230 g Mehl", "120 g kalte Butter", "80 g kalte Butter", "170 g Milchreis"])
+    }
+
+    @Test("The same pot named twice stays one pot — a repeat claims nothing the sentence does not point to")
+    func repeatedMentionStaysOnePot() {
+        #expect(chips("# Teig\n200 g Butter\n# Streusel\n100 g Butter", "Für den Teig Butter schmelzen und die Butter unterrühren.")
+            == [["200 g Butter"]])
+    }
+
+    @Test("Each mention is read in its own sentence before the whole step")
+    func sentenceBeforeStep() {
+        #expect(Set(chips("# Teig\n200 g Mehl\n100 g Butter\n# Füllung\n500 g Milchreis\n50 g Butter",
+                          "Butter in den Milchreis rühren. Mehl und Butter verkneten.")[0])
+            == ["200 g Mehl", "100 g Butter", "500 g Milchreis", "50 g Butter"])
+    }
+
+    @Test("A name a written amount already took is not a bare mention for another pot of that name")
+    func writtenNameIsSpokenFor() {
+        #expect(Set(chips("# Kartoffeln\n600 g Kartoffeln\n1 EL Olivenöl\n# Hack\n1 Zwiebel\n1 TL Olivenöl\n# Sauce\n400 g Seidentofu\n1 EL Olivenöl",
+                          "Kartoffeln mit 1 EL Olivenöl vermengen. Zwiebel mit dem Olivenöl anbraten.")[0])
+            == ["600 g Kartoffeln", "1 Zwiebel", "1 TL Olivenöl"])
     }
 
     @Test("One name over every variant in one group adds them up, under the name as written")

@@ -237,7 +237,7 @@ public enum StepAmountResolver {
             let entry = entries[index]
             let step = steps[entry.stepIndex]
             var candidates = candidatePots(for: entry.mention, addressed: addressedGroups[entry.stepIndex], pots: pots, catalog: catalog)
-            if candidates.count > 1, case .each(let narrowed) = disambiguate(candidates, in: step.text, pots: pots, lines: lines, catalog: catalog) {
+            if candidates.count > 1, case .each(let narrowed) = disambiguate(candidates, around: entry.mention.writtenRange, in: step.text, pots: pots, lines: lines, catalog: catalog) {
                 candidates = narrowed
             }
             return candidates.compactMap { potIndex in
@@ -350,6 +350,10 @@ public enum StepAmountResolver {
             var intakes: [StepIntake] = []
             var handledPots: Set<Int> = []
             let negated = negatedRanges(in: step.text)
+            // The names a written amount or share already took for its own
+            // pot. "mit 1 EL Olivenöl" is that pot's oil; another pot of the
+            // same name must look for a word of its own.
+            var spokenFor: [Range<String.Index>] = []
 
             for index in entries.indices where entries[index].stepIndex == stepIndex {
                 let entry = entries[index]
@@ -358,6 +362,7 @@ public enum StepAmountResolver {
                 case .absolute, .bareCount:
                     if let (potIndex, share) = writtenBinding[index] {
                         let pot = pots[potIndex]
+                        spokenFor += nameSpan(of: mention, for: pot, catalog: catalog).map { [$0] } ?? []
                         let amount = displayAmount(for: mention.kind, fraction: share, scaledQuantity: pot.scaledTotal, formatter: formatter)
                         let quantity = Quantity(share * pot.scaledTotal.amount, pot.scaledTotal.unit)
                         handledPots.insert(potIndex)
@@ -371,7 +376,11 @@ public enum StepAmountResolver {
                         // A written number that binds nowhere still speaks
                         // for its ingredient: the name beside it is not a
                         // bare mention on top of the number.
-                        handledPots.formUnion(candidatePots(for: mention, addressed: addressedGroups[stepIndex], pots: pots, catalog: catalog))
+                        let candidates = candidatePots(for: mention, addressed: addressedGroups[stepIndex], pots: pots, catalog: catalog)
+                        handledPots.formUnion(candidates)
+                        if let first = candidates.first {
+                            spokenFor += nameSpan(of: mention, for: pots[first], catalog: catalog).map { [$0] } ?? []
+                        }
                     }
                     if writtenBinding[index] == nil, case .absolute(let quantity) = mention.kind,
                        scalesBlindly(quantity.unit, writtenRange: mention.writtenRange, in: step.text) {
@@ -395,7 +404,7 @@ public enum StepAmountResolver {
                     // sentence.
                     var candidates = candidatePots(for: mention, addressed: addressedGroups[stepIndex], pots: pots, catalog: catalog)
                     if candidates.count > 1 {
-                        switch disambiguate(candidates, in: step.text, pots: pots, lines: lines, catalog: catalog) {
+                        switch disambiguate(candidates, around: mention.writtenRange, in: step.text, pots: pots, lines: lines, catalog: catalog) {
                         case .each(let narrowed) where narrowed.count == 1: candidates = narrowed
                         case .sum(let variants): candidates = variants
                         case .each, .ambiguous: candidates = []
@@ -410,6 +419,7 @@ public enum StepAmountResolver {
                     }
                     guard let intake = withdraw(candidates, draw, at: stepIndex, inline: false), !intake.isBackReference else { continue }
                     handledPots.formUnion(candidates)
+                    spokenFor += nameSpan(of: mention, for: pots[candidates[0]], catalog: catalog).map { [$0] } ?? []
                     let name = lines[pots[candidates[0]].lineIndices[0]].name
                     settledMarks.append(StepTextMark(kind: .bound, range: mention.writtenRange, ingredientName: name))
                     intakes.append(intake)
@@ -423,37 +433,73 @@ public enum StepAmountResolver {
             // later one, after earlier steps emptied the pot, is a
             // back-reference. Pots one word covers together are decided
             // together — see `disambiguate`.
-            var bareByStart: [String.Index: [(potIndex: Int, range: Range<String.Index>)]] = [:]
+            //
+            // A pot the word was not given to keeps looking further along
+            // the step: "Kalte Butter zugeben und den Teig verkneten. Butter
+            // in den warmen Milchreis rühren." names the dough's butter
+            // first and the filling's second. Such a later mention carries
+            // the pots it was first weighed against, and claims only what
+            // its own sentence points to — otherwise it is the same butter
+            // named again.
+            struct BareName {
+                let potIndex: Int
+                let range: Range<String.Index>
+                let rivals: Set<Int>
+            }
+            func nextBareName(of potIndex: Int, after index: String.Index) -> Range<String.Index>? {
+                let pot = pots[potIndex]
+                let avoiding = negated + spokenFor + [step.text.startIndex..<index]
+                return firstBareName(of: pot.canonicalName, in: step.text, avoiding: avoiding, catalog: catalog)
+                    ?? pot.headCanonicalName.flatMap({ firstBareName(of: $0, in: step.text, avoiding: avoiding, catalog: catalog) })
+                    ?? pot.groupKey.flatMap({ firstGroupName(groupKey: $0, in: step.text, avoiding: avoiding, catalog: catalog) })
+                    ?? firstCompoundHead(claimedBy: potIndex, pots: pots, addressed: addressedGroups[stepIndex], in: step.text, avoiding: avoiding, catalog: catalog)
+            }
+            var bareByStart: [String.Index: [BareName]] = [:]
+            // Words nothing told apart, held back until the rest of the step
+            // has been read: a later sentence may still settle them.
+            var undecided: [(potIndices: [Int], word: String)] = []
+            func lookFurther(_ potIndices: some Sequence<Int>, after index: String.Index, rivals: Set<Int>) {
+                for potIndex in potIndices where !handledPots.contains(potIndex) {
+                    guard let range = nextBareName(of: potIndex, after: index) else { continue }
+                    bareByStart[range.lowerBound, default: []].append(BareName(potIndex: potIndex, range: range, rivals: rivals))
+                }
+            }
             for (potIndex, pot) in pots.enumerated() where !handledPots.contains(potIndex) {
                 if let addressed = addressedGroups[stepIndex], let potGroup = pot.group, !addressed.contains(potGroup) { continue }
-                guard let nameRange = firstBareName(of: pot.canonicalName, in: step.text, avoiding: negated, catalog: catalog)
-                    ?? pot.headCanonicalName.flatMap({ firstBareName(of: $0, in: step.text, avoiding: negated, catalog: catalog) })
-                    ?? pot.groupKey.flatMap({ firstGroupName(groupKey: $0, in: step.text, avoiding: negated, catalog: catalog) })
-                    ?? firstCompoundHead(claimedBy: potIndex, pots: pots, addressed: addressedGroups[stepIndex], in: step.text, avoiding: negated, catalog: catalog)
-                else { continue }
-                bareByStart[nameRange.lowerBound, default: []].append((potIndex, nameRange))
+                guard let nameRange = nextBareName(of: potIndex, after: step.text.startIndex) else { continue }
+                bareByStart[nameRange.lowerBound, default: []].append(BareName(potIndex: potIndex, range: nameRange, rivals: []))
             }
-            for start in bareByStart.keys.sorted() {
-                let group = bareByStart[start]!
+            while let start = bareByStart.keys.min() {
+                let group = bareByStart.removeValue(forKey: start)!.filter { !handledPots.contains($0.potIndex) }
+                guard !group.isEmpty else { continue }
                 let range = group[0].range
                 let word = String(step.text[range])
-                var each: [[Int]] = group.map { [$0.potIndex] }
+                let potIndices = group.map(\.potIndex)
+                let rivals = group.reduce(into: Set<Int>()) { $0.formUnion($1.rivals) }
+                var each: [[Int]] = potIndices.map { [$0] }
                 var label: String?
-                if group.count > 1 {
-                    switch disambiguate(group.map(\.potIndex), in: step.text, pots: pots, lines: lines, catalog: catalog) {
+
+                if !rivals.isEmpty {
+                    let candidates = rivals.union(potIndices).sorted()
+                    guard case .each(let chosen) = disambiguate(
+                        candidates, in: sentence(around: range, in: step.text), pots: pots, lines: lines, catalog: catalog
+                    ) else {
+                        lookFurther(potIndices, after: range.upperBound, rivals: rivals)
+                        continue
+                    }
+                    each = potIndices.filter { chosen.contains($0) }.map { [$0] }
+                    lookFurther(potIndices.filter { !chosen.contains($0) }, after: range.upperBound, rivals: rivals)
+                } else if group.count > 1 {
+                    switch disambiguate(group.map(\.potIndex), around: range, in: step.text, pots: pots, lines: lines, catalog: catalog) {
                     case .each(let chosen):
                         each = chosen.map { [$0] }
+                        lookFurther(potIndices.filter { !chosen.contains($0) }, after: range.upperBound, rivals: Set(potIndices))
                     case .sum(let variants):
                         each = [variants]
                         label = word
                     case .ambiguous:
-                        // Left as a name without an amount: the pots are
-                        // not charged, the cook sees what was named and
-                        // nothing the text cannot back up.
-                        intakes.append(StepIntake(
-                            source: .list, ingredientLineIDs: lineIDs(of: group.map(\.potIndex)),
-                            share: nil, quantity: nil, inline: false, label: word
-                        ))
+                        undecided.append((potIndices, word))
+                        lookFurther(potIndices, after: range.upperBound, rivals: Set(potIndices))
                         continue
                     }
                 }
@@ -466,6 +512,15 @@ public enum StepAmountResolver {
                     ))
                     intakes.append(intake)
                 }
+            }
+            for (potIndices, word) in undecided where potIndices.allSatisfy({ !handledPots.contains($0) }) {
+                // Left as a name without an amount: the pots are not
+                // charged, the cook sees what was named and nothing the
+                // text cannot back up.
+                intakes.append(StepIntake(
+                    source: .list, ingredientLineIDs: lineIDs(of: potIndices),
+                    share: nil, quantity: nil, inline: false, label: word
+                ))
             }
 
             boundIngredientIDsByStep[step.id] = boundIDs
@@ -514,6 +569,66 @@ public enum StepAmountResolver {
         case ambiguous
     }
 
+    /// Where the name a mention was matched to stands in the step — the
+    /// words of `namePhrase` that name `pot`.
+    private static func nameSpan(of mention: AmountMention, for pot: Pot, catalog: IngredientCatalog) -> Range<String.Index>? {
+        let phrase = mention.namePhrase
+        if mention.namePrecedesAmount {
+            return matchedNameStart(in: phrase, for: pot, catalog: catalog).map { $0..<phrase.endIndex }
+        }
+        return matchedNameEnd(in: phrase, for: pot, catalog: catalog).map { phrase.startIndex..<$0 }
+    }
+
+    /// `disambiguate` for a word at `range`: its own sentence first, the
+    /// whole step only where the sentence settles nothing. "Butter in den
+    /// Milchreis rühren. Mehl und Butter verkneten." is two butters, and
+    /// read as one text the dough's cue would decide both.
+    private static func disambiguate(
+        _ candidates: [Int], around range: Range<String.Index>, in text: String,
+        pots: [Pot], lines: [RecipeIngredient], catalog: IngredientCatalog
+    ) -> Disambiguation {
+        let own = sentence(around: range, in: text)
+        if own.count < text.count, case .each(let chosen) = disambiguate(candidates, in: own, pots: pots, lines: lines, catalog: catalog) {
+            return .each(chosen)
+        }
+        return disambiguate(candidates, in: text, pots: pots, lines: lines, catalog: catalog)
+    }
+
+    /// Words a step abbreviates with a full stop that does not end the
+    /// sentence: "ca. 20 cm", "z. B. Butter".
+    private static let abbreviations: Set<String> = [
+        "ca", "bzw", "evtl", "ggf", "ggfs", "z", "b", "u", "a", "usw", "etc", "min", "max", "std", "gr", "vgl", "inkl", "mind", "tl", "el",
+    ]
+
+    /// The sentence of `text` that `range` stands in: bounded by a line
+    /// break, or by ".", "!", "?" or ";" followed by a space — a full stop
+    /// after an abbreviation or inside a number does not count.
+    static func sentence(around range: Range<String.Index>, in text: String) -> String {
+        func endsSentence(at index: String.Index) -> Bool {
+            let character = text[index]
+            if character == "\n" { return true }
+            guard "!?;.".contains(character) else { return false }
+            let next = text.index(after: index)
+            guard next == text.endIndex || text[next].isWhitespace else { return false }
+            guard character == "." else { return true }
+            var wordStart = index
+            while wordStart > text.startIndex, text[text.index(before: wordStart)].isLetter {
+                wordStart = text.index(before: wordStart)
+            }
+            return !abbreviations.contains(text[wordStart..<index].lowercased())
+        }
+        var lower = range.lowerBound
+        while lower > text.startIndex, !endsSentence(at: text.index(before: lower)) {
+            lower = text.index(before: lower)
+        }
+        var upper = range.upperBound
+        while upper < text.endIndex, !endsSentence(at: upper) {
+            upper = text.index(after: upper)
+        }
+        if upper < text.endIndex { upper = text.index(after: upper) }
+        return String(text[lower..<upper]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Tells `candidates` — pots one word fits — apart by what else the
     /// sentence says, for the recipes that write no step headings. The
     /// tiers, in order: the line's own qualifier is in the sentence
@@ -526,11 +641,16 @@ public enum StepAmountResolver {
         guard candidates.count > 1 else { return .each(candidates) }
         let words = text.matches(of: /[\p{L}][\p{L}\-]*/).map { text[$0.range].lowercased() }
 
-        let byQualifier = candidates.filter { potIndex in
-            qualifierStems(of: lines[pots[potIndex].lineIndices[0]].name).contains { stem in
+        // Only a qualifier some other candidate lacks tells them apart:
+        // "fettarme Kokosmilch" in the dough and in the filling both answer
+        // to "Fettarme Kokosmilch", which says nothing about which one.
+        let stemsByCandidate = candidates.map { Set(qualifierStems(of: lines[pots[$0].lineIndices[0]].name)) }
+        let sharedStems = stemsByCandidate.dropFirst().reduce(stemsByCandidate[0]) { $0.intersection($1) }
+        let byQualifier = zip(candidates, stemsByCandidate).filter { _, stems in
+            stems.subtracting(sharedStems).contains { stem in
                 words.contains { $0.hasPrefix(stem) && $0.count <= stem.count + 3 }
             }
-        }
+        }.map(\.0)
         if !byQualifier.isEmpty { return .each(byQualifier) }
 
         let byGroup = candidates.filter { potIndex in
@@ -548,9 +668,12 @@ public enum StepAmountResolver {
             for (otherIndex, other) in pots.enumerated()
             where otherIndex != potIndex && other.group == group && !candidates.contains(otherIndex) {
                 let sharedElsewhere = pots.contains { $0.canonicalName == other.canonicalName && otherGroups.contains($0.group) }
-                guard !sharedElsewhere,
-                      firstBareName(of: other.canonicalName, in: text, avoiding: [], catalog: catalog) != nil
-                else { continue }
+                // Named the way a step names it — "Kokosraspeln" for
+                // "getrocknete Kokosraspeln" — not only by the full name.
+                let named = firstBareName(of: other.canonicalName, in: text, avoiding: [], catalog: catalog)
+                    ?? other.headCanonicalName.flatMap { firstBareName(of: $0, in: text, avoiding: [], catalog: catalog) }
+                    ?? other.groupKey.flatMap { firstGroupName(groupKey: $0, in: text, avoiding: [], catalog: catalog) }
+                guard !sharedElsewhere, named != nil else { continue }
                 company[potIndex, default: 0] += 1
             }
         }
