@@ -404,6 +404,9 @@ struct CookModeView: View {
         let resolution = StepAmountResolver.resolve(
             recipe, toServings: entry.servings, formatter: formatter
         )
+        // A chat model's answer, where one was pasted in and the recipe
+        // still reads the way it did then. See `StepChips`.
+        let pastedChips = recipe.stepChips?.ingredientsByStep(of: recipe, scaledToServings: entry.servings)
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 32) {
@@ -421,7 +424,8 @@ struct CookModeView: View {
                             number: number(for: step, at: index, in: steps),
                             entry: entry,
                             recipe: recipe,
-                            resolution: resolution
+                            resolution: resolution,
+                            pastedChips: pastedChips?[index]
                         )
                         .id(step.id)
                         .opacity(step.id == focused ? 1 : 0.4)
@@ -545,7 +549,8 @@ struct CookModeView: View {
         number: Int,
         entry: CookSessionEntry,
         recipe: Recipe,
-        resolution: StepAmountResolver.Resolution
+        resolution: StepAmountResolver.Resolution,
+        pastedChips: [RecipeIngredient]?
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let group = step.group, isFirstOfGroup(step, in: recipe.steps) {
@@ -568,7 +573,11 @@ struct CookModeView: View {
             // step already holds. A name the sentence could not tell apart
             // from a twin in another group shows without an amount. See
             // VISION.md, "Amounts written into a step name an ingredient".
-            let used = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
+            //
+            // Where a chat model's answer was pasted in, it speaks instead —
+            // less the lines whose amount the sentence already prints.
+            let used = pastedChips?.filter { !resolution.mentionsAmount(of: $0, in: step) }
+                ?? recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
             //
             // Chips rather than lines: set under the step as plain text they
             // read as more of the instruction, and a glance from the hob

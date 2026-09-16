@@ -30,6 +30,7 @@ final class CDRecipe: CDHouseholdMember {
     @NSManaged var suitableSlotsJSON: String?
     @NSManaged var effortOverrideRaw: String?
     @NSManaged var variantGroupID: UUID?
+    @NSManaged var stepChipsJSON: String?
     @NSManaged var createdBy: UUID?
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
@@ -70,6 +71,7 @@ final class CDRecipe: CDHouseholdMember {
         }
         effortOverrideRaw = recipe.effortOverride?.rawValue
         variantGroupID = recipe.variantGroupID
+        stepChipsJSON = StepChips.encode(recipe.stepChips)
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
@@ -120,6 +122,7 @@ final class CDRecipe: CDHouseholdMember {
             },
             effortOverride: effortOverrideRaw.flatMap(RecipeEffort.Level.init(rawValue:)),
             variantGroupID: variantGroupID,
+            stepChips: StepChips.decode(stepChipsJSON),
             createdBy: createdBy,
             // A row that lost its timestamps is readable; it just sorts last
             // and looks untouched, which is what it is.

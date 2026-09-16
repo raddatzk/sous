@@ -91,6 +91,12 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// what it contains.
     public var variantGroupID: UUID?
 
+    /// What each step takes off the ingredient list, as a chat model read it
+    /// — where the cook pasted such an answer in. See ``StepChips``; it
+    /// speaks only for the text it was made from, so an edit does not clear
+    /// it, it just stops being current.
+    public var stepChips: StepChips?
+
     /// The user who created it. Optional until user management exists.
     public var createdBy: UUID?
     public var createdAt: Date
@@ -120,6 +126,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         suitableSlots: Set<MealSlot>? = nil,
         effortOverride: RecipeEffort.Level? = nil,
         variantGroupID: UUID? = nil,
+        stepChips: StepChips? = nil,
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
         updatedAt: Date = .nowInSyncPrecision,
@@ -144,6 +151,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.suitableSlots = suitableSlots.flatMap { $0.isEmpty ? nil : $0 }
         self.effortOverride = effortOverride
         self.variantGroupID = variantGroupID
+        self.stepChips = stepChips
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.updatedAt = updatedAt

@@ -78,6 +78,7 @@
 		B28BE3C030C0E9EE75A63AF1 /* IngredientReviewSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687730697B4B18B2BA873B0B /* IngredientReviewSheet.swift */; };
 		B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E17F156912A3CDF5E6CA988B /* Assets.xcassets */; };
 		B71C9E0EE08870E16CCFB7C4 /* CookHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7EE678090F638FDC966AA9 /* CookHandoff.swift */; };
+		B90EC4A0457CC68C0487B2D4 /* StepChipsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C8ECDCA65669789C803DC1B /* StepChipsSheet.swift */; };
 		B915FA3B722DA038A5944452 /* CookSessionEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FDD6B2FEFA7D31D1D5D2701 /* CookSessionEntry.swift */; };
 		B984C5734F5D6DA69B42AEFA /* DataUpdateNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43FA6872FC3818BE9DA221C9 /* DataUpdateNotice.swift */; };
 		BB7EFD38EA70A0036C04AEE2 /* SousStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9726B813A724D39D4FE79CB /* SousStyle.swift */; };
@@ -151,6 +152,7 @@
 		1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousWidgetBundle.swift; sourceTree = "<group>"; };
 		20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookAddSheet.swift; sourceTree = "<group>"; };
 		22368522EEB68B987EB6F862 /* NRFBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NRFBadge.swift; sourceTree = "<group>"; };
+		2C8ECDCA65669789C803DC1B /* StepChipsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepChipsSheet.swift; sourceTree = "<group>"; };
 		2D7EE678090F638FDC966AA9 /* CookHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookHandoff.swift; sourceTree = "<group>"; };
 		2FB8435F0A0BC9D7BF7B1F7D /* SousWidgets.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = SousWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -299,6 +301,7 @@
 				6D4F0DD81CA3E6A2A0E5B849 /* SousAppearance.swift */,
 				7D300564443D3A1FEA625003 /* SousDialogs.swift */,
 				D9726B813A724D39D4FE79CB /* SousStyle.swift */,
+				2C8ECDCA65669789C803DC1B /* StepChipsSheet.swift */,
 				8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */,
 				BF5F5A49BEF93D3CFF7287EA /* TrashView.swift */,
 				973AC4B5EEA5A0B69F7D77B6 /* UnknownIngredientButton.swift */,
@@ -660,6 +663,7 @@
 				C96CE69BE4779086D440E01B /* SousDialogs.swift in Sources */,
 				BF52A9CCD152AC212F0B12C2 /* SousIntents.swift in Sources */,
 				C08876653DCA69CB644ABD57 /* SousStyle.swift in Sources */,
+				B90EC4A0457CC68C0487B2D4 /* StepChipsSheet.swift in Sources */,
 				D039F26CAA91B8EAF7A4A66A /* TimerSetupSheet.swift in Sources */,
 				F57D8BF30A466E29363D8D6D /* TrashView.swift in Sources */,
 				7498D7DCB5309FD2CF3FD819 /* UnknownIngredientButton.swift in Sources */,

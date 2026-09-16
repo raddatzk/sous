@@ -65,6 +65,7 @@ struct RecipeDetailView: View {
     /// one, and the page does not claim otherwise.
     @State private var effort: RecipeEffort.Level?
     @State private var isPlanning = false
+    @State private var isAssigningStepChips = false
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
@@ -216,6 +217,9 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
+        }
+        .sheet(isPresented: $isAssigningStepChips) {
+            StepChipsSheet(recipe: recipe)
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -1350,6 +1354,11 @@ struct RecipeDetailView: View {
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
                 Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
+                    Button("Zutaten pro Schritt", systemImage: "sparkles") {
+                        isAssigningStepChips = true
+                    }
+                }
                 // The banner below settles for good once it has been
                 // answered — "jetzt nicht" has to mean something, or it
                 // would ask again every time the recipe is opened. But the
