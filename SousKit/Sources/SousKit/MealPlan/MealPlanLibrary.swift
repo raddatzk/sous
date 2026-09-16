@@ -93,9 +93,14 @@ public final class MealPlanLibrary {
     /// A day's entries grouped by meal, skipping meals nothing is planned for.
     public func meals(for day: Date) -> [(slot: MealSlot, items: [(entry: MealPlanEntry, recipe: Recipe?)])] {
         let all = plan(for: day)
-        return MealSlot.allCases.compactMap { slot in
+        // The closure's type is spelled out: left to inference, the labelled
+        // tuple behind a ternary made the Swift 6.4 type checker give up
+        // ("failed to produce diagnostic") once this module was rebuilt from
+        // scratch — a compiler limit, not a fault in the expression.
+        return MealSlot.allCases.compactMap { slot -> (slot: MealSlot, items: [(entry: MealPlanEntry, recipe: Recipe?)])? in
             let items = all.filter { $0.entry.slot == slot }
-            return items.isEmpty ? nil : (slot, items)
+            if items.isEmpty { return nil }
+            return (slot: slot, items: items)
         }
     }
 

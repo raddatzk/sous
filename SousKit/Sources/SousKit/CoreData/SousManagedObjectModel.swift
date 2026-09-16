@@ -29,22 +29,35 @@ enum SousManagedObjectModel {
     /// declare what is nonetheless true of it: a model becomes immutable the
     /// moment a coordinator takes it, and nothing here writes to it after the
     /// closure returns.
-    nonisolated(unsafe) static let shared: NSManagedObjectModel = {
+    nonisolated(unsafe) static let shared: NSManagedObjectModel = makeModel(includingRetiredEntities: false)
+
+    /// The model, optionally as it was before an entity was retired — what
+    /// a store written by an earlier build still holds, so a test can open
+    /// one with the current model and prove the lightweight migration Core
+    /// Data infers for a dropped entity actually goes through.
+    ///
+    /// Retired so far: `CDAmountReview` (2026-09-16), the mark that a person
+    /// had reviewed a recipe's amount suggestions — the review no longer
+    /// exists. The record type stays in the CloudKit schema, which is
+    /// additive by design; nothing reads or writes it any more.
+    static func makeModel(includingRetiredEntities: Bool) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
-        let members = [
+        var members = [
             recipeEntity(), variantGroupEntity(), recipeImageEntity(), mealPlanEntryEntity(),
-            reviewMarkEntity(named: amountReviewEntityName),
             reviewMarkEntity(named: ingredientReviewEntityName),
             vocabularyEntryEntity(),
             shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
         ]
+        if includingRetiredEntities {
+            members.append(reviewMarkEntity(named: amountReviewEntityName))
+        }
         // Wired after the fact, because a relationship needs both entities to
         // exist before either can name the other.
         link(members, to: household)
         model.entities = [household] + members
         return model
-    }()
+    }
 
     static let householdEntityName = "CDHousehold"
 
@@ -52,7 +65,7 @@ enum SousManagedObjectModel {
     /// walk all of them.
     static let memberEntityNames = [
         recipeEntityName, variantGroupEntityName, recipeImageEntityName,
-        mealPlanEntryEntityName, amountReviewEntityName, ingredientReviewEntityName,
+        mealPlanEntryEntityName, ingredientReviewEntityName,
         vocabularyEntryEntityName, shoppingEntryEntityName,
         shoppingPlanEntryEntityName, shoppingDemandEntityName,
     ]
@@ -60,6 +73,7 @@ enum SousManagedObjectModel {
     static let variantGroupEntityName = "CDVariantGroup"
     static let recipeImageEntityName = "CDRecipeImage"
     static let mealPlanEntryEntityName = "CDMealPlanEntry"
+    /// Retired — see `makeModel(includingRetiredEntities:)`.
     static let amountReviewEntityName = "CDAmountReview"
     static let ingredientReviewEntityName = "CDIngredientReview"
     static let vocabularyEntryEntityName = "CDVocabularyEntry"
@@ -187,11 +201,10 @@ enum SousManagedObjectModel {
         return entity
     }
 
-    /// The two review marks, which are the same row twice.
-    ///
-    /// Two entities rather than one with a "kind" column, because they answer
-    /// different questions and a recipe may have settled one and not the
-    /// other — but they share a class and a shape, so they are described once.
+    /// A review mark: that a person looked at a recipe's open question and
+    /// settled it, against the text they settled it under. Described by name
+    /// because there were two of them once — the retired amount review and
+    /// the ingredient review still in use — and one shape serves both.
     private static func reviewMarkEntity(named name: String) -> NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = name
@@ -199,11 +212,9 @@ enum SousManagedObjectModel {
         entity.properties = [
             attribute("recipeID", .UUIDAttributeType),
             attribute("reviewedContentHash", .stringAttributeType, default: ""),
-            // Only the amount mark writes this — the ingredient review has
-            // no per-question "no" to remember yet. Described on both
-            // anyway: the two are one shape by design, and a column an
-            // entity leaves empty costs less than the copy of this builder
-            // that telling them apart would need.
+            // Only the retired amount mark ever wrote this. It stays in the
+            // shape: the column is in every mirrored store already, and a
+            // column nothing reads costs less than a second migration.
             attribute("declinedKeysJSON", .stringAttributeType, optional: true),
             attribute("updatedAt", .dateAttributeType),
         ]

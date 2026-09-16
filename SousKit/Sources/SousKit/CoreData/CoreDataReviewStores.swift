@@ -4,25 +4,21 @@ import Foundation
 /// That a person looked at one of a recipe's open questions and settled it,
 /// recorded against the text they settled it under.
 ///
-/// One class for both marks: the amount review and the ingredient review hold
-/// the same three fields and differ only in which question they answer.
+/// Written for two marks — the ingredient review, and the amount review
+/// retired on 2026-09-16 — which is why the entity is named rather than
+/// fixed; see `SousManagedObjectModel.reviewMarkEntity(named:)`.
 @objc(CDReviewMark)
 final class CDReviewMark: CDHouseholdMember {
     @NSManaged var recipeID: UUID?
     @NSManaged var reviewedContentHash: String
-    /// `AmountSuggestion.declineKey`s as a JSON array — see
-    /// ``StoredAmountReview/declinedKeysJSON``. Optional, so an existing
-    /// store gains the column by lightweight migration and every row already
-    /// in iCloud reads as "nothing turned down".
+    /// Only the retired amount mark ever wrote this; kept because the column
+    /// is in every mirrored store already.
     @NSManaged var declinedKeysJSON: String?
     @NSManaged var updatedAt: Date?
 }
 
-/// The shared body of both review stores.
-///
-/// Written once and pointed at a different entity twice, rather than copied:
-/// the two are identical down to the fetch, and a copy would be two places to
-/// fix when the rule about what reopens a question changes.
+/// The body of a review store, pointed at an entity by name — once shared
+/// by two stores, now only the ingredient review's.
 final class CoreDataReviewMarkStore: @unchecked Sendable {
     private let context: NSManagedObjectContext
     private let entityName: String
