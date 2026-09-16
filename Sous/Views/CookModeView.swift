@@ -569,11 +569,20 @@ struct CookModeView: View {
             // from a twin in another group shows without an amount. See
             // VISION.md, "Amounts written into a step name an ingredient".
             let used = recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
+            //
+            // Chips rather than lines: set under the step as plain text they
+            // read as more of the instruction, and a glance from the hob
+            // should find what to reach for before it finds the sentence.
+            // The wash is the step number's accent, so the two belong
+            // together; the name stays plain on it so the amount still leads.
             if !used.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
+                FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(used) { ingredient in
                         IngredientLineView(ingredient: ingredient, formatter: formatter)
                             .font(.callout)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(.tint.opacity(SousStyle.chipTint), in: .capsule)
                     }
                 }
                 .padding(.leading, 60)

@@ -62,7 +62,13 @@ struct FlowLayout: Layout {
         var lines = [Line()]
 
         for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
+            var size = subviews[index].sizeThatFits(.unspecified)
+            // A view wider than the whole line — an ingredient chip with a
+            // long comment on a phone — wraps inside itself instead of
+            // running off the edge.
+            if width.isFinite, size.width > width {
+                size = subviews[index].sizeThatFits(ProposedViewSize(width: width, height: nil))
+            }
             let needed = lines[lines.count - 1].items.isEmpty ? size.width : size.width + spacing
 
             if lines[lines.count - 1].width + needed > width, !lines[lines.count - 1].items.isEmpty {
