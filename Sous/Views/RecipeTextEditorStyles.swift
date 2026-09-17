@@ -4,11 +4,11 @@ import SwiftUI
 /// The two `restyle` closures `HighlightedTextEditor` runs for the recipe
 /// editor: what a "# Section" heading, an ingredient line and a step look
 /// like while they are still being typed.
-/// Where the resolver's findings land in the instructions editor's own
+/// Where a recipe's pasted references land in the instructions editor's own
 /// buffer.
 ///
-/// `StepAmountResolver` reasons about one step at a time and reports its
-/// ranges into that step's own text. The editor holds all of the steps in a
+/// `StepReferences` speaks about one step at a time and reports its ranges
+/// into that step's own text. The editor holds all of the steps in a
 /// single string — and shows a third string again, with recipe links
 /// collapsed to chips. This is the arithmetic between the three, kept here
 /// beside the styling that consumes it rather than inside the text view,
@@ -22,13 +22,13 @@ enum RecipeStepMarkup {
         let range: NSRange
     }
 
-    /// Every mark `resolution` found, lifted out of the steps and into
+    /// Every mark `rendition` holds, lifted out of the steps and into
     /// `instructionsText` as the editor draws it.
     ///
-    /// `recipe` must be the one `resolution` was computed from: the marks
+    /// `recipe` must be the one `rendition` was worked out from: the marks
     /// carry positions into that exact step text.
     static func marks(
-        in instructionsText: String, of recipe: Recipe, resolution: StepAmountResolver.Resolution
+        in instructionsText: String, of recipe: Recipe, rendition: StepReferences.Rendition
     ) -> [Mark] {
         let steps = recipe.steps
         guard !steps.isEmpty else { return [] }
@@ -53,7 +53,7 @@ enum RecipeStepMarkup {
             guard let inLine = rawLine.range(of: step.text) else { continue }
             let textStart = lineStart + rawLine.distance(from: rawLine.startIndex, to: inLine.lowerBound)
 
-            for mark in resolution.marks(for: step) {
+            for mark in rendition.marks(for: step) {
                 let lower = textStart + step.text.distance(from: step.text.startIndex, to: mark.range.lowerBound)
                 let upper = textStart + step.text.distance(from: step.text.startIndex, to: mark.range.upperBound)
                 guard let range = utf16Range(
@@ -120,10 +120,9 @@ enum RecipeTextEditorStyle {
     /// starts a fresh list, the same restart `Recipe.stepGroups` gives the
     /// finished recipe.
     ///
-    /// `marks` is what the resolver made of the same text, drawn under the
-    /// words it made it of — see `markUp(_:with:)`. Empty while a recipe is
-    /// too fresh to have been resolved yet, which is simply the styling this
-    /// editor had before.
+    /// `marks` are the written amounts the recipe's references tie to the
+    /// same text, drawn under their words — see `markUp(_:with:)`. Empty
+    /// without current references, which is simply the plain styling.
     static func instructions(marking marks: [RecipeStepMarkup.Mark] = []) -> (NSMutableAttributedString) -> Void {
         { attributed in
             instructions(attributed)
@@ -156,16 +155,12 @@ enum RecipeTextEditorStyle {
         }
     }
 
-    /// Draws what the resolver understood over the writer's own words.
+    /// Draws the referenced amounts over the writer's own words.
     ///
-    /// Three states, and no more: an amount or a name the app tied to an
-    /// ingredient line is accented — the amount exactly as cook mode prints
-    /// it back, the name as the chip beneath the step; a name whose
-    /// ingredient an earlier step already took out whole is accented
-    /// faintly — understood, and owed no number of its own; and a number
-    /// tied to nothing at all is dotted in grey, which after a web import
-    /// usually means the ingredient list never named it. Nothing here
-    /// rewrites a character — see VISION.md, "the text is the only truth".
+    /// Two states: an amount tied to an ingredient line is accented, exactly
+    /// as cook mode prints it back; an amount of something the list does not
+    /// have is dotted in grey. Nothing here rewrites a character — see
+    /// VISION.md, "the text is the only truth".
     private static func markUp(_ attributed: NSMutableAttributedString, with marks: [RecipeStepMarkup.Mark]) {
         let whole = NSRange(location: 0, length: attributed.length)
         for mark in marks {
@@ -173,10 +168,6 @@ enum RecipeTextEditorStyle {
             switch mark.kind {
             case .bound:
                 attributed.addAttribute(.foregroundColor, value: PlatformColor(.sousAccent), range: mark.range)
-            case .backReference:
-                attributed.addAttribute(
-                    .foregroundColor, value: PlatformColor(.sousAccent).withAlphaComponent(0.55), range: mark.range
-                )
             case .loose:
                 attributed.addAttributes([
                     .underlineStyle: NSUnderlineStyle.patternDot.union(.single).rawValue,

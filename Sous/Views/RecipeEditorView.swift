@@ -39,10 +39,10 @@ struct RecipeEditorView: View {
     /// cannot hand its focus state to a child to own directly.
     @State private var isEditingIngredients = false
     @State private var isEditingInstructions = false
-    /// What the resolver made of the steps, in the instructions editor's own
-    /// offsets — drawn under the words it made it of, so the writer can see
-    /// what the app read out of a sentence. Display only: the text is never
-    /// changed by the app.
+    /// The written amounts the recipe's references tie to a line, in the
+    /// instructions editor's own offsets — drawn under the words, so the
+    /// writer can see what the app understood of a sentence. Display only:
+    /// the text is never changed by the app.
     @State private var stepMarks: [RecipeStepMarkup.Mark] = []
     /// What the cook chose to teach the app about an unknown ingredient.
     ///
@@ -126,11 +126,12 @@ struct RecipeEditorView: View {
                     insert(link: picked, at: target)
                 }
             }
-            // Recounted off the render path whenever the text settles.
+            // Recounted off the render path whenever the text settles. The
+            // marks are the pasted references' — they vanish on the first
+            // edit that changes what they were read from.
             .task(id: "\(draft.ingredientsText)|\(draft.instructionsText)|\(draft.servings)") {
-                let resolution = StepAmountResolver.resolve(draft, toServings: draft.servings)
                 stepMarks = RecipeStepMarkup.marks(
-                    in: draft.instructionsText, of: draft, resolution: resolution
+                    in: draft.instructionsText, of: draft, rendition: draft.stepRendition()
                 )
             }
             .ingredientTeaching($ingredientTeaching)
@@ -701,11 +702,10 @@ struct RecipeEditorView: View {
         } footer: {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Ein Schritt pro Zeile, Nummerierung übernimmt die App. **Fett**, *kursiv* und ***beides*** sind erlaubt. „# Überschrift“ beginnt einen Abschnitt und zählt neu.")
-                // Only once there is something marked: on a step text the
-                // resolver made nothing of, a legend explains a colour that
-                // is not on the screen.
+                // Only once there is something marked: without references,
+                // a legend explains a colour that is not on the screen.
                 if !stepMarks.isEmpty {
-                    Text("Farbige Mengen und Zutaten hat die App einer Zutatenzeile zugeordnet, blass gefärbte Zutaten hat ein früherer Schritt schon geholt. Grau gepunktet ist eine Menge ohne passende Zutat.")
+                    Text("Farbige Mengen gehören zu einer Zutatenzeile und werden mit ihr umgerechnet. Grau gepunktet ist eine Menge ohne Zutatenzeile — sie folgt nur der Portionszahl.")
                 }
             }
         }

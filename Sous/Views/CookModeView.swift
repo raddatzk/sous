@@ -399,14 +399,11 @@ struct CookModeView: View {
     private func stepsPage(_ entry: CookSessionEntry, _ recipe: Recipe) -> some View {
         let steps = recipe.steps
         let focused = focusedStep(entry, steps: steps)
-        // Resolved once for the whole page: which line an amount belongs to
-        // can depend on every other step's claim on it, not just this one's.
-        let resolution = StepAmountResolver.resolve(
-            recipe, toServings: entry.servings, formatter: formatter
-        )
-        // A chat model's answer, where one was pasted in and the recipe
-        // still reads the way it did then. See `StepChips`.
-        let pastedChips = recipe.stepChips?.ingredientsByStep(of: recipe, scaledToServings: entry.servings)
+        // Worked out once for the whole page, by the references a chat model
+        // read out of the recipe — where one was pasted in and the recipe
+        // still reads the way it did then. Otherwise the steps show as
+        // written, nothing scaled and no chips. See `StepReferences`.
+        let rendition = recipe.stepRendition(toServings: entry.servings, formatter: formatter)
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 32) {
@@ -424,8 +421,7 @@ struct CookModeView: View {
                             number: number(for: step, at: index, in: steps),
                             entry: entry,
                             recipe: recipe,
-                            resolution: resolution,
-                            pastedChips: pastedChips?[index]
+                            rendition: rendition
                         )
                         .id(step.id)
                         .opacity(step.id == focused ? 1 : 0.4)
@@ -549,8 +545,7 @@ struct CookModeView: View {
         number: Int,
         entry: CookSessionEntry,
         recipe: Recipe,
-        resolution: StepAmountResolver.Resolution,
-        pastedChips: [RecipeIngredient]?
+        rendition: StepReferences.Rendition
     ) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             if let group = step.group, isFirstOfGroup(step, in: recipe.steps) {
@@ -563,21 +558,13 @@ struct CookModeView: View {
                     .font(SousStyle.stepNumber)
                     .foregroundStyle(.tint)
                     .frame(minWidth: 44, alignment: .trailing)
-                Text(attributedText(for: resolution.segments(for: step)))
+                Text(attributedText(for: rendition.segments(for: step)))
                     .font(.title3)
             }
 
-            // What this step takes, by the resolver's register: the
-            // remainder for a first mention, the computed share for "die
-            // Hälfte" and "restliche", nothing for an ingredient an earlier
-            // step already holds. A name the sentence could not tell apart
-            // from a twin in another group shows without an amount. See
-            // VISION.md, "Amounts written into a step name an ingredient".
-            //
-            // Where a chat model's answer was pasted in, it speaks instead —
-            // less the lines whose amount the sentence already prints.
-            let used = pastedChips?.filter { !resolution.mentionsAmount(of: $0, in: step) }
-                ?? recipe.ingredients(mentionedIn: step, resolution: resolution, scaledToServings: entry.servings)
+            // What this step takes without writing the amount: a name, a
+            // share, a collective word, or a line only implied.
+            let used = rendition.ingredients(for: step)
             //
             // Chips rather than lines: set under the step as plain text they
             // read as more of the instruction, and a glance from the hob

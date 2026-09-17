@@ -121,7 +121,7 @@ enum SousManagedObjectModel {
             attribute("effortOverrideRaw", .stringAttributeType, optional: true),
             attribute("variantGroupID", .UUIDAttributeType, optional: true),
             // Optional like every later addition: `nil` reads as nobody
-            // having pasted a model's answer in. See `StepChips`.
+            // having pasted a model's answer in. See `StepReferences`.
             attribute("stepChipsJSON", .stringAttributeType, optional: true),
             attribute("createdBy", .UUIDAttributeType, optional: true),
             attribute("createdAt", .dateAttributeType),

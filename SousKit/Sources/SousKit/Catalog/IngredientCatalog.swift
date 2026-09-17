@@ -130,9 +130,8 @@ public struct IngredientCatalog: Sendable {
     /// The ingredient a written name shares a group with — the top of its
     /// variety chain, or itself where it is not a variety of anything.
     ///
-    /// What the step resolver matches on when a step says "Pilze" and the
-    /// line says "braune Champignons": the same group, so the same thing.
-    /// Any depth, like every walk here (catalog target, decision A); a
+    /// "Pilze" and "braune Champignons" share a group, so they are the same
+    /// thing for search. Any depth, like every walk here (catalog target, decision A); a
     /// dangling relation falls back to the ingredient itself, because a
     /// parent nobody defined must not make a variety disappear. The shopping
     /// list no longer bundles under this — decision E — and takes what a

@@ -330,9 +330,9 @@ final class TextViewCoordinator: NSObject {
         restyle: @escaping (NSMutableAttributedString) -> Void
     ) {
         currentRestyle = restyle
-        // The version too, not just the text: what the resolver has to say
-        // about a sentence arrives a moment after the sentence itself, and
-        // the characters are unchanged by then.
+        // The version too, not just the text: the marks for a sentence
+        // arrive a moment after the sentence itself, and the characters are
+        // unchanged by then.
         guard text != lastKnownText || styleVersion != lastStyleVersion else { return }
         apply(text: text, cursorOffset: cursorOffset, styleVersion: styleVersion, to: textView, restyle: restyle)
     }

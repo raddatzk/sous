@@ -30,7 +30,7 @@ public enum RecipeIndex {
             let own = ShoppingItem.key(for: ingredient.name, catalog: catalog)
             var resolved = catalog.ingredient(for: name)
             var headKey: String?
-            if resolved == nil, let head = StepAmountResolver.headWord(of: name) {
+            if resolved == nil, let head = headWord(of: name) {
                 // "1 kleiner Hokkaido" — the catalog knows the head noun,
                 // not the phrase. The same reach the step matcher has.
                 resolved = catalog.ingredient(for: head)
@@ -62,5 +62,43 @@ public enum RecipeIndex {
         // had through `ingredientKeys`.
         parts.append(contentsOf: ingredientKeys(for: recipe, catalog: catalog))
         return parts.joined(separator: " ").lowercased()
+    }
+}
+
+extension RecipeIndex {
+    /// The head noun a multi-word name answers to in running text — "rote
+    /// Zwiebel" is called "Zwiebel", "Dose Kokosmilch" is called
+    /// "Kokosmilch", "Limette, Saft davon" is called "Limette".
+    ///
+    /// German noun phrases end in their head — except where a list writes
+    /// the qualifier after it ("Paprika rot", "Weißwein trocken"), which is
+    /// why the last *capitalized* word wins, nouns being the words German
+    /// capitalizes. What follows a comma or an opening parenthesis
+    /// qualifies rather than names, a spaced slash offers an alternative
+    /// (an unspaced one is a plural marker: "Zehe/n Knoblauch"), and a
+    /// purpose clause ("Fett für die Form") stops the phrase early.
+    /// `nil` where there is no separate head to speak of: single-word
+    /// names, and heads too short to stand for anything on their own.
+    static func headWord(of name: String) -> String? {
+        var base = Substring(name)
+        if let cut = base.range(of: " / ") {
+            base = base[..<cut.lowerBound]
+        }
+        if let cut = base.firstIndex(where: { $0 == "," || $0 == "(" }) {
+            base = base[..<cut]
+        }
+        var words = base.split(separator: " ")
+        // "für/zum/zur/nach" open a purpose clause; "Type/Typ" opens a
+        // grading — "Weizenmehl Type 405" is called "Weizenmehl", not
+        // "Type". Both end the part of the name that names.
+        let qualifierWords: Set<String> = ["für", "zum", "zur", "nach", "type", "typ"]
+        if let cut = words.firstIndex(where: { qualifierWords.contains($0.lowercased()) }) {
+            words = Array(words[..<cut])
+        }
+        guard let head = (words.last(where: { $0.first?.isUppercase == true }) ?? words.last).map(String.init),
+              head.count >= 3,
+              IngredientCatalog.normalize(head) != IngredientCatalog.normalize(name)
+        else { return nil }
+        return head
     }
 }

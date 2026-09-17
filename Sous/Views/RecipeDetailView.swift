@@ -65,7 +65,7 @@ struct RecipeDetailView: View {
     /// one, and the page does not claim otherwise.
     @State private var effort: RecipeEffort.Level?
     @State private var isPlanning = false
-    @State private var isAssigningStepChips = false
+    @State private var isReadingStepReferences = false
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
@@ -87,6 +87,11 @@ struct RecipeDetailView: View {
 
     private var servings: Int { servingsOverride ?? recipe.servings }
 
+    /// The recipe as the library holds it now. Pasting references in saves
+    /// a new version from a sheet on this very page, and a page opened from
+    /// search is not handed that version by anyone.
+    private var latest: Recipe { library.recipes.first { $0.id == recipe.id } ?? recipe }
+
     /// Whether this page is what the other devices are offered.
     ///
     /// Not a recipe in the trash — the other device would open nothing. Not
@@ -106,6 +111,12 @@ struct RecipeDetailView: View {
     }
 
     private var unknownIngredientCount: Int { library.unknownIngredients(in: recipe).count }
+
+    /// The catalog banner, only while it has something to count. The review
+    /// state is settled asynchronously and can still say "ask" after the
+    /// catalog has since learned every word — a banner reading "0 Zutaten
+    /// fehlen" asks about nothing.
+    private var showsIngredientReview: Bool { needsIngredientReview && unknownIngredientCount > 0 }
 
     var body: some View {
         // The bar's own edge is what the title has to pass, and only a
@@ -218,8 +229,8 @@ struct RecipeDetailView: View {
         .sheet(isPresented: $isPlanning) {
             PlanRecipeSheet(recipe: recipe, servings: servings)
         }
-        .sheet(isPresented: $isAssigningStepChips) {
-            StepChipsSheet(recipe: recipe)
+        .sheet(isPresented: $isReadingStepReferences) {
+            StepReferencesSheet(recipe: latest)
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -633,7 +644,7 @@ struct RecipeDetailView: View {
             // wraps rather than as a pile.
             if hasReviewBanners {
                 FlowLayout(spacing: 16, lineSpacing: 16, stretch: true) {
-                    if needsIngredientReview {
+                    if showsIngredientReview {
                         ingredientReviewBanner(unknownIngredientCount)
                     }
                     if !openIngredients.isEmpty {
@@ -651,7 +662,7 @@ struct RecipeDetailView: View {
     /// built rather than inside it: an empty layout is still a view, and the
     /// stack would keep its 28 points of air for a group with nothing in it.
     private var hasReviewBanners: Bool {
-        if needsIngredientReview { return true }
+        if showsIngredientReview { return true }
         if !openIngredients.isEmpty { return true }
         return !nutritionTagSuggestions.isEmpty
     }
@@ -945,11 +956,9 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private var steps: some View {
         if !recipe.steps.isEmpty {
-            // Resolved once for the whole recipe: which line an amount
-            // belongs to can depend on every other step's claim on it.
-            let resolution = StepAmountResolver.resolve(
-                recipe, toServings: servings, formatter: formatter
-            )
+            // Worked out once for the whole recipe, by its pasted
+            // references; the steps as written where it has none that fit.
+            let rendition = latest.stepRendition(toServings: servings, formatter: formatter)
             VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
                     .font(SousStyle.sectionHeading)
@@ -966,7 +975,7 @@ struct RecipeDetailView: View {
                                 .font(SousStyle.groupHeading)
                                 .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
-                            Text(attributedText(for: resolution.segments(for: step)))
+                            Text(attributedText(for: rendition.segments(for: step)))
                         }
                     }
                 }
@@ -1356,7 +1365,7 @@ struct RecipeDetailView: View {
                 Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
                 if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
                     Button("Zutaten pro Schritt", systemImage: "sparkles") {
-                        isAssigningStepChips = true
+                        isReadingStepReferences = true
                     }
                 }
                 // The banner below settles for good once it has been

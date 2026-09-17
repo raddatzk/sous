@@ -615,13 +615,13 @@ public final class RecipeLibrary {
         await save(current)
     }
 
-    /// Keeps a chat model's answer to "what does each step take" beside the
-    /// recipe, or drops it with `nil`. See ``StepChips``.
-    public func setStepChips(_ chips: StepChips?, for recipe: Recipe) async {
+    /// Keeps a chat model's reading of which step refers to which line beside
+    /// the recipe, or drops it with `nil`. See ``StepReferences``.
+    public func setStepReferences(_ references: StepReferences?, for recipe: Recipe) async {
         // The answer may have taken minutes in another app; save it onto the
         // recipe as it stands now, not the copy the sheet was opened with.
         guard var current = await self.recipe(id: recipe.id) else { return }
-        current.stepChips = chips
+        current.stepReferences = references
         await save(current)
     }
 
