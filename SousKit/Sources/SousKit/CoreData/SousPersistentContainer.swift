@@ -1,5 +1,6 @@
 import CloudKit
 import CoreData
+import CryptoKit
 import Foundation
 
 /// Makes the Core Data container the household's library lives in, and
@@ -92,10 +93,68 @@ public enum SousPersistentContainer {
         }
         if let loadError { throw loadError }
 
+        initializeSchemaIfModelChanged(container)
+
         container.viewContext.transactionAuthor = appTransactionAuthor
         configure(container.viewContext)
         return container
     }
+
+    /// Writes every record type and field of the model into the Development
+    /// schema, whenever a build from Xcode runs a model this device has not
+    /// initialized yet.
+    ///
+    /// CloudKit only creates a field once a record carries a value for it, so
+    /// an optional attribute that happened to stay `nil` on the debug devices
+    /// never reaches the Development schema — and "Deploy Schema Changes"
+    /// copies Development to Production as it is. A TestFlight build then
+    /// keeps that attribute on the device and never syncs it, without a word.
+    /// That is how the first TestFlight build lost its recipes on reinstall:
+    /// Production had no schema at all.
+    ///
+    /// This keeps Development complete; the deploy stays a manual step. Before
+    /// a TestFlight build that adds entities or attributes: run once from
+    /// Xcode on a device signed into iCloud, then deploy the schema in the
+    /// CloudKit Console.
+    ///
+    /// Keyed to the model's hash rather than run on every launch: it runs
+    /// synchronously during start-up and writes and deletes sample records in
+    /// iCloud each time. Debug only, because a build from Xcode is the only
+    /// one that talks to Development.
+    private static func initializeSchemaIfModelChanged(_ container: NSPersistentCloudKitContainer) {
+        #if DEBUG
+        let fingerprint = modelFingerprint(container.managedObjectModel)
+        let defaults = UserDefaults.sous
+        guard defaults.string(forKey: initializedSchemaKey) != fingerprint else { return }
+        do {
+            try container.initializeCloudKitSchema(options: [])
+            // Only once it worked: a simulator without an iCloud account
+            // fails here, and a device that can reach iCloud should try again.
+            defaults.set(fingerprint, forKey: initializedSchemaKey)
+            print("☁️ CloudKit schema initialized")
+        } catch {
+            // Printed rather than thrown: throwing here would send `make` into
+            // its local-only fallback, and the run would look like it worked.
+            print("☁️ CloudKit schema failed: \(error)")
+        }
+        #endif
+    }
+
+    #if DEBUG
+    private static let initializedSchemaKey = "cloudKitSchemaInitializedForModel"
+
+    /// Core Data's own per-entity hashes, which change with every entity,
+    /// attribute and relationship — what the CloudKit schema is made of.
+    /// Sorted by name, because the dictionary's order is not stable.
+    private static func modelFingerprint(_ model: NSManagedObjectModel) -> String {
+        var hasher = SHA256()
+        for (name, hash) in model.entityVersionHashesByName.sorted(by: { $0.key < $1.key }) {
+            hasher.update(data: Data(name.utf8))
+            hasher.update(data: hash)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
+    }
+    #endif
 
     private static func makeLocal(inMemory: Bool) throws -> NSPersistentContainer {
         let container = NSPersistentContainer(
