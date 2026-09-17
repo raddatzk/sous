@@ -34,7 +34,6 @@ struct RecipeSearchView: View {
     /// renamed in the hits behind it too.
     @State private var path: [Recipe] = []
     /// Ties a tapped row to the page it becomes, for the zoom.
-    @Namespace private var zoomNamespace
 
     /// Whether anything has actually been asked. A field with only whitespace
     /// in it is not a question.
@@ -116,24 +115,12 @@ struct RecipeSearchView: View {
             NavigationLink(value: recipe) {
                 RecipeRow(recipe: recipe)
             }
-            // The page grows out of the row that was tapped, the same way it
-            // does in the library.
-            #if os(iOS)
-            .matchedTransitionSource(id: recipe.id, in: zoomNamespace)
-            #endif
         }
     }
 
     /// The page a hit opens.
-    ///
-    /// The zoom is the phone's — the Mac searches in its sidebar and never
-    /// builds this view, and the transition does not exist there.
-    @ViewBuilder
     private func page(for recipe: Recipe) -> some View {
         RecipeDetailView(recipe: recipe)
-            #if os(iOS)
-            .navigationTransition(.zoom(sourceID: recipe.id, in: zoomNamespace))
-            #endif
     }
 
     /// The ways in, as chips that stay put: the three meals first, then

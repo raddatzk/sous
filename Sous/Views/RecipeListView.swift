@@ -21,8 +21,6 @@ struct RecipeListView: View {
     @Environment(CloudKitInitialImport.self) private var initialImport
 
     @State private var selected: RecipeListSelection?
-    /// Ties a tapped row to the page it becomes, for the zoom.
-    @Namespace private var zoomNamespace
     /// Only the phone offers this: the Mac has the Settings scene behind
     /// Cmd-, and would otherwise reach the same form twice.
     @State private var isShowingSettings = false
@@ -95,10 +93,6 @@ struct RecipeListView: View {
                     case .recipe(let id):
                         if let recipe = library.recipes.first(where: { $0.id == id }) {
                             RecipeDetailView(recipe: recipe)
-                                // The page grows out of the row that was
-                                // tapped — the row's picture and the hero
-                                // are the same photo, and the zoom says so.
-                                .navigationTransition(.zoom(sourceID: id, in: zoomNamespace))
                         }
                     case .group(let id):
                         if let group = library.variantGroups[id] {
@@ -275,7 +269,6 @@ struct RecipeListView: View {
             RecipeRow(recipe: recipe, layout: .card)
         }
         .buttonStyle(.plain)
-        .matchedTransitionSource(id: recipe.id, in: zoomNamespace)
         .contextMenu {
             contextActions(for: recipe)
         } preview: {
@@ -371,9 +364,6 @@ struct RecipeListView: View {
     /// One recipe's row, whether it stands on its own or under a group.
     private func row(for recipe: Recipe) -> some View {
         RecipeRow(recipe: recipe)
-            #if os(iOS)
-            .matchedTransitionSource(id: recipe.id, in: zoomNamespace)
-            #endif
             .tag(RecipeListSelection.recipe(recipe.id))
             // The long-press previews the recipe itself, with its actions
             // underneath rather than a bare menu — VISION.md asks for
