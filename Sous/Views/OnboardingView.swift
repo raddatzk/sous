@@ -12,7 +12,7 @@ import SwiftUI
 ///
 /// Hand-paged rather than a `TabView(.page)`, because that style is iOS only
 /// and the Mac would be left with a welcome it cannot leave. One view, one
-/// step, a crossfade between them — which also keeps the page dots ours to
+/// step, a slide between them — which also keeps the page dots ours to
 /// place rather than the tab view's to hide.
 struct OnboardingView: View {
     @Environment(OnboardingNotice.self) private var notice
@@ -20,6 +20,9 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var step: Step = .welcome
+    /// Which way the last move went, so the next page comes in from the side
+    /// it lies on — the way a swipe expects it to.
+    @State private var isMovingForward = true
 
     /// The five pages, in the order the app is used: what it is, how recipes
     /// get in, how their steps learn their ingredients, what happens to them
@@ -111,11 +114,11 @@ struct OnboardingView: View {
             GeometryReader { proxy in
                 ScrollView {
                     page
-                        // The crossfade needs something to fade *between*, and
-                        // two pages differing only in their strings are one
-                        // view to SwiftUI without this.
+                        // The transition needs something to move *between*,
+                        // and two pages differing only in their strings are
+                        // one view to SwiftUI without this.
                         .id(step)
-                        .transition(.opacity)
+                        .transition(pageTransition)
                         .frame(maxWidth: 420)
                         .padding(.horizontal, 28)
                         .padding(.vertical, 24)
@@ -124,7 +127,15 @@ struct OnboardingView: View {
                             minHeight: proxy.size.height,
                             alignment: .center
                         )
+                        // The empty space around a short page swipes too.
+                        .contentShape(Rectangle())
                 }
+                // Beside the buttons, not instead of them: a sideways swipe
+                // turns the page the way every paged screen on the phone
+                // does. Simultaneous, so the scroll view still scrolls a tall
+                // page and the controls on it still take their taps.
+                .simultaneousGesture(swipe)
+                .clipped()
             }
             footer
         }
@@ -253,6 +264,26 @@ struct OnboardingView: View {
 
     private func move(by offset: Int) {
         guard let next = Step(rawValue: step.rawValue + offset) else { return }
+        isMovingForward = offset > 0
         step = next
+    }
+
+    private var pageTransition: AnyTransition {
+        .asymmetric(
+            insertion: .move(edge: isMovingForward ? .trailing : .leading).combined(with: .opacity),
+            removal: .move(edge: isMovingForward ? .leading : .trailing).combined(with: .opacity)
+        )
+    }
+
+    /// Left for the next page, right for the one before. Only a swipe that
+    /// is clearly sideways counts, so scrolling a long page never turns it;
+    /// past the last page the swipe does nothing — "Fertig" closes.
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 24)
+            .onEnded { value in
+                let dx = value.translation.width
+                guard abs(dx) > 60, abs(dx) > abs(value.translation.height) * 1.5 else { return }
+                move(by: dx < 0 ? 1 : -1)
+            }
     }
 }
