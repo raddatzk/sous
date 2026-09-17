@@ -129,9 +129,12 @@ extension View {
 enum SousSheetSize {
     /// One question with one or two controls: a duration, a serving count.
     case question
-    /// A form to fill in, or a short list to pick from.
+    /// A short form to fill in, or a list to pick one thing from. Opens at
+    /// half height and can be pulled up, because a list is as long as the
+    /// library behind it.
     case form
-    /// Something worked on at length: the editor, a whole catalogue.
+    /// Something worked on at length, or read through: an editor, a whole
+    /// catalogue, a long list, a graphical calendar.
     case page
 }
 
@@ -158,18 +161,29 @@ extension View {
             presentationDetents([.height(300)])
                 .presentationSizing(.form)
         case .form:
-            presentationDetents([.medium])
-                .presentationSizing(.form)
+            modifier(ResizableFormSheet())
         case .page:
-            // Deliberately only `.large`: a set of detents is unordered, so
-            // adding `.medium` does not offer a bigger sheet, it gambles on
-            // which one opens.
             presentationDetents([.large])
                 .presentationSizing(.page)
         }
         #endif
     }
 }
+
+#if os(iOS)
+/// Half height, with the whole screen a pull away. A set of detents is
+/// unordered, so which one opens is not left to it: the selection starts at
+/// `.medium`, and a sheet stuck at half height is what this replaced.
+private struct ResizableFormSheet: ViewModifier {
+    @State private var detent: PresentationDetent = .medium
+
+    func body(content: Content) -> some View {
+        content
+            .presentationDetents([.medium, .large], selection: $detent)
+            .presentationSizing(.form)
+    }
+}
+#endif
 
 extension Locale {
     /// The language the app is written in. A stand-in until it is localized:

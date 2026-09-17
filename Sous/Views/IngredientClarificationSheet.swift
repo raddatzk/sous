@@ -66,12 +66,12 @@ struct IngredientClarificationSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") { dismiss() }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(role: .close) { dismiss() }
                 }
             }
         }
-        .sousSheetSizing(.form)
+        .sousSheetSizing(.page)
     }
 
     /// "Kartoffeln (gegart)" where the state is what tells two open questions

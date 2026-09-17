@@ -67,7 +67,7 @@ struct PlanRecipeSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(withoutDay ? "Vormerken" : "Einplanen") {
@@ -84,6 +84,6 @@ struct PlanRecipeSheet: View {
                 }
             }
         }
-        .sousSheetSizing(.form)
+        .sousSheetSizing(.page)
     }
 }

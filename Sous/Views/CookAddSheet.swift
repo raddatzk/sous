@@ -81,7 +81,7 @@ struct CookAddSheet: View {
             .overlay { emptyState }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
             }
         }
@@ -96,7 +96,7 @@ struct CookAddSheet: View {
         }
         .task { await reload() }
         .task(id: searchText) { await reload() }
-        .sousSheetSizing(.page)
+        .sousSheetSizing(.form)
     }
 
     /// Nothing left to offer reads differently from nothing found: the first
@@ -159,7 +159,7 @@ struct CookAddSheet: View {
                 #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Abbrechen") { dismiss() }
+                        Button(role: .close) { dismiss() }
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Dazunehmen") { onAdd(servings) }

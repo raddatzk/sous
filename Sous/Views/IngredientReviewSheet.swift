@@ -7,9 +7,10 @@ import SwiftUI
 /// instead of leaving an already-handled name sitting there stale.
 ///
 /// There is no separate "apply" step: each
-/// addition already saves itself through `IngredientFormView`, so "Fertig"
-/// only ever closes the sheet and settles the review for the text as it
-/// stands — see `RecipeLibrary.markIngredientsReviewed(_:)`.
+/// addition already saves itself through `IngredientFormView`, so the
+/// checkmark only closes the sheet and settles the review for the text as it
+/// stands — see `RecipeLibrary.markIngredientsReviewed(_:)`. Closing it any
+/// other way leaves the review open, to be asked again.
 struct IngredientReviewSheet: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(\.dismiss) private var dismiss
@@ -39,14 +40,17 @@ struct IngredientReviewSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(role: .close) { dismiss() }
+                }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
+                    Button(role: .confirm) {
                         onFinish()
                         dismiss()
                     }
                 }
             }
         }
-        .sousSheetSizing(.form)
+        .sousSheetSizing(.page)
     }
 }

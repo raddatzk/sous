@@ -63,7 +63,7 @@ struct TimerSetupSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
             }
         }

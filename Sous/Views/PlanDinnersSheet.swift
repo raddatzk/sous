@@ -26,6 +26,10 @@ struct PlanDinnersSheet: View {
         _mode = State(initialValue: defaultMode)
     }
 
+    private var hasProposal: Bool {
+        if case .ready = planner.phase { true } else { false }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -38,11 +42,11 @@ struct PlanDinnersSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 if case .ready(let proposal) = planner.phase {
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Übernehmen") {
+                        Button(role: .confirm) {
                             let accepted = proposal.placements.filter { !deselected.contains($0.id) }
                             Task {
                                 // Stays open on a failure, so the alert has a
@@ -55,7 +59,10 @@ struct PlanDinnersSheet: View {
                 }
             }
         }
-        .sousSheetSizing(.form)
+        // A proposal took a moment to put together and may have been
+        // reshuffled row by row; a stray swipe should not throw it away.
+        .interactiveDismissDisabled(hasProposal)
+        .sousSheetSizing(.page)
         .sousErrorAlert(planner)
         .onDisappear { planner.reset() }
     }

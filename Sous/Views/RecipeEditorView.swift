@@ -13,6 +13,9 @@ struct RecipeEditorView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
 
     @State private var draft: Recipe
+    /// The recipe as it came in, so a swipe can tell whether it would lose
+    /// anything.
+    private let original: Recipe
     @State private var isSaving = false
     @State private var linkTarget: LinkTarget?
     @State private var pickedPhotos: [PhotosPickerItem] = []
@@ -91,8 +94,15 @@ struct RecipeEditorView: View {
 
     private let onSave: (Recipe) async -> Void
 
+    private var hasChanges: Bool {
+        draft != original
+            || !addedImageIDs.isEmpty
+            || !categoryEntry.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     init(recipe: Recipe, onSave: @escaping (Recipe) async -> Void) {
         _draft = State(initialValue: recipe)
+        original = recipe
         self.onSave = onSave
     }
 
@@ -138,6 +148,9 @@ struct RecipeEditorView: View {
             .task { await catalog.reload() }
         }
         // A recipe is written, not glanced at.
+        // Swiping away would drop the edit without a word — and leave any
+        // picture added during it behind, which only `cancel()` cleans up.
+        .interactiveDismissDisabled(hasChanges)
         .sousSheetSizing(.page)
     }
 
@@ -742,10 +755,10 @@ struct RecipeEditorView: View {
     @ToolbarContentBuilder
     private var editorToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
-            Button("Abbrechen") { cancel() }
+            Button(role: .close) { cancel() }
         }
         ToolbarItem(placement: .confirmationAction) {
-            Button("Sichern") { save() }
+            Button(role: .confirm) { save() }
                 .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
         }
     }

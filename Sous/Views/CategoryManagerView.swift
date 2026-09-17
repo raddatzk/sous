@@ -51,7 +51,7 @@ struct CategoryManagerView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
             }
             .overlay {
@@ -93,7 +93,7 @@ struct CategoryManagerView: View {
                 }
             }
         }
-        .sousSheetSizing(.form)
+        .sousSheetSizing(.page)
     }
 
     private func rename() {

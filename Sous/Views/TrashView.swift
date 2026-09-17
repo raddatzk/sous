@@ -51,7 +51,7 @@ struct TrashView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Leeren", role: .destructive) { isConfirmingEmpty = true }

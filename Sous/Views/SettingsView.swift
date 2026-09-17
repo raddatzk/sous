@@ -44,6 +44,19 @@ struct SettingsForm: View {
                 CalendarMirrorSection(mirror: calendarMirror)
             }
 
+            Section {
+                StepReferencesChatPicker()
+            } header: {
+                Text("Zutaten pro Schritt")
+            } footer: {
+                Text("""
+                Welche Zutaten jeder Schritt braucht, fragst du in einem Chat, \
+                den du schon nutzt. Sous öffnet ihn neben dem kopierten Prompt. \
+                „Keine KI verwenden“ blendet das Fragen ganz aus — zuordnen \
+                lässt es sich dann weiter von Hand.
+                """)
+            }
+
             dataSources
         }
         .formStyle(.grouped)
@@ -134,8 +147,8 @@ struct SettingsView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 #endif
                 .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Fertig") { dismiss() }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .close) { dismiss() }
                     }
                 }
         }
@@ -143,7 +156,10 @@ struct SettingsView: View {
         // react to it: a sheet takes the window's scheme when it opens and
         // then keeps it.
         .sousAppearance()
-        .sousSheetSizing(.form)
+        // A page, not a form: six sections outgrow a half-height sheet on
+        // the phone, which could not be pulled any taller, and the iPad's
+        // form size left most of them below the fold.
+        .sousSheetSizing(.page)
     }
 }
 

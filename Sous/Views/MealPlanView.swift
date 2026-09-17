@@ -501,7 +501,7 @@ private struct MoveToDaySheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Einplanen") {
@@ -514,7 +514,7 @@ private struct MoveToDaySheet: View {
             }
             .onAppear { slot = entry.slot }
         }
-        .sousSheetSizing(.form)
+        .sousSheetSizing(.page)
     }
 }
 

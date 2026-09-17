@@ -36,6 +36,9 @@ struct ShoppingPickSheet: View {
     /// Set once the pantry vocabulary has been read, so the first pass at
     /// the pre-selection is not made against an empty cupboard.
     @State private var hasSeeded = false
+    /// The pre-selection as it was made, so a swipe can tell whether the
+    /// cook has ticked or unticked anything since.
+    @State private var seeded: Set<UUID> = []
     /// The recipes this one's lines point at, by the id in the link.
     ///
     /// One level deep. A naan that is itself made of a spice mix still goes
@@ -80,9 +83,9 @@ struct ShoppingPickSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button(joining == nil ? "Hinzufügen" : "Ergänzen") {
                         onAdd(picked)
                         dismiss()
@@ -116,6 +119,10 @@ struct ShoppingPickSheet: View {
                 seed()
             }
         }
+        // Swiping away would drop the draft without a word; once there is
+        // something to lose, only the two buttons close it.
+        .interactiveDismissDisabled(hasSeeded && picked != seeded)
+        .sousSheetSizing(.page)
     }
 
     private var selectAllButton: some View {
@@ -397,5 +404,6 @@ struct ShoppingPickSheet: View {
                 .map(\.id)
         )
         syncLinkLines()
+        seeded = picked
     }
 }

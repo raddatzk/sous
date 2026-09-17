@@ -19,11 +19,13 @@ struct ImageCropEditor: View {
     /// The zoom a pinch started from, so the gesture scales it rather than
     /// replacing it.
     @State private var pinchBase: Double?
+    private let initialCrop: ImageCrop
 
     init(imageID: UUID, crop: ImageCrop, onDone: @escaping (ImageCrop) -> Void) {
         self.imageID = imageID
         self.onDone = onDone
         _crop = State(initialValue: crop)
+        initialCrop = crop
     }
 
     /// The shapes a recipe's picture takes, with the proportions each has.
@@ -60,10 +62,10 @@ struct ImageCropEditor: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Fertig") {
+                    Button(role: .confirm) {
                         onDone(crop)
                         dismiss()
                     }
@@ -79,6 +81,9 @@ struct ImageCropEditor: View {
                 picture = await library.image(id: imageID).flatMap(DecodedPicture.init(data:))
             }
         }
+        // Swiping away would drop the draft without a word; once there is
+        // something to lose, only the two buttons close it.
+        .interactiveDismissDisabled(crop != initialCrop)
         .sousSheetSizing(.page)
     }
 

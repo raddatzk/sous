@@ -98,15 +98,10 @@ struct CookModeView: View {
             Task { lookingUp = await library.recipe(id: id) }
             return .handled
         })
+        // Cook mode covers the list, so the page moves on inside its own
+        // sheet — see `RecipeSheet`.
         .sheet(item: $lookingUp) { linked in
-            NavigationStack {
-                RecipeDetailView(recipe: linked)
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Fertig") { lookingUp = nil }
-                        }
-                    }
-            }
+            RecipeSheet(recipe: linked) { lookingUp = nil }
         }
         .sheet(item: $settingTimer) { draft in
             TimerSetupSheet(

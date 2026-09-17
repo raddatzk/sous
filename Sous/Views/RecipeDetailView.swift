@@ -4,6 +4,8 @@ import SwiftUI
 
 struct RecipeDetailView: View {
     @Environment(RecipeLibrary.self) private var library
+    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
+    private var stepReferencesChat: StepReferencesChat?
     @Environment(ShoppingLibrary.self) private var shopping
     @Environment(CookSession.self) private var session
     @Environment(MealPlanLibrary.self) private var plan
@@ -49,6 +51,12 @@ struct RecipeDetailView: View {
     private var plannedServings: Int? { plannedEntry?.servings }
     /// A linked recipe the reader tapped through to.
     @State private var linkedRecipe: Recipe?
+    /// Set where this page sits in a sheet of its own — a linked recipe, or
+    /// one looked up from cook mode. The list is underneath that sheet then,
+    /// and can neither present the editor nor push what the selection names,
+    /// so both happen in the sheet instead. See ``RecipeSheet``.
+    @Environment(\.recipeSheet) private var recipeSheet
+    @State private var editingInPlace: Recipe?
     @State private var isAddingVariant = false
     @State private var isJoiningVariants = false
     /// Whether the page's own title has scrolled up behind the navigation
@@ -289,32 +297,27 @@ struct RecipeDetailView: View {
         // Shown as a sheet rather than pushed: looking up how the dough is
         // made is a detour, and a swipe returns to exactly where the cook was.
         .sheet(item: $linkedRecipe) { linked in
-            NavigationStack {
-                RecipeDetailView(recipe: linked)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Fertig") { linkedRecipe = nil }
-                        }
-                    }
+            RecipeSheet(recipe: linked) { linkedRecipe = nil }
+        }
+        .sheet(item: $editingInPlace) { editing in
+            RecipeEditorView(recipe: editing) { edited in
+                // The page reads `latest` from the library, so it shows what
+                // was saved without being handed it.
+                await library.save(edited)
             }
         }
         .sheet(isPresented: $isJoiningVariants) {
             VariantJoinPicker(target: .recipe(recipe)) { group in
                 // Onto the comparison, because the two recipes have just
                 // been put side by side and that is the thing to look at.
-                selection.target = .group(group, mode: .comparison)
+                show(.group(group, mode: .comparison))
             }
         }
         .sheet(isPresented: $isAddingVariant) {
             AddVariantSheet(recipe: recipe) { variant in
                 // Straight into the new one: it is a copy of what is on
-                // screen, and the reason to make it was to change it. Said
-                // through the selection rather than by presenting it here,
-                // because on the phone this page is itself the pushed one —
-                // the list swaps what it pushed, and a recipe shown in a
-                // sheet could not reach the editor.
-                selection.target = .recipe(variant)
-                selection.plannedEntryID = nil
+                // screen, and the reason to make it was to change it.
+                show(.recipe(variant))
             }
         }
         // A link to another recipe navigates inside the app; anything else
@@ -406,7 +409,7 @@ struct RecipeDetailView: View {
                 // As an overview, not as the table: someone reading a recipe
                 // who follows this link is asking which other versions there
                 // are, not which of them to cook tonight.
-                selection.target = .group(group, mode: .overview)
+                show(.group(group, mode: .overview))
             } label: {
                 HStack(spacing: 5) {
                     Image(systemName: "square.on.square")
@@ -1362,9 +1365,20 @@ struct RecipeDetailView: View {
                 // Editing stays: a recipe in the trash is an ordinary recipe
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
-                Button("Bearbeiten", systemImage: "pencil") { library.editing = recipe }
+                Button("Bearbeiten", systemImage: "pencil") {
+                    if recipeSheet != nil {
+                        editingInPlace = latest
+                    } else {
+                        library.editing = recipe
+                    }
+                }
                 if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
-                    Button("Zutaten pro Schritt", systemImage: "sparkles") {
+                    // Without the sparkles once AI is switched off: what is
+                    // left behind the item is assigning by hand.
+                    Button(
+                        "Zutaten pro Schritt",
+                        systemImage: stepReferencesChat == .off ? "list.bullet.indent" : "sparkles"
+                    ) {
                         isReadingStepReferences = true
                     }
                 }
@@ -1477,4 +1491,68 @@ struct RecipeDetailView: View {
         }
         return result
     }
+}
+
+extension RecipeDetailView {
+    /// Moves on to another recipe or a group.
+    ///
+    /// Through the selection rather than by presenting it here, because on
+    /// the phone this page is itself the pushed one — the list swaps what it
+    /// pushed. Inside a ``RecipeSheet`` the list is out of reach, so the sheet
+    /// pushes it instead.
+    func show(_ target: RecipeSelection.Target) {
+        if let recipeSheet {
+            recipeSheet.show(target)
+        } else {
+            selection.target = target
+            selection.plannedEntryID = nil
+        }
+    }
+}
+
+/// A recipe shown in a sheet of its own: a linked recipe opened from a
+/// page, or one looked up from cook mode.
+///
+/// A page in here cannot reach what the rest of the app uses to move on —
+/// the list's editor sheet and the selection it pushes from are both
+/// underneath — so the sheet carries its own stack, and says so through the
+/// environment. A new variant, or the comparison after joining two, is then
+/// pushed in here, where the cook is looking.
+struct RecipeSheet: View {
+    let recipe: Recipe
+    let onClose: () -> Void
+
+    @State private var path: [RecipeSelection.Target] = []
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            RecipeDetailView(recipe: recipe)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(role: .close, action: onClose)
+                    }
+                }
+                .navigationDestination(for: RecipeSelection.Target.self) { target in
+                    switch target {
+                    case .recipe(let recipe):
+                        RecipeDetailView(recipe: recipe)
+                    case .group(let group, let mode):
+                        VariantGroupView(group: group, initialMode: mode)
+                    }
+                }
+        }
+        .environment(\.recipeSheet, RecipeSheetNavigation { path.append($0) })
+        .sousSheetSizing(.page)
+    }
+}
+
+/// How a page inside a ``RecipeSheet`` shows another recipe or group.
+struct RecipeSheetNavigation {
+    let show: (RecipeSelection.Target) -> Void
+}
+
+extension EnvironmentValues {
+    /// Set inside a ``RecipeSheet``; `nil` wherever the list and the
+    /// selection can be reached.
+    @Entry var recipeSheet: RecipeSheetNavigation?
 }

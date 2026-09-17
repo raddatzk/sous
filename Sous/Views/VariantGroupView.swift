@@ -44,6 +44,8 @@ struct VariantGroupView: View {
     @Environment(NutritionLibrary.self) private var nutritionLibrary
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(RecipeSelection.self) private var selection
+    @Environment(\.recipeSheet) private var recipeSheet
+    @Environment(\.dismiss) private var dismiss
 
     @State private var members: [Recipe] = []
     /// Per-portion figures per member, from the same cache the recipe page
@@ -121,6 +123,12 @@ struct VariantGroupView: View {
         // The members are recipes like any other and can be edited, deleted
         // or restored from anywhere else in the app while this page is up.
         .onChange(of: library.recipes) { Task { await load() } }
+        // Dissolved, or down to one version by a delete or "Aus der Gruppe
+        // lösen" — possibly on another device. The page has nothing left to
+        // compare then, and staying on it only says so.
+        .onChange(of: library.variantGroups[group.id] == nil) { _, isGone in
+            if isGone { Task { await leave() } }
+        }
         .alert("Gruppe umbenennen", isPresented: $isRenaming) {
             TextField("Name des Gerichts", text: $newTitle)
             Button("Abbrechen", role: .cancel) {}
@@ -425,14 +433,46 @@ struct VariantGroupView: View {
         nutrition = figures
     }
 
+    /// Steps off a group that no longer draws as one.
+    ///
+    /// Inside a `RecipeSheet` back to the page it was pushed from. Elsewhere
+    /// onto the one version still standing, if one is, since that is what
+    /// the group has become — and otherwise back to no selection, which on
+    /// the phone is the list.
+    private func leave() async {
+        if recipeSheet != nil {
+            dismiss()
+            return
+        }
+        guard selection.group?.id == group.id else { return }
+        // Asked of the store, not of `library.recipes`: that list is narrowed
+        // to the search, and a version filtered out of it still stands.
+        var standing: [Recipe] = []
+        for member in members {
+            if let current = await library.recipe(id: member.id), !current.isDeleted {
+                standing.append(current)
+            }
+        }
+        if standing.count == 1, let remaining = standing.first {
+            open(remaining)
+        } else {
+            selection.target = nil
+        }
+    }
+
     /// Opens one of the versions.
     ///
     /// Through the selection on both platforms: the Mac swaps the column,
     /// the phone swaps what the list pushed. Either way the recipe lands
     /// where a recipe belongs, with everything a recipe page can do —
     /// planning it, buying for it, cooking it — which is the point of having
-    /// come here to choose one.
+    /// come here to choose one. Inside a `RecipeSheet` the selection is out
+    /// of reach, and the sheet pushes the version instead.
     private func open(_ member: Recipe) {
+        if let recipeSheet {
+            recipeSheet.show(.recipe(member))
+            return
+        }
         selection.target = .recipe(member)
         selection.plannedEntryID = nil
     }

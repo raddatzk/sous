@@ -8,7 +8,7 @@ import AppKit
 
 /// Which ingredients each step takes, and which written amounts belong to
 /// which line: asked of a chat model the cook already uses — copy the
-/// prompt, paste it into ChatGPT or Claude, paste the answer back — and
+/// prompt, paste it into the chat the cook picked, paste the answer back — and
 /// corrected, or assigned from scratch, by hand. Sous never talks to the
 /// model itself — see ``StepReferences``.
 struct StepReferencesSheet: View {
@@ -17,6 +17,8 @@ struct StepReferencesSheet: View {
 
     let recipe: Recipe
 
+    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
+    private var chat: StepReferencesChat?
     @State private var didCopy = false
     /// What is being edited: the stored references while they still fit the
     /// recipe, a pasted answer, or an empty start by hand. `nil` until one
@@ -24,12 +26,17 @@ struct StepReferencesSheet: View {
     @State private var draft: StepReferences?
     @State private var reading: StepReferencesPrompt.Reading?
     @State private var failure: String?
+    /// What the draft started as, so a swipe can tell whether it would lose
+    /// anything.
+    private let initialDraft: StepReferences?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
     init(recipe: Recipe) {
         self.recipe = recipe
-        _draft = State(initialValue: recipe.stepReferences.flatMap { $0.isCurrent(for: recipe) ? $0 : nil })
+        let current = recipe.stepReferences.flatMap { $0.isCurrent(for: recipe) ? $0 : nil }
+        _draft = State(initialValue: current)
+        initialDraft = current
     }
 
     private var stored: StepReferences? { recipe.stepReferences }
@@ -39,10 +46,12 @@ struct StepReferencesSheet: View {
         NavigationStack {
             Form {
                 statusSection
-                askSection
-                pasteSection
-                if let reading {
-                    readingSections(reading)
+                if chat != .off {
+                    askSection
+                    pasteSection
+                    if let reading {
+                        readingSections(reading)
+                    }
                 }
                 if draft == nil {
                     Section {
@@ -50,7 +59,11 @@ struct StepReferencesSheet: View {
                             draft = .empty(for: recipe)
                         }
                     } footer: {
-                        Text("Ohne Chat: Schritt für Schritt selbst festlegen, was jeder Schritt braucht.")
+                        if chat == .off {
+                            Text("Schritt für Schritt selbst festlegen, was jeder Schritt braucht. KI ist in den Einstellungen ausgeschaltet.")
+                        } else {
+                            Text("Ohne Chat: Schritt für Schritt selbst festlegen, was jeder Schritt braucht.")
+                        }
                     }
                 } else {
                     editor
@@ -63,10 +76,10 @@ struct StepReferencesSheet: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Übernehmen") {
+                    Button(role: .confirm) {
                         guard let draft else { return }
                         Task {
                             await library.setStepReferences(draft, for: recipe)
@@ -77,6 +90,10 @@ struct StepReferencesSheet: View {
                 }
             }
         }
+        // Swiping away would drop the draft without a word; once there is
+        // something to lose, only the two buttons close it.
+        .interactiveDismissDisabled(draft != initialDraft)
+        .sousSheetSizing(.page)
     }
 
     // MARK: - Asking
@@ -104,16 +121,19 @@ struct StepReferencesSheet: View {
                 copy(StepReferencesPrompt.prompt(for: recipe))
                 didCopy = true
             }
-            Link(destination: URL(string: "https://chatgpt.com/")!) {
-                Label("ChatGPT öffnen", systemImage: "arrow.up.forward.app")
-            }
-            Link(destination: URL(string: "https://claude.ai/new")!) {
-                Label("Claude öffnen", systemImage: "arrow.up.forward.app")
+            if let chat {
+                if let url = chat.url {
+                    Link(destination: url) {
+                        Label("\(chat.title) öffnen", systemImage: "arrow.up.forward.app")
+                    }
+                }
+            } else {
+                StepReferencesChatPicker()
             }
         } header: {
             Text("Chat fragen")
         } footer: {
-            Text("Den kopierten Text in einen neuen Chat einfügen und abschicken.")
+            Text("Den kopierten Text in einen neuen Chat einfügen und abschicken. Welcher Chat, lässt sich in den Einstellungen ändern.")
         }
     }
 
@@ -333,5 +353,82 @@ struct StepReferencesSheet: View {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
         #endif
+    }
+}
+
+/// The chat the cook asks for "Zutaten pro Schritt" — chosen once, in the
+/// welcome or the settings, so the sheet offers one way out instead of a
+/// list of apps somebody else uses.
+///
+/// Any of them reads the same prompt; the choice only decides which one the
+/// sheet opens. The web addresses are universal links, so an installed app
+/// opens instead of the browser. "Anderer Chat" is for everything not listed
+/// — the sheet then only copies.
+///
+/// `off` is for cooks who want no AI in the app at all: the sheet then
+/// neither copies a prompt nor takes an answer, and assigning by hand is
+/// what is left. One setting rather than a toggle beside the choice, so
+/// "which chat" and "whether a chat" cannot contradict each other.
+enum StepReferencesChat: String, CaseIterable, Identifiable {
+    case chatGPT = "chatgpt"
+    case claude
+    case gemini
+    case leChat = "lechat"
+    case copilot
+    case other
+    case off
+
+    /// The chats, without the way out of all of them.
+    static let chats = allCases.filter { $0 != .off }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .chatGPT: "ChatGPT"
+        case .claude: "Claude"
+        case .gemini: "Gemini"
+        case .leChat: "Le Chat"
+        case .copilot: "Copilot"
+        case .other: "Anderer Chat"
+        case .off: "Keine KI verwenden"
+        }
+    }
+
+    /// Where a new chat starts, or `nil` for one Sous does not know.
+    var url: URL? {
+        switch self {
+        case .chatGPT: URL(string: "https://chatgpt.com/")
+        case .claude: URL(string: "https://claude.ai/new")
+        case .gemini: URL(string: "https://gemini.google.com/app")
+        case .leChat: URL(string: "https://chat.mistral.ai/chat")
+        case .copilot: URL(string: "https://copilot.microsoft.com/")
+        case .other, .off: nil
+        }
+    }
+}
+
+extension SousSetting {
+    static let stepReferencesChat = "stepReferencesChat"
+}
+
+/// The choice of chat, the same control wherever it is offered. Unset until
+/// the cook picks one — a default would quietly send everybody to the same
+/// company.
+struct StepReferencesChatPicker: View {
+    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
+    private var chat: StepReferencesChat?
+
+    var body: some View {
+        Picker("Chat", selection: $chat) {
+            if chat == nil {
+                Text("Nicht gewählt").tag(StepReferencesChat?.none)
+            }
+            ForEach(StepReferencesChat.chats) { option in
+                Text(option.title).tag(Optional(option))
+            }
+            Divider()
+            Text(StepReferencesChat.off.title).tag(Optional(StepReferencesChat.off))
+        }
     }
 }

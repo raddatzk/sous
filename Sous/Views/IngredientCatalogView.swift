@@ -46,7 +46,7 @@ struct IngredientCatalogView: View {
                     Button("Zutat hinzufügen", systemImage: "plus") { isAdding = true }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fertig") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
             }
             .overlay {
@@ -178,6 +178,8 @@ struct IngredientFormView: View {
     /// The one further spelling being typed for a bundled entry.
     @State private var newAlias = ""
     @State private var nutritionDraft: NutritionDraft
+    /// The numbers as loaded, so a swipe can tell whether any were typed.
+    @State private var loadedNutritionDraft = NutritionDraft()
     /// The pantry flag as shown, and as it was when the form opened — only
     /// a change is written back.
     @State private var isPantry = false
@@ -302,6 +304,23 @@ struct IngredientFormView: View {
         name.trimmingCharacters(in: .whitespaces)
     }
 
+    /// Whether closing without "Sichern" would lose anything typed or picked.
+    private var hasChanges: Bool {
+        name != original.name
+            || aliasText != original.aliases.joined(separator: ", ")
+            || !newAlias.isEmpty
+            || category != original.ownCategory
+            || parentName != original.parentName
+            || nutritionDraft != loadedNutritionDraft
+            || isPantry != storedPantry
+            || storeDraft != storedStore
+            || noteDraft != storedNote
+            || !measureDraft.isEmpty
+            || !removedMeasures.isEmpty
+            || basisChoice != storedBasisChoice
+            || confirmsStoredRow
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -359,10 +378,10 @@ struct IngredientFormView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Abbrechen") { dismiss() }
+                    Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Sichern") { save() }
+                    Button(role: .confirm) { save() }
                         .disabled(trimmedName.isEmpty)
                 }
             }
@@ -374,6 +393,7 @@ struct IngredientFormView: View {
                 await catalog.ensureLoaded()
                 await nutrition.reload()
                 nutritionDraft = NutritionDraft(ownNutrition)
+                loadedNutritionDraft = nutritionDraft
                 loadBasisChoice()
                 // Opened from the picker's "Eigene Werte": the answer was
                 // given on the way in, and the form should show it as given
@@ -416,7 +436,10 @@ struct IngredientFormView: View {
                 }
             }
         }
-        .sousSheetSizing(.form)
+        // Swiping away would drop the draft without a word; once there is
+        // something to lose, only the two buttons close it.
+        .interactiveDismissDisabled(hasChanges)
+        .sousSheetSizing(.page)
     }
 
     // MARK: - The cook's own entries
@@ -1548,7 +1571,7 @@ private struct BasisRowPickerView: View {
         .searchable(text: $query, prompt: "Im Lebensmittelkatalog suchen")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Bestätigen") {
+                Button(role: .confirm) {
                     if let selection { onConfirm(selection) }
                     dismiss()
                 }
@@ -1604,7 +1627,7 @@ private enum BasisChoice: Equatable {
 /// Text rather than numbers so an empty field stays empty instead of showing
 /// a 0 nobody entered — "not filled in" and "measured as zero" are different
 /// things, and only the first should leave the ingredient uncounted.
-private struct NutritionDraft {
+private struct NutritionDraft: Equatable {
     var kcal = ""
     var protein = ""
     var fat = ""

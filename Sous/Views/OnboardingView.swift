@@ -3,11 +3,12 @@ import SwiftUI
 
 /// What the app says the first time it is opened.
 ///
-/// Four pages, and every one of them either does something or names the place
+/// Five pages, and every one of them either does something or names the place
 /// where it is done: a welcome that only describes the app is a page a cook
 /// taps through without reading. So the recipe page carries the import and the
-/// editor, and the household page carries the invitation itself — the same
-/// `ShareLink` the settings offer, not a pointer to it.
+/// editor, the steps page the choice of chat, and the household page the
+/// invitation itself — the same controls the settings offer, not pointers to
+/// them.
 ///
 /// Hand-paged rather than a `TabView(.page)`, because that style is iOS only
 /// and the Mac would be left with a welcome it cannot leave. One view, one
@@ -20,11 +21,13 @@ struct OnboardingView: View {
 
     @State private var step: Step = .welcome
 
-    /// The four pages, in the order the app is used: what it is, how recipes
-    /// get in, what happens to them afterwards, and who else is cooking.
+    /// The five pages, in the order the app is used: what it is, how recipes
+    /// get in, how their steps learn their ingredients, what happens to them
+    /// afterwards, and who else is cooking.
     private enum Step: Int, CaseIterable {
         case welcome
         case recipes
+        case steps
         case planning
         case household
 
@@ -32,6 +35,7 @@ struct OnboardingView: View {
             switch self {
             case .welcome: "fork.knife"
             case .recipes: "book.closed"
+            case .steps: "sparkles"
             case .planning: "calendar"
             case .household: "person.2"
             }
@@ -41,6 +45,7 @@ struct OnboardingView: View {
             switch self {
             case .welcome: "Willkommen bei Sous"
             case .recipes: "Rezepte hineinbringen"
+            case .steps: "Zutaten pro Schritt"
             case .planning: "Planen und einkaufen"
             case .household: "Zu zweit kochen"
             }
@@ -58,6 +63,15 @@ struct OnboardingView: View {
                 Importiere eine Sammlung, hol dir ein Rezept aus dem Web oder \
                 schreib eins selbst. Aus Safari teilst du eine Seite direkt \
                 an Sous.
+                """
+            case .steps:
+                """
+                Welche Zutat in welchen Schritt gehört, sagt dir ein Chat, den \
+                du schon nutzt: Sous kopiert die Frage zum Rezept, du fügst \
+                sie dort ein und die Antwort zurück. Dann zeigt der Kochmodus \
+                bei jedem Schritt, was er braucht, und rechnet Mengen im Text \
+                mit. Ohne KI geht es auch — dann ordnest du von Hand zu. Zu \
+                finden im Menü eines Rezepts.
                 """
             case .planning:
                 """
@@ -89,7 +103,7 @@ struct OnboardingView: View {
     var body: some View {
         VStack(spacing: 0) {
             skipBar
-            // Centred in what is left over, and still scrollable: four short
+            // Centred in what is left over, and still scrollable: five short
             // pages have room to spare on a phone, while the same text at the
             // largest type size is taller than the sheet. The geometry is what
             // gives both — the content is at least a screenful, so a short
@@ -181,6 +195,10 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(.bordered)
             }
+        case .steps:
+            StepReferencesChatPicker()
+                .pickerStyle(.menu)
+                .buttonStyle(.bordered)
         case .household:
             // iOS only, and not for want of a Mac API: sharing is an iOS
             // surface for now, the way the settings' own section is — see
@@ -220,7 +238,7 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    /// Where in the four the cook is. Decorative, so it is hidden from
+    /// Where in the five the cook is. Decorative, so it is hidden from
     /// VoiceOver — which reads the page's own heading instead.
     private var dots: some View {
         HStack(spacing: 8) {
