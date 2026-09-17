@@ -257,6 +257,7 @@ extension TextViewCoordinator: NSTextViewDelegate {
 
 /// Shared by both platforms' representables — everything that isn't a
 /// literal `UITextView`/`NSTextView` API difference.
+@MainActor
 final class TextViewCoordinator: NSObject {
     var text: Binding<String>
     var cursorOffset: Binding<Int?>

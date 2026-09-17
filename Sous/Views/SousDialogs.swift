@@ -69,6 +69,7 @@ extension Binding where Value == Bool {
     /// Whether an optional holds something, as the flag a sheet or an alert
     /// wants — and turning the flag off clears the optional, which is how a
     /// dismissed dialog forgets what it was about.
+    @MainActor
     init<Wrapped>(presence source: Binding<Wrapped?>) {
         self.init(
             get: { source.wrappedValue != nil },

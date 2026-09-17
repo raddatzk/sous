@@ -88,7 +88,7 @@ final class CookTimerCenter {
             return
         }
         do {
-            try await AlarmManager.shared.schedule(
+            _ = try await AlarmManager.shared.schedule(
                 id: timer.id,
                 configuration: .timer(duration: seconds, attributes: attributes(for: timer))
             )
@@ -229,13 +229,10 @@ extension CookTimerCenter {
 
     /// How the timer presents itself once it is out of the app's hands.
     private func attributes(for timer: CookTimer) -> AlarmAttributes<CookTimerMetadata> {
+        // No stop button: since iOS 26.1 AlarmKit draws its own and ignores
+        // the one handed in.
         let alert = AlarmPresentation.Alert(
-            title: "\(timer.recipeTitle) — Schritt \(timer.stepNumber)",
-            stopButton: AlarmButton(
-                text: "Fertig",
-                textColor: .white,
-                systemImageName: "checkmark"
-            )
+            title: "\(timer.recipeTitle) — Schritt \(timer.stepNumber)"
         )
         let countdown = AlarmPresentation.Countdown(
             title: "\(timer.recipeTitle) — Schritt \(timer.stepNumber)",

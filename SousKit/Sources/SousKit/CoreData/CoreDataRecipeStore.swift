@@ -74,8 +74,9 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
 
     @discardableResult
     public func save(_ recipe: Recipe) async throws -> Recipe {
-        var updated = recipe
-        updated.updatedAt = .nowInSyncPrecision
+        var stamped = recipe
+        stamped.updatedAt = .nowInSyncPrecision
+        let updated = stamped
 
         try await context.perform {
             let groupTitle = try recipe.variantGroupID.flatMap { try self.storedGroup(id: $0) }?.title
@@ -290,8 +291,9 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
 
     @discardableResult
     public func saveVariantGroup(_ group: VariantGroup) async throws -> VariantGroup {
-        var updated = group
-        updated.updatedAt = .nowInSyncPrecision
+        var stamped = group
+        stamped.updatedAt = .nowInSyncPrecision
+        let updated = stamped
 
         try await context.perform {
             if let existing = try self.storedGroup(id: group.id) {

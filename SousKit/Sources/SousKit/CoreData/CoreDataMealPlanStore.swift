@@ -88,8 +88,9 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
 
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
-        var updated = entry
-        updated.updatedAt = .nowInSyncPrecision
+        var stamped = entry
+        stamped.updatedAt = .nowInSyncPrecision
+        let updated = stamped
 
         try await context.perform {
             let row = try self.stored(id: entry.id) ?? CDMealPlanEntry(context: self.context)
