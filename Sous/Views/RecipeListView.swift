@@ -18,6 +18,7 @@ struct RecipeListView: View {
     /// Held by the app rather than here, because the menu bar issues the
     /// same commands and cannot see this view's state.
     @Environment(LibraryCommands.self) private var commands
+    @Environment(CloudKitInitialImport.self) private var initialImport
 
     @State private var selected: RecipeListSelection?
     /// Ties a tapped row to the page it becomes, for the zoom.
@@ -148,6 +149,10 @@ struct RecipeListView: View {
                     }
                 }
             }
+
+            if showsImportRow {
+                InitialImportRow(text: "Weitere Rezepte werden geladen")
+            }
         }
         // Without this the selected row is a solid slab of accent across the
         // whole width; a sidebar list draws its selection as a capsule.
@@ -229,6 +234,9 @@ struct RecipeListView: View {
                             cardGrid(members)
                         }
                     }
+                }
+                if showsImportRow {
+                    InitialImportRow(text: "Weitere Rezepte werden geladen")
                 }
             }
             .padding(.horizontal, 20)
@@ -436,12 +444,27 @@ struct RecipeListView: View {
         }
     }
 
+    /// Whether the library is only partly here: some recipes have arrived
+    /// from iCloud, the first import has not finished.
+    private var showsImportRow: Bool {
+        initialImport.isWaiting && !library.recipes.isEmpty
+    }
+
     @ViewBuilder
     private var emptyState: some View {
         // An import in progress is about to fill the list; telling the user
         // there is nothing here while it counts up says the opposite.
         if library.recipes.isEmpty, !library.isLoading, library.importProgress == nil {
-            if library.searchText.isEmpty, library.filter == .all, library.activeFilters.isEmpty {
+            let unfiltered = library.searchText.isEmpty && library.filter == .all
+                && library.activeFilters.isEmpty
+            if unfiltered, initialImport.isWaiting {
+                // Same reason, for the import that does not come from a file:
+                // after a reinstall the library is on its way from iCloud.
+                InitialImportPlaceholder(
+                    title: "Rezepte werden geladen",
+                    description: "Deine Bibliothek kommt aus iCloud. Das kann einen Moment dauern."
+                )
+            } else if unfiltered {
                 ContentUnavailableView {
                     Label("Noch keine Rezepte", systemImage: "book.closed")
                 } description: {

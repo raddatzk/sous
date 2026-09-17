@@ -47,9 +47,10 @@ final class OnboardingNotice {
     /// greeting anyone. Such a device is marked as welcomed and never asked
     /// again.
     ///
-    /// A fresh install whose iCloud library has not arrived yet does see the
-    /// welcome, and that is the right way round — the import lands behind it
-    /// within seconds, and every page can be skipped.
+    /// A fresh install asks only once its first iCloud import has settled
+    /// (see `CloudKitInitialImport`): a reinstall whose library is still on
+    /// its way is not a first launch either. Offline, or without an account,
+    /// the wait gives up and the welcome shows as before.
     func decide(hasRecipes: Bool) {
         guard !UserDefaults.sous.bool(forKey: Self.defaultsKey) else { return }
         guard !hasRecipes else { return finish() }

@@ -49,6 +49,7 @@ struct MealPlanView: View {
     }
 
     @Environment(RecipeSelection.self) private var selection
+    @Environment(CloudKitInitialImport.self) private var initialImport
 
     /// Below this the plan and a recipe stop fitting beside each other, and a
     /// tapped meal opens as a page of its own instead.
@@ -223,6 +224,12 @@ struct MealPlanView: View {
     @ViewBuilder
     private func calendar(scroll: ScrollViewProxy) -> some View {
         List {
+            // At the top, not the end: the calendar has no end, and an empty
+            // day says nothing about whether a meal is still on its way.
+            if initialImport.isWaiting {
+                InitialImportRow(text: "Wochenplan wird geladen")
+            }
+
             ForEach(plan.days, id: \.self) { day in
                 Section {
                     dayContent(day)
@@ -333,9 +340,18 @@ struct MealPlanView: View {
                         removeAction(item.entry)
                     }
             }
+
+            if initialImport.isWaiting, !plan.pool.isEmpty {
+                InitialImportRow(text: "Weitere Gerichte werden geladen")
+            }
         }
         .overlay {
-            if plan.pool.isEmpty {
+            if plan.pool.isEmpty, initialImport.isWaiting {
+                InitialImportPlaceholder(
+                    title: "Vorgemerkte Gerichte werden geladen",
+                    description: "Dein Wochenplan kommt aus iCloud. Das kann einen Moment dauern."
+                )
+            } else if plan.pool.isEmpty {
                 ContentUnavailableView {
                     Label("Nichts vorgemerkt", systemImage: "tray")
                 } description: {

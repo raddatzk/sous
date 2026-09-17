@@ -38,6 +38,9 @@ struct SousApp: App {
     /// Says in the console whether anything is actually reaching iCloud,
     /// which nothing else in the app would reveal.
     private let cloudKitLog = CloudKitEventLog()
+    /// Whether the library is still on its way from iCloud, which the empty
+    /// lists and the welcome have to know.
+    @State private var initialImport: CloudKitInitialImport
     /// Which household the screens show, and the switch between them.
     private let switcher: HouseholdSwitcher
     /// The meal plan, projected into the Apple calendar.
@@ -87,6 +90,10 @@ struct SousApp: App {
             let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
 
             households = CoreDataHouseholds(container: coreData)
+            // Right after the container, so it is listening before the first
+            // import can begin.
+            let madeImport = CloudKitInitialImport(container: coreData)
+            _initialImport = State(initialValue: madeImport)
             orphanReconciliation = VocabularyOrphanReconciliation(store: vocabulary)
             migrationSource = RecipeStoreMigration.Source(
                 recipes: SwiftDataRecipeStore(modelContainer: container),
@@ -134,6 +141,14 @@ struct SousApp: App {
                 catalogLibrary: catalogLibrary
             )
             _shopping = State(initialValue: shoppingLibrary)
+            // The lists stop saying "loading" only once they hold what
+            // arrived; the remote-change loop would get there a second later,
+            // and the empty state would flash in between.
+            madeImport.onSettling {
+                await recipeLibrary.reload()
+                await planLibrary.reload()
+                await shoppingLibrary.reload()
+            }
             let nutritionLibrary = NutritionLibrary(
                 store: nutritionStore,
                 recipeStore: recipes,
@@ -444,6 +459,7 @@ struct SousApp: App {
                 .environment(dataUpdate)
                 .environment(onboarding)
                 .environment(navigation)
+                .environment(initialImport)
                 // Timers stopped from the lock screen have to disappear from
                 // the step too, so AlarmKit's own list is the one that counts.
                 // What another device changed has to reach the screen.
@@ -468,8 +484,15 @@ struct SousApp: App {
                     // earlier: the library has just been read for the
                     // household this session belongs to, so "is there
                     // anything in this app" can finally be answered. Asked
-                    // before the move, every device looks fresh.
-                    onboarding.decide(hasRecipes: !library.recipes.isEmpty)
+                    // before the move, every device looks fresh. And not
+                    // before a reinstall's library has come back from iCloud,
+                    // or the welcome greets a cook whose recipes are loading
+                    // behind it — in its own task, so the rest of the launch
+                    // does not wait with it.
+                    Task {
+                        await initialImport.waitUntilSettled()
+                        onboarding.decide(hasRecipes: !library.recipes.isEmpty)
+                    }
                     await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a

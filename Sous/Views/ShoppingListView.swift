@@ -13,6 +13,7 @@ struct ShoppingListView: View {
     #endif
     /// Read for the recipe a detail page asked this list to stand at.
     @Environment(SousNavigation.self) private var navigation
+    @Environment(CloudKitInitialImport.self) private var initialImport
 
     @State private var grouping: Grouping = .aisle
     @State private var newItem = ""
@@ -114,6 +115,10 @@ struct ShoppingListView: View {
             switch grouping {
             case .aisle: byAisle
             case .recipe: byRecipe
+            }
+
+            if initialImport.isWaiting, !shopping.items.isEmpty {
+                InitialImportRow(text: "Weitere Einträge werden geladen")
             }
         }
         .sousReadableList()
@@ -618,7 +623,12 @@ struct ShoppingListView: View {
 
     @ViewBuilder
     private var emptyState: some View {
-        if shopping.items.isEmpty {
+        if shopping.items.isEmpty, initialImport.isWaiting {
+            InitialImportPlaceholder(
+                title: "Einkaufsliste wird geladen",
+                description: "Deine Liste kommt aus iCloud. Das kann einen Moment dauern."
+            )
+        } else if shopping.items.isEmpty {
             ContentUnavailableView {
                 Label("Nichts einzukaufen", systemImage: "cart")
             } description: {
