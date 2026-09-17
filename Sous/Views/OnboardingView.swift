@@ -10,24 +10,22 @@ import SwiftUI
 /// invitation itself — the same controls the settings offer, not pointers to
 /// them.
 ///
-/// Hand-paged rather than a `TabView(.page)`, because that style is iOS only
-/// and the Mac would be left with a welcome it cannot leave. One view, one
-/// step, a slide between them — which also keeps the page dots ours to
-/// place rather than the tab view's to hide.
+/// A paging scroll view rather than a `TabView(.page)`, because that style is
+/// iOS only and the Mac would be left with a welcome it cannot leave. The
+/// pages lie side by side and follow the finger (or the trackpad), the
+/// buttons scroll the same strip, and the page dots stay ours to place
+/// rather than the tab view's to hide.
 struct OnboardingView: View {
     @Environment(OnboardingNotice.self) private var notice
     @Environment(\.households) private var households
     @Environment(\.dismiss) private var dismiss
 
     @State private var step: Step = .welcome
-    /// Which way the last move went, so the next page comes in from the side
-    /// it lies on — the way a swipe expects it to.
-    @State private var isMovingForward = true
 
     /// The five pages, in the order the app is used: what it is, how recipes
     /// get in, how their steps learn their ingredients, what happens to them
     /// afterwards, and who else is cooking.
-    private enum Step: Int, CaseIterable {
+    private enum Step: Int, CaseIterable, Hashable {
         case welcome
         case recipes
         case steps
@@ -106,40 +104,44 @@ struct OnboardingView: View {
     var body: some View {
         VStack(spacing: 0) {
             skipBar
-            // Centred in what is left over, and still scrollable: five short
-            // pages have room to spare on a phone, while the same text at the
-            // largest type size is taller than the sheet. The geometry is what
-            // gives both — the content is at least a screenful, so a short
-            // page centres, and a long one scrolls instead of being cut off.
             GeometryReader { proxy in
-                ScrollView {
-                    page
-                        // The transition needs something to move *between*,
-                        // and two pages differing only in their strings are
-                        // one view to SwiftUI without this.
-                        .id(step)
-                        .transition(pageTransition)
-                        .frame(maxWidth: 420)
-                        .padding(.horizontal, 28)
-                        .padding(.vertical, 24)
-                        .frame(
-                            maxWidth: .infinity,
-                            minHeight: proxy.size.height,
-                            alignment: .center
-                        )
-                        // The empty space around a short page swipes too.
-                        .contentShape(Rectangle())
+                ScrollView(.horizontal) {
+                    HStack(spacing: 0) {
+                        ForEach(Step.allCases, id: \.self) { item in
+                            // Centred in what is left over, and still
+                            // scrollable: five short pages have room to spare
+                            // on a phone, while the same text at the largest
+                            // type size is taller than the sheet. The content
+                            // is at least a screenful, so a short page
+                            // centres, and a long one scrolls instead of being
+                            // cut off.
+                            ScrollView {
+                                page(item)
+                                    .frame(maxWidth: 420)
+                                    .padding(.horizontal, 28)
+                                    .padding(.vertical, 24)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        minHeight: proxy.size.height,
+                                        alignment: .center
+                                    )
+                            }
+                            .scrollIndicators(.hidden)
+                            .frame(width: proxy.size.width)
+                            .id(item)
+                        }
+                    }
+                    .scrollTargetLayout()
                 }
-                // Beside the buttons, not instead of them: a sideways swipe
-                // turns the page the way every paged screen on the phone
-                // does. Simultaneous, so the scroll view still scrolls a tall
-                // page and the controls on it still take their taps.
-                .simultaneousGesture(swipe)
-                .clipped()
+                .scrollTargetBehavior(.paging)
+                .scrollIndicators(.hidden)
+                // Both ways: a swipe says which page is showing, and the
+                // buttons scroll the strip to the page they name.
+                .scrollPosition(id: shownStep)
             }
             footer
+                .animation(.smooth(duration: 0.25), value: step)
         }
-        .animation(.smooth(duration: 0.25), value: step)
         #if os(macOS)
         // A sheet on the Mac takes the size its content asks for, and this
         // content would otherwise be as wide as its longest line.
@@ -170,7 +172,7 @@ struct OnboardingView: View {
         .frame(height: 28)
     }
 
-    private var page: some View {
+    private func page(_ step: Step) -> some View {
         VStack(spacing: 16) {
             Image(systemName: step.symbol)
                 .font(.system(size: 52))
@@ -181,7 +183,7 @@ struct OnboardingView: View {
                 .font(.title2.weight(.semibold))
             Text(step.text)
                 .foregroundStyle(.secondary)
-            actions
+            actions(for: step)
                 .padding(.top, 8)
         }
         .multilineTextAlignment(.center)
@@ -191,7 +193,7 @@ struct OnboardingView: View {
     /// has nothing to offer yet, and planning has nothing to plan before a
     /// recipe exists.
     @ViewBuilder
-    private var actions: some View {
+    private func actions(for step: Step) -> some View {
         switch step {
         case .recipes:
             VStack(spacing: 10) {
@@ -262,28 +264,17 @@ struct OnboardingView: View {
         .accessibilityHidden(true)
     }
 
-    private func move(by offset: Int) {
-        guard let next = Step(rawValue: step.rawValue + offset) else { return }
-        isMovingForward = offset > 0
-        step = next
-    }
-
-    private var pageTransition: AnyTransition {
-        .asymmetric(
-            insertion: .move(edge: isMovingForward ? .trailing : .leading).combined(with: .opacity),
-            removal: .move(edge: isMovingForward ? .leading : .trailing).combined(with: .opacity)
+    /// The page the strip rests on, as the scroll position reads it. `nil`
+    /// only mid-scroll, which leaves the last page standing.
+    private var shownStep: Binding<Step?> {
+        Binding(
+            get: { step },
+            set: { if let newValue = $0 { step = newValue } }
         )
     }
 
-    /// Left for the next page, right for the one before. Only a swipe that
-    /// is clearly sideways counts, so scrolling a long page never turns it;
-    /// past the last page the swipe does nothing — "Fertig" closes.
-    private var swipe: some Gesture {
-        DragGesture(minimumDistance: 24)
-            .onEnded { value in
-                let dx = value.translation.width
-                guard abs(dx) > 60, abs(dx) > abs(value.translation.height) * 1.5 else { return }
-                move(by: dx < 0 ? 1 : -1)
-            }
+    private func move(by offset: Int) {
+        guard let next = Step(rawValue: step.rawValue + offset) else { return }
+        withAnimation(.smooth(duration: 0.35)) { step = next }
     }
 }
