@@ -4,7 +4,7 @@ options:
   developmentLanguage: de
   deploymentTarget:
     iOS: "26.5"
-    macOS: "26.0"
+    macOS: "26.5"
   createIntermediateGroups: true
   groupSortPosition: top
 
