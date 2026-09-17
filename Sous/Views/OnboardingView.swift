@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Five pages, and every one of them either does something or names the place
 /// where it is done: a welcome that only describes the app is a page a cook
-/// taps through without reading. So the recipe page carries the import and the
+/// taps through without reading. So the last page carries the import and the
 /// editor, the steps page the choice of chat, and the household page the
 /// invitation itself — the same controls the settings offer, not pointers to
 /// them.
@@ -22,15 +22,18 @@ struct OnboardingView: View {
 
     @State private var step: Step = .welcome
 
-    /// The five pages, in the order the app is used: what it is, how recipes
-    /// get in, how their steps learn their ingredients, what happens to them
-    /// afterwards, and who else is cooking.
+    /// The five pages: what the app is, what it does with a recipe once it
+    /// has one, how a step learns its ingredients, who else is cooking — and
+    /// last, bringing recipes in.
+    ///
+    /// Importing is last because its two buttons close the welcome: put it
+    /// anywhere earlier and the pages behind it are never seen.
     private enum Step: Int, CaseIterable, Hashable {
         case welcome
-        case recipes
-        case steps
         case planning
+        case steps
         case household
+        case recipes
 
         var symbol: String {
             switch self {
