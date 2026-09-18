@@ -29,6 +29,9 @@ final class OnboardingNotice {
     enum FollowUp {
         case importing
         case newRecipe
+        /// Files opened from outside while the welcome was up — the cook
+        /// has answered its last page before reaching it.
+        case openingFiles([URL])
     }
 
     /// Whether the welcome is on screen. Settable, because the sheet's

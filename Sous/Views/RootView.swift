@@ -172,6 +172,9 @@ struct RootView: View {
         case .newRecipe:
             navigation.section = .recipes
             library.startNewRecipe()
+        case .openingFiles(let urls):
+            navigation.section = .recipes
+            commands.openedFiles += urls
         case nil:
             break
         }

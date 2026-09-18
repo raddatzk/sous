@@ -76,3 +76,36 @@ struct RecipeImageView: View {
         }
     }
 }
+
+/// A picture that is only bytes so far — one read from a file and not yet
+/// stored, as in the import preview.
+///
+/// Downsized off the main actor the way the store would have done it: an
+/// export carries photos at full camera size, and decoding a few dozen of
+/// those for 68-point rows would stall the list.
+struct UnsavedPictureView: View {
+    let data: Data
+    var thumbnail = false
+
+    @State private var picture: DecodedPicture?
+
+    var body: some View {
+        Group {
+            if let picture {
+                CroppedPicture(picture: picture)
+            } else {
+                Rectangle().fill(.quaternary)
+            }
+        }
+        .task(id: data) {
+            let data = data
+            let maxPixel = thumbnail
+                ? RecipeImageProcessing.thumbnailPixelSize
+                : RecipeImageProcessing.maxPixelSize
+            let resized = await Task.detached {
+                RecipeImageProcessing.resized(data, maxPixel: maxPixel)
+            }.value
+            picture = DecodedPicture(data: resized ?? data)
+        }
+    }
+}

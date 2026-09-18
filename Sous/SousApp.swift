@@ -323,6 +323,27 @@ struct SousApp: App {
     ///
     /// Failure is silent on purpose. The source is never modified, so a run
     /// that goes wrong leaves the old store intact to try again from.
+    /// Hands a file opened with Sous to the importer, which lives in the
+    /// recipe list — so that is where the app goes.
+    ///
+    /// The welcome is closed first, if it is up: its last page asks for
+    /// recipes, and opening a file answers it. The import waits until the
+    /// welcome is actually gone, because the report presented while a sheet
+    /// is still dismissing never appears.
+    private func open(file url: URL) {
+        if onboarding.isShowing {
+            if case .openingFiles(let earlier) = onboarding.followUp {
+                onboarding.followUp = .openingFiles(earlier + [url])
+            } else {
+                onboarding.followUp = .openingFiles([url])
+            }
+            onboarding.isShowing = false
+            return
+        }
+        navigation.section = .recipes
+        commands.openedFiles.append(url)
+    }
+
     private func migrateStores() async {
         // Forced into the own household for the duration: legacy SwiftData
         // content is this person's by definition, and adopting it while a
@@ -369,8 +390,27 @@ struct SousApp: App {
         guard let recipe = await handedOverRecipes([id], while: { selection.target == showing })?.first
         else { return }
         navigation.section = .recipes
-        selection.plannedEntryID = nil
-        selection.target = .recipe(recipe)
+        selection.show(recipe)
+    }
+
+    /// Opens the recipe a link points at.
+    ///
+    /// Waited for like a handoff: a link written on another device can
+    /// arrive before the recipe it names has synced. Unlike a handoff, a
+    /// link the cook tapped deserves an answer when the recipe never comes —
+    /// unless they have moved on to something else in the meantime.
+    private func openLinkedRecipe(_ id: UUID) async {
+        let showing = selection.target
+        guard let recipe = await handedOverRecipes([id], while: { selection.target == showing })?
+            .first
+        else {
+            if selection.target == showing {
+                library.errorMessage = "Das verlinkte Rezept gibt es in Sous nicht."
+            }
+            return
+        }
+        navigation.section = .recipes
+        selection.show(recipe)
     }
 
     /// Picks up cooking where another device left it: the pots and their
@@ -479,6 +519,9 @@ struct SousApp: App {
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()
+                    // The household is settled: a file opened to launch
+                    // the app can be imported now.
+                    commands.acceptsOpenedFiles = true
                     await calendarMirror.syncIfEnabled()
                     // Here rather than in the view, and here rather than
                     // earlier: the library has just been read for the
@@ -491,7 +534,11 @@ struct SousApp: App {
                     // does not wait with it.
                     Task {
                         await initialImport.waitUntilSettled()
-                        onboarding.decide(hasRecipes: !library.recipes.isEmpty)
+                        // A file opened to launch the app is recipes on
+                        // their way, even while they are still being read.
+                        onboarding.decide(
+                            hasRecipes: !library.recipes.isEmpty || library.importProgress != nil
+                        )
                     }
                     await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
@@ -523,8 +570,17 @@ struct SousApp: App {
                     timers.forgetStale()
                     session.forgetStale()
                 }
-                // A page shared from Safari arrives as sous://import?url=…
+                // A page shared from Safari arrives as sous://import?url=…,
+                // a recipe file opened with Sous as the file itself, and a
+                // link to a recipe — from Notes, a reminder, a Shortcut —
+                // as sous://recipe/<id>, the same link recipes use for each
+                // other.
                 .onOpenURL { url in
+                    if url.isFileURL { return open(file: url) }
+                    if let id = RecipeLink.recipeID(from: url) {
+                        Task { await openLinkedRecipe(id) }
+                        return
+                    }
                     guard url.scheme == "sous", url.host() == "import",
                           let shared = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                               .queryItems?.first(where: { $0.name == "url" })?.value,

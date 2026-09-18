@@ -27,6 +27,12 @@ struct RecipeRow: View {
 
     let recipe: Recipe
     var layout: Layout = .row
+    /// The pictures of a recipe read from a file and not stored yet — set
+    /// by the import preview. Such a recipe is in no store, so the row shows
+    /// these bytes instead of looking pictures up, and asks the libraries
+    /// nothing under its id: the nutrition figure would be cached against
+    /// an id that may well belong to a recipe the library already has.
+    var unsavedPictures: [Data]?
 
     @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
@@ -66,6 +72,7 @@ struct RecipeRow: View {
             effort = recipe.effortOverride ?? recipe.effort()?.level
         }
         .task(id: recipe.id) {
+            guard unsavedPictures == nil else { return }
             let nutrition = await nutritionLibrary.nutrition(for: recipe)
             // A figure no ingredient contributed to is no figure — showing
             // "0 kcal" for a recipe of unmatched lines would be the naked
@@ -78,6 +85,7 @@ struct RecipeRow: View {
             }
         }
         .task(id: recipe.id) {
+            guard unsavedPictures == nil else { return }
             needsIngredientReview = await library.needsIngredientReview(recipe)
         }
     }
@@ -139,7 +147,9 @@ struct RecipeRow: View {
     /// rather than the whole library.
     @ViewBuilder
     private var picture: some View {
-        if let imageID = recipe.imageIDs.first {
+        if let data = unsavedPictures?.first {
+            UnsavedPictureView(data: data)
+        } else if let imageID = recipe.imageIDs.first {
             RecipeImageView(imageID: imageID, crop: recipe.crop(for: imageID))
         } else {
             Rectangle()
@@ -155,7 +165,9 @@ struct RecipeRow: View {
     @ViewBuilder
     private var thumbnail: some View {
         Group {
-            if let imageID = recipe.imageIDs.first {
+            if let data = unsavedPictures?.first {
+                UnsavedPictureView(data: data, thumbnail: true)
+            } else if let imageID = recipe.imageIDs.first {
                 RecipeImageView(imageID: imageID, thumbnail: true, crop: recipe.crop(for: imageID))
             } else {
                 Rectangle()

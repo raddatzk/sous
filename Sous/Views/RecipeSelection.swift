@@ -61,4 +61,11 @@ final class RecipeSelection {
     /// Whoever sets `recipe` from somewhere else is responsible for clearing
     /// this back to `nil`.
     var plannedEntryID: MealPlanEntry.ID?
+
+    /// Opens a recipe that was asked for from outside the plan — a link, a
+    /// handoff, a file opened again.
+    func show(_ recipe: Recipe) {
+        plannedEntryID = nil
+        target = .recipe(recipe)
+    }
 }

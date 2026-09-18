@@ -125,6 +125,75 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: me.raddatz.sous.import
             CFBundleURLSchemes: [sous]
+        # "Öffnen mit Sous" from the Files app, the Finder and AirDrop: the
+        # files `RecipeImport` reads. Viewer rather than Editor, because
+        # opening one imports it — the file itself is never written back.
+        # Sous owns its own types and is only an alternative for Mela's and
+        # Paprika's, so a cook with those apps keeps them as the default.
+        # Plain JSON is offered for schema.org recipes; zip is not, or Sous
+        # would turn up for every archive on the device.
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Sous-Rezept
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Owner
+            LSItemContentTypes: [me.raddatz.sous.recipe, me.raddatz.sous.recipes]
+          - CFBundleTypeName: Mela-Rezept
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [recipes.mela.recipe, recipes.mela.recipes]
+          - CFBundleTypeName: Paprika-Rezept
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.hindsightlabs.paprika.files.recipe
+              - com.hindsightlabs.paprika.files.recipes
+          - CFBundleTypeName: schema.org-Rezept
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [public.json]
+        # Handed over where it lies instead of copied into an Inbox folder
+        # the app would then have to clean up; `RecipeImporter` holds the
+        # security scope while it reads.
+        LSSupportsOpeningDocumentsInPlace: true
+        UTExportedTypeDeclarations:
+          - UTTypeIdentifier: me.raddatz.sous.recipe
+            UTTypeDescription: Sous-Rezept
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [sousrecipe]
+          - UTTypeIdentifier: me.raddatz.sous.recipes
+            UTTypeDescription: Sous-Rezepte
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [sousrecipes]
+        # The identifiers Mela itself declares for its own files and for
+        # Paprika's — the same ones, so that a device with either app
+        # installed agrees with Sous on what the file is.
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: recipes.mela.recipe
+            UTTypeDescription: Mela-Rezept
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [melarecipe]
+              public.mime-type: [application/vnd.melarecipe]
+          - UTTypeIdentifier: recipes.mela.recipes
+            UTTypeDescription: Mela-Rezepte
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [melarecipes]
+              public.mime-type: [application/vnd.melarecipes]
+          - UTTypeIdentifier: com.hindsightlabs.paprika.files.recipe
+            UTTypeDescription: Paprika-Rezept
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [paprikarecipe]
+              public.mime-type: [application/vnd.paprikarecipe]
+          - UTTypeIdentifier: com.hindsightlabs.paprika.files.recipes
+            UTTypeDescription: Paprika-Rezepte
+            UTTypeConformsTo: [public.data]
+            UTTypeTagSpecification:
+              public.filename-extension: [paprikarecipes]
+              public.mime-type: [application/vnd.paprikarecipes]
         # The recipe being read, the cooking in progress and the shopping list,
         # offered to the other devices on the same account. Must match
         # `RecipeHandoff`, `CookHandoff` and `ShoppingListHandoff`, or the

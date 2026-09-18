@@ -761,20 +761,10 @@ public final class RecipeLibrary {
     // MARK: - Import
 
     /// Reads a recipe file and stores everything in it.
-    ///
-    /// Recipes are saved one at a time rather than as a batch: a library of a
-    /// few hundred with their photos takes long enough that the user should
-    /// see it filling up, and a single recipe the file got wrong should not
-    /// roll back the ones that were fine.
     public func importRecipes(from data: Data, named name: String) async -> RecipeImportSummary {
-        importProgress = RecipeImportProgress(done: 0, total: 0)
-        defer { importProgress = nil }
-
         let batch: RecipeImportBatch
         do {
-            // Decoding an archive with its photos is seconds of work, and it
-            // has no business happening on the main actor.
-            batch = try await Task.detached { try RecipeImport.read(data, named: name) }.value
+            batch = try await readRecipes(from: data, named: name)
         } catch {
             errorMessage = error.localizedDescription
             return RecipeImportSummary(
@@ -782,10 +772,30 @@ public final class RecipeLibrary {
                 problems: [RecipeImportProblem(name: name, reason: error.localizedDescription)]
             )
         }
+        return await importRecipes(batch)
+    }
 
+    /// Reads a recipe file without storing anything, so the cook can be
+    /// asked first.
+    public func readRecipes(from data: Data, named name: String) async throws -> RecipeImportBatch {
+        importProgress = RecipeImportProgress(done: 0, total: 0)
+        defer { importProgress = nil }
+        // Decoding an archive with its photos is seconds of work, and it has
+        // no business happening on the main actor.
+        return try await Task.detached { try RecipeImport.read(data, named: name) }.value
+    }
+
+    /// Stores what a file was read into.
+    ///
+    /// Recipes are saved one at a time rather than as a batch: a library of a
+    /// few hundred with their photos takes long enough that the user should
+    /// see it filling up, and a single recipe the file got wrong should not
+    /// roll back the ones that were fine.
+    public func importRecipes(_ batch: RecipeImportBatch) async -> RecipeImportSummary {
         var problems = batch.problems
         var imported = 0
         importProgress = RecipeImportProgress(done: 0, total: batch.recipes.count)
+        defer { importProgress = nil }
 
         for item in batch.recipes {
             do {
@@ -804,6 +814,16 @@ public final class RecipeLibrary {
 
         await reload()
         return RecipeImportSummary(imported: imported, problems: problems)
+    }
+
+    /// What a file holds, measured against the library: which of its
+    /// recipes are new and which are here already.
+    public func offer(for batch: RecipeImportBatch) async -> RecipeImportOffer {
+        var existing: [UUID: Recipe] = [:]
+        for item in batch.recipes {
+            if let recipe = await recipe(id: item.recipe.id) { existing[recipe.id] = recipe }
+        }
+        return RecipeImportOffer(batch: batch, existing: existing)
     }
 
     /// Saves one imported recipe together with its pictures.

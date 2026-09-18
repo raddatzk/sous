@@ -6,6 +6,60 @@
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>Sous</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Sous-Rezept</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Owner</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>me.raddatz.sous.recipe</string>
+				<string>me.raddatz.sous.recipes</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Mela-Rezept</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>recipes.mela.recipe</string>
+				<string>recipes.mela.recipes</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Paprika-Rezept</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.hindsightlabs.paprika.files.recipe</string>
+				<string>com.hindsightlabs.paprika.files.recipes</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>schema.org-Rezept</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.json</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -37,12 +91,14 @@
 	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.food-and-drink</string>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Damit ein Küchentimer klingelt, auch wenn das Gerät stumm geschaltet ist oder ein Fokus läuft.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Damit du ein Foto von deinem Gericht direkt zum Rezept legen kannst.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Damit dein Essensplan als Termine in deinem Kalender steht. Sous schreibt nur in seinen eigenen Kalender.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Damit du ein Foto von deinem Gericht direkt zum Rezept legen kannst.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSUserActivityTypes</key>
@@ -72,6 +128,130 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Sous-Rezept</string>
+			<key>UTTypeIdentifier</key>
+			<string>me.raddatz.sous.recipe</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sousrecipe</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Sous-Rezepte</string>
+			<key>UTTypeIdentifier</key>
+			<string>me.raddatz.sous.recipes</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>sousrecipes</string>
+				</array>
+			</dict>
+		</dict>
+	</array>
+	<key>UTImportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Mela-Rezept</string>
+			<key>UTTypeIdentifier</key>
+			<string>recipes.mela.recipe</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>melarecipe</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.melarecipe</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Mela-Rezepte</string>
+			<key>UTTypeIdentifier</key>
+			<string>recipes.mela.recipes</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>melarecipes</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.melarecipes</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Paprika-Rezept</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.hindsightlabs.paprika.files.recipe</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>paprikarecipe</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.paprikarecipe</string>
+				</array>
+			</dict>
+		</dict>
+		<dict>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeDescription</key>
+			<string>Paprika-Rezepte</string>
+			<key>UTTypeIdentifier</key>
+			<string>com.hindsightlabs.paprika.files.recipes</string>
+			<key>UTTypeTagSpecification</key>
+			<dict>
+				<key>public.filename-extension</key>
+				<array>
+					<string>paprikarecipes</string>
+				</array>
+				<key>public.mime-type</key>
+				<array>
+					<string>application/vnd.paprikarecipes</string>
+				</array>
+			</dict>
+		</dict>
 	</array>
 </dict>
 </plist>

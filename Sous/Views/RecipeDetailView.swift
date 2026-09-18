@@ -602,6 +602,18 @@ struct RecipeDetailView: View {
         return rest == 0 ? "\(total / 60) Std" : String(format: "%d:%02d Std", total / 60, rest)
     }
 
+    /// Puts the recipe's link on the clipboard as a link, so Notes and
+    /// Reminders paste something tappable rather than a string.
+    private func copyLink(to recipe: Recipe) {
+        let url = RecipeLink.url(for: recipe.id)
+        #if os(iOS)
+        UIPasteboard.general.url = url
+        #else
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.writeObjects([url as NSURL])
+        #endif
+    }
+
     /// What a deleted recipe offers instead of an action bar.
     ///
     /// Cooking, planning and shopping all assume the recipe is part of the
@@ -1418,6 +1430,14 @@ struct RecipeDetailView: View {
                         if let data = await library.exportedRecipe(recipe) {
                             export = RecipeExport(recipe: recipe, data: data)
                         }
+                    }
+                }
+                if !recipe.isDeleted {
+                    // A way back to this page from Notes, a reminder or a
+                    // Shortcut — the same `sous://recipe/…` link recipes use
+                    // for each other.
+                    Button("Link kopieren", systemImage: "link") {
+                        copyLink(to: recipe)
                     }
                 }
                 if !recipe.isDeleted {
