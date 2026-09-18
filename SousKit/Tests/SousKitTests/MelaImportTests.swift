@@ -164,7 +164,7 @@ struct MelaImportTests {
         #expect(try RecipeImport.read(data, named: "a.sousrecipe").recipes.count == 1)
         #expect(try RecipeImport.read(data, named: "a.sousrecipes").recipes.count == 1)
         #expect(throws: RecipeImportError.self) {
-            try RecipeImport.read(data, named: "a.paprikarecipes")
+            try RecipeImport.read(data, named: "a.txt")
         }
     }
 }

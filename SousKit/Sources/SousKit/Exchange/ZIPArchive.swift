@@ -163,8 +163,9 @@ enum ZIPArchive {
     }
 
     /// Raw DEFLATE, which is what `COMPRESSION_ZLIB` decodes — the zlib
-    /// wrapper a ZIP entry does not have.
-    private static func inflate(_ data: Data, uncompressedSize: Int) -> Data? {
+    /// wrapper a ZIP entry does not have. Gzip wraps the same stream, so
+    /// ``GZip`` decodes through here too.
+    static func inflate(_ data: Data, uncompressedSize: Int) -> Data? {
         guard uncompressedSize > 0 else { return Data() }
         guard !data.isEmpty else { return nil }
 

@@ -43,7 +43,7 @@ public enum RecipeWebImport {
             guard let json = try? JSONSerialization.jsonObject(
                 with: Data(block.utf8), options: [.fragmentsAllowed]
             ) else { continue }
-            if let recipe = findRecipe(in: json) { return recipe }
+            if let recipe = recipeObjects(in: json).first { return recipe }
         }
         return nil
     }
@@ -55,19 +55,25 @@ public enum RecipeWebImport {
         return html.matches(of: pattern).map { String($0.1) }
     }
 
-    private static func findRecipe(in json: Any) -> [String: Any]? {
+    /// Every Recipe object in a JSON-LD document, in document order.
+    ///
+    /// A page has one; a file may hold a whole collection.
+    static func recipeObjects(in json: Any) -> [[String: Any]] {
         switch json {
         case let object as [String: Any]:
-            if isRecipe(object) { return object }
+            if isRecipe(object) { return [object] }
             // Sites commonly wrap everything in one @graph.
-            for key in ["@graph", "mainEntity", "mainEntityOfPage", "itemListElement"] {
-                if let nested = object[key], let found = findRecipe(in: nested) { return found }
+            for key in ["@graph", "mainEntity", "mainEntityOfPage", "itemListElement", "item"] {
+                if let nested = object[key] {
+                    let found = recipeObjects(in: nested)
+                    if !found.isEmpty { return found }
+                }
             }
-            return nil
+            return []
         case let array as [Any]:
-            return array.lazy.compactMap { findRecipe(in: $0) }.first
+            return array.flatMap { recipeObjects(in: $0) }
         default:
-            return nil
+            return []
         }
     }
 
@@ -82,7 +88,9 @@ public enum RecipeWebImport {
 
     // MARK: - Reading it
 
-    private static func extracted(from object: [String: Any], url: URL) -> Extracted {
+    /// The recipe in one schema.org object. `url` is where it was found:
+    /// the page for a web import, whatever the object names for a file.
+    static func extracted(from object: [String: Any], url: URL?) -> Extracted {
         let prep = RecipeFieldParsing.seconds(in: string(object["prepTime"]))
         let cook = RecipeFieldParsing.seconds(in: string(object["cookTime"]))
 
@@ -93,7 +101,7 @@ public enum RecipeWebImport {
             ingredientsText: ingredients(object["recipeIngredient"] ?? object["ingredients"]),
             instructionsText: instructions(object["recipeInstructions"]),
             categories: categories(object),
-            source: RecipeSource(kind: .web, url: url, name: url.host()),
+            source: url.map { RecipeSource(kind: .web, url: $0, name: $0.host()) } ?? .manual,
             prepTimeSeconds: prep,
             cookTimeSeconds: cook,
             totalTimeSeconds: RecipeFieldParsing.seconds(in: string(object["totalTime"]))
@@ -154,7 +162,7 @@ public enum RecipeWebImport {
             .filter { !$0.isEmpty && $0.count <= 40 && seen.insert($0.lowercased()).inserted }
     }
 
-    private static func imageURLs(_ value: Any?, relativeTo base: URL) -> [URL] {
+    private static func imageURLs(_ value: Any?, relativeTo base: URL?) -> [URL] {
         let candidates: [String] = switch value {
         case let text as String: [text]
         case let array as [Any]: array.flatMap { imageStrings($0) }
@@ -201,7 +209,7 @@ public enum RecipeWebImport {
         }
     }
 
-    private static func string(_ value: Any?) -> String? {
+    static func string(_ value: Any?) -> String? {
         switch value {
         case let text as String: text
         case let number as NSNumber: number.stringValue

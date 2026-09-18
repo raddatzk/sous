@@ -25,8 +25,10 @@ own right).
 **Importing and exporting.** From the web via schema.org JSON-LD — the
 structured version of the page that recipe sites already publish, so no model
 has to guess at it — through the share extension or a `sous://import` URL. From
-and to Mela's `.melarecipes` archives. Images are downsized on import and
-stored beside the recipe rather than inside it.
+and to Mela's `.melarecipes` archives; from Paprika's `.paprikarecipes`, and
+from schema.org recipes as `.json` files or a zipped folder of them (Nextcloud
+Cookbook's layout). Images are downsized on import and stored beside the
+recipe rather than inside it.
 
 **Cooking.** A cook mode with scaled servings, several sessions at once with a
 switcher bar, and step timers that run as Live Activities.

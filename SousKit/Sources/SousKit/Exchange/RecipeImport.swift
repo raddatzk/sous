@@ -111,7 +111,14 @@ public protocol RecipeImportFormat: Sendable {
 
 /// The formats the app can read, tried in order.
 public enum RecipeImport {
-    public static let formats: [any RecipeImportFormat.Type] = [MelaImport.self]
+    public static let formats: [any RecipeImportFormat.Type] = [
+        MelaImport.self, PaprikaImport.self, JSONLDImport.self,
+    ]
+
+    /// Every extension some format claims, for a file picker to offer.
+    public static var fileExtensions: [String] {
+        formats.flatMap { $0.fileExtensions }
+    }
 
     /// Reads a file by its name's extension.
     public static func read(_ data: Data, named name: String) throws -> RecipeImportBatch {
