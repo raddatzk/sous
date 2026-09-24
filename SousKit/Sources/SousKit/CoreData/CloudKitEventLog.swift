@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 import Foundation
 import os
@@ -59,9 +60,78 @@ public final class CloudKitEventLog: @unchecked Sendable {
         }
 
         if let error = event.error {
-            log.error("\(kind, privacy: .public) FAILED: \(error.localizedDescription, privacy: .public)")
+            logFailure(kind, error)
         } else {
             log.info("\(kind, privacy: .public) succeeded")
+        }
+    }
+
+    /// Writes a failure out in full: the summary line, then one line per
+    /// thing CloudKit actually objected to.
+    ///
+    /// Public, because the system's own logs redact exactly the part that
+    /// matters — which record was refused, and the server's reason — and
+    /// "CKErrorDomain-Fehler 2" names only the envelope. A partial failure
+    /// is a list: every record the server rejected, plus every record that
+    /// merely went down with it in an atomic zone. Those are counted, the
+    /// others written out, record by record.
+    ///
+    /// Nothing personal goes into it: record names are ids, and the server's
+    /// reasons name record types and fields, not their contents.
+    public static func logFailure(_ context: String, _ error: any Error) {
+        log.error("\(context, privacy: .public) FAILED: \(error.localizedDescription, privacy: .public)")
+        for line in details(of: error) {
+            log.error("\(context, privacy: .public) · \(line, privacy: .public)")
+        }
+    }
+
+    /// The lines `logFailure` writes below the summary, walking into
+    /// underlying errors and partial failures.
+    static func details(of error: any Error) -> [String] {
+        let nsError = error as NSError
+        if nsError.domain == CKErrorDomain,
+           nsError.code == CKError.Code.partialFailure.rawValue,
+           let partial = nsError.userInfo[CKPartialErrorsByItemIDKey] as? [AnyHashable: any Error] {
+            var lines: [String] = []
+            var followers = 0
+            for (item, itemError) in partial {
+                let itemNSError = itemError as NSError
+                if itemNSError.domain == CKErrorDomain,
+                   itemNSError.code == CKError.Code.batchRequestFailed.rawValue {
+                    followers += 1
+                    continue
+                }
+                lines.append("\(describe(item)): \(describe(itemNSError))")
+            }
+            if followers > 0 {
+                lines.append("\(followers) more rejected only because the batch failed")
+            }
+            return lines
+        }
+        var lines = [describe(nsError)]
+        if let underlying = nsError.userInfo[NSUnderlyingErrorKey] as? any Error {
+            lines += details(of: underlying)
+        }
+        return lines
+    }
+
+    private static func describe(_ error: NSError) -> String {
+        var text = "\(error.domain) \(error.code)"
+        if let server = error.userInfo["ServerErrorDescription"] as? String {
+            text += " — server: \(server)"
+        }
+        text += " — \(error.localizedDescription)"
+        return text
+    }
+
+    private static func describe(_ item: AnyHashable) -> String {
+        switch item.base {
+        case let record as CKRecord.ID:
+            "record \(record.recordName) in \(record.zoneID.zoneName)"
+        case let zone as CKRecordZone.ID:
+            "zone \(zone.zoneName)"
+        default:
+            "\(item)"
         }
     }
 }

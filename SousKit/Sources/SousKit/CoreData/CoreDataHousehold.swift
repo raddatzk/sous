@@ -765,11 +765,17 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         do {
             share = try await Self.makeShare(for: household, in: cloudContainer)
         } catch {
+            CloudKitEventLog.logFailure("share", error)
             // Usually "not ready yet": the mirroring delegate is still
             // setting up, which it very much is in the first seconds after
             // launch. Wait for it to say so, then ask once more.
             guard await Self.waitForCloudKitSetup(timeout: .seconds(30)) else { throw error }
-            share = try await Self.makeShare(for: household, in: cloudContainer)
+            do {
+                share = try await Self.makeShare(for: household, in: cloudContainer)
+            } catch {
+                CloudKitEventLog.logFailure("share, second attempt", error)
+                throw error
+            }
         }
         // What the invitation calls the thing being shared. Left unset, the
         // sheet offers to share something unnamed, which is a poor way to ask
