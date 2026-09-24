@@ -88,6 +88,19 @@ struct MealPlanTests {
 
         #expect(try await store.entries(for: days).isEmpty)
     }
+
+    @Test("An entry is found by its id until it is removed", arguments: StoreBackend.allCases)
+    func lookupByID(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        let entry = MealPlanEntry(day: monday, recipeID: UUID(), servings: 4)
+
+        #expect(try await store.entry(id: entry.id) == nil)
+        try await store.save(entry)
+        #expect(try await store.entry(id: entry.id)?.servings == 4)
+
+        try await store.delete(id: entry.id)
+        #expect(try await store.entry(id: entry.id) == nil)
+    }
 }
 
 @MainActor
@@ -113,6 +126,23 @@ struct MealPlanLibraryTests {
         #expect(Calendar.current.dateComponents(
             [.day], from: plan.days[0], to: plan.days[55]
         ).day == 55)
+    }
+
+    @Test("A planned meal is found with its recipe, and not once the recipe is gone", arguments: StoreBackend.allCases)
+    func mealByEntryID(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
+        let recipe = Recipe(title: "Salat", servings: 2)
+        try await recipes.save(recipe)
+        await plan.add(recipe, to: Date())
+        let entryID = try #require(plan.plan(for: Date()).first?.entry.id)
+
+        let meal = await plan.meal(entryID: entryID)
+        #expect(meal?.recipe.title == "Salat")
+        #expect(meal?.entry.id == entryID)
+        #expect(await plan.meal(entryID: UUID()) == nil)
+
+        try await recipes.delete(id: recipe.id)
+        #expect(await plan.meal(entryID: entryID) == nil)
     }
 
     @Test("A recipe planned for today shows up on today", arguments: StoreBackend.allCases)

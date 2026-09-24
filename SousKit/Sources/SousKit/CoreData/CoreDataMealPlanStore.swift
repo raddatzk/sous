@@ -86,6 +86,13 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
         }
     }
 
+    public func entry(id: UUID) async throws -> MealPlanEntry? {
+        try await context.perform {
+            guard let row = try self.stored(id: id), row.deletedAt == nil else { return nil }
+            return row.domainValue
+        }
+    }
+
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
         var stamped = entry

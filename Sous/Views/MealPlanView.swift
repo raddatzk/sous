@@ -50,6 +50,8 @@ struct MealPlanView: View {
 
     @Environment(RecipeSelection.self) private var selection
     @Environment(CloudKitInitialImport.self) private var initialImport
+    @Environment(SousNavigation.self) private var navigation
+    @Environment(LibraryCommands.self) private var commands
 
     /// Below this the plan and a recipe stop fitting beside each other, and a
     /// tapped meal opens as a page of its own instead.
@@ -151,6 +153,9 @@ struct MealPlanView: View {
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .task { await plan.reload() }
+        // `initial`, because the link is often what brought this tab up.
+        .onChange(of: navigation.planEntryID, initial: true) { openLinkedEntry() }
+        .onChange(of: commands.isLaunchSettled) { openLinkedEntry() }
         .sheet(item: $pickingSlot) { target in
             RecipePickerView(
                 title: "\(target.slot.title) einplanen",
@@ -416,6 +421,22 @@ struct MealPlanView: View {
             in: .rect(cornerRadius: SousStyle.fieldRadius)
         )
         #endif
+    }
+
+    /// Opens the meal a calendar event linked to, once the launch has
+    /// settled on the household whose plan it is in.
+    private func openLinkedEntry() {
+        guard commands.isLaunchSettled, let id = navigation.planEntryID else { return }
+        navigation.planEntryID = nil
+        Task {
+            guard let meal = await plan.meal(entryID: id) else {
+                // Removed since, or planned in another household — the
+                // calendar shows every household's meals, the plan one.
+                plan.errorMessage = "Dieses Gericht steht nicht im Essensplan dieses Haushalts."
+                return
+            }
+            open((entry: meal.entry, recipe: meal.recipe))
+        }
     }
 
     private func open(_ item: (entry: MealPlanEntry, recipe: Recipe?)) {

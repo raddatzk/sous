@@ -415,6 +415,20 @@ final class SousNavigation {
         shoppingRecipeID = recipeID
         section = .shopping
     }
+
+    /// A planned meal the plan should open as it comes up — a calendar
+    /// event's link. Cleared by the plan once it has acted on it.
+    var planEntryID: UUID?
+
+    /// Shows the plan with one meal open, the way tapping it there would.
+    ///
+    /// Through the plan rather than straight to the recipe: opened from its
+    /// entry, the recipe page cooks for the servings that were planned, and
+    /// the plan is where that meal is at home.
+    func showPlanEntry(_ entryID: UUID) {
+        planEntryID = entryID
+        section = .mealPlan
+    }
 }
 
 extension EnvironmentValues {

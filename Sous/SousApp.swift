@@ -519,9 +519,9 @@ struct SousApp: App {
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()
-                    // The household is settled: a file opened to launch
-                    // the app can be imported now.
-                    commands.acceptsOpenedFiles = true
+                    // The household is settled: a file or a plan link that
+                    // launched the app can be acted on now.
+                    commands.isLaunchSettled = true
                     await calendarMirror.syncIfEnabled()
                     // Here rather than in the view, and here rather than
                     // earlier: the library has just been read for the
@@ -571,15 +571,20 @@ struct SousApp: App {
                     session.forgetStale()
                 }
                 // A page shared from Safari arrives as sous://import?url=…,
-                // a recipe file opened with Sous as the file itself, and a
-                // link to a recipe — from Notes, a reminder, a Shortcut —
-                // as sous://recipe/<id>, the same link recipes use for each
-                // other.
+                // a recipe file opened with Sous as the file itself, a link
+                // to a recipe — from Notes, a reminder, a Shortcut — as
+                // sous://recipe/<id>, the same link recipes use for each
+                // other, and a calendar event of the plan as
+                // sous://plan/<entry-id>.
                 .onOpenURL { url in
                     if url.isFileURL { return open(file: url) }
                     if let id = RecipeLink.recipeID(from: url) {
                         Task { await openLinkedRecipe(id) }
                         return
+                    }
+                    // A meal tapped in the calendar the plan is mirrored to.
+                    if let id = MealPlanCalendarPlanner.entryID(of: url) {
+                        return navigation.showPlanEntry(id)
                     }
                     guard url.scheme == "sous", url.host() == "import",
                           let shared = URLComponents(url: url, resolvingAgainstBaseURL: false)?

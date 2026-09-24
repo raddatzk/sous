@@ -34,12 +34,14 @@ final class LibraryCommands {
     /// Files handed to the app from outside — "Öffnen mit Sous" in the Files
     /// app or the Finder, AirDrop — waiting for the importer to read them.
     var openedFiles: [URL] = []
-    /// Whether the launch has got far enough for an import to write.
+    /// Whether the launch has got far enough to act on what arrived from
+    /// outside.
     ///
-    /// A file opened from outside can start the app, and its URL arrives
-    /// while the stores are still being moved and the household is still
-    /// being worked out — for that stretch the active household is forced to
-    /// the cook's own, and an import then would put the recipes in the wrong
-    /// kitchen. So opened files queue until this is set.
-    var acceptsOpenedFiles = false
+    /// A file or a link can start the app, and its URL arrives while the
+    /// stores are still being moved and the household is still being worked
+    /// out — for that stretch the active household is forced to the cook's
+    /// own, so an import would put the recipes in the wrong kitchen and a
+    /// plan entry would be looked for in the wrong plan. Opened files and
+    /// plan links wait until this is set.
+    var isLaunchSettled = false
 }

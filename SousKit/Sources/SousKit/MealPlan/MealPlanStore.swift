@@ -7,6 +7,9 @@ public protocol MealPlanStore: Sendable {
     func entries(for days: [Date]) async throws -> [MealPlanEntry]
     /// Entries with no day of their own, oldest first.
     func poolEntries() async throws -> [MealPlanEntry]
+    /// One entry of the active household, by id — `nil` once it has been
+    /// removed, or when it belongs to another household.
+    func entry(id: UUID) async throws -> MealPlanEntry?
     @discardableResult
     func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry
     func delete(id: UUID) async throws

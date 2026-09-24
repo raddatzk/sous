@@ -51,7 +51,7 @@ struct RecipeImporter: ViewModifier {
             // `initial`, because opening a file can be what mounts this
             // screen: on the phone the recipes tab is switched to first.
             .onChange(of: commands.openedFiles, initial: true) { takeOpenedFiles() }
-            .onChange(of: commands.acceptsOpenedFiles) { takeOpenedFiles() }
+            .onChange(of: commands.isLaunchSettled) { takeOpenedFiles() }
             .overlay { progressOverlay }
             .sheet(item: $preview, onDismiss: takeOpenedFiles) { pending in
                 RecipeImportPreviewSheet(preview: pending.preview) { batch in
@@ -81,7 +81,7 @@ struct RecipeImporter: ViewModifier {
     /// it and no preview is up, until nothing more is waiting — then offers
     /// all of it at once.
     private func takeOpenedFiles() {
-        guard commands.acceptsOpenedFiles, !isReadingOpenedFiles, preview == nil,
+        guard commands.isLaunchSettled, !isReadingOpenedFiles, preview == nil,
               !commands.openedFiles.isEmpty
         else { return }
         isReadingOpenedFiles = true

@@ -32,6 +32,11 @@ public actor SwiftDataMealPlanStore: MealPlanStore {
         return try modelContext.fetch(descriptor).map(\.domainValue)
     }
 
+    public func entry(id: UUID) async throws -> MealPlanEntry? {
+        guard let stored = try stored(id: id), stored.deletedAt == nil else { return nil }
+        return stored.domainValue
+    }
+
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
         var updated = entry

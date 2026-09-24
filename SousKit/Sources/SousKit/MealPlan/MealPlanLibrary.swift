@@ -55,6 +55,24 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// A planned meal with its recipe, found by the entry's id — what a
+    /// link to the entry, from the calendar, needs to open it.
+    ///
+    /// `nil` when the entry is gone, belongs to another household, or its
+    /// recipe no longer exists: there is then nothing to open.
+    public func meal(entryID: UUID) async -> (entry: MealPlanEntry, recipe: Recipe)? {
+        do {
+            guard let entry = try await store.entry(id: entryID),
+                  let recipe = try await recipeStore.recipe(id: entry.recipeID),
+                  !recipe.isDeleted
+            else { return nil }
+            return (entry, recipe)
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
     /// Extends the run further into the future, for scrolling past the end.
     public func loadMore() async {
         days = Self.run(from: firstDay, length: days.count + Self.pageLength)
