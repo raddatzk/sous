@@ -440,13 +440,18 @@ struct RecipeListView: View {
     /// No readable-width cap on this one, unlike the other two lists: where a
     /// row would start wasting the width, this screen has a better answer for
     /// it than a margin.
+    ///
+    /// An empty library is the list's empty page whatever the width. The
+    /// shelf has no such page, so a wide screen showed a filter bar over
+    /// nothing — and at launch, whose first layout can come out narrower,
+    /// "Noch keine Rezepte" flashed up before the shelf replaced it.
     @ViewBuilder
     private var entries: some View {
         #if os(macOS)
         listBody
         #else
         GeometryReader { screen in
-            if screen.size.width >= Self.shelfWidth {
+            if screen.size.width >= Self.shelfWidth, !showsEmptyState {
                 shelf
             } else {
                 listBody
