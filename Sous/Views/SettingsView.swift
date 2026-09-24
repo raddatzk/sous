@@ -18,6 +18,10 @@ struct SettingsForm: View {
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen
+    /// Recipes erased so far, while "Alles löschen" runs. Held here rather
+    /// than in its section: an overlay on a section is laid on each of its
+    /// rows, header and footer included, and the count showed up twice.
+    @State private var eraseProgress: (done: Int, total: Int)?
 
     var body: some View {
         Form {
@@ -58,9 +62,14 @@ struct SettingsForm: View {
             }
 
             dataSources
-            EraseEverythingSection()
+            EraseEverythingSection(progress: $eraseProgress)
         }
         .formStyle(.grouped)
+        .overlay {
+            if let eraseProgress {
+                EraseProgressOverlay(done: eraseProgress.done, total: eraseProgress.total)
+            }
+        }
     }
 
     /// Where the nutrition figures come from, what was done to them, and
@@ -235,8 +244,8 @@ private struct EraseEverythingSection: View {
 
     /// Set once the counting is done and the question can be asked.
     @State private var question: LibraryWipe.Counts?
-    /// Recipes erased so far, while it runs.
-    @State private var progress: (done: Int, total: Int)?
+    /// Recipes erased so far, while it runs — shown by the form, over all of it.
+    @Binding var progress: (done: Int, total: Int)?
 
     private var wipe: LibraryWipe? {
         guard let library, let plan, let shopping, let catalog, let session, let timers
@@ -281,7 +290,6 @@ private struct EraseEverythingSection: View {
             } message: { counts in
                 Text(Self.message(for: counts))
             }
-            .overlay { progressOverlay }
         }
     }
 
@@ -294,28 +302,6 @@ private struct EraseEverythingSection: View {
         // Onto the empty library: the settings have nothing left to say
         // about a household that no longer holds anything.
         dismiss()
-    }
-
-    @ViewBuilder
-    private var progressOverlay: some View {
-        if let progress {
-            ZStack {
-                Color.sousScrim.ignoresSafeArea()
-                VStack(spacing: 10) {
-                    ProgressView(
-                        value: Double(progress.done),
-                        total: Double(max(progress.total, 1))
-                    )
-                    .frame(width: 200)
-                    Text("\(progress.done) von \(progress.total) Rezepten")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
-                .padding(24)
-                .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
-            }
-        }
     }
 
     /// "166 Rezepte, 12 geplante Mahlzeiten …" — and the one sentence that
@@ -339,5 +325,28 @@ private struct EraseEverythingSection: View {
         }
         return parts.joined(separator: ", ")
             + " werden gelöscht — hier und in iCloud. Das lässt sich nicht rückgängig machen."
+    }
+}
+
+/// The count of an erase in progress, over a scrim that keeps the form
+/// from being used while its data is going.
+private struct EraseProgressOverlay: View {
+    let done: Int
+    let total: Int
+
+    var body: some View {
+        ZStack {
+            Color.sousScrim.ignoresSafeArea()
+            VStack(spacing: 10) {
+                ProgressView(value: Double(done), total: Double(max(total, 1)))
+                    .frame(width: 200)
+                Text("\(done) von \(total) Rezepten")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .padding(24)
+            .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
+        }
     }
 }
