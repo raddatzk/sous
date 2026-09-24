@@ -19,6 +19,8 @@ struct RecipeListView: View {
     /// same commands and cannot see this view's state.
     @Environment(LibraryCommands.self) private var commands
     @Environment(CloudKitInitialImport.self) private var initialImport
+    @Environment(MealPlanLibrary.self) private var plan
+    @Environment(ShoppingLibrary.self) private var shopping
 
     @State private var selected: RecipeListSelection?
     /// Only the phone offers this: the Mac has the Settings scene behind
@@ -30,6 +32,16 @@ struct RecipeListView: View {
     /// The recipe looking for the one it is a version of, while the picker
     /// is up.
     @State private var joiningVariantsOf: Recipe?
+    /// What a bulk delete would do, while it is being asked about.
+    @State private var trashQuestion: TrashQuestion?
+
+    /// The recipes a confirmed bulk delete would trash, and what else in the
+    /// library points at them.
+    private struct TrashQuestion: Identifiable {
+        let id = UUID()
+        let recipes: [Recipe]
+        let breaks: [RecipeLinkAudit.Break]
+    }
 
     var body: some View {
         @Bindable var library = library
@@ -71,6 +83,22 @@ struct RecipeListView: View {
                     selected = .group(group.id)
                 }
             }
+            .confirmationDialog(
+                trashQuestion.map(Self.trashTitle) ?? "",
+                isPresented: Binding(presence: $trashQuestion),
+                titleVisibility: .visible,
+                presenting: trashQuestion
+            ) { question in
+                Button("In den Papierkorb", role: .destructive) {
+                    Task {
+                        await trashing.trash(question.recipes)
+                        commands.picked = nil
+                    }
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: { question in
+                Text(Self.trashMessage(question))
+            }
             // A draft the cook walked away from takes its pictures with it.
             .onChange(of: library.editing) { _, editing in
                 if editing == nil { Task { await library.discardUnsavedDraft() } }
@@ -110,7 +138,10 @@ struct RecipeListView: View {
     private var listBody: some View {
         @Bindable var library = library
 
-        List(selection: $selected) {
+        // The tick is the only selection while picking; the list's own,
+        // which is what the Mac's column shows and what the phone pushes,
+        // would fight it for the tap.
+        List(selection: isPicking ? .constant(nil) : $selected) {
             filterBar
                 .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
                 .listRowSeparator(.hidden)
@@ -262,18 +293,43 @@ struct RecipeListView: View {
     /// want to cook — stay on the long-press menu, which already carries
     /// them. The gesture belongs to the shape it was designed for, and that
     /// shape is still what a phone gets.
+    @ViewBuilder
     private func card(for recipe: Recipe) -> some View {
-        Button {
-            selected = .recipe(recipe.id)
-        } label: {
-            RecipeRow(recipe: recipe, layout: .card)
-        }
-        .buttonStyle(.plain)
-        .contextMenu {
-            contextActions(for: recipe)
-        } preview: {
-            RecipePreviewCard(recipe: recipe)
-                .environment(library)
+        if isPicking {
+            let isPicked = commands.picked?.contains(recipe.id) ?? false
+            Button {
+                toggle(recipe.id)
+            } label: {
+                RecipeRow(recipe: recipe, layout: .card)
+                    // On the card the tick rides in the corner of the
+                    // picture, where a card has room for it; a row has none
+                    // and puts it in front instead.
+                    .overlay(alignment: .topTrailing) {
+                        Image(systemName: isPicked ? "checkmark.circle.fill" : "circle")
+                            .font(.title2)
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(
+                                isPicked ? AnyShapeStyle(.white) : AnyShapeStyle(.white.opacity(0.9)),
+                                isPicked ? AnyShapeStyle(.tint) : AnyShapeStyle(.black.opacity(0.3))
+                            )
+                            .padding(10)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(isPicked ? [.isSelected] : [])
+        } else {
+            Button {
+                selected = .recipe(recipe.id)
+            } label: {
+                RecipeRow(recipe: recipe, layout: .card)
+            }
+            .buttonStyle(.plain)
+            .contextMenu {
+                contextActions(for: recipe)
+            } preview: {
+                RecipePreviewCard(recipe: recipe)
+                    .environment(library)
+            }
         }
     }
 
@@ -319,7 +375,7 @@ struct RecipeListView: View {
         // The joined household's name when one is active — the list is its
         // library then, and calling it by the generic name would hide the
         // one fact that matters about what is on screen.
-        .navigationTitle(householdSwitcher?.activeName ?? "Rezepte")
+        .navigationTitle(isPicking ? pickingTitle : (householdSwitcher?.activeName ?? "Rezepte"))
         // The switch, as a menu on the title — attached only once there is
         // something to switch to. Deciding that inside the builder is not
         // enough: `.toolbarTitleMenu` draws its chevron beside the title
@@ -361,8 +417,118 @@ struct RecipeListView: View {
         }
     }
 
+    /// What the selection can be done with: extended to everything, or
+    /// thrown away. How many are ticked is the title's job — see
+    /// `pickingTitle`.
+    @ViewBuilder
+    private var pickingActions: some View {
+        let picked = commands.picked ?? []
+        let shown = Set(library.recipes.map(\.id))
+        Button(picked.isSuperset(of: shown) ? "Nichts" : "Alle") {
+            commands.picked = picked.isSuperset(of: shown) ? [] : shown
+        }
+        .disabled(shown.isEmpty)
+        Button("In den Papierkorb", systemImage: "trash", role: .destructive) {
+            Task { await askAboutTrashing(picked) }
+        }
+        .disabled(picked.isEmpty)
+    }
+
+    /// What the title says while picking: the count, because the rows
+    /// themselves only show it one tick at a time.
+    private var pickingTitle: String {
+        switch commands.picked?.count ?? 0 {
+        case 0: "Rezepte auswählen"
+        case 1: "1 ausgewählt"
+        case let count: "\(count) ausgewählt"
+        }
+    }
+
+    private func toggle(_ id: UUID) {
+        var picked = commands.picked ?? []
+        if picked.contains(id) { picked.remove(id) } else { picked.insert(id) }
+        commands.picked = picked
+    }
+
+    /// Reads what the deletion would cost before asking, so the question can
+    /// say it: which recipes other recipes would be left pointing at.
+    private func askAboutTrashing(_ ids: Set<UUID>) async {
+        let recipes = await library.allRecipes().filter { ids.contains($0.id) }
+        guard !recipes.isEmpty else { return }
+        trashQuestion = TrashQuestion(
+            recipes: recipes,
+            breaks: await trashing.breaks(deleting: recipes)
+        )
+    }
+
+    private static func trashTitle(_ question: TrashQuestion) -> String {
+        question.recipes.count == 1
+            ? "„\(question.recipes[0].title)“ in den Papierkorb?"
+            : "\(question.recipes.count) Rezepte in den Papierkorb?"
+    }
+
+    /// What goes with them, and what breaks — the two things the cook cannot
+    /// see from the list they are looking at.
+    private static func trashMessage(_ question: TrashQuestion) -> String {
+        var lines = [
+            "Aus Essensplan und Einkaufsliste werden sie entfernt. "
+                + "Zurückholen geht über den Papierkorb."
+        ]
+        if !question.breaks.isEmpty {
+            let named = question.breaks.prefix(3).map { entry in
+                "\(entry.source.title) → \(entry.targets.map(\.title).joined(separator: ", "))"
+            }
+            let more = question.breaks.count - named.count
+            lines.append(
+                (question.breaks.count == 1
+                    ? "Ein anderes Rezept verweist darauf und verliert den Bezug:"
+                    : "\(question.breaks.count) andere Rezepte verweisen darauf und verlieren den Bezug:")
+                    + "\n" + named.joined(separator: "\n")
+                    + (more > 0 ? "\n… und \(more) weitere." : "")
+            )
+        }
+        return lines.joined(separator: "\n\n")
+    }
+
+    /// Deleting a recipe is more than the row: see ``RecipeTrashing``.
+    private var trashing: RecipeTrashing {
+        RecipeTrashing(library: library, plan: plan, shopping: shopping)
+    }
+
+    private var isPicking: Bool { commands.picked != nil }
+
     /// One recipe's row, whether it stands on its own or under a group.
+    @ViewBuilder
     private func row(for recipe: Recipe) -> some View {
+        if isPicking {
+            pickableRow(for: recipe)
+        } else {
+            plainRow(for: recipe)
+        }
+    }
+
+    /// The same row with a tick in front of it, and nothing else: while a
+    /// selection is being made, opening a recipe, swiping it away or holding
+    /// it for the menu would all be answers to a question nobody asked.
+    private func pickableRow(for recipe: Recipe) -> some View {
+        let isPicked = commands.picked?.contains(recipe.id) ?? false
+        return Button {
+            toggle(recipe.id)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: isPicked ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(isPicked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+                    .font(.title3)
+                RecipeRow(recipe: recipe)
+                Spacer(minLength: 0)
+            }
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isPicked ? [.isSelected] : [])
+    }
+
+    private func plainRow(for recipe: Recipe) -> some View {
         RecipeRow(recipe: recipe)
             .tag(RecipeListSelection.recipe(recipe.id))
             // The long-press previews the recipe itself, with its actions
@@ -403,7 +569,7 @@ struct RecipeListView: View {
             }
             .swipeActions(edge: .trailing) {
                 Button("Löschen", systemImage: "trash", role: .destructive) {
-                    Task { await library.delete(recipe) }
+                    Task { await trashing.trash([recipe]) }
                 }
             }
     }
@@ -458,9 +624,13 @@ struct RecipeListView: View {
                 ContentUnavailableView {
                     Label("Noch keine Rezepte", systemImage: "book.closed")
                 } description: {
-                    Text("Lege dein erstes Rezept an.")
+                    Text("Lege dein erstes Rezept an oder bring welche mit.")
                 } actions: {
                     Button("Rezept anlegen") { library.startNewRecipe() }
+                    // The other way in, and the one a cook who has just
+                    // emptied the library needs: without it the import hides
+                    // in a menu behind three dots.
+                    Button("Rezepte importieren") { commands.isImporting = true }
                 }
             } else {
                 ContentUnavailableView.search
@@ -513,9 +683,25 @@ struct RecipeListView: View {
         // entirely. The iPad keeps it: its menu bar waits behind a swipe from
         // the top edge or a keyboard being attached, and a command that only
         // lives there is hidden from anyone using the iPad with their fingers.
+        if isPicking {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Fertig") { commands.picked = nil }
+            }
+            // Up here rather than along the bottom, where a selection's
+            // actions usually sit: the phone's tab bar floats over that edge
+            // and swallows taps well above its own pill — "In den
+            // Papierkorb" put down there opened the search tab instead.
+            ToolbarItemGroup(placement: .primaryAction) { pickingActions }
+        }
         #if os(iOS)
         ToolbarItem(placement: .automatic) {
             Menu("Mehr", systemImage: "ellipsis.circle") {
+                if !isPicking, !library.recipes.isEmpty {
+                    Button("Auswählen", systemImage: "checkmark.circle") {
+                        commands.picked = []
+                    }
+                    Divider()
+                }
                 Button("Zutaten verwalten", systemImage: "carrot") {
                     commands.panel = .catalog
                 }
@@ -580,7 +766,7 @@ struct RecipeListView: View {
         }
         Divider()
         Button("Löschen", systemImage: "trash", role: .destructive) {
-            Task { await library.delete(recipe) }
+            Task { await trashing.trash([recipe]) }
         }
     }
 

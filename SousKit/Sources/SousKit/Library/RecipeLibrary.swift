@@ -587,8 +587,17 @@ public final class RecipeLibrary {
     }
 
     public func delete(_ recipe: Recipe) async {
+        await delete([recipe])
+    }
+
+    /// Moves several recipes to the trash at once, reading the library back
+    /// only when all of them are in.
+    public func delete(_ recipes: [Recipe]) async {
+        guard !recipes.isEmpty else { return }
         do {
-            try await store.delete(id: recipe.id)
+            for recipe in recipes {
+                try await store.delete(id: recipe.id)
+            }
             await reload()
         } catch {
             report(error)
@@ -714,6 +723,18 @@ public final class RecipeLibrary {
 
     /// Recipes that were deleted and are still recoverable, most recently
     /// deleted first.
+    /// Every live recipe, whatever the list is filtered to — for the
+    /// questions that are about the library rather than about the screen,
+    /// such as which recipes link to which.
+    public func allRecipes() async -> [Recipe] {
+        do {
+            return try await store.recipes(matching: RecipeQuery())
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
     public func deletedRecipes() async -> [Recipe] {
         do {
             return try await store.recipes(matching: RecipeQuery(includeDeleted: true))

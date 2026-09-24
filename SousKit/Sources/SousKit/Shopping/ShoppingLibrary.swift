@@ -365,6 +365,29 @@ public final class ShoppingLibrary {
         }
     }
 
+    /// Takes every entry of these recipes off the list, and says how many
+    /// that was.
+    ///
+    /// What deleting a recipe has to do. Unlike `remove(planEntry:)` this
+    /// takes the closed entries too: they exist to let a second add join the
+    /// first, and there will be no second add for a recipe that is gone.
+    @discardableResult
+    public func removeRecipes(_ recipeIDs: [UUID]) async -> Int {
+        let wanted = Set(recipeIDs)
+        let entries = planEntries.filter { $0.recipeID.map(wanted.contains) ?? false }
+        guard !entries.isEmpty else { return 0 }
+        do {
+            for entry in entries {
+                try await store.removePlanEntry(entry.id)
+            }
+            await reload()
+            return entries.count
+        } catch {
+            errorMessage = error.localizedDescription
+            return 0
+        }
+    }
+
     /// Whether `recipeID` still has anything unbought on the list.
     ///
     /// Not simply "is there a plan entry for it". The entry outlives the

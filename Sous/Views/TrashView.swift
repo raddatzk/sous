@@ -140,6 +140,10 @@ struct TrashView: View {
         Button("Wiederherstellen", systemImage: "arrow.uturn.backward") {
             Task {
                 await library.restore(recipe)
+                // Deleting took it out of the system search; coming back
+                // has to put it in, or it stays unfindable until the next
+                // launch indexes the library again.
+                await RecipeSpotlight.add([recipe])
                 await load()
             }
         }

@@ -37,6 +37,16 @@ public actor SwiftDataMealPlanStore: MealPlanStore {
         return stored.domainValue
     }
 
+    public func entries(ofRecipes recipeIDs: [UUID]) async throws -> [MealPlanEntry] {
+        let wanted = Set(recipeIDs)
+        let descriptor = FetchDescriptor<StoredMealPlanEntry>(
+            predicate: #Predicate { $0.deletedAt == nil }
+        )
+        return try modelContext.fetch(descriptor)
+            .filter { wanted.contains($0.recipeID) }
+            .map(\.domainValue)
+    }
+
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
         var updated = entry

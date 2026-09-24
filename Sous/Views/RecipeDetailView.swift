@@ -1460,7 +1460,9 @@ struct RecipeDetailView: View {
                     // it shows is no longer part of the collection.
                     Button("Löschen", systemImage: "trash", role: .destructive) {
                         Task {
-                            await library.delete(recipe)
+                            await RecipeTrashing(
+                                library: library, plan: plan, shopping: shopping
+                            ).trash([recipe])
                             dismiss()
                         }
                     }

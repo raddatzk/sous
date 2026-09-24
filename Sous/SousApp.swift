@@ -527,19 +527,22 @@ struct SousApp: App {
                     // earlier: the library has just been read for the
                     // household this session belongs to, so "is there
                     // anything in this app" can finally be answered. Asked
-                    // before the move, every device looks fresh. And not
-                    // before a reinstall's library has come back from iCloud,
-                    // or the welcome greets a cook whose recipes are loading
-                    // behind it — in its own task, so the rest of the launch
-                    // does not wait with it.
-                    Task {
-                        await initialImport.waitUntilSettled()
-                        // A file opened to launch the app is recipes on
-                        // their way, even while they are still being read.
-                        onboarding.decide(
-                            hasRecipes: !library.recipes.isEmpty || library.importProgress != nil
-                        )
-                    }
+                    // before the move, every device looks fresh.
+                    //
+                    // Not waited for iCloud, though. A first launch is the
+                    // common case and has nothing to wait for — offline it
+                    // waited half a minute for an import that never came,
+                    // and the welcome arrived long after the app did. A
+                    // reinstall whose library is still on its way is greeted
+                    // too, and the last page says so rather than asking for
+                    // recipes that are already arriving; nothing closes the
+                    // welcome but the cook.
+                    //
+                    // A file opened to launch the app is recipes on their
+                    // way, even while they are still being read.
+                    onboarding.decide(
+                        hasRecipes: !library.recipes.isEmpty || library.importProgress != nil
+                    )
                     await reconcileBundledData()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a
@@ -674,6 +677,11 @@ struct SousApp: App {
                     guard case .recipe(let recipe) = selection.target else { return true }
                     return recipe.isDeleted || recipe.steps.isEmpty
                 }())
+                Divider()
+                // The Mac has no "Mehr" menu on the list — this is where
+                // the selection mode is reachable from.
+                Button("Rezepte auswählen") { commands.picked = [] }
+                    .disabled(commands.picked != nil || navigation.section != .recipes)
                 Divider()
                 Button("Zutaten verwalten…") { commands.panel = .catalog }
                     .keyboardShortcut("l", modifiers: [.command, .shift])

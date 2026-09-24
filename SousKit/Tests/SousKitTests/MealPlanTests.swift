@@ -89,6 +89,23 @@ struct MealPlanTests {
         #expect(try await store.entries(for: days).isEmpty)
     }
 
+    @Test("Every entry of a recipe is found, whatever day it sits on", arguments: StoreBackend.allCases)
+    func entriesOfRecipes(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        let soup = UUID()
+        let salad = UUID()
+        try await store.save(MealPlanEntry(day: monday, recipeID: soup))
+        try await store.save(MealPlanEntry(day: monday.weekDays[3], recipeID: soup))
+        // The pool counts too: a meal without a day is still planned.
+        try await store.save(MealPlanEntry(day: nil, recipeID: soup))
+        try await store.save(MealPlanEntry(day: monday, recipeID: salad))
+
+        let found = try await store.entries(ofRecipes: [soup])
+        #expect(found.count == 3)
+        #expect(found.allSatisfy { $0.recipeID == soup })
+        #expect(try await store.entries(ofRecipes: []).isEmpty)
+    }
+
     @Test("An entry is found by its id until it is removed", arguments: StoreBackend.allCases)
     func lookupByID(_ backend: StoreBackend) async throws {
         let store = try makeStore(backend)
@@ -143,6 +160,24 @@ struct MealPlanLibraryTests {
 
         try await recipes.delete(id: recipe.id)
         #expect(await plan.meal(entryID: entryID) == nil)
+    }
+
+    @Test("Deleting a recipe takes its meals off the plan", arguments: StoreBackend.allCases)
+    func removingMeals(_ backend: StoreBackend) async throws {
+        let (plan, recipes) = try makeLibrary(backend)
+        let soup = Recipe(title: "Suppe", servings: 2)
+        let salad = Recipe(title: "Salat", servings: 2)
+        try await recipes.save(soup)
+        try await recipes.save(salad)
+        await plan.add(soup, to: Date())
+        await plan.add(salad, to: Date())
+
+        let removed = await plan.removeMeals(ofRecipes: [soup.id])
+
+        #expect(removed == 1)
+        #expect(plan.plan(for: Date()).map(\.recipe?.title) == ["Salat"])
+        // Nothing planned for it any more, so nothing left to remove.
+        #expect(await plan.removeMeals(ofRecipes: [soup.id]) == 0)
     }
 
     @Test("A recipe planned for today shows up on today", arguments: StoreBackend.allCases)

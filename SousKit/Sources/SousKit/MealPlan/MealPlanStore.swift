@@ -10,6 +10,9 @@ public protocol MealPlanStore: Sendable {
     /// One entry of the active household, by id — `nil` once it has been
     /// removed, or when it belongs to another household.
     func entry(id: UUID) async throws -> MealPlanEntry?
+    /// Every entry planning one of these recipes, whatever day it sits on
+    /// and including the pool — what deleting a recipe has to take with it.
+    func entries(ofRecipes recipeIDs: [UUID]) async throws -> [MealPlanEntry]
     @discardableResult
     func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry
     func delete(id: UUID) async throws

@@ -29,6 +29,10 @@ final class LibraryCommands {
     var panel: Panel?
     /// Set while the importer's file dialog should be open.
     var isImporting = false
+    /// The recipes ticked for a bulk action, or `nil` while the list is
+    /// simply a list. Here rather than in the list itself, because the Mac
+    /// starts it from the menu bar, which cannot see a view's state.
+    var picked: Set<UUID>?
     /// Set to the bundle that has been prepared for saving.
     var export: RecipeExport?
     /// Files handed to the app from outside — "Öffnen mit Sous" in the Files

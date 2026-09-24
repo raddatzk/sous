@@ -18,6 +18,7 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(OnboardingNotice.self) private var notice
     @Environment(\.households) private var households
+    @Environment(CloudKitInitialImport.self) private var initialImport
     @Environment(\.dismiss) private var dismiss
 
     @State private var step: Step = .welcome
@@ -200,6 +201,17 @@ struct OnboardingView: View {
         switch step {
         case .recipes:
             VStack(spacing: 10) {
+                // A reinstall is welcomed too, rather than kept waiting for
+                // iCloud — so this page can be the one standing while the
+                // cook's own recipes arrive behind it. Saying so beats
+                // asking them to import what they already have.
+                if initialImport.isWaiting {
+                    Label("Deine Rezepte aus iCloud kommen gerade an …", systemImage: "icloud")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .labelStyle(.titleAndIcon)
+                        .padding(.bottom, 2)
+                }
                 Button("Rezepte importieren …") {
                     notice.followUp = .importing
                     dismiss()

@@ -50,10 +50,12 @@ final class OnboardingNotice {
     /// greeting anyone. Such a device is marked as welcomed and never asked
     /// again.
     ///
-    /// A fresh install asks only once its first iCloud import has settled
-    /// (see `CloudKitInitialImport`): a reinstall whose library is still on
-    /// its way is not a first launch either. Offline, or without an account,
-    /// the wait gives up and the welcome shows as before.
+    /// Asked as soon as the library has been read, without waiting for
+    /// iCloud: a first launch has nothing to wait for, and waiting cost it
+    /// up to half a minute of blank app. A reinstall whose library is still
+    /// arriving is therefore welcomed as well — the welcome's last page says
+    /// that recipes are on their way instead of asking for some (see
+    /// `OnboardingView`).
     func decide(hasRecipes: Bool) {
         guard !UserDefaults.sous.bool(forKey: Self.defaultsKey) else { return }
         guard !hasRecipes else { return finish() }

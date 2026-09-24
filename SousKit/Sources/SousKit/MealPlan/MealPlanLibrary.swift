@@ -73,6 +73,27 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// Takes every meal planning one of these recipes off the plan, and
+    /// says how many that was.
+    ///
+    /// What deleting a recipe has to do: a plan entry whose recipe is gone
+    /// reads as "Gelöschtes Rezept" on the day it was meant for, and no
+    /// amount of restoring it from the trash makes that day right again.
+    @discardableResult
+    public func removeMeals(ofRecipes recipeIDs: [UUID]) async -> Int {
+        do {
+            let entries = try await store.entries(ofRecipes: recipeIDs)
+            for entry in entries {
+                try await store.delete(id: entry.id)
+            }
+            if !entries.isEmpty { await reload() }
+            return entries.count
+        } catch {
+            errorMessage = error.localizedDescription
+            return 0
+        }
+    }
+
     /// Extends the run further into the future, for scrolling past the end.
     public func loadMore() async {
         days = Self.run(from: firstDay, length: days.count + Self.pageLength)
