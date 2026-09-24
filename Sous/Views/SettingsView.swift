@@ -18,10 +18,6 @@ struct SettingsForm: View {
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen
-    /// Recipes erased so far, while "Alles löschen" runs. Held here rather
-    /// than in its section: an overlay on a section is laid on each of its
-    /// rows, header and footer included, and the count showed up twice.
-    @State private var eraseProgress: (done: Int, total: Int)?
 
     var body: some View {
         Form {
@@ -40,9 +36,7 @@ struct SettingsForm: View {
                 Text("„System“ folgt der Einstellung des Geräts.")
             }
 
-            if let households {
-                HouseholdSharingSection(households: households)
-            }
+            HouseholdSettingsRow()
 
             if let calendarMirror {
                 CalendarMirrorSection(mirror: calendarMirror)
@@ -62,14 +56,8 @@ struct SettingsForm: View {
             }
 
             dataSources
-            HouseholdDataSection(progress: $eraseProgress)
         }
         .formStyle(.grouped)
-        .overlay {
-            if let eraseProgress {
-                EraseProgressOverlay(done: eraseProgress.done, total: eraseProgress.total)
-            }
-        }
     }
 
     /// Where the nutrition figures come from, what was done to them, and
@@ -226,12 +214,12 @@ private struct CalendarMirrorSection: View {
 /// The irreversible things, for the household that is showing: emptying it,
 /// deleting it — or, for one somebody else owns, leaving it.
 ///
-/// At the very bottom, under the dry data sources, because that is where a
+/// At the bottom of the household's page, because that is where a
 /// destructive action belongs: found when looked for, not met on the way to
 /// something else. Every button names the household, and every question
 /// names what would go, in numbers — "alles" is a word, 166 Rezepte is a
 /// fact.
-private struct HouseholdDataSection: View {
+struct HouseholdDataSection: View {
     /// Optional throughout: on the Mac this form is the settings scene's own
     /// root, and a scene that failed to hand it the libraries should show no
     /// button rather than crash on one that deletes.
@@ -244,16 +232,21 @@ private struct HouseholdDataSection: View {
     @Environment(\.calendarMirror) private var calendarMirror
     @Environment(\.households) private var households
     @Environment(\.householdSwitcher) private var switcher
-    @Environment(\.dismiss) private var dismiss
 
     /// The household showing, as far as leaving or deleting it goes.
     @State private var standing: HouseholdStanding?
+    @State private var isAskingToStopSharing = false
     /// Set once the counting is done and the emptying question can be asked.
     @State private var emptyQuestion: LibraryWipe.Counts?
     @State private var isAskingToDelete = false
     @State private var failure: String?
-    /// Recipes erased so far, while it runs — shown by the form, over all of it.
+    /// Recipes erased so far, while it runs — shown by the page, over all of
+    /// it: an overlay on a section is laid on each of its rows, header and
+    /// footer included, and the count showed up twice.
     @Binding var progress: (done: Int, total: Int)?
+    /// Tells the page something about the household changed — its members,
+    /// after sharing ends.
+    var onChange: () async -> Void = {}
 
     private var wipe: LibraryWipe? {
         guard let library, let plan, let shopping, let catalog, let session, let timers,
@@ -277,6 +270,11 @@ private struct HouseholdDataSection: View {
             Section {
                 if let standing {
                     if standing.isOwn {
+                        if standing.isShared {
+                            Button("Teilen beenden …", systemImage: "person.2.slash", role: .destructive) {
+                                isAskingToStopSharing = true
+                            }
+                        }
                         Button("„\(standing.name)“ leeren …", systemImage: "trash", role: .destructive) {
                             Task { emptyQuestion = await wipe.counts() }
                         }
@@ -298,7 +296,7 @@ private struct HouseholdDataSection: View {
             } footer: {
                 Text(footer)
             }
-            .task(id: switcher?.activeID) {
+            .task(id: "\(switcher?.activeID?.uuidString ?? "")|\(switcher?.choices.first { $0.id == switcher?.activeID }?.name ?? "")") {
                 guard let id = switcher?.activeID else {
                     standing = nil
                     return
@@ -327,6 +325,21 @@ private struct HouseholdDataSection: View {
                 Button("Abbrechen", role: .cancel) {}
             } message: {
                 Text(deleteMessage)
+            }
+            .alert(
+                "Teilen von „\(standing?.name ?? "")“ beenden?",
+                isPresented: $isAskingToStopSharing
+            ) {
+                Button("Teilen beenden", role: .destructive) {
+                    Task { await stopSharing() }
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text("""
+                Alle, mit denen du den Haushalt teilst, verlieren ihn. Bei dir \
+                bleibt er, wie er ist; wer wieder dabei sein soll, braucht eine \
+                neue Einladung.
+                """)
             }
             .alert(
                 "Das hat nicht geklappt",
@@ -393,16 +406,25 @@ private struct HouseholdDataSection: View {
             progress = (done, total)
         }
         progress = nil
-        // Onto the empty library: the settings have nothing left to say
-        // about a household that no longer holds anything.
-        dismiss()
     }
 
-    /// Stays in the settings afterwards: they now show the household the
-    /// switch fell back to, which is the one thing worth seeing next.
+    private func stopSharing() async {
+        guard let id = switcher?.activeID, let households else { return }
+        do {
+            try await households.stopSharing(id)
+            standing = await households.standing(of: id)
+            await onChange()
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
+    /// Stays on the page afterwards: it now shows the household the switch
+    /// fell back to, which is the one thing worth seeing next.
     private func deleteOrLeave(with wipe: LibraryWipe) async {
         do {
             try await wipe.deleteOrLeave()
+            await onChange()
         } catch {
             failure = error.localizedDescription
         }
@@ -436,7 +458,7 @@ private struct HouseholdDataSection: View {
 
 /// The count of an erase in progress, over a scrim that keeps the form
 /// from being used while its data is going.
-private struct EraseProgressOverlay: View {
+struct EraseProgressOverlay: View {
     let done: Int
     let total: Int
 

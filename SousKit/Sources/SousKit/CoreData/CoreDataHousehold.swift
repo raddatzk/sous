@@ -261,6 +261,18 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         }
     }
 
+    /// Renames a particular household this person owns. One they joined is
+    /// named by its owner.
+    public func rename(_ id: UUID, to name: String) async throws {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        try await context.perform {
+            guard let household = try CoreDataHouseholds.households(in: context).first(where: { $0.id == id })
+            else { return }
+            Self.rename(household, to: name)
+            if context.hasChanges { try context.save() }
+        }
+    }
+
     /// Trimmed, and ignored when empty or unchanged — an unchanged name
     /// would still bump `updatedAt` and send the row through iCloud again.
     private static func rename(_ household: CDHousehold, to name: String) {
@@ -484,14 +496,68 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// owner's devices notice nothing but the members being gone.
     public func stopSharing(_ id: UUID) async throws {
         guard let standing = await standing(of: id), standing.isOwn, standing.isShared else { return }
-        let context = SousPersistentContainer.backgroundContext(for: container)
-        let objectID = try await context.perform {
-            try CoreDataHouseholds.household(id: id, in: context)?.objectID
-        }
-        guard let objectID, let share = share(of: objectID) else { return }
+        guard let objectID = await objectID(of: id), let share = share(of: objectID) else { return }
         let ckContainer = CKContainer(identifier: SousPersistentContainer.cloudKitContainerIdentifier)
         _ = try await ckContainer.privateCloudDatabase.deleteRecord(withID: share.recordID)
         Self.log.info("Stopped sharing a household.")
+    }
+
+    /// The people in a household's share, owner first — empty while it is
+    /// not shared, or where nothing is mirrored.
+    ///
+    /// Read off the share as this device last fetched it: someone who has
+    /// just accepted shows as invited until CloudKit says otherwise.
+    public func members(of id: UUID) async -> [HouseholdMember] {
+        guard let objectID = await objectID(of: id), let share = share(of: objectID) else { return [] }
+        let me = share.currentUserParticipant
+        return share.participants
+            .filter { $0.acceptanceStatus != .removed }
+            .map { participant in
+                let identity = participant.userIdentity
+                let name = identity.nameComponents.map {
+                    PersonNameComponentsFormatter.localizedString(from: $0, style: .default)
+                }
+                return HouseholdMember(
+                    id: participant.participantID,
+                    name: name?.isEmpty == false ? name : nil,
+                    contact: identity.lookupInfo?.emailAddress ?? identity.lookupInfo?.phoneNumber,
+                    isOwner: participant.role == .owner,
+                    isCurrentUser: participant == me,
+                    hasJoined: participant.acceptanceStatus == .accepted
+                )
+            }
+            .sorted { $0.isOwner && !$1.isOwner }
+    }
+
+    /// Takes somebody out of a household this person owns. They lose it on
+    /// their devices; everything they wrote into it stays.
+    public func remove(member memberID: String, from id: UUID) async throws {
+        guard let objectID = await objectID(of: id),
+              let share = share(of: objectID),
+              let participant = share.participants.first(where: { $0.participantID == memberID }),
+              participant.role != .owner,
+              let cloudContainer = container as? NSPersistentCloudKitContainer,
+              let store = objectID.persistentStore
+        else { throw HouseholdSharingError.notAvailable }
+        share.removeParticipant(participant)
+        // Through the completion API, for the reason `makeShare` gives.
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            cloudContainer.persistUpdatedShare(share, in: store) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+        Self.log.info("Removed a participant from a household.")
+    }
+
+    private func objectID(of id: UUID) async -> NSManagedObjectID? {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return await context.perform {
+            try? CoreDataHouseholds.household(id: id, in: context)?.objectID
+        }
     }
 
     /// The zone every unshared row lives in. Never purged: it holds every
@@ -642,7 +708,12 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// the moment of inviting, because that is when a name starts to matter:
     /// until somebody else is in it, every household is simply "mine", and
     /// once somebody is, theirs is too.
+    ///
+    /// `id` names the household to share; without one it is the active
+    /// household if it is this person's, otherwise the oldest they own — what
+    /// the welcome asks for before anybody has chosen.
     public func shareForInviting(
+        _ id: UUID? = nil,
         named name: String
     ) async throws -> (share: CKShare, container: CKContainer) {
         guard let cloudContainer = container as? NSPersistentCloudKitContainer else {
@@ -653,7 +724,16 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         let (householdID, householdName) = try await context.perform {
             // Inviting is a deliberate act with a name, so a person who owns
             // no household yet gets one here that can never be folded away.
-            let household = try CoreDataHouseholds.ownTarget(in: context)
+            let chosen = try id.flatMap { id in
+                try CoreDataHouseholds.households(in: context).first { $0.id == id }
+            }
+            if id != nil, chosen == nil {
+                // Named but not this person's: a joined household is shared
+                // by its owner.
+                throw HouseholdSharingError.notAvailable
+            }
+            let household = try chosen
+                ?? CoreDataHouseholds.ownTarget(in: context)
                 ?? CoreDataHouseholds.makeHousehold(named: name, deliberately: true, in: context)
             Self.rename(household, to: name)
             if context.hasChanges { try context.save() }
@@ -708,6 +788,20 @@ public struct HouseholdStanding: Equatable, Sendable {
     public var isShared: Bool
     /// Everybody in its share but the owner, invited or already in.
     public var otherParticipants: Int
+}
+
+/// Somebody in a household's share.
+public struct HouseholdMember: Identifiable, Equatable, Sendable {
+    public var id: String
+    /// Their name, once CloudKit knows it — often only after they accepted.
+    public var name: String?
+    /// The address or number they were invited at, where the owner can see
+    /// it.
+    public var contact: String?
+    public var isOwner: Bool
+    public var isCurrentUser: Bool
+    /// In, rather than invited and not yet answered.
+    public var hasJoined: Bool
 }
 
 /// Why a household could not be shared.

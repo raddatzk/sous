@@ -2,9 +2,9 @@ import CloudKit
 import SousKit
 import SwiftUI
 
-/// Inviting someone into the household.
+/// Inviting someone into a household.
 ///
-/// The whole feature is one `ShareLink`, and that is the point of the
+/// The invitation is one `ShareLink`, and that is the point of the
 /// arrangement underneath it: the system sheet does the inviting, the
 /// permissions, the accepting and the revoking — the app never sees an
 /// address and never stores one.
@@ -17,24 +17,7 @@ import SwiftUI
 /// transfer representation is also honest about time: the share is prepared
 /// when a destination is chosen, so there is no window in which the sheet
 /// shows a share the server has not heard of yet.
-struct HouseholdSharingSection: View {
-    let households: CoreDataHouseholds
-
-    var body: some View {
-        Section {
-            HouseholdShareLink(households: households)
-        } header: {
-            Text("Haushalt")
-        } footer: {
-            Text("""
-            Wer eingeladen wird, sieht dieselben Rezepte, denselben Essensplan \
-            und dieselbe Einkaufsliste — und kann alles ändern. Am Namen \
-            erkennen alle, die du einlädst, deinen Haushalt neben ihrem eigenen.
-            """)
-        }
-    }
-}
-
+///
 /// The invitation itself: the household's name, the button, and what to say
 /// when there is nothing behind them.
 ///
@@ -52,6 +35,13 @@ struct HouseholdSharingSection: View {
 /// caller's business.
 struct HouseholdShareLink: View {
     let households: CoreDataHouseholds
+    /// The household to name and share. Without one, the active household if
+    /// it is the person's own, otherwise the oldest they own — what the
+    /// welcome asks for before anybody has chosen.
+    var householdID: UUID?
+    var label = "Haushalt teilen …"
+    /// Told once a new name is saved, so a page showing it can catch up.
+    var onRenamed: () async -> Void = {}
 
     /// As typed. Left empty while the household still carries the default:
     /// that is what everybody's is called, so it names nothing.
@@ -68,18 +58,20 @@ struct HouseholdShareLink: View {
                 // Closing the settings is as good as pressing return: a name
                 // typed and left standing was meant.
                 .onDisappear(perform: saveName)
-                .task {
-                    guard let own = try? await households.ownName(),
-                          own != CoreDataHouseholds.defaultName,
-                          name.isEmpty
-                    else { return }
-                    name = own
+                .task(id: householdID) {
+                    let current = if let householdID {
+                        await households.standing(of: householdID)?.name
+                    } else {
+                        try? await households.ownName()
+                    }
+                    guard let current, current != CoreDataHouseholds.defaultName else { return }
+                    name = current
                 }
             ShareLink(
-                item: HouseholdInvitation(households: households, name: trimmedName),
+                item: HouseholdInvitation(households: households, householdID: householdID, name: trimmedName),
                 preview: SharePreview(trimmedName)
             ) {
-                Label("Haushalt teilen …", systemImage: "person.2")
+                Label(label, systemImage: "person.badge.plus")
             }
             .disabled(trimmedName.isEmpty)
         } else {
@@ -99,7 +91,16 @@ struct HouseholdShareLink: View {
     private func saveName() {
         let name = trimmedName
         guard !name.isEmpty else { return }
-        Task { try? await households.rename(to: name) }
+        let householdID = householdID
+        let onRenamed = onRenamed
+        Task {
+            if let householdID {
+                try? await households.rename(householdID, to: name)
+            } else {
+                try? await households.rename(to: name)
+            }
+            await onRenamed()
+        }
     }
 }
 
@@ -110,6 +111,7 @@ struct HouseholdShareLink: View {
 /// cost the sharing concept describes.
 struct HouseholdInvitation: Transferable {
     let households: CoreDataHouseholds
+    let householdID: UUID?
     /// What the household is called from this invitation on.
     let name: String
 
@@ -128,14 +130,16 @@ struct HouseholdInvitation: Transferable {
                     allowedParticipantAccessOptions: .specifiedRecipientsOnly
                 )
             ) {
-                try await invitation.households.shareForInviting(named: invitation.name).share
+                try await invitation.households
+                    .shareForInviting(invitation.householdID, named: invitation.name).share
             }
         }
     }
 }
 
 extension EnvironmentValues {
-    /// The household store, for the one screen that offers to share it.
+    /// The household store, for the screens that name, share and delete
+    /// households.
     ///
     /// Optional because the Mac reaches `SettingsForm` through the `Settings`
     /// scene, which has to be handed it explicitly.

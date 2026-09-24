@@ -320,6 +320,22 @@ struct HouseholdTests {
         #expect(try await households.ownName() == "Familie Raddatz")
     }
 
+    @Test("A particular household is renamed, and only an own one")
+    func renamingByID() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await households.create(named: "Familie")
+        try await pause()
+        let wg = try await households.create(named: "WG")
+
+        try await households.rename(wg, to: " Küche Lindenstraße ")
+        try await households.rename(UUID(), to: "Niemand")
+
+        #expect(try self.households(in: container).map(\.name) == ["Familie", "Küche Lindenstraße"])
+        // Nothing mirrored, nothing shared: nobody else is in it.
+        #expect(await households.members(of: wg).isEmpty)
+    }
+
     @Test("Renaming before there is a household founds none")
     func renamingFoundsNothing() async throws {
         // A reinstall's library is still on its way from iCloud; a household
