@@ -647,12 +647,19 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// with no error *and* no share. The generated wrapper then force-
     /// unwraps that nil, and the app dies inside a framework bridge with a
     /// message that names nothing.
+    ///
+    /// `existing` is a share this household already has. Handing it back in
+    /// rather than returning it as found makes the container finish what it
+    /// may not have: an earlier invitation can have created the share and
+    /// then failed to move the rows into its zone, and returning that share
+    /// as it is gave the sheet a share the server never saw.
     private static func makeShare(
         for object: NSManagedObject,
+        to existing: CKShare?,
         in container: NSPersistentCloudKitContainer
     ) async throws -> CKShare {
         try await withCheckedThrowingContinuation { continuation in
-            container.share([object], to: nil) { _, share, _, error in
+            container.share([object], to: existing) { _, share, _, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let share {
@@ -703,8 +710,10 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     ///
     /// This is where the zone comes into being — deliberately not at launch,
     /// where making one raced the initial import and reset the sync. The
-    /// first invitation therefore pays for the move into the shared zone,
-    /// and every later one just reopens the sheet.
+    /// first invitation therefore pays for the move into the shared zone.
+    /// Every later one hands the existing share back to the container, which
+    /// costs nothing once the move went through and finishes it if it did
+    /// not.
     ///
     /// If the first attempt fails, it waits for the mirroring delegate to
     /// finish setting up and tries once more: the sheet is opened by a person
@@ -755,15 +764,12 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         let ckContainer = CKContainer(
             identifier: SousPersistentContainer.cloudKitContainerIdentifier
         )
-        if let existing = try? cloudContainer.fetchShares(matching: [householdID])[householdID] {
-            existing[CKShare.SystemFieldKey.title] = householdName
-            return (existing, ckContainer)
-        }
+        let existing = try? cloudContainer.fetchShares(matching: [householdID])[householdID]
 
         let household = try await context.perform { try context.existingObject(with: householdID) }
         let share: CKShare
         do {
-            share = try await Self.makeShare(for: household, in: cloudContainer)
+            share = try await Self.makeShare(for: household, to: existing, in: cloudContainer)
         } catch {
             CloudKitEventLog.logFailure("share", error)
             // Usually "not ready yet": the mirroring delegate is still
@@ -771,7 +777,7 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             // launch. Wait for it to say so, then ask once more.
             guard await Self.waitForCloudKitSetup(timeout: .seconds(30)) else { throw error }
             do {
-                share = try await Self.makeShare(for: household, in: cloudContainer)
+                share = try await Self.makeShare(for: household, to: existing, in: cloudContainer)
             } catch {
                 CloudKitEventLog.logFailure("share, second attempt", error)
                 throw error
