@@ -569,6 +569,13 @@ struct SousApp: App {
                     guard phase == .active else { return }
                     timers.forgetStale()
                     session.forgetStale()
+                    // The calendar is a projection of the plan, and the
+                    // Calendar app lets anyone edit or delete what it shows.
+                    // Coming back is when that is put right: without this,
+                    // an event deleted there stays gone until the plan
+                    // changes or the app is started again — which for a
+                    // long-lived app on a phone can be days.
+                    Task { await calendarMirror.syncIfEnabled() }
                 }
                 // A page shared from Safari arrives as sous://import?url=…,
                 // a recipe file opened with Sous as the file itself, a link
