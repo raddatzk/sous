@@ -419,12 +419,11 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
         if !query.includeDeleted {
             terms.append(NSPredicate(format: "deletedAt == nil"))
         }
-        let search = query.searchText?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
-        if !search.isEmpty {
-            // `searchText` is written lowercased, so this is a plain
-            // containment rather than a case-insensitive comparison the
-            // index could not serve.
-            terms.append(NSPredicate(format: "searchText CONTAINS %@", search))
+        // One containment per word, each anywhere in the row — see
+        // ``RecipeSearchTerms``. `searchText` is written lowercased, so only
+        // the accents are left to ignore; the words come without them.
+        for word in RecipeSearchTerms(query.searchText ?? "").words {
+            terms.append(NSPredicate(format: "searchText CONTAINS[d] %@", word))
         }
         // Unlike the list filters above, these two are columns of their own
         // and SQLite can answer them.

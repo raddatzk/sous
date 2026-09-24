@@ -188,6 +188,48 @@ struct RecipeLibraryTests {
         }
         #expect(library.recipes.map(\.title) == ["Linsensuppe"])
     }
+
+    @Test("Offers say how many recipes they leave, and none that would leave nothing")
+    func suggestionsAreCounted() async throws {
+        let (library, store) = try makeLibrary()
+        try await store.save(Recipe(
+            title: "Paprika-Hähnchen", servings: 2,
+            ingredientsText: "2 Paprika\n500 g Hähnchenbrust", instructionsText: "Braten.",
+            categories: ["Hauptgericht"]
+        ))
+        try await store.save(Recipe(
+            title: "Gefüllte Paprika", servings: 2,
+            ingredientsText: "4 Paprika\n300 g Hackfleisch", instructionsText: "Füllen.",
+            categories: ["Hauptgericht"]
+        ))
+        try await store.save(Recipe(
+            title: "Kürbissuppe", servings: 2,
+            ingredientsText: "1 Hokkaido", instructionsText: "Kochen.",
+            categories: ["Suppe"]
+        ))
+        await library.reload()
+
+        let offers = await library.filterSuggestions(
+            for: "pa", applied: [], catalog: .bundled, limit: 4
+        )
+        // The catalog knows plenty starting with "pa" — Pastinake, Pak Choi —
+        // but only what the library cooks with is worth a tap.
+        #expect(!offers.isEmpty)
+        #expect(offers.allSatisfy { $0.count > 0 })
+        #expect(!offers.contains { $0.filter.title == "Pastinake" })
+        let paprika = try #require(offers.first { $0.filter.title == "Paprika" })
+        #expect(paprika.count == 2)
+
+        // Counted within what is already picked: no soup has paprika in it.
+        let inSoups = await library.filterSuggestions(
+            for: "pa", applied: [.category("Suppe")], catalog: .bundled, limit: 4
+        )
+        #expect(!inSoups.contains { $0.filter.title == "Paprika" })
+
+        #expect(await library.filterSuggestions(
+            for: "Hauptg", applied: [], catalog: .bundled, limit: 4
+        ).map(\.count) == [2])
+    }
 }
 
 /// Waits for `condition` to hold, polling rather than sleeping a fixed span.

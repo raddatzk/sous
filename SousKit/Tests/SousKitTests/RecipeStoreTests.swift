@@ -190,6 +190,33 @@ struct RecipeStoreTests {
         #expect(try await store.recipes(matching: RecipeQuery(searchText: "  ")).count == 2)
     }
 
+    @Test("Search takes the words one by one and ignores accents", arguments: StoreBackend.allCases)
+    func searchByWords(_ backend: StoreBackend) async throws {
+        let store = try makeStore(backend)
+        try await store.save(Recipe(
+            title: "Pani Pol", servings: 2,
+            ingredientsText: "200 g Kokosraspeln", instructionsText: "Rollen."
+        ))
+        try await store.save(Recipe(
+            title: "Herbstsuppe", servings: 2,
+            ingredientsText: "1 Hokkaido", instructionsText: "Kochen."
+        ))
+
+        func titles(_ text: String) async throws -> [String] {
+            try await store.recipes(matching: RecipeQuery(searchText: text)).map(\.title)
+        }
+        // The order typed is not the order written.
+        #expect(try await titles("pol pani") == ["Pani Pol"])
+        #expect(try await titles("Pani p") == ["Pani Pol"])
+        // Each word may land in a different part: the soup in the title,
+        // the pumpkin in an ingredient's parent.
+        #expect(try await titles("kürbis suppe") == ["Herbstsuppe"])
+        // A keyboard without umlauts finds the same.
+        #expect(try await titles("kurbis") == ["Herbstsuppe"])
+        // Every word has to be there, not any.
+        #expect(try await titles("pani suppe").isEmpty)
+    }
+
     @Test("Filters for favorites, want-to-cook and category", arguments: StoreBackend.allCases)
     func filters(_ backend: StoreBackend) async throws {
         let store = try makeStore(backend)

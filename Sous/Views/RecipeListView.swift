@@ -958,6 +958,9 @@ private struct RecipeSearchField: ViewModifier {
     @Environment(\.householdSwitcher) private var householdSwitcher
     @Environment(IngredientCatalogLibrary.self) private var catalog
 
+    /// What the typed text could become, counted — refreshed as it is typed.
+    @State private var offers: [FilterSuggestion] = []
+
     func body(content: Content) -> some View {
         if shows {
             @Bindable var library = library
@@ -976,6 +979,18 @@ private struct RecipeSearchField: ViewModifier {
                     Label(filter.title, systemImage: filter.symbolName)
                 }
                 .searchSuggestions { suggestions }
+                .task(id: OfferQuestion(text: library.searchText, filters: tokens.wrappedValue)) {
+                    // The same pause the list's own reload takes: counting
+                    // offers is a pass over the library, not worth a letter.
+                    try? await Task.sleep(for: .milliseconds(150))
+                    guard !Task.isCancelled else { return }
+                    offers = await library.filterSuggestions(
+                        for: library.searchText,
+                        applied: tokens.wrappedValue,
+                        catalog: catalog.catalog,
+                        limit: 8
+                    )
+                }
         } else {
             content
         }
@@ -988,18 +1003,27 @@ private struct RecipeSearchField: ViewModifier {
     /// why.
     @ViewBuilder
     private var suggestions: some View {
-        ForEach(library.filterSuggestions(catalog: catalog.catalog)) { filter in
+        ForEach(offers) { offer in
             Button {
-                Task { await library.apply(filter) }
+                Task { await library.apply(offer.filter) }
             } label: {
                 HStack(spacing: 6) {
-                    Label(filter.title, systemImage: filter.symbolName)
-                    if let matched = filter.matchedAs {
+                    Label(offer.filter.title, systemImage: offer.filter.symbolName)
+                    if let matched = offer.filter.matchedAs {
                         Text(matched)
                             .foregroundStyle(.secondary)
                     }
+                    Spacer(minLength: 8)
+                    Text(offer.count, format: .number)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             }
         }
+    }
+
+    private struct OfferQuestion: Equatable {
+        let text: String
+        let filters: [RecipeFilter]
     }
 }

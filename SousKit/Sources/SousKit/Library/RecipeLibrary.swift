@@ -135,18 +135,60 @@ public final class RecipeLibrary {
         )
     }
 
-    /// Filters the typed text could become, given what the app knows.
+    /// Filters `text` could become, each with how many recipes picking it
+    /// would leave — and only those that would leave any.
     ///
-    /// Eight rather than a handful: the row scrolls sideways anyway, and a
-    /// close match falling off the end is worse than a long row.
-    public func filterSuggestions(catalog: IngredientCatalog) -> [RecipeFilter] {
-        RecipeFilter.suggestions(
-            for: searchText,
+    /// The count is what makes an offer readable: "Paprika 14" says that a
+    /// tap narrows to fourteen recipes, where a bare "Paprika" could as well
+    /// be a word from the catalog nobody ever cooked with. Which it often
+    /// was: every catalog ingredient matching the letters used to be
+    /// offered, so "Pa" offered Pastinake to a library without one. Those
+    /// drop out here, and the next match moves up in their place.
+    ///
+    /// Counted against the recipes `applied` already leaves, ignoring the
+    /// text — picking an offer replaces the text, so that is exactly the
+    /// list the tap produces.
+    public func filterSuggestions(
+        for text: String,
+        applied: [RecipeFilter],
+        catalog: IngredientCatalog,
+        limit: Int
+    ) async -> [FilterSuggestion] {
+        let ranked = RecipeFilter.suggestions(
+            for: text,
             catalog: catalog,
             categories: categories,
-            applied: activeFilters,
-            limit: 8
+            applied: applied,
+            limit: .max
         )
+        guard !ranked.isEmpty else { return [] }
+
+        let pool = await findRecipes(matching: "", filters: applied)
+        // The same reading the store filters by — its keys are written with
+        // the bundled catalog too — worked out once per recipe, and only if
+        // an ingredient is actually on offer.
+        var ingredientKeys: [Set<String>]?
+        var offers: [FilterSuggestion] = []
+        for filter in ranked {
+            guard !Task.isCancelled, offers.count < limit else { break }
+            let count: Int
+            switch filter.kind {
+            case .ingredient:
+                let keys = ingredientKeys ?? pool.map {
+                    Set(RecipeIndex.ingredientKeys(for: $0, catalog: .bundled))
+                }
+                ingredientKeys = keys
+                count = keys.count(where: { $0.contains(filter.key) })
+            case .category:
+                count = pool.count(where: { $0.categories.contains { $0.lowercased() == filter.key } })
+            case .slot:
+                count = await narrowedToSlots(pool, filters: [filter]).count
+            case .effort:
+                count = narrowedToEffort(pool, filters: [filter]).count
+            }
+            if count > 0 { offers.append(FilterSuggestion(filter: filter, count: count)) }
+        }
+        return offers
     }
 
     /// Turns the typed text into a filter and clears the field, the way a
@@ -184,13 +226,13 @@ public final class RecipeLibrary {
     public func reload() async {
         defer { hasLoaded = true }
         do {
-            recipes = narrowedToEffort(
+            recipes = RecipeSearchTerms(searchText).ranked(narrowedToEffort(
                 try await narrowedToSlots(
                     store.recipes(matching: query),
                     filters: activeFilters
                 ),
                 filters: activeFilters
-            )
+            ))
             categories = try await store.categories()
             // Two is what makes a group. Below that there is nothing to
             // stand beside, and an indented list of one is a rule the reader
@@ -244,9 +286,11 @@ public final class RecipeLibrary {
                     filters: filters.filter { $0.kind != .slot && $0.kind != .effort }
                 )
             )
-            return narrowedToEffort(
+            // Closest titles first: of everything mentioning "pa", the
+            // recipe called "Pani Pol" is the one most likely meant.
+            return RecipeSearchTerms(text).ranked(narrowedToEffort(
                 await narrowedToSlots(found, filters: filters), filters: filters
-            )
+            ))
         } catch {
             report(error)
             return []

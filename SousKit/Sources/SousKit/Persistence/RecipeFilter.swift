@@ -161,3 +161,17 @@ public struct RecipeFilter: Hashable, Identifiable, Sendable {
         return nil
     }
 }
+
+/// A filter offered while typing, with what picking it would leave.
+public struct FilterSuggestion: Hashable, Identifiable, Sendable {
+    public let filter: RecipeFilter
+    /// How many recipes are left once it is picked.
+    public let count: Int
+
+    public var id: String { filter.id }
+
+    public init(filter: RecipeFilter, count: Int) {
+        self.filter = filter
+        self.count = count
+    }
+}

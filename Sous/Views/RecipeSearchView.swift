@@ -24,6 +24,10 @@ struct RecipeSearchView: View {
     @State private var filters: [RecipeFilter] = []
 
     @State private var results: [Recipe] = []
+    /// What the typed text could become, counted — see ``SuggestionPanel``.
+    @State private var suggested: [FilterSuggestion] = []
+    /// Whether the search key was pressed since the text last changed.
+    @State private var submitted = false
     /// Whether a query is on its way, so that the moment between a keystroke
     /// and its answer does not read as "nothing found".
     @State private var isSearching = false
@@ -50,6 +54,12 @@ struct RecipeSearchView: View {
                 offers
                 content
             }
+                .overlay(alignment: .bottom) {
+                    SuggestionPanel(offers: submitted ? [] : suggested) { filter in
+                        filters.append(filter)
+                        text = ""
+                    }
+                }
                 .navigationTitle("Suchen")
                 .navigationDestination(for: Recipe.self) { page(for: $0) }
                 .searchable(
@@ -59,7 +69,9 @@ struct RecipeSearchView: View {
                 ) { filter in
                     Label(filter.title, systemImage: filter.symbolName)
                 }
-                .searchSuggestions { suggestions }
+                // The search key means "these, not a filter": the offers
+                // step aside until the text changes again.
+                .onSubmit(of: .search) { submitted = true }
         }
         // Read afresh every time the tab is opened — `task` runs on appear,
         // and a tab appears again on every switch back to it. A category the
@@ -67,6 +79,7 @@ struct RecipeSearchView: View {
         // them is one pass over a library, not a thing worth caching.
         .task { categories = await library.categoryCounts() }
         .task(id: Question(text: text, filters: filters)) { await search() }
+        .onChange(of: text) { submitted = false }
         .onChange(of: path) { _, path in
             // Back from a recipe: it may have been renamed, retitled or
             // deleted on that page, and the row behind it would still say
@@ -189,36 +202,6 @@ struct RecipeSearchView: View {
         .animation(.smooth(duration: 0.2), value: isOn)
     }
 
-    /// What the typed text could be turned into, offered while typing.
-    ///
-    /// Says why something matched when its own name does not contain what was
-    /// typed — otherwise "Gurke" appears for "sal" with no way to tell why.
-    @ViewBuilder
-    private var suggestions: some View {
-        ForEach(
-            RecipeFilter.suggestions(
-                for: text,
-                catalog: catalog.catalog,
-                categories: library.categories,
-                applied: filters,
-                limit: 8
-            )
-        ) { filter in
-            Button {
-                filters.append(filter)
-                text = ""
-            } label: {
-                HStack(spacing: 6) {
-                    Label(filter.title, systemImage: filter.symbolName)
-                    if let matched = filter.matchedAs {
-                        Text(matched)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-        }
-    }
-
     /// What was asked, as one value — so that `task(id:)` starts over on a
     /// keystroke and cancels the question that is no longer being asked.
     private struct Question: Equatable {
@@ -229,6 +212,7 @@ struct RecipeSearchView: View {
     private func search() async {
         guard isAsking else {
             results = []
+            suggested = []
             return
         }
         isSearching = true
@@ -239,5 +223,81 @@ struct RecipeSearchView: View {
         try? await Task.sleep(for: .milliseconds(200))
         guard !Task.isCancelled else { return }
         results = await library.findRecipes(matching: text, filters: filters)
+        suggested = await library.filterSuggestions(
+            for: text, applied: filters, catalog: catalog.catalog, limit: 4
+        )
+    }
+}
+
+/// What the typed text could be turned into, as a small card above the field.
+///
+/// Drawn here rather than through `.searchSuggestions`, which on iOS 26 lays
+/// its list over the whole page however short it is. The hits are what the
+/// text already finds, and covering them is what made a recipe called
+/// "Pani Pol" look unfindable under "Pa" when it was sitting right behind the
+/// offers. So the card holds four rows at most and the hits stay in sight
+/// above it — the way Fotos offers people and places over its results.
+///
+/// Each row says how many recipes it leaves, which is also what tells an
+/// offer from a hit: a count is a filter, a row behind it is a recipe. And
+/// why it matched, when its own name does not contain what was typed —
+/// otherwise "Gurke" appears for "sal" with no way to tell why.
+private struct SuggestionPanel: View {
+    let offers: [FilterSuggestion]
+    let pick: (RecipeFilter) -> Void
+
+    /// Only while the field has focus: with the keyboard gone the reader is
+    /// looking at the hits, not choosing what to type.
+    @Environment(\.isSearching) private var isSearching
+
+    /// The search tab's field floats over the page's foot rather than
+    /// taking room from it — the safe area ends below it, above the
+    /// keyboard — so the card has to step over the field itself: its height
+    /// and the gap the bar keeps.
+    private static let fieldClearance: CGFloat = 64
+
+    var body: some View {
+        if isSearching, !offers.isEmpty {
+            VStack(spacing: 0) {
+                ForEach(offers) { offer in
+                    if offer.id != offers.first?.id {
+                        Divider().padding(.leading, 52)
+                    }
+                    row(offer)
+                }
+            }
+            .glassEffect(in: .rect(cornerRadius: 24))
+            .padding(.horizontal, 16)
+            .padding(.bottom, Self.fieldClearance)
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
+            .animation(.smooth(duration: 0.2), value: offers)
+        }
+    }
+
+    private func row(_ offer: FilterSuggestion) -> some View {
+        Button {
+            pick(offer.filter)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: offer.filter.symbolName)
+                    .foregroundStyle(.tint)
+                    .frame(width: 24)
+                Text(offer.filter.title)
+                    .foregroundStyle(.primary)
+                if let matched = offer.filter.matchedAs {
+                    Text(matched)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 8)
+                Text(offer.count, format: .number)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
     }
 }

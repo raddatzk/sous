@@ -16,6 +16,10 @@ public actor SwiftDataRecipeStore: RecipeStore {
         }
 
         var results = try modelContext.fetch(descriptor)
+        let terms = RecipeSearchTerms(query.searchText ?? "")
+        if !terms.isEmpty {
+            results = results.filter { terms.matches($0.searchText) }
+        }
         // The remaining filters are applied in memory on purpose: SwiftData
         // does not reliably translate captured booleans inside a predicate,
         // and a library of recipes is small enough that it does not matter.
@@ -305,19 +309,10 @@ public actor SwiftDataRecipeStore: RecipeStore {
     /// Built explicitly per case rather than with one clever expression:
     /// SwiftData translates only a narrow subset of predicates dependably,
     /// and a captured flag or an empty `contains` is outside it.
+    /// Without the search text, which is matched in memory: a `#Predicate`
+    /// can neither loop over a variable number of words nor ignore accents.
     private static func predicate(for query: RecipeQuery) -> Predicate<StoredRecipe>? {
-        let search = query.searchText?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
-
-        switch (query.includeDeleted, search.isEmpty) {
-        case (true, true):
-            return nil
-        case (true, false):
-            return #Predicate<StoredRecipe> { $0.searchText.contains(search) }
-        case (false, true):
-            return #Predicate<StoredRecipe> { $0.deletedAt == nil }
-        case (false, false):
-            return #Predicate<StoredRecipe> { $0.deletedAt == nil && $0.searchText.contains(search) }
-        }
+        query.includeDeleted ? nil : #Predicate<StoredRecipe> { $0.deletedAt == nil }
     }
 }
 

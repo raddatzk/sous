@@ -10,7 +10,8 @@ public struct RecipeQuery: Sendable, Hashable {
         case recentlyUpdated
     }
 
-    /// Matched against title, categories and ingredient names.
+    /// Matched against title, categories and ingredient names, word by word
+    /// and ignoring accents — see ``RecipeSearchTerms``.
     public var searchText: String?
     /// Recognized filters, all of which must apply.
     public var filters: [RecipeFilter]
