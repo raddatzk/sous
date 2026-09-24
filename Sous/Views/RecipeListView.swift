@@ -691,11 +691,12 @@ struct RecipeListView: View {
             } description: {
                 Text("Lege dein erstes Rezept an oder bring welche mit.")
             } actions: {
-                Button("Rezept anlegen") { library.startNewRecipe() }
-                // The other way in, and the one a cook who has just
-                // emptied the library needs: without it the import hides
-                // in a menu behind three dots.
-                Button("Rezepte importieren") { commands.isImporting = true }
+                // Side by side while they fit; in a sidebar dragged narrow
+                // they stack rather than run past its edge.
+                ViewThatFits(in: .horizontal) {
+                    HStack { emptyStateActions }
+                    VStack { emptyStateActions }
+                }
             }
         } else {
             ContentUnavailableView.search
@@ -703,12 +704,31 @@ struct RecipeListView: View {
     }
 
     @ViewBuilder
+    private var emptyStateActions: some View {
+        Button("Rezept anlegen") { library.startNewRecipe() }
+        // The other way in, and the one a cook who has just
+        // emptied the library needs: without it the import hides
+        // in a menu behind three dots.
+        Button("Rezepte importieren") { commands.isImporting = true }
+    }
+
+    @ViewBuilder
     private var filterBar: some View {
+        // The Mac's segmented control neither shrinks nor truncates: at the
+        // sidebar's narrowest its three equal segments, each as wide as
+        // "Will ich kochen", ran past the edge. The smaller size fits there.
+        ViewThatFits(in: .horizontal) {
+            filterPicker
+            filterPicker.controlSize(.small)
+        }
+    }
+
+    private var filterPicker: some View {
         @Bindable var library = library
         // Searching is the system's field now; this is the one thing it
         // cannot express — favourites and "will ich kochen" are not filters
         // that stack, they are three views of the same list.
-        Picker("Filter", selection: $library.filter) {
+        return Picker("Filter", selection: $library.filter) {
             ForEach(RecipeLibrary.Filter.allCases, id: \.self) { filter in
                 Text(filter.title).tag(filter)
             }
