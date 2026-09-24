@@ -532,7 +532,8 @@ public final class CoreDataHouseholds: @unchecked Sendable {
                 return HouseholdMember(
                     id: participant.participantID,
                     name: name?.isEmpty == false ? name : nil,
-                    contact: identity.lookupInfo?.emailAddress ?? identity.lookupInfo?.phoneNumber,
+                    contact: identity.lookupInfo?.emailAddress
+                        ?? identity.lookupInfo?.phoneNumber.map(HouseholdMember.readablePhoneNumber),
                     isOwner: participant.role == .owner,
                     isCurrentUser: participant == me,
                     hasJoined: participant.acceptanceStatus == .accepted
@@ -816,6 +817,39 @@ public struct HouseholdStanding: Equatable, Sendable {
 
 /// Somebody in a household's share.
 public struct HouseholdMember: Identifiable, Equatable, Sendable {
+    /// A number as CloudKit hands it over — "4915786427724", no plus, no
+    /// spaces — as a person would write it: "+49 157 86427724".
+    ///
+    /// Country code, then three digits, then the rest. Not how every country
+    /// groups its numbers, but enough to read one at a glance, which a run of
+    /// thirteen digits is not. Anything that is not plain digits (with or
+    /// without a leading plus) is left as it came.
+    public static func readablePhoneNumber(_ raw: String) -> String {
+        let digits = raw.hasPrefix("+") ? String(raw.dropFirst()) : raw
+        guard digits.count > 6, digits.allSatisfy(\.isASCIIDigit) else { return raw }
+        let codeLength = countryCodeLength(of: digits)
+        let code = digits.prefix(codeLength)
+        let rest = digits.dropFirst(codeLength)
+        let head = rest.prefix(3)
+        let tail = rest.dropFirst(3)
+        return tail.isEmpty ? "+\(code) \(head)" : "+\(code) \(head) \(tail)"
+    }
+
+    /// How many digits the country code takes: one for North America and
+    /// Russia, two for the codes the ITU gave out in pairs, three for the
+    /// rest.
+    private static func countryCodeLength(of digits: String) -> Int {
+        guard let first = digits.first else { return 0 }
+        if first == "1" || first == "7" { return 1 }
+        let twoDigitCodes: Set<String> = [
+            "20", "27", "30", "31", "32", "33", "34", "36", "39", "40", "41", "43", "44",
+            "45", "46", "47", "48", "49", "51", "52", "53", "54", "55", "56", "57", "58",
+            "60", "61", "62", "63", "64", "65", "66", "81", "82", "84", "86", "90", "91",
+            "92", "93", "94", "95", "98",
+        ]
+        return twoDigitCodes.contains(String(digits.prefix(2))) ? 2 : 3
+    }
+
     public var id: String
     /// Their name, once CloudKit knows it — often only after they accepted.
     public var name: String?
@@ -826,6 +860,10 @@ public struct HouseholdMember: Identifiable, Equatable, Sendable {
     public var isCurrentUser: Bool
     /// In, rather than invited and not yet answered.
     public var hasJoined: Bool
+}
+
+private extension Character {
+    var isASCIIDigit: Bool { ("0"..."9").contains(self) }
 }
 
 /// Why a household could not be shared.

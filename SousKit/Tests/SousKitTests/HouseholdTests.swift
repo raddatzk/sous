@@ -336,6 +336,17 @@ struct HouseholdTests {
         #expect(await households.members(of: wg).isEmpty)
     }
 
+    @Test("An invited number reads as a number")
+    func readablePhoneNumbers() {
+        #expect(HouseholdMember.readablePhoneNumber("4915786427724") == "+49 157 86427724")
+        #expect(HouseholdMember.readablePhoneNumber("+4915786427724") == "+49 157 86427724")
+        #expect(HouseholdMember.readablePhoneNumber("14155550123") == "+1 415 5550123")
+        #expect(HouseholdMember.readablePhoneNumber("35312345678") == "+353 123 45678")
+        // Not a bare number: left alone.
+        #expect(HouseholdMember.readablePhoneNumber("0157 864") == "0157 864")
+        #expect(HouseholdMember.readablePhoneNumber("12345") == "12345")
+    }
+
     @Test("Renaming before there is a household founds none")
     func renamingFoundsNothing() async throws {
         // A reinstall's library is still on its way from iCloud; a household
