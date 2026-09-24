@@ -50,7 +50,10 @@ public final class RecipeLibrary {
     /// five, and the row above it should be able to say so.
     public private(set) var variantMemberCounts: [UUID: Int] = [:]
     public private(set) var categories: [String] = []
-    public private(set) var isLoading = false
+    /// Whether a load has finished at least once. Before that an empty
+    /// `recipes` means "not read yet", not "nothing there" — and only then:
+    /// a later reload (a pull, a filter) keeps showing what it had.
+    public private(set) var hasLoaded = false
     public var errorMessage: String?
 
     /// A recipe being created or edited, presented as a sheet when set.
@@ -179,8 +182,7 @@ public final class RecipeLibrary {
     }
 
     public func reload() async {
-        isLoading = true
-        defer { isLoading = false }
+        defer { hasLoaded = true }
         do {
             recipes = narrowedToEffort(
                 try await narrowedToSlots(

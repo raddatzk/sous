@@ -144,7 +144,9 @@ struct RecipeListView: View {
         // everyone knows from Mail — drag down the ticks, or two fingers
         // anywhere over the rows, and the lot is selected.
         Group {
-            if isPicking {
+            if showsEmptyState {
+                emptyPage
+            } else if isPicking {
                 // Edit mode is what puts the system's own ticks in front of
                 // the rows — and with them the gesture from Mail: drag down
                 // the ticks, or two fingers anywhere, and a run of recipes
@@ -164,6 +166,27 @@ struct RecipeListView: View {
         // the room it stood in does not, leaving the filter chips floating
         // half a title below the field. The list keeps its own spacing.
         .contentMargins(.top, 0, for: .scrollContent)
+        #endif
+    }
+
+    /// The filter bar and what to say about an empty list, scrolling as one.
+    /// Not the list with the message laid over it: the page still bounces,
+    /// and the bar then slid down across a message that stood still. Nor the message as a row —
+    /// inside a list `ContentUnavailableView` draws only its title.
+    private var emptyPage: some View {
+        ScrollView {
+            VStack(spacing: 0) {
+                filterBar
+                    .padding(.horizontal)
+                    .padding(.top, 9)
+                emptyState
+                    .containerRelativeFrame(.vertical) { height, _ in height * 0.7 }
+            }
+        }
+        #if os(iOS)
+        // The grouped list's grey, so that emptying the list does not also
+        // change the colour of the page.
+        .background(Color(.systemGroupedBackground))
         #endif
     }
 
@@ -445,7 +468,6 @@ struct RecipeListView: View {
         // second household got a chevron that opens nothing.
         .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
         .modifier(RecipeSearchField(shows: showsSearch, tokens: tokens))
-        .overlay { emptyState }
         .toolbar { listToolbar }
         .task { await library.reload() }
         // The selected row is what the detail column shows. Kept in sync
@@ -641,35 +663,37 @@ struct RecipeListView: View {
         initialImport.isWaiting && !library.recipes.isEmpty
     }
 
+    // An import in progress is about to fill the list; telling the user
+    // there is nothing here while it counts up says the opposite.
+    private var showsEmptyState: Bool {
+        library.recipes.isEmpty && library.hasLoaded && library.importProgress == nil
+    }
+
     @ViewBuilder
     private var emptyState: some View {
-        // An import in progress is about to fill the list; telling the user
-        // there is nothing here while it counts up says the opposite.
-        if library.recipes.isEmpty, !library.isLoading, library.importProgress == nil {
-            let unfiltered = library.searchText.isEmpty && library.filter == .all
-                && library.activeFilters.isEmpty
-            if unfiltered, initialImport.isWaiting {
-                // Same reason, for the import that does not come from a file:
-                // after a reinstall the library is on its way from iCloud.
-                InitialImportPlaceholder(
-                    title: "Rezepte werden geladen",
-                    description: "Deine Bibliothek kommt aus iCloud. Das kann einen Moment dauern."
-                )
-            } else if unfiltered {
-                ContentUnavailableView {
-                    Label("Noch keine Rezepte", systemImage: "book.closed")
-                } description: {
-                    Text("Lege dein erstes Rezept an oder bring welche mit.")
-                } actions: {
-                    Button("Rezept anlegen") { library.startNewRecipe() }
-                    // The other way in, and the one a cook who has just
-                    // emptied the library needs: without it the import hides
-                    // in a menu behind three dots.
-                    Button("Rezepte importieren") { commands.isImporting = true }
-                }
-            } else {
-                ContentUnavailableView.search
+        let unfiltered = library.searchText.isEmpty && library.filter == .all
+            && library.activeFilters.isEmpty
+        if unfiltered, initialImport.isWaiting {
+            // Same reason, for the import that does not come from a file:
+            // after a reinstall the library is on its way from iCloud.
+            InitialImportPlaceholder(
+                title: "Rezepte werden geladen",
+                description: "Deine Bibliothek kommt aus iCloud. Das kann einen Moment dauern."
+            )
+        } else if unfiltered {
+            ContentUnavailableView {
+                Label("Noch keine Rezepte", systemImage: "book.closed")
+            } description: {
+                Text("Lege dein erstes Rezept an oder bring welche mit.")
+            } actions: {
+                Button("Rezept anlegen") { library.startNewRecipe() }
+                // The other way in, and the one a cook who has just
+                // emptied the library needs: without it the import hides
+                // in a menu behind three dots.
+                Button("Rezepte importieren") { commands.isImporting = true }
             }
+        } else {
+            ContentUnavailableView.search
         }
     }
 

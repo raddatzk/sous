@@ -185,7 +185,6 @@ struct ShoppingListView: View {
             activity.title = "Einkaufsliste"
             activity.isEligibleForHandoff = true
         }
-        .refreshable { await shopping.reload() }
     }
 
     /// Grouped for the walk through the store: unassigned lines first so
