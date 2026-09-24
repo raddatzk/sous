@@ -28,32 +28,60 @@ struct HouseholdSharingSection: View {
         } footer: {
             Text("""
             Wer eingeladen wird, sieht dieselben Rezepte, denselben Essensplan \
-            und dieselbe Einkaufsliste — und kann alles ändern.
+            und dieselbe Einkaufsliste — und kann alles ändern. Am Namen \
+            erkennen alle, die du einlädst, deinen Haushalt neben ihrem eigenen.
             """)
         }
     }
 }
 
-/// The invitation itself: one button, and what to say when there is nothing
-/// behind it.
+/// The invitation itself: the household's name, the button, and what to say
+/// when there is nothing behind them.
 ///
-/// Its own view because the welcome offers the same thing on its last page,
-/// and a second `ShareLink` written out there would be a second set of
+/// The name comes first because inviting is when it starts to matter. Every
+/// household begins as "Mein Haushalt", and somebody who joins one has two
+/// of those in their switcher — so the button waits until this one has a
+/// name of its own, and the invitation carries it.
+///
+/// Its own view because the welcome offers the same thing on its household
+/// page, and a second `ShareLink` written out there would be a second set of
 /// sharing options to keep in step with this one.
 ///
-/// It brings no styling of its own — in the settings it is a row in a form,
-/// in the welcome a prominent button, and that is the caller's business.
+/// It brings no styling of its own — in the settings it is two rows in a
+/// form, in the welcome a field over a prominent button, and that is the
+/// caller's business.
 struct HouseholdShareLink: View {
     let households: CoreDataHouseholds
 
+    /// As typed. Left empty while the household still carries the default:
+    /// that is what everybody's is called, so it names nothing.
+    @State private var name = ""
+
+    private var trimmedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         if SousPersistentContainer.isConfiguredForCloudKit {
+            TextField("Name des Haushalts", text: $name, prompt: Text("z. B. Familie Müller"))
+                .onSubmit(saveName)
+                // Closing the settings is as good as pressing return: a name
+                // typed and left standing was meant.
+                .onDisappear(perform: saveName)
+                .task {
+                    guard let own = try? await households.ownName(),
+                          own != CoreDataHouseholds.defaultName,
+                          name.isEmpty
+                    else { return }
+                    name = own
+                }
             ShareLink(
-                item: HouseholdInvitation(households: households),
-                preview: SharePreview(CoreDataHouseholds.defaultName)
+                item: HouseholdInvitation(households: households, name: trimmedName),
+                preview: SharePreview(trimmedName)
             ) {
                 Label("Haushalt teilen …", systemImage: "person.2")
             }
+            .disabled(trimmedName.isEmpty)
         } else {
             // The one place the quiet local fallback becomes visible:
             // a person about to invite somebody deserves to know why
@@ -65,6 +93,14 @@ struct HouseholdShareLink: View {
                 .foregroundStyle(.secondary)
         }
     }
+
+    /// Only ever renames: a household that does not exist yet is named by
+    /// the invitation that makes it.
+    private func saveName() {
+        let name = trimmedName
+        guard !name.isEmpty else { return }
+        Task { try? await households.rename(to: name) }
+    }
 }
 
 /// The household, as something the share sheet can send.
@@ -74,6 +110,8 @@ struct HouseholdShareLink: View {
 /// cost the sharing concept describes.
 struct HouseholdInvitation: Transferable {
     let households: CoreDataHouseholds
+    /// What the household is called from this invitation on.
+    let name: String
 
     static var transferRepresentation: some TransferRepresentation {
         CKShareTransferRepresentation { invitation in
@@ -90,7 +128,7 @@ struct HouseholdInvitation: Transferable {
                     allowedParticipantAccessOptions: .specifiedRecipientsOnly
                 )
             ) {
-                try await invitation.households.shareForInviting().share
+                try await invitation.households.shareForInviting(named: invitation.name).share
             }
         }
     }
@@ -100,7 +138,6 @@ extension EnvironmentValues {
     /// The household store, for the one screen that offers to share it.
     ///
     /// Optional because the Mac reaches `SettingsForm` through the `Settings`
-    /// scene, where nothing injects anything — and because sharing is an iOS
-    /// surface for now anyway.
+    /// scene, which has to be handed it explicitly.
     @Entry var households: CoreDataHouseholds?
 }

@@ -145,6 +145,34 @@ struct HouseholdTests {
         #expect(try households(in: container).count == 1)
     }
 
+    @Test("Renaming names the own household, trimmed")
+    func renamesOwnHousehold() async throws {
+        let container = try makeContainer()
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
+        let households = CoreDataHouseholds(container: container)
+        #expect(try await households.ownName() == CoreDataHouseholds.defaultName)
+
+        try await households.rename(to: "  Familie Raddatz \n")
+        #expect(try await households.ownName() == "Familie Raddatz")
+
+        // An empty field is not a name; the household keeps the one it had.
+        try await households.rename(to: "   ")
+        #expect(try await households.ownName() == "Familie Raddatz")
+    }
+
+    @Test("Renaming before there is a household founds none")
+    func renamingFoundsNothing() async throws {
+        // A reinstall's library is still on its way from iCloud; a household
+        // made now would be a second one once the first arrives.
+        let container = try makeContainer()
+        let store = CoreDataHouseholds(container: container)
+
+        try await store.rename(to: "Familie Raddatz")
+
+        #expect(try households(in: container).isEmpty)
+        #expect(try await store.ownName() == nil)
+    }
+
     @Test("Asking to invite without CloudKit fails with a sentence, not silence")
     func invitingWithoutCloudKitSaysWhy() async throws {
         // The in-memory container is a plain NSPersistentContainer — the same
@@ -152,7 +180,7 @@ struct HouseholdTests {
         // "Haushalt teilen" there has asked for something, and the answer has
         // to be an error they can read, not a button that does nothing.
         await #expect(throws: HouseholdSharingError.self) {
-            _ = try await CoreDataHouseholds(container: try makeContainer()).shareForInviting()
+            _ = try await CoreDataHouseholds(container: try makeContainer()).shareForInviting(named: "Küche")
         }
     }
 }

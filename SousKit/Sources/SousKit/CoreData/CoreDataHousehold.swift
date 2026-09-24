@@ -169,6 +169,40 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         return try context.fetch(request).first
     }
 
+    /// What this person's own household is called, or `nil` while there is
+    /// none yet.
+    public func ownName() async throws -> String? {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            try CoreDataHouseholds.existing(in: context)?.name
+        }
+    }
+
+    /// Gives this person's own household a new name — the one everybody
+    /// invited into it sees in their switcher.
+    ///
+    /// Only a household that exists: making one is decided elsewhere (see
+    /// `findOrCreate`), and a name typed during a reinstall, before the
+    /// library has arrived from iCloud, must not found a second one. Nothing
+    /// is lost by waiting — inviting names the household as it makes it.
+    public func rename(to name: String) async throws {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        try await context.perform {
+            guard let household = try CoreDataHouseholds.existing(in: context) else { return }
+            Self.rename(household, to: name)
+            if context.hasChanges { try context.save() }
+        }
+    }
+
+    /// Trimmed, and ignored when empty or unchanged — an unchanged name
+    /// would still bump `updatedAt` and send the row through iCloud again.
+    private static func rename(_ household: CDHousehold, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != household.name else { return }
+        household.name = trimmed
+        household.updatedAt = .nowInSyncPrecision
+    }
+
     /// Everything a person could switch to: their own household, if it
     /// exists yet, and every household they joined.
     public func choices() async throws -> [HouseholdChoice] {
@@ -307,7 +341,14 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// Throws where sharing is impossible rather than returning nothing: at
     /// this point a person has asked to invite somebody, and silence would
     /// leave them tapping a button that does nothing.
-    public func shareForInviting() async throws -> (share: CKShare, container: CKContainer) {
+    ///
+    /// `name` is what the household is called from now on — given here, at
+    /// the moment of inviting, because that is when a name starts to matter:
+    /// until somebody else is in it, every household is simply "mine", and
+    /// once somebody is, theirs is too.
+    public func shareForInviting(
+        named name: String
+    ) async throws -> (share: CKShare, container: CKContainer) {
         guard let cloudContainer = container as? NSPersistentCloudKitContainer else {
             throw HouseholdSharingError.notAvailable
         }
@@ -315,6 +356,7 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         let context = SousPersistentContainer.backgroundContext(for: container)
         let (householdID, householdName) = try await context.perform {
             let household = try CoreDataHouseholds.findOrCreate(in: context)
+            Self.rename(household, to: name)
             if context.hasChanges { try context.save() }
             return (household.objectID, household.name)
         }

@@ -85,20 +85,12 @@ struct OnboardingView: View {
                 zusammengezählt auf der Einkaufsliste.
                 """
             case .household:
-                #if os(iOS)
                 """
-                Lade jemanden in deinen Haushalt ein: dieselben Rezepte, \
-                derselbe Plan, dieselbe Einkaufsliste — und beide dürfen alles \
-                ändern. Geht auch später jederzeit in den Einstellungen.
+                Gib deinem Haushalt einen Namen und lade jemanden ein: \
+                dieselben Rezepte, derselbe Plan, dieselbe Einkaufsliste — und \
+                beide dürfen alles ändern. Geht auch später jederzeit in den \
+                Einstellungen.
                 """
-                #else
-                """
-                Auf dem iPhone oder iPad lädst du jemanden in deinen Haushalt \
-                ein: dieselben Rezepte, derselbe Plan, dieselbe Einkaufsliste \
-                — und beide dürfen alles ändern. Geteilt wird dann auf allen \
-                deinen Geräten, hier eingeschlossen.
-                """
-                #endif
             }
         }
 
@@ -228,16 +220,15 @@ struct OnboardingView: View {
                 .pickerStyle(.menu)
                 .buttonStyle(.bordered)
         case .household:
-            // iOS only, and not for want of a Mac API: sharing is an iOS
-            // surface for now, the way the settings' own section is — see
-            // `HouseholdSharingSection`. The Mac's text says so instead of
-            // offering a button that leads nowhere.
-            #if os(iOS)
             if let households {
-                HouseholdShareLink(households: households)
-                    .buttonStyle(.borderedProminent)
+                VStack(spacing: 10) {
+                    HouseholdShareLink(households: households)
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.leading)
+                        .frame(maxWidth: 280)
+                        .buttonStyle(.borderedProminent)
+                }
             }
-            #endif
         case .welcome, .planning:
             EmptyView()
         }
