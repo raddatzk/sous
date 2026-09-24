@@ -710,8 +710,13 @@ struct RecipeListView: View {
 
     @ToolbarContentBuilder
     private var listToolbar: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button("Neues Rezept", systemImage: "plus") { library.startNewRecipe() }
+        // While picking, the bar is about the selection and nothing else:
+        // a new recipe and the library's own menu are answers to questions
+        // nobody asked with a dozen rows ticked.
+        if !isPicking {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Neues Rezept", systemImage: "plus") { library.startNewRecipe() }
+            }
         }
         // Everything in here is in the Mac's menu bar, which is always on
         // screen — so on the Mac the menu would be empty and is left out
@@ -729,45 +734,47 @@ struct RecipeListView: View {
             ToolbarItemGroup(placement: .primaryAction) { pickingActions }
         }
         #if os(iOS)
-        ToolbarItem(placement: .automatic) {
-            Menu("Mehr", systemImage: "ellipsis.circle") {
-                if !isPicking, !library.recipes.isEmpty {
-                    Button("Auswählen", systemImage: "checkmark.circle") {
-                        commands.picked = []
+        if !isPicking {
+            ToolbarItem(placement: .automatic) {
+                Menu("Mehr", systemImage: "ellipsis.circle") {
+                    if !library.recipes.isEmpty {
+                        Button("Auswählen", systemImage: "checkmark.circle") {
+                            commands.picked = []
+                        }
+                        Divider()
+                    }
+                    Button("Zutaten verwalten", systemImage: "carrot") {
+                        commands.panel = .catalog
+                    }
+                    Button("Kategorien verwalten", systemImage: "tag") {
+                        commands.panel = .categories
+                    }
+                    Button("Papierkorb", systemImage: "trash") {
+                        commands.panel = .trash
+                    }
+                    // No Settings entry on the Mac either — it has the Settings
+                    // scene behind Cmd-, — but this whole menu is gone there.
+                    Divider()
+                    Button("Einstellungen", systemImage: "gearshape") {
+                        isShowingSettings = true
                     }
                     Divider()
-                }
-                Button("Zutaten verwalten", systemImage: "carrot") {
-                    commands.panel = .catalog
-                }
-                Button("Kategorien verwalten", systemImage: "tag") {
-                    commands.panel = .categories
-                }
-                Button("Papierkorb", systemImage: "trash") {
-                    commands.panel = .trash
-                }
-                // No Settings entry on the Mac either — it has the Settings
-                // scene behind Cmd-, — but this whole menu is gone there.
-                Divider()
-                Button("Einstellungen", systemImage: "gearshape") {
-                    isShowingSettings = true
-                }
-                Divider()
-                Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
-                    commands.isImporting = true
-                }
-                Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
-                    Task {
-                        if let data = await library.exportedLibrary() {
-                            commands.export = RecipeExport(
-                                data: data,
-                                name: "Rezepte",
-                                contentType: RecipeExport.library
-                            )
+                    Button("Rezepte importieren", systemImage: "square.and.arrow.down") {
+                        commands.isImporting = true
+                    }
+                    Button("Alle Rezepte exportieren", systemImage: "square.and.arrow.up") {
+                        Task {
+                            if let data = await library.exportedLibrary() {
+                                commands.export = RecipeExport(
+                                    data: data,
+                                    name: "Rezepte",
+                                    contentType: RecipeExport.library
+                                )
+                            }
                         }
                     }
                 }
-            }
+        }
         }
         #endif
     }
