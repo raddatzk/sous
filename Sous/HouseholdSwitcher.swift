@@ -12,8 +12,9 @@ import SwiftUI
 @Observable
 final class HouseholdSwitcher {
     private(set) var choices: [HouseholdChoice] = []
-    /// `nil` is the person's own household — also while it does not exist
-    /// yet, which is what an invitation-only member's app looks like.
+    /// The household showing, own or joined. `nil` only while this device
+    /// knows none — a reinstall before its first import — when the screens
+    /// show what was saved in the meantime.
     private(set) var activeID: UUID?
     /// Set when an invitation was just accepted: the next household to appear
     /// in the shared store is the one the person is waiting to see.
@@ -29,15 +30,20 @@ final class HouseholdSwitcher {
         self.onSwitch = onSwitch
         // Restored before anything reads a store, so the first fetch of the
         // session already looks at the household the last session ended in.
+        // Nothing stored is what an update from a build with only one
+        // household looks like, where `nil` meant "mine": starting in the
+        // oldest own one keeps the library on screen from the first fetch.
         activeID = UserDefaults.sous.string(forKey: Self.defaultsKey).flatMap(UUID.init(uuidString:))
+            ?? households.oldestOwnID()
         ActiveHousehold.id = activeID
     }
 
-    /// The joined household's name for the title — `nil` while the own one
+    /// The joined household's name for the title — `nil` while an own one
     /// is active, where the screen keeps its ordinary name.
     var activeName: String? {
-        guard let activeID else { return nil }
-        return choices.first { $0.id == activeID }?.name
+        guard let active = choices.first(where: { $0.id == activeID }), !active.isOwn
+        else { return nil }
+        return active.name
     }
 
     var hasJoined: Bool { choices.contains { !$0.isOwn } }
@@ -54,21 +60,22 @@ final class HouseholdSwitcher {
             return
         }
 
-        // An active household that disappeared — left, revoked, or the
-        // account changed — falls back to the person's own rather than
-        // showing an empty screen with a stale name over it.
-        if let activeID, !choices.contains(where: { $0.id == activeID }) {
-            await switchTo(nil)
+        // None active, or one that disappeared — left, revoked, or the
+        // account changed — falls back to the person's oldest own household
+        // rather than showing an empty screen with a stale name over it.
+        // With no own household yet, there is nothing to fall back to: the
+        // screens keep showing what waits for one until the first import
+        // has settled.
+        if !choices.contains(where: { $0.id == activeID }) {
+            await switchTo(choices.first(where: \.isOwn)?.id)
         }
     }
 
     func switchTo(_ id: UUID?) async {
-        // The own household is represented as nil, whatever its row's id is.
-        let target = choices.first(where: { $0.id == id })?.isOwn == true ? nil : id
-        guard target != activeID else { return }
-        activeID = target
-        ActiveHousehold.id = target
-        UserDefaults.sous.set(target?.uuidString, forKey: Self.defaultsKey)
+        guard id != activeID else { return }
+        activeID = id
+        ActiveHousehold.id = id
+        UserDefaults.sous.set(id?.uuidString, forKey: Self.defaultsKey)
         await onSwitch()
     }
 }

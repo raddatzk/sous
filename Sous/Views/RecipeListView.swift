@@ -967,18 +967,14 @@ private struct HouseholdTitleMenu: ViewModifier {
         }
     }
 
-    /// The households to choose from. The own one is `nil` in the
-    /// switcher's terms, whatever its row's id says.
+    /// The households to choose from.
     @ViewBuilder
     private func menu(_ switcher: HouseholdSwitcher) -> some View {
         ForEach(switcher.choices) { choice in
             Button {
-                Task { await switcher.switchTo(choice.isOwn ? nil : choice.id) }
+                Task { await switcher.switchTo(choice.id) }
             } label: {
-                let isActive = choice.isOwn
-                    ? switcher.activeID == nil
-                    : switcher.activeID == choice.id
-                if isActive {
+                if switcher.activeID == choice.id {
                     Label(choice.name, systemImage: "checkmark")
                 } else {
                     Text(choice.name)

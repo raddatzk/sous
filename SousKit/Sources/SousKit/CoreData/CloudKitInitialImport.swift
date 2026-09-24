@@ -27,6 +27,14 @@ import Observation
 public final class CloudKitInitialImport {
     /// Whether the screens should still expect the library to arrive.
     public private(set) var isWaiting: Bool
+    /// Whether this install's first import has actually brought what iCloud
+    /// holds — unlike `isWaiting`, never true merely because waiting was
+    /// given up. True from the start where nothing is mirrored: there is
+    /// nothing to arrive.
+    ///
+    /// What deciding about households waits for: before it, "no household"
+    /// only means "none delivered yet".
+    public private(set) var hasArrived: Bool
 
     private let defaults: UserDefaults
     private static let defaultsKey = "didFinishInitialCloudKitImport"
@@ -34,6 +42,7 @@ public final class CloudKitInitialImport {
     @ObservationIgnored private var observer: (any NSObjectProtocol)?
     @ObservationIgnored private var quietTimeout: Task<Void, Never>?
     @ObservationIgnored private var waiters: [CheckedContinuation<Void, Never>] = []
+    @ObservationIgnored private var arrivalWaiters: [CheckedContinuation<Void, Never>] = []
     /// A failure followed by a late success must not run the reload twice.
     @ObservationIgnored private var isSettling = false
     /// Run before the screens are told the import is done, so the reload has
@@ -54,9 +63,11 @@ public final class CloudKitInitialImport {
         self.defaults = defaults
         let stores = Set(container.persistentStoreCoordinator.persistentStores.compactMap(\.identifier))
         tracker = Tracker(storeIdentifiers: stores)
-        isWaiting = container is NSPersistentCloudKitContainer
+        let mirrors = container is NSPersistentCloudKitContainer
             && SousPersistentContainer.isConfiguredForCloudKit
-            && !defaults.bool(forKey: Self.defaultsKey)
+        let arrived = !mirrors || defaults.bool(forKey: Self.defaultsKey)
+        hasArrived = arrived
+        isWaiting = !arrived
         guard isWaiting else { return }
 
         // Registered here, synchronously, rather than in a task: the setup
@@ -98,6 +109,13 @@ public final class CloudKitInitialImport {
         await withCheckedContinuation { waiters.append($0) }
     }
 
+    /// Returns once the first import has arrived — at once where it already
+    /// has, and never in a launch where it does not come.
+    public func waitUntilArrived() async {
+        guard !hasArrived else { return }
+        await withCheckedContinuation { arrivalWaiters.append($0) }
+    }
+
     private func handle(_ event: Tracker.Event) {
         switch tracker.record(event) {
         case .waiting:
@@ -105,6 +123,10 @@ public final class CloudKitInitialImport {
         case .arrived:
             defaults.set(true, forKey: Self.defaultsKey)
             stopListening()
+            hasArrived = true
+            let waiting = arrivalWaiters
+            arrivalWaiters = []
+            for waiter in waiting { waiter.resume() }
             settle()
         case .failed:
             // Not remembered, and still listening: a retry that succeeds in

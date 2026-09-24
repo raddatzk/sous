@@ -274,8 +274,7 @@ struct SousApp: App {
             try? await Task.sleep(for: .seconds(1))
             // An import can carry a household this device did not know about,
             // and then there are two. Same rule as at launch, same reason.
-            _ = try? await households.mergeDuplicates()
-            _ = try? await households.adoptOrphanedRows()
+            await joinTheHousehold()
             await switcher.refresh()
             await library.reload()
             await mealPlan.reload()
@@ -288,27 +287,24 @@ struct SousApp: App {
         }
     }
 
-    /// Attaches anything the migration brought over to the household.
+    /// Puts the households in order: folds the ones the app made twice, and
+    /// — once this install's first import has arrived — makes sure there is
+    /// an own household and gives it what was saved while there was none.
     ///
-    /// It does **not** make the shared zone any more, and that is a
-    /// correction rather than an omission. Doing it at launch raced the
-    /// initial import for the same question — which household is the real
-    /// one. On a fresh install the store is empty, so a new household was
-    /// created and given a new zone within a second of starting, while
-    /// CloudKit was still fetching the one that already existed. It then
-    /// found its old zone gone, reported `ZoneDeleted`, and reset the entire
-    /// sync state, taking the import of the existing library with it. The
-    /// library never came back, on every reinstall.
-    ///
-    /// The zone is now made when somebody is actually invited, which is what
-    /// `shareForInviting()` does. The cost is the one the sharing concept
-    /// warned about — the first invitation moves the library into a new zone
-    /// — and it is the smaller cost by a wide margin.
+    /// Not before the import, and that is the lesson of the reinstall: with
+    /// the store still empty, "no household" only means "none delivered yet".
+    /// A household founded on that belief used to be given a zone within a
+    /// second of starting, CloudKit found its old zone gone, reported
+    /// `ZoneDeleted` and reset the whole sync, taking the import with it.
+    /// Zones are now made only when somebody is invited
+    /// (`shareForInviting`), and households only once it is known that
+    /// there are none.
     private func joinTheHousehold() async {
-        // Folding first: adopting orphans into one of two households would
-        // only deepen the split it is about to undo.
+        // Folding first: assigning rows to one of two households would only
+        // deepen the split it is about to undo.
         _ = try? await households.mergeDuplicates()
-        _ = try? await households.adoptOrphanedRows()
+        guard initialImport.hasArrived else { return }
+        _ = try? await households.settle()
     }
 
     /// Moves the household's rows out of the SwiftData store, if any are
@@ -345,12 +341,16 @@ struct SousApp: App {
     }
 
     private func migrateStores() async {
-        // Forced into the own household for the duration: legacy SwiftData
-        // content is this person's by definition, and adopting it while a
-        // joined household is active would write their old recipes into
-        // somebody else's kitchen.
+        // Forced into the oldest own household for the duration: legacy
+        // SwiftData content is this person's by definition — adopting it
+        // while a joined household is active would write their old recipes
+        // into somebody else's kitchen — and it is where earlier launches put
+        // it. The migration runs on every launch and skips what the
+        // destination already holds, so it has to look where the last run
+        // wrote; with no own household yet, that is among the rows waiting
+        // for one.
         let active = ActiveHousehold.id
-        ActiveHousehold.id = nil
+        ActiveHousehold.id = households.oldestOwnID()
         defer { ActiveHousehold.id = active }
         _ = try? await RecipeStoreMigration.run(from: migrationSource, to: migrationDestination)
         await library.reload()
@@ -511,6 +511,14 @@ struct SousApp: App {
                 // the others.
                 .task { registerForCloudKitPushes() }
                 .task { await watchForRemoteChanges() }
+                // A reinstall's first import settles the households the
+                // moment it arrives, rather than whenever the next store
+                // change happens to come by.
+                .task {
+                    await initialImport.waitUntilArrived()
+                    await joinTheHousehold()
+                    await switcher.refresh()
+                }
                 .task {
                     cloudKitLog.start()
                     // The move first, then the reconciliation: the latter

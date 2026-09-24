@@ -31,6 +31,9 @@ struct LibraryWipe {
     let session: CookSession
     let timers: CookTimerCenter
     let calendarMirror: CalendarMirror?
+    /// Where "own" is looked up. Without it the wipe reaches only what waits
+    /// for a household.
+    let households: CoreDataHouseholds?
 
     /// What the cook is about to lose, so the question can name it rather
     /// than asking them to trust a word like "alles".
@@ -73,10 +76,12 @@ struct LibraryWipe {
         await timers.stopAll()
     }
 
-    /// Runs `work` against the cook's own household, whatever is showing.
+    /// Runs `work` against the cook's own household, whatever is showing —
+    /// the oldest they own, which together with what waits for a household
+    /// is everything a build with one household called "mine".
     private func inOwnHousehold<T>(_ work: () async -> T) async -> T {
         let active = ActiveHousehold.id
-        ActiveHousehold.id = nil
+        ActiveHousehold.id = households?.oldestOwnID()
         defer { ActiveHousehold.id = active }
         return await work()
     }

@@ -3,44 +3,39 @@ import Foundation
 import Testing
 @testable import SousKit
 
+/// No household active in any of these — the state of a fresh install
+/// before its first import, and of every other suite. Tests that choose a
+/// household live in `HouseholdSwitchingTests`, which runs serialized.
 @Suite("The household every row belongs to")
 struct HouseholdTests {
     private func makeContainer() throws -> NSPersistentContainer {
         try SousPersistentContainer.make(inMemory: true)
     }
 
-    private func households(in container: NSPersistentContainer) throws -> [CDHousehold] {
+    /// A household as plain values — the managed object would outlive its
+    /// context here and read back empty.
+    private struct Row {
+        let id: UUID?
+        let name: String
+        let isDeliberate: Bool
+    }
+
+    private func households(in container: NSPersistentContainer) throws -> [Row] {
         let context = container.newBackgroundContext()
         return try context.performAndWait {
             let request = NSFetchRequest<CDHousehold>(
                 entityName: SousManagedObjectModel.householdEntityName
             )
-            return try context.fetch(request)
+            request.sortDescriptors = CoreDataHouseholds.oldestFirst
+            return try context.fetch(request).map {
+                Row(id: $0.id, name: $0.name, isDeliberate: $0.isDeliberate)
+            }
         }
     }
 
-    @Test("A saved recipe joins the household without anybody saying so")
-    func insertsJoinTheHousehold() async throws {
-        let container = try makeContainer()
-        let store = CoreDataRecipeStore(container: container)
-
-        try await store.save(Recipe(title: "Brot"))
-
-        let context = container.newBackgroundContext()
-        try await context.perform {
-            let request = CDRecipe.fetchRequest()
-            let row = try #require(try context.fetch(request).first)
-            // Nothing in CoreDataRecipeStore mentions a household. If this
-            // holds, no future insert path can forget it either.
-            #expect(row.household != nil)
-            #expect(row.household?.name == CoreDataHouseholds.defaultName)
-        }
-    }
-
-    @Test("Every kind of row lands in the same household")
-    func oneHouseholdForTheWholeLibrary() async throws {
-        let container = try makeContainer()
-
+    /// Recipe, plan entry, shopping line and taught ingredient — one row of
+    /// every kind a person writes by hand.
+    private func writeOneOfEverything(into container: NSPersistentContainer) async throws {
         let recipe = try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
         try await CoreDataMealPlanStore(container: container)
             .save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
@@ -48,63 +43,138 @@ struct HouseholdTests {
             .addManual(key: "mehl", name: "Mehl", category: .grains, quantities: [])
         _ = try await CoreDataVocabularyStore(container: container)
             .save(IngredientVocabularyEntry(name: "Ajvar", isOwnIngredient: true))
+    }
 
-        // One library, one zone: several households would mean rows that can
-        // never be shared together.
-        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
-        #expect(try households(in: container).count == 1)
+    /// Long enough for the next household's millisecond timestamp to differ,
+    /// so "oldest first" is the order they were made in.
+    private func pause() async throws {
+        try await Task.sleep(for: .milliseconds(5))
+    }
 
+    private func rowsWithoutHousehold(in container: NSPersistentContainer) throws -> Int {
         let context = container.newBackgroundContext()
-        try await context.perform {
+        return try context.performAndWait {
+            var count = 0
             for entity in SousManagedObjectModel.memberEntityNames {
                 let request = NSFetchRequest<NSManagedObject>(entityName: entity)
-                for row in try context.fetch(request) {
-                    #expect(row.value(forKey: "household") != nil)
-                }
+                request.predicate = NSPredicate(format: "household == nil")
+                count += try context.count(for: request)
             }
+            return count
         }
     }
 
-    @Test("Rows written before the household existed are taken in")
-    func adoptsOrphanedRows() async throws {
+    @Test("With no household known, what is saved waits without one")
+    func contentBeforeTheImportWaits() async throws {
         let container = try makeContainer()
-        let store = CoreDataRecipeStore(container: container)
-        try await store.save(Recipe(title: "Brot"))
 
-        // What a row migrated out of SwiftData by an older build looks like:
-        // present, correct, and hanging off nothing.
-        let context = container.newBackgroundContext()
-        try await context.perform {
-            for row in try context.fetch(CDRecipe.fetchRequest()) {
-                row.household = nil
-            }
-            try context.save()
-        }
+        try await writeOneOfEverything(into: container)
 
-        let adopted = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
-
-        #expect(adopted == 1)
-        try await context.perform {
-            let row = try #require(try context.fetch(CDRecipe.fetchRequest()).first)
-            #expect(row.household != nil)
-        }
+        // A reinstall before its first import: whatever is saved now must
+        // not found a household, or a stray one reaches every device the
+        // moment the real ones arrive.
+        #expect(try households(in: container).isEmpty)
+        #expect(try rowsWithoutHousehold(in: container) > 0)
+        // Still there to be seen and used.
+        let titles = try await CoreDataRecipeStore(container: container).recipes(matching: .all).map(\.title)
+        #expect(titles == ["Brot"])
     }
 
-    @Test("A second household is folded into the first, and takes its rows along")
-    func mergesDuplicates() async throws {
+    @Test("Settling an account without a household founds one and takes in what waited")
+    func settlingFoundsTheHousehold() async throws {
+        let container = try makeContainer()
+        try await writeOneOfEverything(into: container)
+        let waiting = try rowsWithoutHousehold(in: container)
+
+        let settlement = try await CoreDataHouseholds(container: container).settle()
+
+        #expect(settlement == HouseholdSettlement(founded: true, assigned: waiting, unassigned: 0))
+        let all = try households(in: container)
+        #expect(all.count == 1)
+        #expect(all.first?.name == CoreDataHouseholds.defaultName)
+        // Made by the app, not by a person: foldable if a second device made
+        // one at the same moment.
+        #expect(all.first?.isDeliberate == false)
+        #expect(try rowsWithoutHousehold(in: container) == 0)
+    }
+
+    @Test("Settling founds a household even with nothing waiting")
+    func settlingAnEmptyAccount() async throws {
+        // Once the first import has arrived there is never no household —
+        // the share extension needs somewhere to write.
+        let container = try makeContainer()
+
+        let settlement = try await CoreDataHouseholds(container: container).settle()
+
+        #expect(settlement == HouseholdSettlement(founded: true, assigned: 0, unassigned: 0))
+        #expect(try households(in: container).count == 1)
+    }
+
+    @Test("Settling again changes nothing")
+    func settlingIsIdempotent() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await writeOneOfEverything(into: container)
+        try await households.settle()
+
+        let again = try await households.settle()
+
+        #expect(again == HouseholdSettlement(founded: false, assigned: 0, unassigned: 0))
+        #expect(try self.households(in: container).count == 1)
+    }
+
+    @Test("With several own households, what waited stays unassigned")
+    func severalHouseholdsLeaveTheChoice() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        // The iPhone's "Familie" and "WG", arrived on a reinstalled iPad
+        // after it had already saved a recipe.
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
+        try await households.create(named: "Familie")
+        try await households.create(named: "WG")
+
+        let settlement = try await households.settle()
+
+        #expect(settlement == HouseholdSettlement(founded: false, assigned: 0, unassigned: 1))
+        #expect(try self.households(in: container).count == 2)
+    }
+
+    @Test("A created household is named, deliberate, and never folded away")
+    func createdHouseholdsStay() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        // The one the app made for this account, then two the person made.
+        try await households.settle()
+        try await pause()
+        try await households.create(named: "  Familie \n")
+        try await pause()
+        try await households.create(named: "WG")
+
+        let folded = try await households.mergeDuplicates()
+
+        #expect(folded == 0)
+        let all = try self.households(in: container)
+        #expect(all.map(\.name) == [CoreDataHouseholds.defaultName, "Familie", "WG"])
+        #expect(all.map(\.isDeliberate) == [false, true, true])
+        #expect(try await households.choices().map(\.name) == all.map(\.name))
+    }
+
+    @Test("A second household the app made is folded into the first, with its rows")
+    func mergesImplicitDuplicates() async throws {
         let container = try makeContainer()
         let store = CoreDataRecipeStore(container: container)
-        _ = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
         try await store.save(Recipe(title: "Brot"))
+        try await CoreDataHouseholds(container: container).settle()
 
-        // What a reinstall used to leave behind, and what an import can still
-        // deliver: a second household, with a recipe of its own hanging off it.
+        // What two devices set up at the same moment on a new account leave
+        // behind: a second "Mein Haushalt", with a recipe of its own.
         let context = container.newBackgroundContext()
         try await context.perform {
             let second = CDHousehold(context: context)
             second.id = UUID()
-            second.name = "Zweiter"
-            second.createdAt = .nowInSyncPrecision
+            second.name = CoreDataHouseholds.defaultName
+            // Made a moment later, on the other device.
+            second.createdAt = Date.nowInSyncPrecision.addingTimeInterval(1)
             second.updatedAt = .nowInSyncPrecision
             let stray = CDRecipe(context: context)
             stray.id = UUID()
@@ -118,38 +188,37 @@ struct HouseholdTests {
         let folded = try await CoreDataHouseholds(container: container).mergeDuplicates()
 
         #expect(folded == 1)
+        let survivor = try #require(try households(in: container).first)
         #expect(try households(in: container).count == 1)
-        // Both recipes survive, under the household that was there first.
-        let titles = try await store.recipes(matching: .all).map(\.title).sorted()
-        #expect(titles == ["Brot", "Suppe"])
-        try await context.perform {
-            for row in try context.fetch(CDRecipe.fetchRequest()) {
-                #expect(row.household != nil)
+        // A fresh context: the one above still holds the rows as it wrote them.
+        let reading = container.newBackgroundContext()
+        try await reading.perform {
+            let rows = try reading.fetch(CDRecipe.fetchRequest())
+            #expect(rows.count == 2)
+            for row in rows {
+                #expect(row.household?.id == survivor.id)
             }
         }
     }
 
-    @Test("The own household is founded by the first content, not by launch")
-    func firstContentFoundsTheHousehold() async throws {
+    @Test("The oldest own household is where a device without a choice starts")
+    func oldestOwnID() async throws {
         let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        #expect(households.oldestOwnID() == nil)
 
-        // Launch with nothing to show: no household is conjured up. An
-        // invitation-only member stays household-less and lives entirely in
-        // the one they joined.
-        let adopted = try await CoreDataHouseholds(container: container).adoptOrphanedRows()
-        #expect(adopted == 0)
-        #expect(try households(in: container).isEmpty)
+        let first = try await households.create(named: "Familie")
+        try await pause()
+        try await households.create(named: "WG")
 
-        // The first own recipe is the founding act.
-        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
-        #expect(try households(in: container).count == 1)
+        #expect(households.oldestOwnID() == first)
     }
 
     @Test("Renaming names the own household, trimmed")
     func renamesOwnHousehold() async throws {
         let container = try makeContainer()
-        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
         let households = CoreDataHouseholds(container: container)
+        try await households.settle()
         #expect(try await households.ownName() == CoreDataHouseholds.defaultName)
 
         try await households.rename(to: "  Familie Raddatz \n")
@@ -186,11 +255,109 @@ struct HouseholdTests {
 }
 
 /// Serialized, because the active household is process-wide state — the same
-/// way it is in the app.
+/// way it is in the app. Other suites are not disturbed: an id set here names
+/// a household only in this suite's containers, and everywhere else reads as
+/// no household at all.
 @Suite("Switching households", .serialized)
 struct HouseholdSwitchingTests {
-    @Test("An active household nothing holds falls back to the person's own")
-    func fallsBackToOwn() async throws {
+    private struct Stores {
+        let recipes: CoreDataRecipeStore
+        let plan: CoreDataMealPlanStore
+        let shopping: CoreDataShoppingListStore
+        let vocabulary: CoreDataVocabularyStore
+
+        init(_ container: NSPersistentContainer) {
+            recipes = CoreDataRecipeStore(container: container)
+            plan = CoreDataMealPlanStore(container: container)
+            shopping = CoreDataShoppingListStore(container: container)
+            vocabulary = CoreDataVocabularyStore(container: container)
+        }
+
+        /// A recipe, its plan entry, a shopping line and a taught ingredient,
+        /// all carrying `name`.
+        func write(_ name: String) async throws {
+            let recipe = try await recipes.save(Recipe(title: name))
+            try await plan.save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
+            try await shopping.addManual(key: name.lowercased(), name: name, category: nil, quantities: [])
+            _ = try await vocabulary.save(IngredientVocabularyEntry(name: name, isOwnIngredient: true))
+        }
+
+        /// What the four stores show, one list per kind.
+        func read() async throws -> [[String]] {
+            let titles = try await recipes.recipes(matching: .all).map(\.title).sorted()
+            let planned = try await plan.poolEntries().count
+            let lines = try await shopping.snapshot().items.map(\.name).sorted()
+            let taught = try await vocabulary.entries().map(\.name).sorted()
+            return [titles, ["\(planned)"], lines, taught]
+        }
+    }
+
+    @Test("Two own households never see each other's rows")
+    func ownHouseholdsAreApart() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let households = CoreDataHouseholds(container: container)
+        let stores = Stores(container)
+        let familie = try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+
+        ActiveHousehold.id = familie
+        try await stores.write("Brot")
+        ActiveHousehold.id = wg
+        try await stores.write("Suppe")
+
+        #expect(try await stores.read() == [["Suppe"], ["1"], ["Suppe"], ["Suppe"]])
+        ActiveHousehold.id = familie
+        #expect(try await stores.read() == [["Brot"], ["1"], ["Brot"], ["Brot"]])
+    }
+
+    @Test("What waits for a household shows in every own household")
+    func waitingRowsShowEverywhere() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let households = CoreDataHouseholds(container: container)
+        let recipes = CoreDataRecipeStore(container: container)
+
+        // Saved during a reinstall, before any household had arrived.
+        ActiveHousehold.id = nil
+        try await recipes.save(Recipe(title: "Brot"))
+        let familie = try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+        #expect(try await households.settle().unassigned == 1)
+
+        // Unassigned, but not gone: whichever of the two is showing has it,
+        // until the person says where it belongs.
+        for id in [familie, wg] {
+            ActiveHousehold.id = id
+            #expect(try await recipes.recipes(matching: .all).map(\.title) == ["Brot"])
+        }
+    }
+
+    @Test("A new row joins the active household")
+    func insertsJoinTheActiveHousehold() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let households = CoreDataHouseholds(container: container)
+        try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+
+        ActiveHousehold.id = wg
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
+
+        let context = container.newBackgroundContext()
+        try await context.perform {
+            let row = try #require(try context.fetch(CDRecipe.fetchRequest()).first)
+            // Nothing in CoreDataRecipeStore mentions a household. If this
+            // holds, no future insert path can forget it either.
+            #expect(row.household?.id == wg)
+        }
+    }
+
+    @Test("An active household nothing holds loses nothing that is written")
+    func unknownActiveHousehold() async throws {
         let before = ActiveHousehold.id
         defer { ActiveHousehold.id = before }
         // Names a household no store on this device has — the state after
@@ -201,8 +368,8 @@ struct HouseholdSwitchingTests {
         let store = CoreDataRecipeStore(container: container)
         try await store.save(Recipe(title: "Brot"))
 
-        // Both the write and the read land in the own household rather than
-        // vanishing into a scope that does not exist.
+        // Both the write and the read land among the rows waiting for a
+        // household rather than vanishing into a scope that does not exist.
         #expect(try await store.recipes(matching: .all).map(\.title) == ["Brot"])
     }
 }

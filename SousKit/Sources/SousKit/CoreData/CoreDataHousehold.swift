@@ -11,6 +11,7 @@ final class CDHousehold: NSManagedObject {
     @NSManaged var name: String
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
+    @NSManaged var isDeliberate: Bool
 }
 
 /// A row that belongs to a household.
@@ -38,54 +39,43 @@ class CDHouseholdMember: NSManagedObject {
         guard context.transactionAuthor == SousPersistentContainer.appTransactionAuthor
         else { return }
 
-        // Writing into a joined household. The row has to live in the shared
-        // store as well, because a relationship cannot reach across store
-        // files — a recipe in the private file cannot point at a household
-        // in the shared one.
+        // Into the active household, in the store that holds it — own or
+        // joined. Assigned to that store immediately, not left for the save
+        // to decide: a relationship cannot reach across store files, and
+        // scoped fetches restrict by store, so a pending insert with no store
+        // affiliation is invisible to them — which made a shopping capture
+        // create its item and then fail to find it two lines later.
         if let activeID = ActiveHousehold.id,
-           let joined = try? CoreDataHouseholds.joined(id: activeID, in: context) {
-            if let coordinator = context.persistentStoreCoordinator,
-               let shared = SousPersistentContainer.sharedStore(in: coordinator) {
-                context.assign(self, to: shared)
+           let active = try? CoreDataHouseholds.household(id: activeID, in: context) {
+            if let store = CoreDataHouseholds.store(of: active, in: context) {
+                context.assign(self, to: store)
             }
-            household = joined
+            household = active
             return
         }
 
-        // Assigned to its store immediately, not left for the save to
-        // decide: scoped fetches restrict by store, and a pending insert
-        // with no store affiliation is invisible to them — which made a
-        // shopping capture create its item and then fail to find it two
-        // lines later, filing the next amount under a duplicate.
+        // No household known yet. The row waits without one, in the private
+        // store, until `CoreDataHouseholds.settle` knows which households
+        // exist. Founding one here is what a reinstall used to do while
+        // iCloud was still delivering the real ones, leaving a stray
+        // household on every device.
         if let coordinator = context.persistentStoreCoordinator,
            let own = SousPersistentContainer.privateStore(in: coordinator) {
             context.assign(self, to: own)
         }
-        // The own household comes into being with the first thing that
-        // belongs to it — not at launch, where an invitation-only member
-        // would get an empty one beside the household they joined. The
-        // duplicate a reinstall race can still make is folded away by
-        // `mergeDuplicates`; what that race can no longer do is create a
-        // zone, which was the part that hurt.
-        household = try? CoreDataHouseholds.findOrCreate(in: context)
     }
 }
 
-/// The household a store writes into.
-///
-/// Every store asks this before inserting, and the answer is the same object
-/// for all of them, which is what keeps one library in one zone. It is
-/// find-or-create rather than a setup step: the share extension runs no
-/// migrations and may well be the first thing to open the store after an
-/// update, so "there is no household yet" has to be an ordinary case rather
-/// than a broken one.
+/// The households on this device: the ones this person owns, in the private
+/// store, and the ones they joined, in the shared one.
 ///
 /// One per container, because the identity that matters is the row in the
 /// store, not this object.
 public final class CoreDataHouseholds: @unchecked Sendable {
     private static let log = Logger(subsystem: "me.raddatz.sous", category: "household")
 
-    /// What the cook's own household is called until anybody renames it.
+    /// What a household the app makes for a person is called until anybody
+    /// renames it.
     public static let defaultName = "Mein Haushalt"
 
     private let container: NSPersistentContainer
@@ -94,47 +84,82 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         self.container = container
     }
 
-    /// The household this device writes into, created on first ask.
-    ///
-    /// Called inside the caller's own `perform`, so it takes the context it
-    /// is already on rather than opening another.
-    /// This device's household, or `nil` if it does not have one yet.
-    ///
-    /// The oldest wins, and that rule is what keeps two devices agreeing:
-    /// both see the same rows and both pick the same one, without asking
-    /// each other.
-    static func existing(in context: NSManagedObjectContext) throws -> CDHousehold? {
-        try households(in: context).first
+    // MARK: Finding households
+
+    /// Oldest first, and the id after that: timestamps carry milliseconds,
+    /// two devices can land on the same one, and "the oldest" has to be the
+    /// same household on both.
+    static var oldestFirst: [NSSortDescriptor] {
+        [
+            NSSortDescriptor(key: "createdAt", ascending: true),
+            NSSortDescriptor(key: "id", ascending: true),
+        ]
     }
 
     /// Every household this person owns, oldest first.
     ///
     /// Only their own store. Households they joined live in the shared one,
-    /// and the oldest row across both could easily be somebody else's —
-    /// which would make tonight's recipe a contribution to their library
-    /// rather than to this one.
+    /// and the oldest row across both could easily be somebody else's.
     private static func households(in context: NSManagedObjectContext) throws -> [CDHousehold] {
         let request = NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName)
-        request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
+        request.sortDescriptors = oldestFirst
         request.affectedStores = ownStores(for: context)
         return try context.fetch(request)
     }
 
-    /// This device's household, made if there is none.
+    /// A household by id, own or joined.
     ///
-    /// Deliberately **not** what an insert calls. A fresh install has an
-    /// empty store and an import on the way, and creating a household in that
-    /// second means creating a second one — the copy already in iCloud
-    /// arrives moments later, and from then on the library is split between
-    /// two households that can never be shared together. So a row joins the
-    /// household that exists, and making one is a decision taken once, at
-    /// launch, after the import has had its chance.
-    static func findOrCreate(in context: NSManagedObjectContext) throws -> CDHousehold {
-        if let existing = try existing(in: context) { return existing }
+    /// Both stores at once: an id lives in exactly one of them — the owner's
+    /// private store, or a member's shared one — so the answer cannot be
+    /// ambiguous.
+    static func household(id: UUID, in context: NSManagedObjectContext) throws -> CDHousehold? {
+        let request = NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName)
+        request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+        request.fetchLimit = 1
+        return try context.fetch(request).first
+    }
 
+    /// The store a household's rows belong in.
+    ///
+    /// One made in this context and not saved yet has no store on its object
+    /// id; it was made here, so it is this person's own.
+    static func store(of household: CDHousehold, in context: NSManagedObjectContext) -> NSPersistentStore? {
+        if let store = household.objectID.persistentStore { return store }
+        guard let coordinator = context.persistentStoreCoordinator else { return nil }
+        return SousPersistentContainer.privateStore(in: coordinator)
+    }
+
+    /// The store holding the household with this id, or `nil` if none does.
+    static func store(ofHousehold id: UUID, in context: NSManagedObjectContext) throws -> NSPersistentStore? {
+        try household(id: id, in: context).flatMap { store(of: $0, in: context) }
+    }
+
+    /// The own household something without a household of its own acts on:
+    /// the active one if it is this person's, otherwise the oldest they own.
+    private static func ownTarget(in context: NSManagedObjectContext) throws -> CDHousehold? {
+        let own = try households(in: context)
+        if let activeID = ActiveHousehold.id, let active = own.first(where: { $0.id == activeID }) {
+            return active
+        }
+        return own.first
+    }
+
+    /// The persistent store this device writes its own rows into, as the one
+    /// element of a list, which is the shape a fetch request wants.
+    private static func ownStores(for context: NSManagedObjectContext) -> [NSPersistentStore]? {
+        guard let coordinator = context.persistentStoreCoordinator else { return nil }
+        return SousPersistentContainer.privateStore(in: coordinator).map { [$0] }
+    }
+
+    private static func makeHousehold(
+        named name: String,
+        deliberately: Bool,
+        in context: NSManagedObjectContext
+    ) -> CDHousehold {
         let made = CDHousehold(context: context)
         made.id = UUID()
-        made.name = defaultName
+        made.name = name
+        made.isDeliberate = deliberately
         made.createdAt = .nowInSyncPrecision
         made.updatedAt = .nowInSyncPrecision
         if let store = ownStores(for: context)?.first {
@@ -145,50 +170,92 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         return made
     }
 
-    /// The persistent store this device writes its own rows into, as the one
-    /// element of a list, which is the shape a fetch request wants.
-    private static func ownStores(for context: NSManagedObjectContext) -> [NSPersistentStore]? {
-        guard let coordinator = context.persistentStoreCoordinator else { return nil }
-        return SousPersistentContainer.privateStore(in: coordinator).map { [$0] }
-    }
-
-    /// A household this person was invited into, by id.
+    /// The oldest household this person owns — where a device that has not
+    /// chosen one starts, and where content from before households existed
+    /// belongs.
     ///
-    /// Looked up in the shared store only: that is where joined households
-    /// live, and an id that matches nothing there is not one to write into.
-    static func joined(id: UUID, in context: NSManagedObjectContext) throws -> CDHousehold? {
-        guard let coordinator = context.persistentStoreCoordinator,
-              let shared = SousPersistentContainer.sharedStore(in: coordinator)
-        else { return nil }
-        let request = NSFetchRequest<CDHousehold>(
-            entityName: SousManagedObjectModel.householdEntityName
-        )
-        request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
-        request.affectedStores = [shared]
-        request.fetchLimit = 1
-        return try context.fetch(request).first
-    }
-
-    /// What this person's own household is called, or `nil` while there is
-    /// none yet.
-    public func ownName() async throws -> String? {
+    /// Synchronous, because the switch needs it before the first fetch of a
+    /// session: an update from a build that knew only one household arrives
+    /// with nothing chosen, and a library read with nothing chosen shows only
+    /// what has no household — an empty screen for as long as the launch
+    /// takes to decide.
+    public func oldestOwnID() -> UUID? {
         let context = SousPersistentContainer.backgroundContext(for: container)
-        return try await context.perform {
-            try CoreDataHouseholds.existing(in: context)?.name
+        return context.performAndWait {
+            (try? CoreDataHouseholds.households(in: context))?.first?.id
         }
     }
 
-    /// Gives this person's own household a new name — the one everybody
+    /// Everything a person could switch to: every household they own, oldest
+    /// first, then every household they joined.
+    public func choices() async throws -> [HouseholdChoice] {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            var result: [HouseholdChoice] = []
+            for own in try CoreDataHouseholds.households(in: context) {
+                guard let id = own.id else { continue }
+                result.append(HouseholdChoice(id: id, name: own.name, isOwn: true))
+            }
+            if let coordinator = context.persistentStoreCoordinator,
+               let shared = SousPersistentContainer.sharedStore(in: coordinator) {
+                let request = NSFetchRequest<CDHousehold>(
+                    entityName: SousManagedObjectModel.householdEntityName
+                )
+                request.affectedStores = [shared]
+                request.sortDescriptors = CoreDataHouseholds.oldestFirst
+                for household in try context.fetch(request) {
+                    guard let id = household.id else { continue }
+                    result.append(HouseholdChoice(id: id, name: household.name, isOwn: false))
+                }
+            }
+            return result
+        }
+    }
+
+    // MARK: Making and naming
+
+    /// A new household, made by a person and named by them. It is never
+    /// folded into another.
+    ///
+    /// Empty until something is written into it, which the caller arranges
+    /// by making it the active one.
+    @discardableResult
+    public func create(named name: String) async throws -> UUID {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let made = CoreDataHouseholds.makeHousehold(
+                named: trimmed.isEmpty ? CoreDataHouseholds.defaultName : trimmed,
+                deliberately: true,
+                in: context
+            )
+            try context.save()
+            // Always set by `makeHousehold`; the attribute is optional only
+            // because CloudKit asks every attribute to be.
+            return made.id ?? UUID()
+        }
+    }
+
+    /// What the household sharing acts on is called — the active household
+    /// if it is this person's, otherwise the oldest they own — or `nil`
+    /// while they own none.
+    public func ownName() async throws -> String? {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            try CoreDataHouseholds.ownTarget(in: context)?.name
+        }
+    }
+
+    /// Gives the household sharing acts on a new name — the one everybody
     /// invited into it sees in their switcher.
     ///
-    /// Only a household that exists: making one is decided elsewhere (see
-    /// `findOrCreate`), and a name typed during a reinstall, before the
-    /// library has arrived from iCloud, must not found a second one. Nothing
-    /// is lost by waiting — inviting names the household as it makes it.
+    /// Only a household that exists: a name typed during a reinstall, before
+    /// the households have arrived from iCloud, must not found another one.
+    /// Nothing is lost by waiting — inviting names the household it shares.
     public func rename(to name: String) async throws {
         let context = SousPersistentContainer.backgroundContext(for: container)
         try await context.perform {
-            guard let household = try CoreDataHouseholds.existing(in: context) else { return }
+            guard let household = try CoreDataHouseholds.ownTarget(in: context) else { return }
             Self.rename(household, to: name)
             if context.hasChanges { try context.save() }
         }
@@ -203,30 +270,110 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         household.updatedAt = .nowInSyncPrecision
     }
 
-    /// Everything a person could switch to: their own household, if it
-    /// exists yet, and every household they joined.
-    public func choices() async throws -> [HouseholdChoice] {
+    // MARK: Keeping it tidy
+
+    /// Puts the households in order once this device knows which ones
+    /// exist — after its first import has arrived, or at once where nothing
+    /// is mirrored.
+    ///
+    /// Not earlier, and that is the point: before the import, "no household"
+    /// only means "none delivered yet", and a household founded on that
+    /// belief is a stray on every device a minute later.
+    ///
+    /// Two things, in this order:
+    /// * An account without a household of its own gets one — the only way
+    ///   the app ever makes one unasked.
+    /// * Rows saved without a household join the own one, if there is
+    ///   exactly one. With several the app cannot know which was meant, and
+    ///   they stay unassigned — still visible in every own household — for
+    ///   the person to decide.
+    @discardableResult
+    public func settle() async throws -> HouseholdSettlement {
         let context = SousPersistentContainer.backgroundContext(for: container)
         return try await context.perform {
-            var result: [HouseholdChoice] = []
-            if let own = try CoreDataHouseholds.existing(in: context), let id = own.id {
-                result.append(HouseholdChoice(id: id, name: own.name, isOwn: true))
+            var own = try CoreDataHouseholds.households(in: context)
+            var founded = false
+            if own.isEmpty {
+                own = [CoreDataHouseholds.makeHousehold(
+                    named: CoreDataHouseholds.defaultName,
+                    deliberately: false,
+                    in: context
+                )]
+                founded = true
             }
-            if let coordinator = context.persistentStoreCoordinator,
-               let shared = SousPersistentContainer.sharedStore(in: coordinator) {
-                let request = NSFetchRequest<CDHousehold>(
-                    entityName: SousManagedObjectModel.householdEntityName
-                )
-                request.affectedStores = [shared]
-                request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: true)]
-                for household in try context.fetch(request) {
-                    guard let id = household.id else { continue }
-                    result.append(HouseholdChoice(id: id, name: household.name, isOwn: false))
+
+            var orphans: [NSManagedObject] = []
+            for entity in SousManagedObjectModel.memberEntityNames {
+                let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+                request.predicate = NSPredicate(format: "household == nil")
+                // A row in a household somebody else owns is not orphaned,
+                // it belongs to them.
+                request.affectedStores = CoreDataHouseholds.ownStores(for: context)
+                orphans.append(contentsOf: try context.fetch(request))
+            }
+
+            var assigned = 0
+            if own.count == 1, let only = own.first {
+                for row in orphans {
+                    row.setValue(only, forKey: "household")
                 }
+                assigned = orphans.count
             }
-            return result
+            if context.hasChanges { try context.save() }
+
+            let settlement = HouseholdSettlement(
+                founded: founded,
+                assigned: assigned,
+                unassigned: orphans.count - assigned
+            )
+            if settlement != HouseholdSettlement(founded: false, assigned: 0, unassigned: 0) {
+                Self.log.info("Settled households: founded \(founded, privacy: .public), assigned \(assigned, privacy: .public), unassigned \(settlement.unassigned, privacy: .public)")
+            }
+            return settlement
         }
     }
+
+    /// Folds the households the app made on its own into one.
+    ///
+    /// Two devices set up at the same moment on a brand-new account both
+    /// find no household after their first import and both make one; older
+    /// builds made one per install as well. Left alone, the library ends up
+    /// split between two "Mein Haushalt" — and nothing about that looks
+    /// wrong on screen, because every recipe is still there.
+    ///
+    /// Only households the app made. One a person made with a name is never
+    /// touched: two of those side by side is what they asked for.
+    ///
+    /// The oldest wins, so two devices doing this independently reach the
+    /// same answer without talking to each other.
+    ///
+    /// Returns how many were folded away.
+    @discardableResult
+    public func mergeDuplicates() async throws -> Int {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            let implicit = try CoreDataHouseholds.households(in: context).filter { !$0.isDeliberate }
+            guard let survivor = implicit.first, implicit.count > 1 else { return 0 }
+
+            for doomed in implicit.dropFirst() {
+                for entity in SousManagedObjectModel.memberEntityNames {
+                    let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+                    request.predicate = NSPredicate(format: "household == %@", doomed)
+                    for row in try context.fetch(request) {
+                        row.setValue(survivor, forKey: "household")
+                    }
+                }
+                context.delete(doomed)
+            }
+
+            if context.hasChanges { try context.save() }
+            let folded = implicit.count - 1
+            Self.log.info("Folded \(folded, privacy: .public) duplicate household(s) into one.")
+            return folded
+        }
+    }
+
+    // MARK: Sharing
 
     /// Takes an invitation somebody tapped and files the household it opens
     /// into the shared store.
@@ -355,7 +502,10 @@ public final class CoreDataHouseholds: @unchecked Sendable {
 
         let context = SousPersistentContainer.backgroundContext(for: container)
         let (householdID, householdName) = try await context.perform {
-            let household = try CoreDataHouseholds.findOrCreate(in: context)
+            // Inviting is a deliberate act with a name, so a person who owns
+            // no household yet gets one here that can never be folded away.
+            let household = try CoreDataHouseholds.ownTarget(in: context)
+                ?? CoreDataHouseholds.makeHousehold(named: name, deliberately: true, in: context)
             Self.rename(household, to: name)
             if context.hasChanges { try context.save() }
             return (household.objectID, household.name)
@@ -388,81 +538,17 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         return (share, ckContainer)
     }
 
-    /// Folds several of this person's households into one.
-    ///
-    /// They can appear despite `awakeFromInsert` never making one: an older
-    /// build made them per install, two devices can decide at the same
-    /// moment that there is none, and an import can deliver one just after
-    /// this device concluded there was not. Left alone, the library ends up
-    /// split between households that can never be shared as a whole — and
-    /// nothing about that looks wrong on screen, because every recipe is
-    /// still there.
-    ///
-    /// The oldest wins, which is the same rule `existing` applies, so two
-    /// devices doing this independently reach the same answer without
-    /// talking to each other.
-    ///
-    /// Returns how many were folded away.
-    @discardableResult
-    public func mergeDuplicates() async throws -> Int {
-        let context = SousPersistentContainer.backgroundContext(for: container)
-        return try await context.perform {
-            let all = try CoreDataHouseholds.households(in: context)
-            guard let survivor = all.first, all.count > 1 else { return 0 }
+}
 
-            for doomed in all.dropFirst() {
-                for entity in SousManagedObjectModel.memberEntityNames {
-                    let request = NSFetchRequest<NSManagedObject>(entityName: entity)
-                    request.predicate = NSPredicate(format: "household == %@", doomed)
-                    for row in try context.fetch(request) {
-                        row.setValue(survivor, forKey: "household")
-                    }
-                }
-                context.delete(doomed)
-            }
-
-            if context.hasChanges { try context.save() }
-            let folded = all.count - 1
-            Self.log.info("Folded \(folded, privacy: .public) duplicate household(s) into one.")
-            return folded
-        }
-    }
-
-    /// Attaches everything that has no household yet to the one this device
-    /// writes into.
-    ///
-    /// The repair for rows written before the household existed — a library
-    /// migrated out of SwiftData, or anything the share extension saved while
-    /// running an older build. Rows without a household are not broken, they
-    /// simply never reach a shared zone, which is the failure worth healing
-    /// quietly rather than reporting.
-    @discardableResult
-    public func adoptOrphanedRows() async throws -> Int {
-        let context = SousPersistentContainer.backgroundContext(for: container)
-        return try await context.perform {
-            // The orphans are found before a household is conjured up to hold
-            // them: creating one eagerly is how an invitation-only member
-            // ended up with an empty own household standing beside the one
-            // they joined. No orphans, no household.
-            var orphans: [NSManagedObject] = []
-            for entity in SousManagedObjectModel.memberEntityNames {
-                let request = NSFetchRequest<NSManagedObject>(entityName: entity)
-                request.predicate = NSPredicate(format: "household == nil")
-                // A row in a household somebody else owns is not orphaned,
-                // it belongs to them.
-                request.affectedStores = CoreDataHouseholds.ownStores(for: context)
-                orphans.append(contentsOf: try context.fetch(request))
-            }
-            guard !orphans.isEmpty else { return 0 }
-
-            let household = try CoreDataHouseholds.findOrCreate(in: context)
-            for row in orphans {
-                row.setValue(household, forKey: "household")
-            }
-            if context.hasChanges { try context.save() }
-            return orphans.count
-        }
-    }
+/// What `CoreDataHouseholds.settle` did.
+public struct HouseholdSettlement: Equatable, Sendable {
+    /// Whether the account had no household of its own and got one.
+    public var founded: Bool
+    /// Rows that had no household and joined the only own one.
+    public var assigned: Int
+    /// Rows still without a household, because there are several own ones
+    /// to choose from.
+    public var unassigned: Int
 }
 
 /// Why a household could not be shared.

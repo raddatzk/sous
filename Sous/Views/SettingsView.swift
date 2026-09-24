@@ -240,6 +240,7 @@ private struct EraseEverythingSection: View {
     @Environment(CookSession.self) private var session: CookSession?
     @Environment(CookTimerCenter.self) private var timers: CookTimerCenter?
     @Environment(\.calendarMirror) private var calendarMirror
+    @Environment(\.households) private var households
     @Environment(\.dismiss) private var dismiss
 
     /// Set once the counting is done and the question can be asked.
@@ -257,7 +258,8 @@ private struct EraseEverythingSection: View {
             catalog: catalog,
             session: session,
             timers: timers,
-            calendarMirror: calendarMirror
+            calendarMirror: calendarMirror,
+            households: households
         )
     }
 

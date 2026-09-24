@@ -9,18 +9,11 @@ import Foundation
 /// assembled; and a schema this flat reads better as a list of fields than as
 /// an XML file nobody can review in a diff.
 ///
-/// Every attribute is optional or carries a default and there is not one
-/// relationship in here. That is not a style preference: CloudKit mirroring
-/// requires it, and the SwiftData models this mirrors were already written
-/// that way — ingredients and instructions are text, group membership is a
-/// plain id, images are referenced by id. The port is cheap precisely because
-/// there is no object graph to reproduce.
-///
-/// What is deliberately *not* here yet is the household reference. It belongs
-/// on every row once libraries live in shared zones, but a field nothing
-/// writes and nothing reads is dead weight in the meantime, and adding an
-/// optional attribute later is a lightweight migration — free while no data
-/// has reached anyone's iCloud.
+/// Every attribute is optional or carries a default. That is not a style
+/// preference: CloudKit mirroring requires it, and the SwiftData models this
+/// mirrors were already written that way — ingredients and instructions are
+/// text, group membership is a plain id, images are referenced by id. The one
+/// relationship is the household every row belongs to (see `link`).
 enum SousManagedObjectModel {
     /// Built once. `NSManagedObjectModel` instances are not cheap and Core
     /// Data warns when two of them describe the same entities in one process.
@@ -149,6 +142,12 @@ enum SousManagedObjectModel {
             attribute("title", .stringAttributeType, default: ""),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
+            // Made by a person with a name, rather than by the app for an
+            // account that had none. Only the latter may be folded into
+            // another (see `CoreDataHouseholds.mergeDuplicates`); rows
+            // written before this field existed read as `false`, which is
+            // what they were.
+            attribute("isDeliberate", .booleanAttributeType, default: false),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
         return entity
@@ -297,6 +296,12 @@ enum SousManagedObjectModel {
             attribute("sortOrder", .integer64AttributeType, default: 0),
             attribute("addedAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
+            // Made by a person with a name, rather than by the app for an
+            // account that had none. Only the latter may be folded into
+            // another (see `CoreDataHouseholds.mergeDuplicates`); rows
+            // written before this field existed read as `false`, which is
+            // what they were.
+            attribute("isDeliberate", .booleanAttributeType, default: false),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
         return entity
@@ -358,6 +363,12 @@ enum SousManagedObjectModel {
             attribute("name", .stringAttributeType, default: ""),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
+            // Made by a person with a name, rather than by the app for an
+            // account that had none. Only the latter may be folded into
+            // another (see `CoreDataHouseholds.mergeDuplicates`); rows
+            // written before this field existed read as `false`, which is
+            // what they were.
+            attribute("isDeliberate", .booleanAttributeType, default: false),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
         return entity
