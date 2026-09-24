@@ -758,6 +758,7 @@ struct SousApp: App {
                 .environment(session)
                 .environment(timers)
                 .environment(\.households, households)
+                .environment(\.householdSwitcher, switcher)
                 .environment(\.calendarMirror, calendarMirror)
                 .sousAppearance()
                 .frame(width: 420)

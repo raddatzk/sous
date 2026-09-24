@@ -62,7 +62,7 @@ struct SettingsForm: View {
             }
 
             dataSources
-            EraseEverythingSection(progress: $eraseProgress)
+            HouseholdDataSection(progress: $eraseProgress)
         }
         .formStyle(.grouped)
         .overlay {
@@ -223,16 +223,18 @@ private struct CalendarMirrorSection: View {
     }
 }
 
-/// The one irreversible thing the app can do to itself.
+/// The irreversible things, for the household that is showing: emptying it,
+/// deleting it — or, for one somebody else owns, leaving it.
 ///
 /// At the very bottom, under the dry data sources, because that is where a
 /// destructive action belongs: found when looked for, not met on the way to
-/// something else. The question names what would go, in numbers — "alles" is
-/// a word, 166 Rezepte is a fact.
-private struct EraseEverythingSection: View {
+/// something else. Every button names the household, and every question
+/// names what would go, in numbers — "alles" is a word, 166 Rezepte is a
+/// fact.
+private struct HouseholdDataSection: View {
     /// Optional throughout: on the Mac this form is the settings scene's own
     /// root, and a scene that failed to hand it the libraries should show no
-    /// button rather than crash on the one that deletes everything.
+    /// button rather than crash on one that deletes.
     @Environment(RecipeLibrary.self) private var library: RecipeLibrary?
     @Environment(MealPlanLibrary.self) private var plan: MealPlanLibrary?
     @Environment(ShoppingLibrary.self) private var shopping: ShoppingLibrary?
@@ -241,15 +243,21 @@ private struct EraseEverythingSection: View {
     @Environment(CookTimerCenter.self) private var timers: CookTimerCenter?
     @Environment(\.calendarMirror) private var calendarMirror
     @Environment(\.households) private var households
+    @Environment(\.householdSwitcher) private var switcher
     @Environment(\.dismiss) private var dismiss
 
-    /// Set once the counting is done and the question can be asked.
-    @State private var question: LibraryWipe.Counts?
+    /// The household showing, as far as leaving or deleting it goes.
+    @State private var standing: HouseholdStanding?
+    /// Set once the counting is done and the emptying question can be asked.
+    @State private var emptyQuestion: LibraryWipe.Counts?
+    @State private var isAskingToDelete = false
+    @State private var failure: String?
     /// Recipes erased so far, while it runs — shown by the form, over all of it.
     @Binding var progress: (done: Int, total: Int)?
 
     private var wipe: LibraryWipe? {
-        guard let library, let plan, let shopping, let catalog, let session, let timers
+        guard let library, let plan, let shopping, let catalog, let session, let timers,
+              let households, let switcher
         else { return nil }
         return LibraryWipe(
             library: library,
@@ -259,45 +267,129 @@ private struct EraseEverythingSection: View {
             session: session,
             timers: timers,
             calendarMirror: calendarMirror,
-            households: households
+            households: households,
+            switcher: switcher
         )
     }
 
     var body: some View {
         if let wipe {
             Section {
-                Button("Alles löschen …", systemImage: "trash", role: .destructive) {
-                    Task { question = await wipe.counts() }
+                if let standing {
+                    if standing.isOwn {
+                        Button("„\(standing.name)“ leeren …", systemImage: "trash", role: .destructive) {
+                            Task { emptyQuestion = await wipe.counts() }
+                        }
+                        Button("„\(standing.name)“ löschen …", systemImage: "trash.slash", role: .destructive) {
+                            isAskingToDelete = true
+                        }
+                    } else {
+                        Button(
+                            "„\(standing.name)“ verlassen …",
+                            systemImage: "rectangle.portrait.and.arrow.right",
+                            role: .destructive
+                        ) {
+                            isAskingToDelete = true
+                        }
+                    }
                 }
             } header: {
                 Text("Daten")
             } footer: {
-                Text("""
-                Löscht deine Rezepte samt Bildern, den Papierkorb, den \
-                Essensplan, die Einkaufsliste und deine eigenen Zutaten — \
-                auf diesem Gerät und in iCloud, also auch auf deinen anderen \
-                Geräten. Haushalte, denen du beigetreten bist, bleiben \
-                unberührt.
-                """)
+                Text(footer)
+            }
+            .task(id: switcher?.activeID) {
+                guard let id = switcher?.activeID else {
+                    standing = nil
+                    return
+                }
+                standing = await households?.standing(of: id)
             }
             .alert(
-                "Wirklich alles löschen?",
-                isPresented: Binding(presence: $question),
-                presenting: question
-            ) { counts in
-                Button("Alles löschen", role: .destructive) {
-                    Task { await erase(with: wipe) }
+                "„\(standing?.name ?? "")“ wirklich leeren?",
+                isPresented: Binding(presence: $emptyQuestion),
+                presenting: emptyQuestion
+            ) { _ in
+                Button("Leeren", role: .destructive) {
+                    Task { await empty(with: wipe) }
                 }
                 Button("Abbrechen", role: .cancel) {}
             } message: { counts in
-                Text(Self.message(for: counts))
+                Text(Self.message(for: counts, sharedWith: standing?.otherParticipants ?? 0))
+            }
+            .alert(
+                deleteTitle,
+                isPresented: $isAskingToDelete
+            ) {
+                Button(standing?.isOwn == false ? "Verlassen" : "Löschen", role: .destructive) {
+                    Task { await deleteOrLeave(with: wipe) }
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: {
+                Text(deleteMessage)
+            }
+            .alert(
+                "Das hat nicht geklappt",
+                isPresented: Binding(presence: $failure),
+                presenting: failure
+            ) { _ in
+                Button("OK", role: .cancel) {}
+            } message: { failure in
+                Text(failure)
             }
         }
     }
 
-    private func erase(with wipe: LibraryWipe) async {
+    private var footer: String {
+        guard let standing else { return "" }
+        if !standing.isOwn {
+            return """
+            Wer einen Haushalt verlässt, sieht ihn auf seinen Geräten nicht \
+            mehr. Für alle anderen bleibt er, wie er ist.
+            """
+        }
+        return """
+        Leeren löscht Rezepte samt Bildern, den Papierkorb, den Essensplan, \
+        die Einkaufsliste und die eigenen Zutaten, der Haushalt selbst bleibt. \
+        Löschen nimmt auch den Haushalt mit. Beides gilt für dieses Gerät und \
+        iCloud, also auch für deine anderen Geräte — und für alle, mit denen \
+        du den Haushalt teilst.
+        """
+    }
+
+    private var deleteTitle: String {
+        guard let standing else { return "" }
+        return standing.isOwn
+            ? "„\(standing.name)“ wirklich löschen?"
+            : "„\(standing.name)“ wirklich verlassen?"
+    }
+
+    private var deleteMessage: String {
+        guard let standing else { return "" }
+        guard standing.isOwn else {
+            return """
+            Der Haushalt verschwindet von deinen Geräten. Die anderen behalten \
+            ihn; zurück kommst du nur mit einer neuen Einladung.
+            """
+        }
+        var parts = [
+            "Der Haushalt wird mit allem, was darin ist, gelöscht — hier und in iCloud."
+        ]
+        if standing.otherParticipants > 0 {
+            parts.append(standing.otherParticipants == 1
+                ? "Auch die Person, mit der du ihn teilst, verliert ihn."
+                : "Auch die \(standing.otherParticipants) Personen, mit denen du ihn teilst, verlieren ihn.")
+        }
+        if (switcher?.ownChoices.count ?? 0) <= 1 {
+            parts.append("Danach beginnt ein leerer „\(CoreDataHouseholds.defaultName)“.")
+        }
+        parts.append("Das lässt sich nicht rückgängig machen.")
+        return parts.joined(separator: " ")
+    }
+
+    private func empty(with wipe: LibraryWipe) async {
         progress = (0, 0)
-        await wipe.eraseEverything { done, total in
+        await wipe.empty { done, total in
             progress = (done, total)
         }
         progress = nil
@@ -306,9 +398,19 @@ private struct EraseEverythingSection: View {
         dismiss()
     }
 
+    /// Stays in the settings afterwards: they now show the household the
+    /// switch fell back to, which is the one thing worth seeing next.
+    private func deleteOrLeave(with wipe: LibraryWipe) async {
+        do {
+            try await wipe.deleteOrLeave()
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
     /// "166 Rezepte, 12 geplante Mahlzeiten …" — and the one sentence that
     /// matters, which is that none of it comes back.
-    private static func message(for counts: LibraryWipe.Counts) -> String {
+    private static func message(for counts: LibraryWipe.Counts, sharedWith others: Int) -> String {
         var parts: [String] = []
         if counts.recipes > 0 {
             parts.append(counts.recipes == 1 ? "1 Rezept" : "\(counts.recipes) Rezepte")
@@ -325,8 +427,10 @@ private struct EraseEverythingSection: View {
         guard !parts.isEmpty else {
             return "Es ist nichts da, was gelöscht werden könnte."
         }
+        let shared = others == 0 ? "" : " Auch für alle, mit denen du den Haushalt teilst."
         return parts.joined(separator: ", ")
-            + " werden gelöscht — hier und in iCloud. Das lässt sich nicht rückgängig machen."
+            + " werden gelöscht — hier und in iCloud." + shared
+            + " Das lässt sich nicht rückgängig machen."
     }
 }
 

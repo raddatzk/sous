@@ -1,27 +1,22 @@
-import CoreSpotlight
 import SousKit
 import SwiftUI
 
-/// Deleting everything this household has — the app's one irreversible
-/// action.
+/// The irreversible things the app can do to a household: empty it, delete
+/// it, or leave it.
 ///
-/// What it means, exactly: the cook's *own* household, on this device and in
-/// iCloud. Those are not two steps. Every row here is mirrored, so deleting
-/// it locally is what removes it from iCloud and from the cook's other
-/// devices; deleting the store file instead would remove nothing from iCloud
-/// and the library would simply come back on the next sync.
+/// Always the household that is showing. The settings say its name in every
+/// button, so what is about to go is the thing on screen, and nothing reaches
+/// a household the person is not looking at.
 ///
-/// Households the cook has joined are left alone. Their rows belong to
-/// somebody else, and deleting them there would delete them for that person
-/// — a button in *these* settings must not reach into another kitchen. Which
-/// is also why the wipe forces the own household for its duration: it may be
-/// started while a joined one is showing, and then everything below would
-/// otherwise be scoped to the wrong kitchen.
+/// On this device and in iCloud — those are not two steps. Every row is
+/// mirrored, so deleting it locally is what removes it from iCloud and from
+/// the other devices; deleting a store file instead would remove nothing
+/// from iCloud and the library would simply come back on the next sync.
 ///
-/// Not deleted: the household itself, so the other devices keep working; the
-/// welcome's "seen it" mark, which belongs to this install rather than to
-/// the recipes (a fresh install is greeted again, an emptied library is
-/// not); and the settings — appearance, the chat for step ingredients.
+/// Emptying keeps the household itself, so the other devices and anybody it
+/// is shared with keep working in it; deleting takes it along. Neither
+/// touches the welcome's "seen it" mark, which belongs to this install
+/// rather than to the recipes, or the settings.
 @MainActor
 struct LibraryWipe {
     let library: RecipeLibrary
@@ -31,9 +26,8 @@ struct LibraryWipe {
     let session: CookSession
     let timers: CookTimerCenter
     let calendarMirror: CalendarMirror?
-    /// Where "own" is looked up. Without it the wipe reaches only what waits
-    /// for a household.
-    let households: CoreDataHouseholds?
+    let households: CoreDataHouseholds
+    let switcher: HouseholdSwitcher
 
     /// What the cook is about to lose, so the question can name it rather
     /// than asking them to trust a word like "alles".
@@ -47,42 +41,43 @@ struct LibraryWipe {
     }
 
     func counts() async -> Counts {
-        await inOwnHousehold {
-            Counts(
-                recipes: await library.allRecipesIncludingTrash().count,
-                meals: await plan.plannedCount(),
-                shopping: shopping.planEntries.count + shopping.items.count,
-                ingredients: catalog.ownIngredients.count
-            )
-        }
+        Counts(
+            recipes: await library.allRecipesIncludingTrash().count,
+            meals: await plan.plannedCount(),
+            shopping: shopping.planEntries.count + shopping.items.count,
+            ingredients: catalog.ownIngredients.count
+        )
     }
 
-    /// Erases the lot. `onProgress` reports the recipes, which are the slow
-    /// part — each one carries its pictures out with it.
-    func eraseEverything(onProgress: @MainActor @escaping (Int, Int) -> Void) async {
-        await inOwnHousehold {
-            await library.eraseEverything(onProgress: onProgress)
-            await plan.removeEverything()
-            await shopping.removeEverything()
-            await catalog.removeOwnEntries()
-        }
+    /// Empties the household that is showing. `onProgress` reports the
+    /// recipes, which are the slow part — each one carries its pictures out
+    /// with it.
+    func empty(onProgress: @MainActor @escaping (Int, Int) -> Void) async {
+        await library.eraseEverything(onProgress: onProgress)
+        await plan.removeEverything()
+        await shopping.removeEverything()
+        await catalog.removeOwnEntries()
+        await forgetWhatOutlivesTheRows()
+    }
 
-        // Everything that is not a row in the household's stores, and would
-        // otherwise outlive it: the search index, the calendar the plan was
-        // mirrored into, what is on the hob, and the timers ticking for it.
-        await RecipeSpotlight.removeAll()
-        await calendarMirror?.disable()
+    /// Deletes the household that is showing if it is this person's, or
+    /// leaves it if they joined it — `CoreDataHouseholds.delete` knows which.
+    /// Afterwards the switch falls back to the oldest own household.
+    func deleteOrLeave() async throws {
+        guard let id = switcher.activeID else { return }
+        try await households.delete(id)
+        await switcher.refresh()
+        await forgetWhatOutlivesTheRows()
+    }
+
+    /// Everything that is not a row in the household's stores, and would
+    /// otherwise outlive it: the search index, the calendar the plan was
+    /// mirrored into, what is on the hob, and the timers ticking for it.
+    private func forgetWhatOutlivesTheRows() async {
+        let remaining = await library.allRecipesIncludingTrash().filter { !$0.isDeleted }
+        await RecipeSpotlight.replaceAll(with: remaining)
+        await calendarMirror?.syncIfEnabled()
         session.forgetEverything()
         await timers.stopAll()
-    }
-
-    /// Runs `work` against the cook's own household, whatever is showing —
-    /// the oldest they own, which together with what waits for a household
-    /// is everything a build with one household called "mine".
-    private func inOwnHousehold<T>(_ work: () async -> T) async -> T {
-        let active = ActiveHousehold.id
-        ActiveHousehold.id = households?.oldestOwnID()
-        defer { ActiveHousehold.id = active }
-        return await work()
     }
 }

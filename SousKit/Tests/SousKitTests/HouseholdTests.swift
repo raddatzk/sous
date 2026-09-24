@@ -246,6 +246,65 @@ struct HouseholdTests {
         #expect(households.oldestOwnID() == first)
     }
 
+    @Test("Deleting a household takes its rows along and leaves the others alone")
+    func deletingAHousehold() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await households.create(named: "Familie")
+        try await pause()
+        let wg = try await households.create(named: "WG")
+        let context = container.newBackgroundContext()
+        // One recipe in each, written straight onto the household so the
+        // test needs no active one.
+        try await context.perform {
+            let all = try context.fetch(NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName))
+            for household in all {
+                let recipe = CDRecipe(context: context)
+                recipe.id = UUID()
+                recipe.title = household.name
+                recipe.createdAt = .nowInSyncPrecision
+                recipe.updatedAt = .nowInSyncPrecision
+                recipe.household = household
+            }
+            try context.save()
+        }
+
+        try await households.delete(wg)
+
+        #expect(try self.households(in: container).map(\.name) == ["Familie"])
+        let reading = container.newBackgroundContext()
+        let titles = try await reading.perform {
+            try reading.fetch(CDRecipe.fetchRequest()).map(\.title)
+        }
+        #expect(titles == ["Familie"])
+    }
+
+    @Test("Deleting the last own household leaves a fresh one")
+    func deletingTheLastHousehold() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        let only = try await households.create(named: "Familie")
+
+        try await households.delete(only)
+
+        let left = try self.households(in: container)
+        #expect(left.map(\.name) == [CoreDataHouseholds.defaultName])
+        #expect(left.first?.id != only)
+        #expect(left.first?.isDeliberate == false)
+    }
+
+    @Test("A household's standing says whose it is and whether it is shared")
+    func standing() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        let id = try await households.create(named: "Familie")
+
+        let standing = await households.standing(of: id)
+
+        #expect(standing == HouseholdStanding(name: "Familie", isOwn: true, isShared: false, otherParticipants: 0))
+        #expect(await households.standing(of: UUID()) == nil)
+    }
+
     @Test("Renaming names the own household, trimmed")
     func renamesOwnHousehold() async throws {
         let container = try makeContainer()

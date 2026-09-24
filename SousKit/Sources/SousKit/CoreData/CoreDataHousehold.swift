@@ -409,6 +409,119 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         }
     }
 
+    // MARK: Leaving and deleting
+
+    /// Where a household stands, from this device's side: whose it is, and
+    /// how many others would notice it going.
+    public func standing(of id: UUID) async -> HouseholdStanding? {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        let found: (objectID: NSManagedObjectID, name: String, isOwn: Bool)? = await context.perform {
+            guard let household = try? CoreDataHouseholds.household(id: id, in: context) else { return nil }
+            let own = CoreDataHouseholds.ownStores(for: context)?.first
+            return (household.objectID, household.name, CoreDataHouseholds.store(of: household, in: context) == own)
+        }
+        guard let found else { return nil }
+        let share = self.share(of: found.objectID)
+        let others = share?.participants.filter { $0.role != .owner }.count ?? 0
+        return HouseholdStanding(name: found.name, isOwn: found.isOwn, isShared: share != nil, otherParticipants: others)
+    }
+
+    /// Deletes a household this person owns — with everything in it, on
+    /// every device and, if it is shared, for everybody in it — or leaves
+    /// one they joined, which then disappears from their devices only.
+    ///
+    /// A shared household is its own zone, and purging the zone is the one
+    /// way that takes it from the others too. An unshared one lives in the
+    /// default zone beside the person's other households, so its rows are
+    /// deleted one by one; the relationship's rule is to nullify, and
+    /// deleting only the household would leave them waiting for a home.
+    ///
+    /// Deleting the last own household leaves a fresh, empty "Mein
+    /// Haushalt": there is never no household once a device knows its own.
+    public func delete(_ id: UUID) async throws {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        let found: (objectID: NSManagedObjectID, isOwn: Bool)? = try await context.perform {
+            guard let household = try CoreDataHouseholds.household(id: id, in: context) else { return nil }
+            let own = CoreDataHouseholds.ownStores(for: context)?.first
+            return (household.objectID, CoreDataHouseholds.store(of: household, in: context) == own)
+        }
+        guard let found else { return }
+
+        if let share = share(of: found.objectID),
+           share.recordID.zoneID.zoneName != Self.defaultZoneName,
+           let cloudContainer = container as? NSPersistentCloudKitContainer,
+           let store = found.objectID.persistentStore {
+            try await Self.purge(zone: share.recordID.zoneID, in: store, of: cloudContainer)
+            Self.log.info("Purged the zone of a household (\(found.isOwn ? "own" : "joined", privacy: .public)).")
+        } else if found.isOwn {
+            try await context.perform {
+                let household = try context.existingObject(with: found.objectID)
+                for entity in SousManagedObjectModel.memberEntityNames {
+                    let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+                    request.predicate = NSPredicate(format: "household == %@", household)
+                    for row in try context.fetch(request) {
+                        context.delete(row)
+                    }
+                }
+                context.delete(household)
+                try context.save()
+            }
+        } else {
+            // A joined household always has a share; one without is not
+            // reachable to leave.
+            throw HouseholdSharingError.notAvailable
+        }
+
+        if found.isOwn {
+            try await settle()
+        }
+    }
+
+    /// Ends the sharing of a household this person owns: everybody else
+    /// loses it, and it stays with the owner as it was.
+    ///
+    /// The share record goes; the zone and everything in it stay, so the
+    /// owner's devices notice nothing but the members being gone.
+    public func stopSharing(_ id: UUID) async throws {
+        guard let standing = await standing(of: id), standing.isOwn, standing.isShared else { return }
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        let objectID = try await context.perform {
+            try CoreDataHouseholds.household(id: id, in: context)?.objectID
+        }
+        guard let objectID, let share = share(of: objectID) else { return }
+        let ckContainer = CKContainer(identifier: SousPersistentContainer.cloudKitContainerIdentifier)
+        _ = try await ckContainer.privateCloudDatabase.deleteRecord(withID: share.recordID)
+        Self.log.info("Stopped sharing a household.")
+    }
+
+    /// The zone every unshared row lives in. Never purged: it holds every
+    /// unshared household at once.
+    private static let defaultZoneName = "com.apple.coredata.cloudkit.zone"
+
+    /// The share a household is placed on, if it is shared — `nil` where
+    /// nothing is mirrored.
+    private func share(of objectID: NSManagedObjectID) -> CKShare? {
+        guard let cloudContainer = container as? NSPersistentCloudKitContainer else { return nil }
+        return (try? cloudContainer.fetchShares(matching: [objectID]))?[objectID]
+    }
+
+    /// Through the completion API, for the reason `makeShare` gives.
+    private static func purge(
+        zone: CKRecordZone.ID,
+        in store: NSPersistentStore,
+        of container: NSPersistentCloudKitContainer
+    ) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            container.purgeObjectsAndRecordsInZone(with: zone, in: store) { _, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
     // MARK: Sharing
 
     /// Takes an invitation somebody tapped and files the household it opens
@@ -585,6 +698,16 @@ public struct HouseholdSettlement: Equatable, Sendable {
     /// Rows still without a household, because there are several own ones
     /// to choose from.
     public var unassigned: Int
+}
+
+/// A household as far as leaving or deleting it is concerned.
+public struct HouseholdStanding: Equatable, Sendable {
+    public var name: String
+    /// This person's own, rather than one they joined.
+    public var isOwn: Bool
+    public var isShared: Bool
+    /// Everybody in its share but the owner, invited or already in.
+    public var otherParticipants: Int
 }
 
 /// Why a household could not be shared.
