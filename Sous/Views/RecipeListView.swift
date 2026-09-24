@@ -138,45 +138,21 @@ struct RecipeListView: View {
     private var listBody: some View {
         @Bindable var library = library
 
-        // The tick is the only selection while picking; the list's own,
-        // which is what the Mac's column shows and what the phone pushes,
-        // would fight it for the tap.
-        List(selection: isPicking ? .constant(nil) : $selected) {
-            filterBar
-                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
-
-            // Groups are always open. A disclosure triangle would put the
-            // versions of a dish behind a tap and make the list lie about how
-            // much is in it; a per-group collapsed state can be added later
-            // without touching anything stored.
-            ForEach(library.entries) { entry in
-                switch entry {
-                case .recipe(let recipe):
-                    row(for: recipe)
-                case .group(let group, let members):
-                    VariantGroupRow(
-                        group: group,
-                        shown: members.count,
-                        total: library.variantMemberCounts[group.id] ?? members.count
-                    )
-                    .tag(RecipeListSelection.group(group.id))
-                    .contextMenu { groupActions(for: group) }
-                    ForEach(members) { member in
-                        row(for: member)
-                            // Indented rather than in a `Section`: a section
-                            // header on the Mac's sidebar list brings a
-                            // collapse behaviour with it that this list does
-                            // not want, and both kinds of row have to be
-                            // selectable the same way.
-                            .padding(.leading, 16)
-                    }
-                }
-            }
-
-            if showsImportRow {
-                InitialImportRow(text: "Weitere Rezepte werden geladen")
+        // Two lists rather than one, because the selection is a different
+        // kind of thing in each: one row at a time to open, or a set to act
+        // on. The set is the system's own, which is what buys the gesture
+        // everyone knows from Mail — drag down the ticks, or two fingers
+        // anywhere over the rows, and the lot is selected.
+        Group {
+            if isPicking {
+                // Edit mode is what puts the system's own ticks in front of
+                // the rows — and with them the gesture from Mail: drag down
+                // the ticks, or two fingers anywhere, and a run of recipes
+                // is selected without tapping each one.
+                List(selection: pickedRows) { listContent }
+                    .modifier(AlwaysEditing())
+            } else {
+                List(selection: $selected) { listContent }
             }
         }
         // Without this the selected row is a solid slab of accent across the
@@ -189,6 +165,92 @@ struct RecipeListView: View {
         // half a title below the field. The list keeps its own spacing.
         .contentMargins(.top, 0, for: .scrollContent)
         #endif
+    }
+
+    /// The rows themselves, which both lists draw — what differs between
+    /// them is only what selecting one means.
+    @ViewBuilder
+    private var listContent: some View {
+        filterBar
+            .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
+            .listRowSeparator(.hidden)
+            .listRowBackground(Color.clear)
+
+        // Groups are always open. A disclosure triangle would put the
+        // versions of a dish behind a tap and make the list lie about how
+        // much is in it; a per-group collapsed state can be added later
+        // without touching anything stored.
+        ForEach(library.entries) { entry in
+            switch entry {
+            case .recipe(let recipe):
+                row(for: recipe)
+            case .group(let group, let members):
+                VariantGroupRow(
+                    group: group,
+                    shown: members.count,
+                    total: library.variantMemberCounts[group.id] ?? members.count
+                )
+                .tag(RecipeListSelection.group(group.id))
+                .contextMenu { groupActions(for: group) }
+                ForEach(members) { member in
+                    row(for: member)
+                        // Indented rather than in a `Section`: a section
+                        // header on the Mac's sidebar list brings a
+                        // collapse behaviour with it that this list does
+                        // not want, and both kinds of row have to be
+                        // selectable the same way.
+                        .padding(.leading, 16)
+                }
+            }
+        }
+
+        if showsImportRow {
+            InitialImportRow(text: "Weitere Rezepte werden geladen")
+        }
+    }
+
+    /// Edit mode, where there is one. It is what draws the ticks and
+    /// carries the drag gesture on iOS; the Mac has neither and needs
+    /// neither — its list selects several rows with the keyboard and the
+    /// mouse the way every Mac list does.
+    private struct AlwaysEditing: ViewModifier {
+        func body(content: Content) -> some View {
+            #if os(iOS)
+            content.environment(\.editMode, .constant(.active))
+            #else
+            content
+            #endif
+        }
+    }
+
+    /// The picked recipes as the list speaks of rows, and back.
+    ///
+    /// A group's heading is a row like any other, and ticking it means its
+    /// versions: they are what would be deleted, since the group is only the
+    /// name they share. It shows as ticked once they all are.
+    private var pickedRows: Binding<Set<RecipeListSelection>> {
+        Binding {
+            let picked = commands.picked ?? []
+            var rows = Set(picked.map(RecipeListSelection.recipe))
+            for case .group(let group, let members) in library.entries
+            where !members.isEmpty && members.allSatisfy({ picked.contains($0.id) }) {
+                rows.insert(.group(group.id))
+            }
+            return rows
+        } set: { rows in
+            var picked: Set<UUID> = []
+            for row in rows {
+                switch row {
+                case .recipe(let id):
+                    picked.insert(id)
+                case .group(let id):
+                    for case .group(let group, let members) in library.entries where group.id == id {
+                        picked.formUnion(members.map(\.id))
+                    }
+                }
+            }
+            commands.picked = picked
+        }
     }
 
     #if os(iOS)
@@ -498,37 +560,10 @@ struct RecipeListView: View {
     private var isPicking: Bool { commands.picked != nil }
 
     /// One recipe's row, whether it stands on its own or under a group.
-    @ViewBuilder
+    ///
+    /// The same row while picking: the tick in front of it is the list's
+    /// own, drawn by edit mode, and so are the gestures that fill it.
     private func row(for recipe: Recipe) -> some View {
-        if isPicking {
-            pickableRow(for: recipe)
-        } else {
-            plainRow(for: recipe)
-        }
-    }
-
-    /// The same row with a tick in front of it, and nothing else: while a
-    /// selection is being made, opening a recipe, swiping it away or holding
-    /// it for the menu would all be answers to a question nobody asked.
-    private func pickableRow(for recipe: Recipe) -> some View {
-        let isPicked = commands.picked?.contains(recipe.id) ?? false
-        return Button {
-            toggle(recipe.id)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: isPicked ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(isPicked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                    .font(.title3)
-                RecipeRow(recipe: recipe)
-                Spacer(minLength: 0)
-            }
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isPicked ? [.isSelected] : [])
-    }
-
-    private func plainRow(for recipe: Recipe) -> some View {
         RecipeRow(recipe: recipe)
             .tag(RecipeListSelection.recipe(recipe.id))
             // The long-press previews the recipe itself, with its actions
