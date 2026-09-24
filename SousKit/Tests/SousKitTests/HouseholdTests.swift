@@ -419,6 +419,29 @@ struct HouseholdSwitchingTests {
         #expect(try await stores.read() == [["Brot"], ["1"], ["Brot"], ["Brot"]])
     }
 
+    @Test("A household's dated plan is read by its id, whichever is showing")
+    func datedEntriesPerHousehold() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let households = CoreDataHouseholds(container: container)
+        let plan = CoreDataMealPlanStore(container: container)
+        let familie = try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+        let day = Calendar.current.startOfDay(for: .now)
+
+        ActiveHousehold.id = familie
+        let familyMeal = try await plan.save(MealPlanEntry(day: day, slot: .dinner, recipeID: UUID()))
+        ActiveHousehold.id = wg
+        let flatMeal = try await plan.save(MealPlanEntry(day: day, slot: .dinner, recipeID: UUID()))
+
+        // Still showing the WG: the family's calendar is written all the same.
+        let family = try await plan.datedEntries(onOrAfter: day, inHousehold: familie)
+        #expect(family.map(\.id) == [familyMeal.id])
+        #expect(await households.householdID(ofPlanEntry: flatMeal.id) == wg)
+        #expect(await households.householdID(ofPlanEntry: UUID()) == nil)
+    }
+
     @Test("What waits for a household shows in every own household")
     func waitingRowsShowEverywhere() async throws {
         let before = ActiveHousehold.id

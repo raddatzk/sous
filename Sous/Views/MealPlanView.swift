@@ -51,6 +51,7 @@ struct MealPlanView: View {
     @Environment(RecipeSelection.self) private var selection
     @Environment(CloudKitInitialImport.self) private var initialImport
     @Environment(\.householdSwitcher) private var householdSwitcher
+    @Environment(\.households) private var households
     @Environment(SousNavigation.self) private var navigation
     @Environment(LibraryCommands.self) private var commands
 
@@ -431,13 +432,21 @@ struct MealPlanView: View {
         guard commands.isLaunchSettled, let id = navigation.planEntryID else { return }
         navigation.planEntryID = nil
         Task {
-            guard let meal = await plan.meal(entryID: id) else {
-                // Removed since, or planned in another household — the
-                // calendar shows every household's meals, the plan one.
-                plan.errorMessage = "Dieses Gericht steht nicht im Essensplan dieses Haushalts."
-                return
+            if let meal = await plan.meal(entryID: id) {
+                return open((entry: meal.entry, recipe: meal.recipe))
             }
-            open((entry: meal.entry, recipe: meal.recipe))
+            // Planned in another household — every household has a calendar
+            // of its own, and an event is tapped whichever is showing. Over
+            // there, then, if it still exists.
+            if let owner = await households?.householdID(ofPlanEntry: id),
+               owner != householdSwitcher?.activeID,
+               let householdSwitcher {
+                await householdSwitcher.switchTo(owner)
+                if let meal = await plan.meal(entryID: id) {
+                    return open((entry: meal.entry, recipe: meal.recipe))
+                }
+            }
+            plan.errorMessage = "Dieses Gericht steht nicht mehr im Essensplan."
         }
     }
 

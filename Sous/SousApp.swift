@@ -162,7 +162,7 @@ struct SousApp: App {
             ))
             recipeStore = recipes
 
-            calendarMirror = CalendarMirror(mealPlan: plan, recipes: recipes)
+            calendarMirror = CalendarMirror(mealPlan: plan, recipes: recipes, households: households)
 
             // The switch reloads what the screens hold, because the stores
             // now answer for a different household than the one the

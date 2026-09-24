@@ -86,6 +86,7 @@ struct HouseholdSettingsRow: View {
 struct HouseholdPage: View {
     @Environment(\.households) private var households
     @Environment(\.householdSwitcher) private var switcher
+    @Environment(\.calendarMirror) private var calendarMirror
 
     @State private var standing: HouseholdStanding?
     @State private var members: [HouseholdMember] = []
@@ -102,6 +103,9 @@ struct HouseholdPage: View {
                 nameSection(households: households, id: id, standing: standing)
                 if !members.isEmpty {
                     membersSection(standing: standing)
+                }
+                if let calendarMirror {
+                    HouseholdCalendarSection(mirror: calendarMirror, householdID: id, name: standing.name)
                 }
                 HouseholdDataSection(progress: $progress) { await reload() }
             }
@@ -231,5 +235,58 @@ private struct MemberRow: View {
     private var role: String {
         if member.isOwner { return "Besitzer" }
         return member.hasJoined ? "Dabei" : "Eingeladen"
+    }
+}
+
+/// The household's plan in the Apple calendar — a projection the cook opts
+/// into, one calendar per household.
+private struct HouseholdCalendarSection: View {
+    let mirror: CalendarMirror
+    let householdID: UUID
+    let name: String
+
+    @State private var isOn = false
+    @State private var wasDeclined = false
+
+    var body: some View {
+        Section {
+            Toggle("Essensplan im Kalender", systemImage: "calendar", isOn: $isOn)
+                .onChange(of: isOn) { _, wanted in
+                    Task { await apply(wanted) }
+                }
+            if wasDeclined {
+                Text("""
+                Sous darf nicht auf den Kalender zugreifen. Erlaube den \
+                Zugriff in den Systemeinstellungen unter Datenschutz.
+                """)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Kalender")
+        } footer: {
+            Text("""
+            Die geplanten Rezepte dieses Haushalts erscheinen als Termine in \
+            einem eigenen Kalender „Sous – \(name)“ — den du wie jeden \
+            Kalender teilen kannst, auch mit Leuten ohne die App. Der Plan \
+            bleibt die Wahrheit: Änderungen am Termin wandern nicht zurück.
+            """)
+        }
+        .task(id: householdID) { isOn = mirror.isEnabled(for: householdID) }
+    }
+
+    private func apply(_ wanted: Bool) async {
+        guard wanted != mirror.isEnabled(for: householdID) else { return }
+        if wanted {
+            let granted = await mirror.enable(for: householdID)
+            if !granted {
+                // The system prompt was declined; the toggle falls back and
+                // says why rather than pretending.
+                isOn = false
+                wasDeclined = true
+            }
+        } else {
+            await mirror.disable(for: householdID)
+        }
     }
 }

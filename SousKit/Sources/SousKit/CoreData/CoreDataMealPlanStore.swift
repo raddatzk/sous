@@ -136,17 +136,18 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
         }
     }
 
-    /// Every dated entry on or after `day`, across **all** households.
+    /// Every dated entry on or after `day` in one household, whichever is
+    /// showing.
     ///
-    /// Deliberately unscoped, unlike everything else in this store: the
-    /// calendar projection answers "what am I eating", and the answer spans
-    /// the own household and every joined one — Tuesday's WG dinner belongs
-    /// on the same calendar as Sunday's family lunch.
-    public func allDatedEntries(onOrAfter day: Date) async throws -> [MealPlanEntry] {
+    /// Scoped by its argument rather than by the active household: each
+    /// household mirrors into a calendar of its own, and the mirror passes
+    /// over all of them at once, not only over the one on screen.
+    public func datedEntries(onOrAfter day: Date, inHousehold household: UUID) async throws -> [MealPlanEntry] {
         try await context.perform {
             let request = CDMealPlanEntry.fetchRequest()
             request.predicate = NSPredicate(
-                format: "deletedAt == nil AND day >= %@", day as NSDate
+                format: "deletedAt == nil AND day >= %@ AND household.id == %@",
+                day as NSDate, household as NSUUID
             )
             request.sortDescriptors = [NSSortDescriptor(key: "day", ascending: true)]
             return try self.context.fetch(request).compactMap(\.domainValue)

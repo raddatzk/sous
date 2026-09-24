@@ -212,6 +212,18 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         }
     }
 
+    /// The household a plan entry belongs to, whichever is showing — so a
+    /// calendar event from another household can open it there.
+    public func householdID(ofPlanEntry id: UUID) async -> UUID? {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return await context.perform {
+            let request = CDMealPlanEntry.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", id as NSUUID)
+            request.fetchLimit = 1
+            return (try? context.fetch(request))?.first?.household?.id
+        }
+    }
+
     // MARK: Making and naming
 
     /// A new household, made by a person and named by them. It is never
