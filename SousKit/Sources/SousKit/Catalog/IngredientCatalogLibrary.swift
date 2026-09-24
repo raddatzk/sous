@@ -221,6 +221,25 @@ public final class IngredientCatalogLibrary {
         }
     }
 
+    /// Takes back every ingredient the cook added — part of erasing a
+    /// household. What the app ships stays: it is not the cook's to delete,
+    /// and it comes back with the next update anyway.
+    @discardableResult
+    public func removeOwnEntries() async -> Int {
+        let own = ownIngredients
+        guard !own.isEmpty else { return 0 }
+        do {
+            for ingredient in own {
+                try await store.delete(key: ingredient.key)
+            }
+            await reload()
+            try await nutritionCache?.invalidateAll()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        return own.count
+    }
+
     /// Teaches `ingredient` one more spelling. For a bundled entry this is
     /// the only way to widen it, since the app replaces it on every update.
     public func addAlias(_ alias: String, to ingredient: CatalogIngredient) async {

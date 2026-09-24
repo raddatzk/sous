@@ -388,6 +388,26 @@ public final class ShoppingLibrary {
         }
     }
 
+    /// Everything on the list and everything that put it there. Part of
+    /// erasing a household.
+    @discardableResult
+    public func removeEverything() async -> Int {
+        do {
+            let snapshot = try await store.snapshot()
+            for entry in snapshot.planEntries {
+                try await store.removePlanEntry(entry.id)
+            }
+            for item in snapshot.items {
+                try await store.remove(itemID: item.id)
+            }
+            await reload()
+            return snapshot.items.count + snapshot.planEntries.count
+        } catch {
+            errorMessage = error.localizedDescription
+            return 0
+        }
+    }
+
     /// Whether `recipeID` still has anything unbought on the list.
     ///
     /// Not simply "is there a plan entry for it". The entry outlives the

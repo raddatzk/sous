@@ -729,6 +729,16 @@ struct SousApp: App {
         // for the phone, and both write the same defaults.
         Settings {
             SettingsForm()
+                // A scene of its own, so nothing reaches it from the window
+                // — and "Alles löschen" needs every library it erases.
+                .environment(library)
+                .environment(mealPlan)
+                .environment(shopping)
+                .environment(catalog)
+                .environment(session)
+                .environment(timers)
+                .environment(\.households, households)
+                .environment(\.calendarMirror, calendarMirror)
                 .sousAppearance()
                 .frame(width: 420)
         }

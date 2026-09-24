@@ -127,6 +127,12 @@ final class CookTimerCenter {
         save()
     }
 
+    /// Stops every timer there is — for erasing the library, where the
+    /// recipes they were counting for are about to stop existing.
+    func stopAll() {
+        for timer in timers { cancel(timer) }
+    }
+
     /// Drops timers nobody is coming back for, so yesterday's roast does not
     /// greet tomorrow's breakfast.
     func forgetStale(at now: Date = Date(), after grace: TimeInterval = 3600) {

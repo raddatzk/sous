@@ -47,6 +47,13 @@ public actor SwiftDataMealPlanStore: MealPlanStore {
             .map(\.domainValue)
     }
 
+    public func allEntries() async throws -> [MealPlanEntry] {
+        let descriptor = FetchDescriptor<StoredMealPlanEntry>(
+            predicate: #Predicate { $0.deletedAt == nil }
+        )
+        return try modelContext.fetch(descriptor).map(\.domainValue)
+    }
+
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
         var updated = entry

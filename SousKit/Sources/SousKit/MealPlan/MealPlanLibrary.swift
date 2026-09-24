@@ -94,6 +94,29 @@ public final class MealPlanLibrary {
         }
     }
 
+    /// How much is planned at all — for a question that has to say what it
+    /// would take with it.
+    public func plannedCount() async -> Int {
+        (try? await store.allEntries().count) ?? 0
+    }
+
+    /// Clears the whole plan. Part of erasing a household, never of
+    /// anything a cook does one meal at a time.
+    @discardableResult
+    public func removeEverything() async -> Int {
+        do {
+            let entries = try await store.allEntries()
+            for entry in entries {
+                try await store.delete(id: entry.id)
+            }
+            await reload()
+            return entries.count
+        } catch {
+            errorMessage = error.localizedDescription
+            return 0
+        }
+    }
+
     /// Extends the run further into the future, for scrolling past the end.
     public func loadMore() async {
         days = Self.run(from: firstDay, length: days.count + Self.pageLength)

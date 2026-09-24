@@ -769,6 +769,39 @@ public final class RecipeLibrary {
         }
     }
 
+    /// Every recipe of this household, the trash included — what a wipe
+    /// has to count before it asks, and erase once it may.
+    public func allRecipesIncludingTrash() async -> [Recipe] {
+        do {
+            return try await store.recipes(matching: RecipeQuery(includeDeleted: true))
+        } catch {
+            report(error)
+            return []
+        }
+    }
+
+    /// Erases the whole collection, pictures and cached figures with it.
+    ///
+    /// One recipe at a time rather than a batch delete: a batch delete goes
+    /// straight to the file and never reaches CloudKit, which would leave
+    /// the library standing on every other device and bring it back to this
+    /// one on the next sync. Slow and correct beats fast and undone.
+    ///
+    /// `onProgress` is called after each one, because erasing a few hundred
+    /// recipes with their photos takes long enough to need saying.
+    @discardableResult
+    public func eraseEverything(onProgress: @MainActor (Int, Int) -> Void = { _, _ in }) async -> Int {
+        let all = await allRecipesIncludingTrash()
+        var erased = 0
+        for recipe in all {
+            await erase(recipe)
+            erased += 1
+            onProgress(erased, all.count)
+        }
+        await reload()
+        return erased
+    }
+
     /// Empties the trash. Returns how many recipes it held.
     @discardableResult
     public func emptyTrash() async -> Int {

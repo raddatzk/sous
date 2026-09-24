@@ -58,6 +58,7 @@ struct SettingsForm: View {
             }
 
             dataSources
+            EraseEverythingSection()
         }
         .formStyle(.grouped)
     }
@@ -210,5 +211,133 @@ private struct CalendarMirrorSection: View {
         } else {
             await mirror.disable()
         }
+    }
+}
+
+/// The one irreversible thing the app can do to itself.
+///
+/// At the very bottom, under the dry data sources, because that is where a
+/// destructive action belongs: found when looked for, not met on the way to
+/// something else. The question names what would go, in numbers — "alles" is
+/// a word, 166 Rezepte is a fact.
+private struct EraseEverythingSection: View {
+    /// Optional throughout: on the Mac this form is the settings scene's own
+    /// root, and a scene that failed to hand it the libraries should show no
+    /// button rather than crash on the one that deletes everything.
+    @Environment(RecipeLibrary.self) private var library: RecipeLibrary?
+    @Environment(MealPlanLibrary.self) private var plan: MealPlanLibrary?
+    @Environment(ShoppingLibrary.self) private var shopping: ShoppingLibrary?
+    @Environment(IngredientCatalogLibrary.self) private var catalog: IngredientCatalogLibrary?
+    @Environment(CookSession.self) private var session: CookSession?
+    @Environment(CookTimerCenter.self) private var timers: CookTimerCenter?
+    @Environment(\.calendarMirror) private var calendarMirror
+    @Environment(\.dismiss) private var dismiss
+
+    /// Set once the counting is done and the question can be asked.
+    @State private var question: LibraryWipe.Counts?
+    /// Recipes erased so far, while it runs.
+    @State private var progress: (done: Int, total: Int)?
+
+    private var wipe: LibraryWipe? {
+        guard let library, let plan, let shopping, let catalog, let session, let timers
+        else { return nil }
+        return LibraryWipe(
+            library: library,
+            plan: plan,
+            shopping: shopping,
+            catalog: catalog,
+            session: session,
+            timers: timers,
+            calendarMirror: calendarMirror
+        )
+    }
+
+    var body: some View {
+        if let wipe {
+            Section {
+                Button("Alles löschen …", systemImage: "trash", role: .destructive) {
+                    Task { question = await wipe.counts() }
+                }
+            } header: {
+                Text("Daten")
+            } footer: {
+                Text("""
+                Löscht deine Rezepte samt Bildern, den Papierkorb, den \
+                Essensplan, die Einkaufsliste und deine eigenen Zutaten — \
+                auf diesem Gerät und in iCloud, also auch auf deinen anderen \
+                Geräten. Haushalte, denen du beigetreten bist, bleiben \
+                unberührt.
+                """)
+            }
+            .alert(
+                "Wirklich alles löschen?",
+                isPresented: Binding(presence: $question),
+                presenting: question
+            ) { counts in
+                Button("Alles löschen", role: .destructive) {
+                    Task { await erase(with: wipe) }
+                }
+                Button("Abbrechen", role: .cancel) {}
+            } message: { counts in
+                Text(Self.message(for: counts))
+            }
+            .overlay { progressOverlay }
+        }
+    }
+
+    private func erase(with wipe: LibraryWipe) async {
+        progress = (0, 0)
+        await wipe.eraseEverything { done, total in
+            progress = (done, total)
+        }
+        progress = nil
+        // Onto the empty library: the settings have nothing left to say
+        // about a household that no longer holds anything.
+        dismiss()
+    }
+
+    @ViewBuilder
+    private var progressOverlay: some View {
+        if let progress {
+            ZStack {
+                Color.sousScrim.ignoresSafeArea()
+                VStack(spacing: 10) {
+                    ProgressView(
+                        value: Double(progress.done),
+                        total: Double(max(progress.total, 1))
+                    )
+                    .frame(width: 200)
+                    Text("\(progress.done) von \(progress.total) Rezepten")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+                .padding(24)
+                .background(.regularMaterial, in: .rect(cornerRadius: SousStyle.cardRadius))
+            }
+        }
+    }
+
+    /// "166 Rezepte, 12 geplante Mahlzeiten …" — and the one sentence that
+    /// matters, which is that none of it comes back.
+    private static func message(for counts: LibraryWipe.Counts) -> String {
+        var parts: [String] = []
+        if counts.recipes > 0 {
+            parts.append(counts.recipes == 1 ? "1 Rezept" : "\(counts.recipes) Rezepte")
+        }
+        if counts.meals > 0 {
+            parts.append(counts.meals == 1 ? "1 geplante Mahlzeit" : "\(counts.meals) geplante Mahlzeiten")
+        }
+        if counts.shopping > 0 {
+            parts.append(counts.shopping == 1 ? "1 Zeile der Einkaufsliste" : "\(counts.shopping) Zeilen der Einkaufsliste")
+        }
+        if counts.ingredients > 0 {
+            parts.append(counts.ingredients == 1 ? "1 eigene Zutat" : "\(counts.ingredients) eigene Zutaten")
+        }
+        guard !parts.isEmpty else {
+            return "Es ist nichts da, was gelöscht werden könnte."
+        }
+        return parts.joined(separator: ", ")
+            + " werden gelöscht — hier und in iCloud. Das lässt sich nicht rückgängig machen."
     }
 }

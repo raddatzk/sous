@@ -116,6 +116,15 @@ final class CookSession {
         save()
     }
 
+    /// Takes everything off the hob — for erasing the library, where what
+    /// is being cooked is about to stop existing.
+    func forgetEverything() {
+        guard !entries.isEmpty else { return }
+        entries.removeAll()
+        settle()
+        save()
+    }
+
     /// Drops what nobody is coming back for, so last night's roast does not
     /// greet this morning's breakfast. The timers do the same with the same
     /// reasoning; this grace is longer, because a stew can sit for hours

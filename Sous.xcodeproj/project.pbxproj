@@ -104,6 +104,7 @@
 		DBA71FE99BF65FBF589A2A81 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */; };
 		DFECC099BCEBCD72A603D0C5 /* RecipeLinkChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */; };
 		E7BDB939A6B8E83F497FB16F /* CookTimerCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368E5CB3AC0A9EE1DD75E6E4 /* CookTimerCenter.swift */; };
+		F0DC0DB8EF17D2E12BFF4FC6 /* LibraryWipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D20D68B303277CBCE5F3EF5 /* LibraryWipe.swift */; };
 		F0FF8EF8304D4773B9C3DB46 /* LibraryCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6591D047592824004D26893B /* LibraryCommands.swift */; };
 		F2FE5B65452C7BCBC2814E47 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */; };
 		F57D8BF30A466E29363D8D6D /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5F5A49BEF93D3CFF7287EA /* TrashView.swift */; };
@@ -190,6 +191,7 @@
 		7209502695EB1AED927F3B9B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerMetadata.swift; sourceTree = "<group>"; };
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
+		7D20D68B303277CBCE5F3EF5 /* LibraryWipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryWipe.swift; sourceTree = "<group>"; };
 		7D300564443D3A1FEA625003 /* SousDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousDialogs.swift; sourceTree = "<group>"; };
 		8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSetupSheet.swift; sourceTree = "<group>"; };
 		8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLinkChips.swift; sourceTree = "<group>"; };
@@ -349,6 +351,7 @@
 				E17F156912A3CDF5E6CA988B /* Assets.xcassets */,
 				F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */,
 				6B34033D0C481DC0839E96DE /* HouseholdSwitcher.swift */,
+				7D20D68B303277CBCE5F3EF5 /* LibraryWipe.swift */,
 				87F21CD6E3B0D60FB0B2621E /* PrivacyInfo.xcprivacy */,
 				0ED888D2157E17B815DE180E /* RecipeTrashing.swift */,
 				A39CB856BC89D3B54F7E2515 /* ShareInvitationDelegate.swift */,
@@ -645,6 +648,7 @@
 				B28BE3C030C0E9EE75A63AF1 /* IngredientReviewSheet.swift in Sources */,
 				981D6F9D596E52AAEEDAAC22 /* InitialImportViews.swift in Sources */,
 				F0FF8EF8304D4773B9C3DB46 /* LibraryCommands.swift in Sources */,
+				F0DC0DB8EF17D2E12BFF4FC6 /* LibraryWipe.swift in Sources */,
 				9F25406D385F3C6DECBE3864 /* MealPlanView.swift in Sources */,
 				A72EB9A35B8972F7FE34899B /* NRFBadge.swift in Sources */,
 				5E5D17B8BA92FF225D493A48 /* OnboardingNotice.swift in Sources */,

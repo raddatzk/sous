@@ -104,6 +104,14 @@ public final class CoreDataMealPlanStore: MealPlanStore, @unchecked Sendable {
         }
     }
 
+    public func allEntries() async throws -> [MealPlanEntry] {
+        try await context.perform {
+            let request = CDMealPlanEntry.fetchRequest()
+            request.predicate = NSPredicate(format: "deletedAt == nil")
+            return try self.context.fetchInActiveHousehold(request).compactMap(\.domainValue)
+        }
+    }
+
     @discardableResult
     public func save(_ entry: MealPlanEntry) async throws -> MealPlanEntry {
         var stamped = entry

@@ -56,6 +56,12 @@ enum RecipeSpotlight {
             .deleteAppEntities(identifiedBy: ids, ofType: RecipeEntity.self)
     }
 
+    /// Everything at once, for erasing the library. `deleteAllSearchableItems`
+    /// clears what this app put in the index and nothing else.
+    static func removeAll() async {
+        try? await CSSearchableIndex.default().deleteAllSearchableItems()
+    }
+
     /// Puts a recipe back, for a restore out of the trash — the launch would
     /// index it again, but not before the next launch.
     static func add(_ recipes: [Recipe]) async {
