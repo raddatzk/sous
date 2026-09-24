@@ -62,6 +62,15 @@ enum RecipeSpotlight {
         try? await CSSearchableIndex.default().deleteAllSearchableItems()
     }
 
+    /// Makes the index hold exactly these recipes — the active household's.
+    /// Cleared first, because entities are only ever added: a switch would
+    /// otherwise leave the previous household's recipes findable, leading to
+    /// pages this household cannot open.
+    static func replaceAll(with recipes: [Recipe]) async {
+        await removeAll()
+        try? await CSSearchableIndex.default().indexAppEntities(recipes.map(RecipeEntity.init))
+    }
+
     /// Puts a recipe back, for a restore out of the trash — the launch would
     /// index it again, but not before the next launch.
     static func add(_ recipes: [Recipe]) async {

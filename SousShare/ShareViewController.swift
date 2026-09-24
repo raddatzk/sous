@@ -44,6 +44,9 @@ struct ShareRootView: View {
 
     @State private var libraries: Libraries?
     @State private var message: String?
+    /// The household the recipe goes into, named only when there is more
+    /// than one it could have gone into.
+    @State private var destination: String?
 
     var body: some View {
         Group {
@@ -80,7 +83,7 @@ struct ShareRootView: View {
         @Bindable var library = libraries.recipes
         Color.clear
             .sheet(item: $library.editing) { draft in
-                RecipeEditorView(recipe: draft) { edited in
+                RecipeEditorView(recipe: draft, destination: destination) { edited in
                     await libraries.recipes.save(edited)
                 }
                 .environment(libraries.recipes)
@@ -124,6 +127,15 @@ struct ShareRootView: View {
             guard ModelContainer.hasSharedContainer else {
                 message = "Sous kann den gemeinsamen Speicher nicht öffnen."
                 return
+            }
+            // Into the household that was showing when the app was last
+            // used — the one the person was thinking of. Nothing chosen yet
+            // (a reinstall before its first import) leaves the recipe waiting
+            // for a household, and the app places it.
+            ActiveHousehold.id = ActiveHousehold.remembered
+            let choices = (try? await CoreDataHouseholds(container: coreData).choices()) ?? []
+            if choices.count > 1, let active = choices.first(where: { $0.id == ActiveHousehold.id }) {
+                destination = "Wird in „\(active.name)“ gespeichert"
             }
             let made = Libraries(container: container, coreData: coreData)
             await made.recipes.importFromWeb(url)

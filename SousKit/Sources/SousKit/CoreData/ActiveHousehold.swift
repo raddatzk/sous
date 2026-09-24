@@ -13,10 +13,19 @@ import Foundation
 /// buy ceremony, not safety.
 ///
 /// The app sets it at launch from the defaults and whenever the switch is
-/// used. The share extension never sets it, so what it saves waits without a
-/// household until the app assigns it.
+/// used; the share extension reads the same defaults, so what it saves lands
+/// in the household that was showing last.
 public enum ActiveHousehold {
     public nonisolated(unsafe) static var id: UUID?
+
+    /// Where the app keeps the choice, in the app group's defaults — so the
+    /// share extension saves into the household that was showing last.
+    public static let defaultsKey = "activeHouseholdID"
+
+    /// The household chosen last, as the app left it.
+    public static var remembered: UUID? {
+        UserDefaults.sous.string(forKey: defaultsKey).flatMap(UUID.init(uuidString:))
+    }
 }
 
 extension NSManagedObjectContext {

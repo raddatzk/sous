@@ -1,5 +1,4 @@
 import AppIntents
-import CoreSpotlight
 import SwiftData
 import SousKit
 import SwiftUI
@@ -173,6 +172,12 @@ struct SousApp: App {
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
                 await catalogLibrary.reload()
+                // Search and Siri answer for the household showing, like
+                // every screen does.
+                SousAppShortcuts.updateAppShortcutParameters()
+                if let all = try? await recipes.recipes(matching: RecipeQuery()) {
+                    await RecipeSpotlight.replaceAll(with: all)
+                }
             }
             switcher = madeSwitcher
 
@@ -303,8 +308,10 @@ struct SousApp: App {
         // Folding first: assigning rows to one of two households would only
         // deepen the split it is about to undo.
         _ = try? await households.mergeDuplicates()
-        guard initialImport.hasArrived else { return }
-        _ = try? await households.settle()
+        guard initialImport.hasArrived,
+              let settlement = try? await households.settle()
+        else { return }
+        switcher.noteUnassigned(settlement.unassigned)
     }
 
     /// Moves the household's rows out of the SwiftData store, if any are
@@ -476,7 +483,7 @@ struct SousApp: App {
     /// from Spotlight without the app open.
     private func indexRecipesForSpotlight() async {
         guard let recipes = try? await recipeStore.recipes(matching: RecipeQuery()) else { return }
-        try? await CSSearchableIndex.default().indexAppEntities(recipes.map(RecipeEntity.init))
+        await RecipeSpotlight.replaceAll(with: recipes)
     }
 
     var body: some Scene {
@@ -697,6 +704,11 @@ struct SousApp: App {
                     .keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
+            }
+            // The Mac's way to switch: its window draws no title for the menu
+            // the phone hangs there. The iPad gets both.
+            CommandMenu("Haushalt") {
+                HouseholdMenuContent(switcher: switcher)
             }
         }
 

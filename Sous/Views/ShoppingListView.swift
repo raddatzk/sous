@@ -14,6 +14,7 @@ struct ShoppingListView: View {
     /// Read for the recipe a detail page asked this list to stand at.
     @Environment(SousNavigation.self) private var navigation
     @Environment(CloudKitInitialImport.self) private var initialImport
+    @Environment(\.householdSwitcher) private var householdSwitcher
 
     @State private var grouping: Grouping = .aisle
     @State private var newItem = ""
@@ -131,6 +132,7 @@ struct ShoppingListView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
         .toolbar {
             if grouping == .aisle, !storeNames.isEmpty {
                 ToolbarItem(placement: .primaryAction) {

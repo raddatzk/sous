@@ -13,6 +13,7 @@ struct RootView: View {
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(ShoppingLibrary.self) private var shopping
     @Environment(LibraryCommands.self) private var commands
+    @Environment(\.householdSwitcher) private var householdSwitcher
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
@@ -60,6 +61,48 @@ struct RootView: View {
     /// What decision D allows the app to say after a data update, and the
     /// only thing: which mappings lost their row. Changed numbers are never
     /// mentioned — they flowed into the sums silently, which is the decision.
+    private var unassignedRows: Int { householdSwitcher?.unassignedRows ?? 0 }
+
+    private var unassignedQuestion: String {
+        unassignedRows == 1
+            ? "In welchen Haushalt gehört der Eintrag?"
+            : "In welchen Haushalt gehören die \(unassignedRows) Einträge?"
+    }
+
+    /// Standing until answered: the rows show in every own household while
+    /// they wait, which is fine for a moment and confusing for a week.
+    private var unassignedBand: some View {
+        HStack(spacing: 12) {
+            Label(
+                unassignedRows == 1
+                    ? "1 Eintrag gehört noch zu keinem Haushalt"
+                    : "\(unassignedRows) Einträge gehören noch zu keinem Haushalt",
+                systemImage: "tray.and.arrow.down"
+            )
+            .font(.subheadline.weight(.medium))
+            Spacer(minLength: 0)
+            Button("Zuordnen") { householdSwitcher?.isAskingAboutUnassignedRows = true }
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Color.sousSurface)
+    }
+
+    private var isNamingNewHousehold: Binding<Bool> {
+        Binding(
+            get: { householdSwitcher?.isNamingNewHousehold ?? false },
+            set: { householdSwitcher?.isNamingNewHousehold = $0 }
+        )
+    }
+
+    private var isAskingAboutUnassignedRows: Binding<Bool> {
+        Binding(
+            get: { householdSwitcher?.isAskingAboutUnassignedRows ?? false },
+            set: { householdSwitcher?.isAskingAboutUnassignedRows = $0 }
+        )
+    }
+
     private var orphanBand: some View {
         HStack(spacing: 12) {
             Label(
@@ -98,10 +141,15 @@ struct RootView: View {
                 orphanBand
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
+            if unassignedRows > 0 {
+                unassignedBand
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
             sections
         }
         .animation(.easeInOut(duration: 0.2), value: showsBanner)
         .animation(.easeInOut(duration: 0.2), value: orphaned.count)
+        .animation(.easeInOut(duration: 0.2), value: unassignedRows)
         // The libraries every screen writes to report here, above the
         // sections, because the write and the screen that would show its
         // failure are rarely the same: a recipe page puts a dish on the
@@ -123,6 +171,32 @@ struct RootView: View {
         // opened out of a sheet that is still dismissing never appears.
         .sheet(isPresented: $onboarding.isShowing, onDismiss: finishOnboarding) {
             OnboardingView()
+        }
+        .sheet(isPresented: isNamingNewHousehold) {
+            if let householdSwitcher {
+                NewHouseholdSheet(switcher: householdSwitcher)
+            }
+        }
+        // Where the rows go that were saved before this device knew its
+        // households — asked once when settling finds several own ones, and
+        // again from the band until it is answered.
+        .confirmationDialog(
+            unassignedQuestion,
+            isPresented: isAskingAboutUnassignedRows,
+            titleVisibility: .visible
+        ) {
+            if let householdSwitcher {
+                ForEach(householdSwitcher.ownChoices) { choice in
+                    Button(choice.name) {
+                        Task { await householdSwitcher.assignUnassignedRows(to: choice.id) }
+                    }
+                }
+            }
+            Button("Später", role: .cancel) {}
+        } message: {
+            Text(unassignedRows == 1
+                ? "Er wurde gespeichert, bevor dieses Gerät deine Haushalte kannte. Bis du entscheidest, erscheint er in jedem deiner Haushalte."
+                : "Sie wurden gespeichert, bevor dieses Gerät deine Haushalte kannte. Bis du entscheidest, erscheinen sie in jedem deiner Haushalte.")
         }
         .sheet(isPresented: $isClarifyingOrphans) {
             IngredientClarificationSheet(open: orphaned) {

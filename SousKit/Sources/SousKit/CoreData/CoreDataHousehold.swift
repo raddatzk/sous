@@ -302,15 +302,7 @@ public final class CoreDataHouseholds: @unchecked Sendable {
                 founded = true
             }
 
-            var orphans: [NSManagedObject] = []
-            for entity in SousManagedObjectModel.memberEntityNames {
-                let request = NSFetchRequest<NSManagedObject>(entityName: entity)
-                request.predicate = NSPredicate(format: "household == nil")
-                // A row in a household somebody else owns is not orphaned,
-                // it belongs to them.
-                request.affectedStores = CoreDataHouseholds.ownStores(for: context)
-                orphans.append(contentsOf: try context.fetch(request))
-            }
+            let orphans = try CoreDataHouseholds.waitingRows(in: context)
 
             var assigned = 0
             if own.count == 1, let only = own.first {
@@ -331,6 +323,50 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             }
             return settlement
         }
+    }
+
+    /// How many rows wait for a household — saved before this device knew
+    /// one, and left unassigned by `settle` because there are several own
+    /// households to choose from.
+    public func waitingRowCount() async throws -> Int {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            try CoreDataHouseholds.waitingRows(in: context).count
+        }
+    }
+
+    /// Gives every row that waits for a household to the own household the
+    /// person chose. Returns how many there were.
+    ///
+    /// Only an own household: the waiting rows sit in the private store, and
+    /// a relationship cannot reach a household in the shared one.
+    @discardableResult
+    public func assignWaitingRows(to id: UUID) async throws -> Int {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            guard let target = try CoreDataHouseholds.households(in: context).first(where: { $0.id == id })
+            else { return 0 }
+            let rows = try CoreDataHouseholds.waitingRows(in: context)
+            for row in rows {
+                row.setValue(target, forKey: "household")
+            }
+            if context.hasChanges { try context.save() }
+            return rows.count
+        }
+    }
+
+    /// Every row in the private store that has no household.
+    private static func waitingRows(in context: NSManagedObjectContext) throws -> [NSManagedObject] {
+        var rows: [NSManagedObject] = []
+        for entity in SousManagedObjectModel.memberEntityNames {
+            let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+            request.predicate = NSPredicate(format: "household == nil")
+            // A row in a household somebody else owns is not waiting, it
+            // belongs to them.
+            request.affectedStores = ownStores(for: context)
+            rows.append(contentsOf: try context.fetch(request))
+        }
+        return rows
     }
 
     /// Folds the households the app made on its own into one.

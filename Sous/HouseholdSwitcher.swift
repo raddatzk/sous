@@ -19,11 +19,21 @@ final class HouseholdSwitcher {
     /// Set when an invitation was just accepted: the next household to appear
     /// in the shared store is the one the person is waiting to see.
     var expectingJoin = false
+    /// Set while "Neuer Haushalt …" asks for a name. Here rather than in a
+    /// view, because the Mac asks from the menu bar, which cannot reach a
+    /// view's state.
+    var isNamingNewHousehold = false
+    /// Rows saved before this device knew its households, which settling
+    /// could not place because there are several own ones. Shown until they
+    /// have a home.
+    private(set) var unassignedRows = 0
+    /// Set when the person should be asked where those rows go — once per
+    /// launch, and again whenever they tap the notice.
+    var isAskingAboutUnassignedRows = false
+    private var hasAskedAboutUnassignedRows = false
 
     private let households: CoreDataHouseholds
     private let onSwitch: @MainActor () async -> Void
-
-    private static let defaultsKey = "activeHouseholdID"
 
     init(households: CoreDataHouseholds, onSwitch: @escaping @MainActor () async -> Void) {
         self.households = households
@@ -33,20 +43,21 @@ final class HouseholdSwitcher {
         // Nothing stored is what an update from a build with only one
         // household looks like, where `nil` meant "mine": starting in the
         // oldest own one keeps the library on screen from the first fetch.
-        activeID = UserDefaults.sous.string(forKey: Self.defaultsKey).flatMap(UUID.init(uuidString:))
-            ?? households.oldestOwnID()
+        activeID = ActiveHousehold.remembered ?? households.oldestOwnID()
         ActiveHousehold.id = activeID
     }
 
-    /// The joined household's name for the title — `nil` while an own one
-    /// is active, where the screen keeps its ordinary name.
-    var activeName: String? {
-        guard let active = choices.first(where: { $0.id == activeID }), !active.isOwn
-        else { return nil }
-        return active.name
+    /// The active household's name, for under a screen's title — once there
+    /// is more than one to tell apart. With a single household, naming it on
+    /// every screen says nothing.
+    var subtitle: String? {
+        guard choices.count > 1 else { return nil }
+        return choices.first { $0.id == activeID }?.name
     }
 
-    var hasJoined: Bool { choices.contains { !$0.isOwn } }
+    /// The households the waiting rows can go to: only own ones, since the
+    /// rows sit in the private store.
+    var ownChoices: [HouseholdChoice] { choices.filter(\.isOwn) }
 
     func refresh() async {
         choices = (try? await households.choices()) ?? choices
@@ -75,7 +86,33 @@ final class HouseholdSwitcher {
         guard id != activeID else { return }
         activeID = id
         ActiveHousehold.id = id
-        UserDefaults.sous.set(id?.uuidString, forKey: Self.defaultsKey)
+        UserDefaults.sous.set(id?.uuidString, forKey: ActiveHousehold.defaultsKey)
+        await onSwitch()
+    }
+
+    /// Makes a household with this name and shows it — empty, ready for
+    /// whatever is written next.
+    func create(named name: String) async {
+        guard let id = try? await households.create(named: name) else { return }
+        await refresh()
+        await switchTo(id)
+    }
+
+    /// What settling left without a household. Asks where it goes the first
+    /// time there is anything, not on every store change after that.
+    func noteUnassigned(_ count: Int) {
+        unassignedRows = count
+        guard count > 0, !hasAskedAboutUnassignedRows else { return }
+        hasAskedAboutUnassignedRows = true
+        isAskingAboutUnassignedRows = true
+    }
+
+    /// Gives the waiting rows to the household the person chose.
+    func assignUnassignedRows(to id: UUID) async {
+        _ = try? await households.assignWaitingRows(to: id)
+        unassignedRows = (try? await households.waitingRowCount()) ?? 0
+        // They showed in every own household while they waited; now they
+        // belong to one, and the others should stop showing them.
         await onSwitch()
     }
 }

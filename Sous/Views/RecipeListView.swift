@@ -462,15 +462,9 @@ struct RecipeListView: View {
 
     private var list: some View {
         entries
-        // The joined household's name when one is active — the list is its
-        // library then, and calling it by the generic name would hide the
-        // one fact that matters about what is on screen.
-        .navigationTitle(isPicking ? pickingTitle : (householdSwitcher?.activeName ?? "Rezepte"))
-        // The switch, as a menu on the title — attached only once there is
-        // something to switch to. Deciding that inside the builder is not
-        // enough: `.toolbarTitleMenu` draws its chevron beside the title
-        // whether or not the menu has anything in it, so anyone who is in no
-        // second household got a chevron that opens nothing.
+        .navigationTitle(isPicking ? pickingTitle : "Rezepte")
+        // The switch, as a menu on the title, and the household's name
+        // beneath it once there is more than one to tell apart.
         .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
         .modifier(RecipeSearchField(shows: showsSearch, tokens: tokens))
         .toolbar { listToolbar }
@@ -949,40 +943,6 @@ private struct RecipePreviewCard: View {
     }
 }
 #endif
-
-/// The household switch, hung on the navigation title — and only there when
-/// there is a second household to switch to.
-///
-/// A modifier rather than an `if` around the menu's content, because the
-/// chevron is drawn for the modifier's presence rather than for what the
-/// builder produces.
-private struct HouseholdTitleMenu: ViewModifier {
-    let switcher: HouseholdSwitcher?
-
-    func body(content: Content) -> some View {
-        if let switcher, switcher.hasJoined {
-            content.toolbarTitleMenu { menu(switcher) }
-        } else {
-            content
-        }
-    }
-
-    /// The households to choose from.
-    @ViewBuilder
-    private func menu(_ switcher: HouseholdSwitcher) -> some View {
-        ForEach(switcher.choices) { choice in
-            Button {
-                Task { await switcher.switchTo(choice.id) }
-            } label: {
-                if switcher.activeID == choice.id {
-                    Label(choice.name, systemImage: "checkmark")
-                } else {
-                    Text(choice.name)
-                }
-            }
-        }
-    }
-}
 
 /// The search field, attached only where searching is this instance's job —
 /// which since the phone's search became a tab of its own means the Mac's

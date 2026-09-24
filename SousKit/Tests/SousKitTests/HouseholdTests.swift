@@ -139,6 +139,38 @@ struct HouseholdTests {
         #expect(try self.households(in: container).count == 2)
     }
 
+    @Test("What waited goes where the person says")
+    func assigningWaitingRows() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await writeOneOfEverything(into: container)
+        try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+        try await households.settle()
+        let waiting = try await households.waitingRowCount()
+        #expect(waiting > 0)
+
+        let assigned = try await households.assignWaitingRows(to: wg)
+
+        #expect(assigned == waiting)
+        #expect(try await households.waitingRowCount() == 0)
+        let context = container.newBackgroundContext()
+        try await context.perform {
+            let row = try #require(try context.fetch(CDRecipe.fetchRequest()).first)
+            #expect(row.household?.id == wg)
+        }
+    }
+
+    @Test("Waiting rows are never given to a household that is not one's own")
+    func assigningToAnUnknownHousehold() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await writeOneOfEverything(into: container)
+
+        #expect(try await households.assignWaitingRows(to: UUID()) == 0)
+        #expect(try await households.waitingRowCount() > 0)
+    }
+
     @Test("A created household is named, deliberate, and never folded away")
     func createdHouseholdsStay() async throws {
         let container = try makeContainer()

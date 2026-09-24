@@ -100,9 +100,14 @@ struct RecipeEditorView: View {
             || !categoryEntry.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    init(recipe: Recipe, onSave: @escaping (Recipe) async -> Void) {
+    /// Where the recipe will be saved, said under the title — for the share
+    /// extension, which saves without the app's household switch in view.
+    private let destination: String?
+
+    init(recipe: Recipe, destination: String? = nil, onSave: @escaping (Recipe) async -> Void) {
         _draft = State(initialValue: recipe)
         original = recipe
+        self.destination = destination
         self.onSave = onSave
     }
 
@@ -121,6 +126,7 @@ struct RecipeEditorView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
+            .modifier(DestinationSubtitle(text: destination))
             .toolbar { editorToolbar }
             #if os(iOS)
             // Two ways out of the keyboard, because the fields here offer
@@ -979,3 +985,17 @@ private struct CameraPicker: UIViewControllerRepresentable {
     }
 }
 #endif
+
+/// The destination under the editor's title, only when there is one to name —
+/// an empty subtitle would still take its line.
+private struct DestinationSubtitle: ViewModifier {
+    let text: String?
+
+    func body(content: Content) -> some View {
+        if let text {
+            content.navigationSubtitle(text)
+        } else {
+            content
+        }
+    }
+}

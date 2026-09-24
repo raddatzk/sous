@@ -1,3 +1,4 @@
+import CloudKit
 import CoreData
 import Foundation
 import Observation
@@ -34,6 +35,10 @@ public final class CloudKitInitialImport {
     ///
     /// What deciding about households waits for: before it, "no household"
     /// only means "none delivered yet".
+    ///
+    /// Also true, for this launch only, on a device signed into no iCloud
+    /// account: nothing is on its way there, and waiting for it would leave
+    /// the device without a household for good.
     public private(set) var hasArrived: Bool
 
     private let defaults: UserDefaults
@@ -91,6 +96,11 @@ public final class CloudKitInitialImport {
             Task { @MainActor in self?.handle(report) }
         }
 
+        // Asked directly as well, not only when the setup reports failing:
+        // without an account it fails within a millisecond of the stores
+        // loading, which can be before the listener above exists.
+        Task { [weak self] in await self?.arriveIfThereIsNoAccount() }
+
         quietTimeout = Task { [weak self] in
             try? await Task.sleep(for: quietPeriod)
             guard !Task.isCancelled else { return }
@@ -123,16 +133,33 @@ public final class CloudKitInitialImport {
         case .arrived:
             defaults.set(true, forKey: Self.defaultsKey)
             stopListening()
-            hasArrived = true
-            let waiting = arrivalWaiters
-            arrivalWaiters = []
-            for waiter in waiting { waiter.resume() }
+            arrive()
             settle()
         case .failed:
             // Not remembered, and still listening: a retry that succeeds in
             // this launch should spare the next one the wait.
             settle()
+            Task { await arriveIfThereIsNoAccount() }
         }
+    }
+
+    /// A failure without an account is not a delay but the whole answer:
+    /// the setup fails at once and no import will ever start. Anything else
+    /// — offline, a server hiccup — keeps waiting for a retry.
+    private func arriveIfThereIsNoAccount() async {
+        guard !hasArrived else { return }
+        let container = CKContainer(identifier: SousPersistentContainer.cloudKitContainerIdentifier)
+        guard (try? await container.accountStatus()) == .noAccount else { return }
+        // Not remembered: signing in later makes a real import possible,
+        // and the next launch should wait for it again.
+        arrive()
+    }
+
+    private func arrive() {
+        hasArrived = true
+        let waiting = arrivalWaiters
+        arrivalWaiters = []
+        for waiter in waiting { waiter.resume() }
     }
 
     private func giveUpIfNothingStarted() {
