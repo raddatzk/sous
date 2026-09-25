@@ -90,6 +90,8 @@ struct RecipeDetailView: View {
     @State private var isClarifyingAll = false
     @State private var needsIngredientReview = false
     @State private var isReviewingIngredients = false
+    /// The stage "So funktioniert’s" opens at, for whichever banner asked.
+    @State private var explaining: IngredientJourneyStage?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -372,6 +374,9 @@ struct RecipeDetailView: View {
                     needsIngredientReview = await library.needsIngredientReview(recipe)
                 }
             }
+        }
+        .sheet(item: $explaining) { stage in
+            IngredientJourneySheet(start: stage)
         }
         .sheet(isPresented: $isClarifyingAll) {
             IngredientClarificationSheet(open: openIngredients) {
@@ -750,11 +755,14 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private func ingredientReviewBanner(_ count: Int) -> some View {
         HStack(spacing: 12) {
-            Label(
-                count == 1 ? "1 Zutat fehlt im Katalog" : "\(count) Zutaten fehlen im Katalog",
-                systemImage: "text.book.closed"
-            )
-            .font(.subheadline.weight(.medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Label(
+                    count == 1 ? "1 Zutat fehlt im Katalog" : "\(count) Zutaten fehlen im Katalog",
+                    systemImage: "text.book.closed"
+                )
+                .font(.subheadline.weight(.medium))
+                explainButton(.teaching, under: "text.book.closed")
+            }
             Spacer()
             Button("Anlegen") {
                 isReviewingIngredients = true
@@ -787,19 +795,40 @@ struct RecipeDetailView: View {
     @ViewBuilder
     private func basisReviewBanner(_ count: Int) -> some View {
         HStack(spacing: 12) {
-            Label(
-                count == 1
-                    ? "1 Zutat ohne bestätigte Nährwerte"
-                    : "\(count) Zutaten ohne bestätigte Nährwerte",
-                systemImage: "questionmark.text.page"
-            )
-            .font(.subheadline.weight(.medium))
+            VStack(alignment: .leading, spacing: 2) {
+                Label(
+                    count == 1
+                        ? "1 Zutat ohne bestätigte Nährwerte"
+                        : "\(count) Zutaten ohne bestätigte Nährwerte",
+                    systemImage: "questionmark.text.page"
+                )
+                .font(.subheadline.weight(.medium))
+                explainButton(.nutrition, under: "questionmark.text.page")
+            }
             Spacer()
             Button("Zuordnen") { isClarifyingAll = true }
                 .buttonStyle(.borderedProminent)
         }
         .padding(14)
         .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
+    }
+
+    /// What the two ingredient banners have under their line: the way from
+    /// "something is missing" to why it matters, opened at the stage the
+    /// banner is about. Indented to the label's text, so it reads as that
+    /// line's footnote rather than as a third button — by a hidden copy of
+    /// the label's own symbol, which keeps the indent right at every type
+    /// size where a fixed number would not.
+    private func explainButton(_ stage: IngredientJourneyStage, under symbol: String) -> some View {
+        Label {
+            Button("So funktioniert’s") { explaining = stage }
+                .buttonStyle(.borderless)
+                .font(.footnote)
+        } icon: {
+            Image(systemName: symbol)
+                .font(.subheadline.weight(.medium))
+                .hidden()
+        }
     }
 
     /// Offers a category the recipe's own numbers would justify, with the

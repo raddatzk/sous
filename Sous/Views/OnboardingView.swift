@@ -3,12 +3,14 @@ import SwiftUI
 
 /// What the app says the first time it is opened.
 ///
-/// Five pages, and every one of them either does something or names the place
+/// Six pages, and every one of them either does something or names the place
 /// where it is done: a welcome that only describes the app is a page a cook
 /// taps through without reading. So the last page carries the import and the
 /// editor, the steps page the choice of chat, and the household page the
 /// invitation itself — the same controls the settings offer, not pointers to
-/// them.
+/// them. The ingredients page has nothing to press, so it shows instead: one
+/// line run through the app's own catalog and nutrition tables, stage by
+/// stage.
 ///
 /// A paging scroll view rather than a `TabView(.page)`, because that style is
 /// iOS only and the Mac would be left with a welcome it cannot leave. The
@@ -22,16 +24,22 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var step: Step = .welcome
+    @State private var journeyStage: IngredientJourneyStage = .reading
 
-    /// The five pages: what the app is, what it does with a recipe once it
-    /// has one, how a step learns its ingredients, who else is cooking — and
-    /// last, bringing recipes in.
+    /// The six pages: what the app is, what it does with a recipe once it
+    /// has one, what becomes of each ingredient line, how a step learns its
+    /// ingredients, who else is cooking — and last, bringing recipes in.
+    ///
+    /// The ingredients page follows planning because it is the why of
+    /// planning's last sentence: the list can add things up only because
+    /// every line was found in the catalog.
     ///
     /// Importing is last because its two buttons close the welcome: put it
     /// anywhere earlier and the pages behind it are never seen.
     private enum Step: Int, CaseIterable, Hashable {
         case welcome
         case planning
+        case ingredients
         case steps
         case household
         case recipes
@@ -42,6 +50,7 @@ struct OnboardingView: View {
             case .recipes: "book.closed"
             case .steps: "sparkles"
             case .planning: "calendar"
+            case .ingredients: "carrot"
             case .household: "person.2"
             }
         }
@@ -52,6 +61,7 @@ struct OnboardingView: View {
             case .recipes: "Rezepte hineinbringen"
             case .steps: "Zutaten pro Schritt"
             case .planning: "Planen und einkaufen"
+            case .ingredients: "Aus einer Zeile wird mehr"
             case .household: "Zu zweit kochen"
             }
         }
@@ -83,6 +93,12 @@ struct OnboardingView: View {
                 Leg Rezepte auf die Tage der Woche — oder lass Sous \
                 vorschlagen, was es geben könnte. Was geplant ist, steht \
                 zusammengezählt auf der Einkaufsliste.
+                """
+            case .ingredients:
+                """
+                Jede Zutat im Rezept findet Sous in seinem Zutatenkatalog \
+                wieder. Das sortiert die Einkaufsliste und rechnet die \
+                Nährwerte.
                 """
             case .household:
                 """
@@ -229,6 +245,12 @@ struct OnboardingView: View {
                         .buttonStyle(.borderedProminent)
                 }
             }
+        case .ingredients:
+            IngredientJourneyView(
+                stage: $journeyStage,
+                isPlaying: self.step == .ingredients
+            )
+            .multilineTextAlignment(.leading)
         case .welcome, .planning:
             EmptyView()
         }
@@ -257,7 +279,7 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    /// Where in the five the cook is. Decorative, so it is hidden from
+    /// Where in the six the cook is. Decorative, so it is hidden from
     /// VoiceOver — which reads the page's own heading instead.
     private var dots: some View {
         HStack(spacing: 8) {
