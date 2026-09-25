@@ -47,7 +47,7 @@ struct RecipeEditorView: View {
     /// writer can see what the app understood of a sentence. Display only:
     /// the text is never changed by the app.
     @State private var stepMarks: [RecipeStepMarkup.Mark] = []
-    /// What the cook chose to teach the app about an unknown ingredient.
+    /// The unknown ingredient the cook tapped, while its sheet is up.
     ///
     /// Held by the editor rather than by the chip that was tapped: on iPhone
     /// that chip lives in the keyboard bar, and the bar goes the moment the
@@ -510,7 +510,7 @@ struct RecipeEditorView: View {
                 }
                 .font(.callout)
                 ForEach(unknown, id: \.self) { name in
-                    UnknownIngredientMenu.chip(name: name) { ingredientTeaching = $0 }
+                    UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
                 }
             }
             // Keeps the capsules' own edges off the scroll view's bounds,
@@ -694,7 +694,7 @@ struct RecipeEditorView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(unknown, id: \.self) { name in
-                            UnknownIngredientMenu.chip(name: name) { ingredientTeaching = $0 }
+                            UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
                         }
                     }
                     .padding(.vertical, 2)

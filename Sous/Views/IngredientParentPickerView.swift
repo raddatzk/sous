@@ -10,7 +10,7 @@ import SwiftUI
 /// it again. `IngredientCatalogLibrary.setParent` had been there the whole
 /// time. This is the screen it was missing.
 ///
-/// Built like ``IngredientAliasPickerView`` and for the same reason: the
+/// Built like ``UnknownIngredientSheet`` and for a similar reason: the
 /// proposals lead, the search covers everything else, and one tap decides.
 /// What the tap does is the caller's — the form takes the name into its
 /// draft, the unknown-ingredient menu creates the variety on the spot.
@@ -118,7 +118,7 @@ struct IngredientParentPickerView: View {
     }
 
     private var results: [CatalogIngredient] {
-        let matches = catalog.catalog.suggestions(for: searchText, limit: 60)
+        let matches = catalog.catalog.search(searchText)
         // Two characters is the search's own floor; below it, the whole
         // catalog beats nothing.
         let pool = matches.isEmpty && trimmedQuery.count < 2

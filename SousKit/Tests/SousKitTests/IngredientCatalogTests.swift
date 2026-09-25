@@ -172,3 +172,55 @@ extension IngredientCatalogTests {
         #expect(loose.category(for: "A") == .other)
     }
 }
+
+// MARK: - Searching for an unknown name
+
+extension IngredientCatalogTests {
+    @Test("A qualified name finds the entries its words name")
+    func searchByWords() throws {
+        let names = catalog.search("dünne Kokosmilch").map(\.name)
+
+        // Neither entry contains the whole string, but both are what the cook
+        // has to choose between.
+        #expect(names.contains("Kokosmilch"))
+        #expect(names.contains("Kokosmilch fettarm"))
+        // The exact word ranks ahead of the head noun of the compound.
+        let kokosmilch = try #require(names.firstIndex(of: "Kokosmilch"))
+        let milch = try #require(names.firstIndex(of: "Milch"))
+        #expect(kokosmilch < milch)
+    }
+
+    @Test("Word order and accents do not matter")
+    func searchIgnoresOrderAndAccents() {
+        #expect(catalog.search("Kokosmilch dünn").contains { $0.name == "Kokosmilch" })
+        #expect(catalog.search("kurbis").contains { $0.name.hasPrefix("Kürbis") })
+    }
+
+    @Test("A typed prefix still leads")
+    func searchPrefixFirst() throws {
+        #expect(try #require(catalog.search("toma").first).name == "Tomate")
+        #expect(catalog.search("t").isEmpty)
+    }
+
+    @Test("A plural finds the singular, but a compound does not find its modifier")
+    func searchWordEndings() {
+        #expect(catalog.search("frische Tomaten").contains { $0.name == "Tomate" })
+        #expect(!catalog.search("dünne Kokosmilch").contains { $0.name == "Kokos" })
+    }
+}
+
+extension IngredientCatalogTests {
+    @Test("The strict search keeps folding and word order, and drops loose matches")
+    func strictSearch() {
+        func strict(_ text: String) -> [String] {
+            catalog.search(text, requiresEveryWord: true).map(\.name)
+        }
+        #expect(strict("schmelzkase").contains("Schmelzkäse"))
+        #expect(strict("fettarm Kokosmilch").contains("Kokosmilch fettarm"))
+        // A compound's head noun would be noise in a list sorted by name.
+        #expect(!strict("Kokosmilch").contains("Milch"))
+        // Every word has to be matched, short ones included.
+        #expect(!strict("dünne Kokosmilch").contains("Kokosmilch"))
+        #expect(strict("bete rote").contains { $0.lowercased() == "rote bete" })
+    }
+}

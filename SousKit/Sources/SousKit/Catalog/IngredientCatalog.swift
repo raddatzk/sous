@@ -207,6 +207,102 @@ public struct IngredientCatalog: Sendable {
             .map { $0 }
     }
 
+    /// What an unknown name might already be, best first. This powers the sheet
+    /// that opens when the cook taps a name the catalog does not know.
+    ///
+    /// The search goes word by word, because ``suggestions(for:limit:)``
+    /// only looks at the whole string. That is right while the cook types one
+    /// word, but a name copied from a recipe carries qualifiers.
+    /// "dünne Kokosmilch" appears in no key at all, yet the catalog knows
+    /// Kokosmilch and Kokosmilch fettarm. Those two are what the cook needs to
+    /// see before deciding whether the name is a spelling of one, a variety of
+    /// one, or something new.
+    ///
+    /// A query word matches a word of a key in one of three ways:
+    /// - exactly;
+    /// - as the start of the key's word, or with a plural ending the key lacks
+    ///   ("Tomaten" matches "Tomate");
+    /// - as a compound ending in the key's word, the way
+    ///   ``VariantHeuristic`` reads German head nouns ("Kokosmilch" matches
+    ///   "Milch").
+    ///
+    /// Candidates are ranked in this order:
+    /// 1. the whole query starts a key;
+    /// 2. the whole query appears somewhere in a key;
+    /// 3. every query word is matched;
+    /// 4. only some query words are matched.
+    ///
+    /// Within a rank, more and closer word matches come first, then the
+    /// shorter name. Folding makes "kurbis" match "Kürbis", as in recipe
+    /// search.
+    ///
+    /// Set `requiresEveryWord` to drop the looser matches. Only entries that
+    /// answer every typed word exactly, by prefix or by plural are kept. The
+    /// catalog list needs this: it sorts its hits by aisle and name, so a
+    /// loose match would not stay at the end but land between the good ones.
+    /// It still gains folding and free word order ("fettarm Kokosmilch").
+    /// Short words count in strict mode because none of them can be
+    /// dropped: "rote be" still finds Rote Bete.
+    public func search(
+        _ text: String, limit: Int = 60, requiresEveryWord: Bool = false
+    ) -> [CatalogIngredient] {
+        let query = RecipeSearchTerms.fold(text.trimmingCharacters(in: .whitespacesAndNewlines))
+        guard query.count >= 2 else { return [] }
+        let words = Self.words(of: query).filter { $0.count >= (requiresEveryWord ? 2 : 3) }
+        // A compound's head noun (strength 1) is a loose match.
+        let minimumStrength = requiresEveryWord ? 2 : 1
+
+        /// Lower sorts first. The second value is negated closeness.
+        func rank(_ ingredient: CatalogIngredient) -> (Int, Int)? {
+            var best: (Int, Int)?
+            for key in ingredient.keys.map(RecipeSearchTerms.fold) {
+                let candidate: (Int, Int)
+                if key.hasPrefix(query) {
+                    candidate = (0, 0)
+                } else if key.contains(query) {
+                    candidate = (1, 0)
+                } else {
+                    let keyWords = Self.words(of: key)
+                    let strengths = words.map { word in
+                        keyWords.map { Self.strength(of: word, against: $0) }.max() ?? 0
+                    }
+                    let matched = strengths.filter { $0 >= minimumStrength }.count
+                    guard matched > 0, !requiresEveryWord || matched == words.count else { continue }
+                    candidate = (matched == words.count ? 2 : 3, -strengths.reduce(0, +))
+                }
+                if best == nil || candidate < best! { best = candidate }
+            }
+            return best
+        }
+
+        return ingredients
+            .compactMap { ingredient in rank(ingredient).map { (ingredient, $0) } }
+            .sorted { first, second in
+                if first.1 != second.1 { return first.1 < second.1 }
+                if first.0.name.count != second.0.name.count { return first.0.name.count < second.0.name.count }
+                return first.0.name < second.0.name
+            }
+            .prefix(limit)
+            .map(\.0)
+    }
+
+    private static func words(of text: String) -> [String] {
+        text.split { !$0.isLetter && !$0.isNumber }.map(String.init)
+    }
+
+    /// How closely one typed word answers one word of a key. The result is
+    /// 0 for no match and 3 for an exact one.
+    private static func strength(of word: String, against keyWord: String) -> Int {
+        if word == keyWord { return 3 }
+        if keyWord.hasPrefix(word) { return 2 }
+        // A plural ending the key does not write ("Tomaten" / "Tomate"). This
+        // is capped at two letters so that "Kokosmilch" does not match Kokos.
+        if keyWord.count >= 3, word.hasPrefix(keyWord), word.count - keyWord.count <= 2 { return 2 }
+        // A compound ending in the key's word: "Kokosmilch" matches Milch.
+        if keyWord.count >= 3, word.hasSuffix(keyWord), word.count - keyWord.count >= 3 { return 1 }
+        return 0
+    }
+
     /// The ingredients named in a piece of text that this catalog does not
     /// know — what the editor offers to add, and what a recipe's "unknown
     /// ingredients" review checks against.

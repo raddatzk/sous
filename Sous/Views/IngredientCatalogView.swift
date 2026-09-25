@@ -143,7 +143,7 @@ struct IngredientCatalogView: View {
     private var groups: [(category: IngredientCategory, ingredients: [CatalogIngredient])] {
         let matches = searchText.isEmpty
             ? catalog.catalog.ingredients
-            : catalog.catalog.suggestions(for: searchText, limit: 200)
+            : catalog.catalog.search(searchText, limit: 200, requiresEveryWord: true)
 
         return Dictionary(grouping: matches, by: \.category)
             .map { (category: $0.key, ingredients: $0.value.sorted { $0.name < $1.name }) }
@@ -169,6 +169,11 @@ struct IngredientFormView: View {
     /// already said they want to type numbers, so the bundled read-only view
     /// would be one tap in the way.
     private let startsOnOwnValues: Bool
+    /// Whether a new name may be offered as a variety by its word ending.
+    /// This is off when the cook arrives from the unknown-name sheet, which
+    /// has already shown every related entry. Choosing "Neu anlegen" there
+    /// turned those entries down, so the form should not ask again.
+    private let proposesVariety: Bool
 
     @State private var name: String
     @State private var aliasText: String
@@ -241,9 +246,10 @@ struct IngredientFormView: View {
     /// through, since it cannot be undone.
     @State private var isConfirmingDelete = false
 
-    init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false) {
+    init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false, proposesVariety: Bool = true) {
         original = ingredient
         self.startsOnOwnValues = startsOnOwnValues
+        self.proposesVariety = proposesVariety
         _name = State(initialValue: ingredient.name)
         _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
         _category = State(initialValue: ingredient.ownCategory)
@@ -1197,7 +1203,7 @@ struct IngredientFormView: View {
     /// Decision B's one moment: only for a name that is coming into being,
     /// only once per spelling, and only ever as a question.
     private func proposeVariantIfNew() {
-        guard isNew, parentName == nil else { return }
+        guard proposesVariety, isNew, parentName == nil else { return }
         variantProposal = VariantHeuristic.parent(for: trimmedName, in: catalog.catalog)
     }
 
