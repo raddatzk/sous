@@ -173,10 +173,14 @@ struct SousApp: App {
                 await shoppingLibrary.reload()
                 await catalogLibrary.reload()
                 // Search and Siri answer for the household showing, like
-                // every screen does.
+                // every screen does. Not awaited: the index is the system's,
+                // and the switch — a new household's sheet closing, a link
+                // opening its recipe — must not wait on another process.
                 SousAppShortcuts.updateAppShortcutParameters()
-                if let all = try? await recipes.recipes(matching: RecipeQuery()) {
-                    await RecipeSpotlight.replaceAll(with: all)
+                Task {
+                    if let all = try? await recipes.recipes(matching: RecipeQuery()) {
+                        await RecipeSpotlight.replaceAll(with: all)
+                    }
                 }
             }
             switcher = madeSwitcher
@@ -392,9 +396,10 @@ struct SousApp: App {
 
     /// Opens a recipe handed over from another device, the way Spotlight's
     /// `OpenRecipeIntent` does.
-    private func continueReading(_ id: UUID) async {
+    private func continueReading(_ id: UUID, from household: UUID?) async {
         let showing = selection.target
-        guard let recipe = await handedOverRecipes([id], while: { selection.target == showing })?.first
+        guard let recipe = await handedOverRecipes([id], from: household, while: { selection.target == showing })?
+            .first
         else { return }
         navigation.section = .recipes
         selection.show(recipe)
@@ -406,9 +411,9 @@ struct SousApp: App {
     /// arrive before the recipe it names has synced. Unlike a handoff, a
     /// link the cook tapped deserves an answer when the recipe never comes —
     /// unless they have moved on to something else in the meantime.
-    private func openLinkedRecipe(_ id: UUID) async {
+    private func openLinkedRecipe(_ id: UUID, from household: UUID?) async {
         let showing = selection.target
-        guard let recipe = await handedOverRecipes([id], while: { selection.target == showing })?
+        guard let recipe = await handedOverRecipes([id], from: household, while: { selection.target == showing })?
             .first
         else {
             if selection.target == showing {
@@ -460,6 +465,7 @@ struct SousApp: App {
     /// turned to meanwhile, would be worse than the handoff doing nothing.
     private func handedOverRecipes(
         _ ids: [UUID],
+        from household: UUID? = nil,
         while stillWanted: () -> Bool
     ) async -> [Recipe]? {
         guard !ids.isEmpty else { return nil }
@@ -470,13 +476,33 @@ struct SousApp: App {
             }
             var found: [Recipe] = []
             for id in ids {
-                guard let recipe = await library.recipe(id: id) else { break }
+                guard let recipe = await locate(id, preferring: household) else { break }
                 found.append(recipe)
             }
             guard found.count == ids.count else { continue }
             return found.contains(where: \.isDeleted) ? nil : found
         }
         return nil
+    }
+
+    /// A recipe named from outside the library — a link, a handoff — in the
+    /// household showing if it is there, otherwise in the one that holds it.
+    ///
+    /// The showing household wins even when the link names another: the
+    /// same recipe can be in both under the same id, and a tapped link that
+    /// quietly changed households would be the bigger surprise. Only when
+    /// the recipe is not here does the switch go over, the way a calendar
+    /// event from another household's plan does — to the household the
+    /// link names if it holds the recipe, otherwise to whichever does.
+    private func locate(_ id: UUID, preferring household: UUID?) async -> Recipe? {
+        let here = await library.recipe(id: id)
+        if let here, !here.isDeleted { return here }
+        let holders = await households.householdIDs(holdingRecipe: id)
+        guard let target = holders.first(where: { $0 == household }) ?? holders.first,
+              target != switcher.activeID
+        else { return here }
+        await switcher.switchAnnounced(to: target)
+        return await library.recipe(id: id)
     }
 
     /// Every live recipe into the system index, so the collection answers
@@ -604,7 +630,7 @@ struct SousApp: App {
                 .onOpenURL { url in
                     if url.isFileURL { return open(file: url) }
                     if let id = RecipeLink.recipeID(from: url) {
-                        Task { await openLinkedRecipe(id) }
+                        Task { await openLinkedRecipe(id, from: RecipeLink.householdID(from: url)) }
                         return
                     }
                     // A meal tapped in the calendar the plan is mirrored to.
@@ -622,7 +648,8 @@ struct SousApp: App {
                 // Dock or the app switcher.
                 .onContinueUserActivity(RecipeHandoff.activityType) { activity in
                     guard let id = RecipeHandoff.recipeID(from: activity.userInfo) else { return }
-                    Task { await continueReading(id) }
+                    let household = RecipeHandoff.householdID(from: activity.userInfo)
+                    Task { await continueReading(id, from: household) }
                 }
                 // The shopping list another device had open.
                 .onContinueUserActivity(ShoppingListHandoff.activityType) { _ in

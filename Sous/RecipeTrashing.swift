@@ -68,6 +68,9 @@ enum RecipeSpotlight {
     /// pages this household cannot open.
     static func replaceAll(with recipes: [Recipe]) async {
         await removeAll()
+        // An empty household has nothing to index, and handed an empty list
+        // the index never answers — which held up a new household's sheet.
+        guard !recipes.isEmpty else { return }
         try? await CSSearchableIndex.default().indexAppEntities(recipes.map(RecipeEntity.init))
     }
 

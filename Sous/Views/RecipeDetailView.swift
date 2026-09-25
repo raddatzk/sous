@@ -389,7 +389,7 @@ struct RecipeDetailView: View {
         // turns up in the Mac's Dock, and the other way round.
         .userActivity(RecipeHandoff.activityType, element: offersHandoff ? recipe.id : nil) { id, activity in
             activity.title = recipe.title
-            activity.userInfo = RecipeHandoff.userInfo(for: id)
+            activity.userInfo = RecipeHandoff.userInfo(for: id, household: ActiveHousehold.id)
             activity.isEligibleForHandoff = true
             // What the receiving side's scene routing matches against — see
             // `handlesExternalEvents` on the root.
@@ -663,7 +663,9 @@ struct RecipeDetailView: View {
     /// Puts the recipe's link on the clipboard as a link, so Notes and
     /// Reminders paste something tappable rather than a string.
     private func copyLink(to recipe: Recipe) {
-        let url = RecipeLink.url(for: recipe.id)
+        // With the household it is copied from: the link may be tapped while
+        // another one is showing.
+        let url = RecipeLink.url(for: recipe.id, household: ActiveHousehold.id)
         #if os(iOS)
         UIPasteboard.general.url = url
         #else

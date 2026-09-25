@@ -222,6 +222,17 @@ struct RootView: View {
             }
         }
         #endif
+        // Over everything in the window, so it shows whichever section the
+        // link or the calendar event opened.
+        .overlay {
+            if let householdSwitcher, let announcement = householdSwitcher.announcement {
+                HouseholdSwitchSplash(announcement: announcement) {
+                    householdSwitcher.announcement = nil
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: householdSwitcher?.announcement)
         // Light or dark for the whole app, cook mode included, rather than
         // one screen deciding for itself.
         .sousAppearance()
@@ -554,6 +565,51 @@ enum SousSection: String, CaseIterable, Identifiable {
         case .mealPlan: "calendar"
         case .shopping: "cart"
         case .search: "magnifyingglass"
+        }
+    }
+}
+
+/// Names the household a link, a handoff or a calendar event just switched
+/// to — for a moment, or until the first tap anywhere.
+///
+/// The tap only dismisses: it lands on a layer over the whole window, so it
+/// cannot also open whatever happened to be under the finger in a screen
+/// the person has not looked at yet.
+private struct HouseholdSwitchSplash: View {
+    let announcement: HouseholdSwitcher.Announcement
+    let dismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.12)
+                .ignoresSafeArea()
+            VStack(spacing: 8) {
+                Image(systemName: "house")
+                    .font(.largeTitle)
+                    .foregroundStyle(.tint)
+                Text("Gewechselt zu")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(announcement.name)
+                    .font(.title2.weight(.semibold))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.horizontal, 32)
+            .padding(.vertical, 24)
+            .frame(minWidth: 200)
+            .background(.regularMaterial, in: .rect(cornerRadius: 20))
+            .padding(32)
+            .accessibilityElement(children: .combine)
+        }
+        .contentShape(.rect)
+        .onTapGesture(perform: dismiss)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: "Schließen", dismiss)
+        .task(id: announcement.id) {
+            AccessibilityNotification.Announcement("Gewechselt zu \(announcement.name)").post()
+            try? await Task.sleep(for: .seconds(2.5))
+            guard !Task.isCancelled else { return }
+            dismiss()
         }
     }
 }

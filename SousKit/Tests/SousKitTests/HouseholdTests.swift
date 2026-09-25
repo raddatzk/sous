@@ -453,6 +453,31 @@ struct HouseholdSwitchingTests {
         #expect(await households.householdID(ofPlanEntry: UUID()) == nil)
     }
 
+    @Test("A recipe is found in every household holding it, whichever is showing")
+    func householdsHoldingARecipe() async throws {
+        let before = ActiveHousehold.id
+        defer { ActiveHousehold.id = before }
+        let container = try SousPersistentContainer.make(inMemory: true)
+        let households = CoreDataHouseholds(container: container)
+        let recipes = CoreDataRecipeStore(container: container)
+        let familie = try await households.create(named: "Familie")
+        let wg = try await households.create(named: "WG")
+        let shared = UUID()
+        let binned = UUID()
+
+        // The same web recipe imported into both, under the same id.
+        ActiveHousehold.id = familie
+        try await recipes.save(Recipe(id: shared, title: "Brot"))
+        try await recipes.save(Recipe(id: binned, title: "Suppe"))
+        try await recipes.delete(id: binned)
+        ActiveHousehold.id = wg
+        try await recipes.save(Recipe(id: shared, title: "Brot"))
+
+        #expect(Set(await households.householdIDs(holdingRecipe: shared)) == [familie, wg])
+        #expect(await households.householdIDs(holdingRecipe: binned).isEmpty)
+        #expect(await households.householdIDs(holdingRecipe: UUID()).isEmpty)
+    }
+
     @Test("What waits for a household shows in every own household")
     func waitingRowsShowEverywhere() async throws {
         let before = ActiveHousehold.id

@@ -224,6 +224,22 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         }
     }
 
+    /// The households holding a live recipe with this id, whichever is
+    /// showing — so a link or a handoff can open it where it is.
+    ///
+    /// Several, because the same recipe can be in more than one household
+    /// under the same id. A row still waiting for a household names none.
+    public func householdIDs(holdingRecipe id: UUID) async -> [UUID] {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return await context.perform {
+            let request = CDRecipe.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@ AND deletedAt == nil", id as NSUUID)
+            let rows = (try? context.fetch(request)) ?? []
+            var seen = Set<UUID>()
+            return rows.compactMap(\.household?.id).filter { seen.insert($0).inserted }
+        }
+    }
+
     // MARK: Making and naming
 
     /// A new household, made by a person and named by them. It is never

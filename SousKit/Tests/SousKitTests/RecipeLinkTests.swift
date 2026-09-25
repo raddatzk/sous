@@ -12,6 +12,27 @@ struct RecipeLinkTests {
         #expect(RecipeLink.recipeID(from: url) == id)
     }
 
+    @Test("A handed-out link names its household, and an old one names none")
+    func householdInLink() throws {
+        let id = UUID()
+        let household = UUID()
+        let url = RecipeLink.url(for: id, household: household)
+
+        #expect(RecipeLink.recipeID(from: url) == id)
+        #expect(RecipeLink.householdID(from: url) == household)
+        #expect(RecipeLink.householdID(from: RecipeLink.url(for: id)) == nil)
+        #expect(RecipeLink.url(for: id, household: nil) == RecipeLink.url(for: id))
+        #expect(RecipeLink.householdID(from: try #require(URL(string: "sous://plan/x?household=\(household)"))) == nil)
+    }
+
+    @Test("A pasted link with its household still counts as a reference")
+    func householdLinkIsAReference() {
+        let id = UUID()
+        let text = "1 Portion [Pizzateig](\(RecipeLink.url(for: id, household: UUID()).absoluteString))"
+
+        #expect(RecipeLink.referencedIDs(in: text) == [id])
+    }
+
     @Test("Foreign URLs are not mistaken for recipe links")
     func foreignURLs() throws {
         #expect(RecipeLink.recipeID(from: try #require(URL(string: "https://example.org"))) == nil)

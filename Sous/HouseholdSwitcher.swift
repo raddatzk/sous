@@ -31,6 +31,16 @@ final class HouseholdSwitcher {
     /// launch, and again whenever they tap the notice.
     var isAskingAboutUnassignedRows = false
     private var hasAskedAboutUnassignedRows = false
+    /// The household just switched to because something from outside
+    /// pointed there — named briefly over the screen, so the change does
+    /// not go unnoticed. The root clears it.
+    var announcement: Announcement?
+
+    struct Announcement: Identifiable, Equatable {
+        /// Fresh per switch, so a second one restarts the countdown.
+        let id = UUID()
+        let name: String
+    }
 
     private let households: CoreDataHouseholds
     private let onSwitch: @MainActor () async -> Void
@@ -88,6 +98,23 @@ final class HouseholdSwitcher {
         ActiveHousehold.id = id
         UserDefaults.sous.set(id?.uuidString, forKey: ActiveHousehold.defaultsKey)
         await onSwitch()
+    }
+
+    /// Switches because a link, a handoff or a calendar event points into
+    /// another household, and says so. The person did not pick it from the
+    /// title menu, so the name under the title changing is too quiet on its
+    /// own.
+    func switchAnnounced(to id: UUID) async {
+        guard id != activeID else { return }
+        // A link tapped at launch can arrive before the first refresh has
+        // listed anything to name.
+        if !choices.contains(where: { $0.id == id }) {
+            choices = (try? await households.choices()) ?? choices
+        }
+        // Before the switch rather than after: the libraries reload while
+        // it shows, and the name is what explains the screen changing.
+        announcement = choices.first { $0.id == id }.map { Announcement(name: $0.name) }
+        await switchTo(id)
     }
 
     /// Makes a household with this name and shows it — empty, ready for

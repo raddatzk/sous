@@ -441,7 +441,7 @@ struct MealPlanView: View {
             if let owner = await households?.householdID(ofPlanEntry: id),
                owner != householdSwitcher?.activeID,
                let householdSwitcher {
-                await householdSwitcher.switchTo(owner)
+                await householdSwitcher.switchAnnounced(to: owner)
                 if let meal = await plan.meal(entryID: id) {
                     return open((entry: meal.entry, recipe: meal.recipe))
                 }
