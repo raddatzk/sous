@@ -29,6 +29,7 @@ struct BLSRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     /// What to say under an empty search: the table wants three characters,

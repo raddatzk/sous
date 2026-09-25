@@ -29,6 +29,10 @@ struct IngredientBasisPicker: View {
     /// replaces the proposals rather than sitting beside them: two lists of
     /// catalog rows under one question is one list too many.
     @State private var query = ""
+    /// The row the cook tapped, not yet written. `nil` means "whatever is on
+    /// file", so the proposal starts out marked and a decision taken elsewhere
+    /// shows up without having to be copied in.
+    @State private var picked: String?
 
     private var current: NutritionBasis? {
         nutrition.nutrition(forName: name)?.basis(for: state)
@@ -59,9 +63,27 @@ struct IngredientBasisPicker: View {
         }
     }
 
+    /// The row marked in the list: the one just tapped, or the one on file.
+    private var selection: String? {
+        picked ?? current?.code
+    }
+
+    /// What "Übernehmen" would write, when there is anything to write: a row
+    /// other than the filed one, or the filed one while it is only proposed.
+    private var pendingCode: String? {
+        guard let selection else { return nil }
+        if selection != current?.code || current?.status == .proposed { return selection }
+        return nil
+    }
+
     /// What the numbers rest on right now, and — while that is only a
-    /// proposal — the one tap that settles it. The batch flow is this button,
-    /// once per ingredient.
+    /// proposal and still the marked row — the one tap that settles it, up
+    /// here where the eye starts. A proposal can head a list of twenty-five
+    /// rows, and saying yes to it should not mean scrolling past all of them.
+    ///
+    /// Once another row is marked the button leaves this line: beside
+    /// "Zurzeit" it would read as confirming the old row. The one under the
+    /// list stays, and confirms whatever is marked.
     @ViewBuilder
     private var currentLine: some View {
         switch current?.status {
@@ -97,12 +119,8 @@ struct IngredientBasisPicker: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                if current?.status == .proposed {
-                    Button("Übernehmen") {
-                        decide { await nutrition.confirmProposedBasis(forName: name, state: target) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+                if current?.status == .proposed, let code = current?.code, pendingCode == code {
+                    confirmButton(code)
                 }
             }
         }
@@ -151,20 +169,46 @@ struct IngredientBasisPicker: View {
     /// One shape for both lists, so a proposal and a search hit are picked the
     /// same way and look the same when picked — and the same shape the form
     /// uses, see ``BLSRow``.
+    ///
+    /// A tap marks, "Übernehmen" writes — what the circle promises, and what
+    /// the form's own page does. A tap that wrote at once and folded the
+    /// picker away left no moment to see which row had been hit.
+    ///
+    /// The marked row leads wherever it is not among the rows shown, so a
+    /// search hit stays visible after the search is cleared and the button
+    /// never confirms something off screen.
     private func rowList(_ rows: [BLSEntry]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(rows) { row in
-                BLSRow(row: row, isSelected: current?.code == row.code) {
-                    decide {
-                        await nutrition.confirmBasis(code: row.code, state: target, forName: name)
-                    }
+        var shown = rows
+        if let selection, !rows.contains(where: { $0.code == selection }),
+           let marked = nutrition.row(forCode: selection) {
+            shown.insert(marked, at: 0)
+        }
+        return VStack(alignment: .leading, spacing: 0) {
+            ForEach(shown) { row in
+                BLSRow(row: row, isSelected: selection == row.code) {
+                    picked = row.code
                 }
             }
         }
     }
 
+    /// Writes the marked row. The same button in both places it appears.
+    private func confirmButton(_ code: String) -> some View {
+        Button("Übernehmen") {
+            decide { await nutrition.confirmBasis(code: code, state: target, forName: name) }
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.small)
+    }
+
+    /// Wraps rather than squeezing: with "Übernehmen" in front, four
+    /// capsules no longer fit one line of a sheet, and a squeezed one broke
+    /// its own label in two.
     private var otherAnswers: some View {
-        HStack(spacing: 12) {
+        FlowLayout(spacing: 12, lineSpacing: 8) {
+            if let pendingCode {
+                confirmButton(pendingCode)
+            }
             // The one answer that stays general on purpose: the form behind
             // it edits the whole ingredient — name, aisle, measures, one set
             // of values — and there is no per-state set of fields to fill.
@@ -184,7 +228,6 @@ struct IngredientBasisPicker: View {
                     decide { await nutrition.clearBasis(forName: name, state: target) }
                 }
             }
-            Spacer(minLength: 0)
         }
         .buttonStyle(.bordered)
         .controlSize(.small)
@@ -202,6 +245,7 @@ struct IngredientBasisPicker: View {
     private func decide(_ work: @escaping () async -> Void) {
         Task {
             await work()
+            picked = nil
             await onDecision()
         }
     }
