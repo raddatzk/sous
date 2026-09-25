@@ -134,13 +134,7 @@ struct RecipeDetailView: View {
     private var menuActions: RecipePageActions? {
         guard publishesMenuActions else { return nil }
         let isTrashed = recipe.isDeleted
-        #if os(macOS)
-        let print: RecipePageActions.Action? = { [latest, servings, timeItems] in
-            RecipePrinting.print(latest, servings: servings, times: timeItems)
-        }
-        #else
-        let print: RecipePageActions.Action? = nil
-        #endif
+        let print: RecipePageActions.Action = { Task { await printRecipe() } }
         let cook: RecipePageActions.Action = { [recipe, servings] in session.start(recipe, servings: servings) }
         let toggleFavorite: RecipePageActions.Action = { [recipe] in Task { await library.toggleFavorite(recipe) } }
         return RecipePageActions(
@@ -153,6 +147,38 @@ struct RecipeDetailView: View {
             toggleFavorite: isTrashed ? nil : toggleFavorite,
             trash: isTrashed ? nil : moveToTrash
         )
+    }
+
+    /// The recipe as it leaves the app: at the serving count on screen, with
+    /// the nutrition the page has worked out for it and a way back in.
+    private var paperDocument: RecipeDocument {
+        RecipeDocument(
+            latest,
+            servings: servings,
+            nutrition: nutrition,
+            // The same link "Link kopieren" hands out, and like it none for
+            // a recipe in the trash.
+            appLink: recipe.isDeleted ? nil : RecipeLink.url(for: recipe.id, household: ActiveHousehold.id),
+            locale: .sous
+        )
+    }
+
+    /// The first photo, as the page's hero shows it.
+    private func paperPicture() async -> RecipeHTML.Picture? {
+        let recipe = latest
+        guard let id = recipe.imageIDs.first, let data = await library.image(id: id) else { return nil }
+        return RecipeHTML.Picture(data: data, crop: recipe.crop(for: id))
+    }
+
+    private func printRecipe() async {
+        await RecipePaper.print(paperDocument, picture: await paperPicture())
+    }
+
+    private func exportPDF() async {
+        let document = paperDocument
+        if let data = await RecipePaper.pdf(document, picture: await paperPicture()) {
+            export = RecipeExport(pdf: data, of: document)
+        }
     }
 
     /// Into the editor — in this sheet where the page is itself a sheet,
@@ -629,35 +655,8 @@ struct RecipeDetailView: View {
     }
 
     /// The times worth showing, in the order they happen.
-    ///
-    /// "Gesamt" appears whenever it says something the other numbers do not
-    /// — either because waiting stretches it, or because it is all a recipe
-    /// records. Repeating a total that is plainly the sum of two numbers
-    /// beside it would be noise.
     private var timeItems: [(label: String, value: String)] {
-        var items: [(String, String)] = []
-        if let prep = recipe.prepTimeSeconds, prep > 0 {
-            items.append(("Vorbereitung", minutes(prep)))
-        }
-        if let cook = recipe.cookTimeSeconds, cook > 0 {
-            items.append(("Zubereitung", minutes(cook)))
-        }
-        if let resting = recipe.restingTimeSeconds {
-            items.append(("Ruhezeit", minutes(resting)))
-        }
-        if let elapsed = recipe.elapsedTimeSeconds, items.count != 1 {
-            items.append(("Gesamt", minutes(elapsed)))
-        }
-        return items
-    }
-
-    /// Minutes up to an hour, then hours and minutes: "1:30 Std" is read at
-    /// a glance where "90 Min" has to be divided first.
-    private func minutes(_ seconds: Int) -> String {
-        let total = seconds / 60
-        guard total >= 60 else { return "\(total) Min" }
-        let rest = total % 60
-        return rest == 0 ? "\(total / 60) Std" : String(format: "%d:%02d Std", total / 60, rest)
+        RecipeTimes.items(for: recipe)
     }
 
     /// Puts the recipe's link on the clipboard as a link, so Notes and
@@ -1525,12 +1524,23 @@ struct RecipeDetailView: View {
                         }
                     }
                 }
-                Button("Exportieren", systemImage: "square.and.arrow.up") {
-                    Task {
-                        if let data = await library.exportedRecipe(recipe) {
-                            export = RecipeExport(recipe: recipe, data: data)
+                Menu("Exportieren", systemImage: "square.and.arrow.up") {
+                    Button("Sous-Datei", systemImage: "doc") {
+                        Task {
+                            if let data = await library.exportedRecipe(recipe) {
+                                export = RecipeExport(recipe: recipe, data: data)
+                            }
                         }
                     }
+                    Button("Markdown", systemImage: "text.alignleft") {
+                        export = RecipeExport(markdown: paperDocument)
+                    }
+                    Button("PDF", systemImage: "doc.richtext") {
+                        Task { await exportPDF() }
+                    }
+                }
+                Button("Drucken …", systemImage: "printer") {
+                    Task { await printRecipe() }
                 }
                 if !recipe.isDeleted {
                     // A way back to this page from Notes, a reminder or a

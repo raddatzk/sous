@@ -11,7 +11,10 @@ struct RecipeExport: FileDocument, Identifiable {
     static let recipe = UTType(filenameExtension: "sousrecipe") ?? .data
     static let library = UTType(filenameExtension: "sousrecipes") ?? .data
 
+    static let markdown = UTType("net.daringfireball.markdown") ?? .plainText
+
     static var readableContentTypes: [UTType] { [library, recipe] }
+    static var writableContentTypes: [UTType] { [library, recipe, markdown, .pdf] }
 
     let id = UUID()
     var data: Data
@@ -28,6 +31,20 @@ struct RecipeExport: FileDocument, Identifiable {
     /// One recipe, as a file named after it.
     init(recipe: Recipe, data: Data) {
         self.init(data: data, name: recipe.title, contentType: Self.recipe)
+    }
+
+    /// One recipe as a Markdown file, at the serving count on screen.
+    init(markdown document: RecipeDocument) {
+        self.init(
+            data: Data(RecipeMarkdown.string(for: document).utf8),
+            name: document.fileName,
+            contentType: Self.markdown
+        )
+    }
+
+    /// One recipe as its printed page.
+    init(pdf data: Data, of document: RecipeDocument) {
+        self.init(data: data, name: document.fileName, contentType: .pdf)
     }
 
     init(configuration: ReadConfiguration) throws {

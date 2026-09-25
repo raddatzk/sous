@@ -289,27 +289,7 @@ struct ImportedRecipePage: View {
     /// As the recipe page counts them: a total only where it says something
     /// the parts do not.
     private var timeItems: [(label: String, value: String)] {
-        var items: [(String, String)] = []
-        if let prep = recipe.prepTimeSeconds, prep > 0 {
-            items.append(("Vorbereitung", minutes(prep)))
-        }
-        if let cook = recipe.cookTimeSeconds, cook > 0 {
-            items.append(("Zubereitung", minutes(cook)))
-        }
-        if let resting = recipe.restingTimeSeconds {
-            items.append(("Ruhezeit", minutes(resting)))
-        }
-        if let elapsed = recipe.elapsedTimeSeconds, items.count != 1 {
-            items.append(("Gesamt", minutes(elapsed)))
-        }
-        return items
-    }
-
-    private func minutes(_ seconds: Int) -> String {
-        let total = seconds / 60
-        guard total >= 60 else { return "\(total) Min" }
-        let rest = total % 60
-        return rest == 0 ? "\(total / 60) Std" : String(format: "%d:%02d Std", total / 60, rest)
+        RecipeTimes.items(for: recipe)
     }
 
     @ViewBuilder
