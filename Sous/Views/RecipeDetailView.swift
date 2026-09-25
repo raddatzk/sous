@@ -23,7 +23,12 @@ struct RecipeDetailView: View {
     /// A no-op where the view is not presented, like the Mac's detail column.
     @Environment(\.dismiss) private var dismiss
     @Environment(\.sousTab) private var tab
-    let recipe: Recipe
+    /// The recipe as whoever opened the page had it — a snapshot, which is
+    /// all the shopping list, the plan and search can hand over.
+    private let opened: Recipe
+    /// The stored version, read again after the library changed, for a
+    /// recipe the library's list is not showing right now.
+    @State private var reread: Recipe?
 
     /// `nil` means "as written". Reset whenever another recipe is shown.
     @State private var servingsOverride: Int?
@@ -34,7 +39,7 @@ struct RecipeDetailView: View {
     let plannedEntryID: MealPlanEntry.ID?
 
     init(recipe: Recipe, plannedEntryID: MealPlanEntry.ID? = nil) {
-        self.recipe = recipe
+        opened = recipe
         self.plannedEntryID = plannedEntryID
         // Not seeded here: `plan` is an `@Environment` value, and those are
         // not available yet inside a custom initializer. `.onAppear` seeds
@@ -97,10 +102,19 @@ struct RecipeDetailView: View {
 
     private var servings: Int { servingsOverride ?? recipe.servings }
 
-    /// The recipe as the library holds it now. Pasting references in saves
-    /// a new version from a sheet on this very page, and a page opened from
-    /// search is not handed that version by anyone.
-    private var latest: Recipe { library.recipes.first { $0.id == recipe.id } ?? recipe }
+    /// The recipe as the library holds it now — what the page shows and what
+    /// the editor starts from. Never the snapshot it was opened with while a
+    /// newer version is known: a page opened from the shopping list kept
+    /// showing the old recipe after an edit, and a second edit started from
+    /// it and wrote the first one over.
+    ///
+    /// The list first, since it is already in memory; a recipe it is not
+    /// showing (filtered out, or in the trash) is read from the store.
+    private var recipe: Recipe {
+        library.recipes.first { $0.id == opened.id }
+            ?? reread.flatMap { $0.id == opened.id ? $0 : nil }
+            ?? opened
+    }
 
     /// Whether this page is what the other devices are offered.
     ///
@@ -155,7 +169,7 @@ struct RecipeDetailView: View {
     /// the nutrition the page has worked out for it and a way back in.
     private var paperDocument: RecipeDocument {
         RecipeDocument(
-            latest,
+            recipe,
             servings: servings,
             nutrition: nutrition,
             // The same link "Link kopieren" hands out, and like it none for
@@ -167,7 +181,6 @@ struct RecipeDetailView: View {
 
     /// The first photo, as the page's hero shows it.
     private func paperPicture() async -> RecipeHTML.Picture? {
-        let recipe = latest
         guard let id = recipe.imageIDs.first, let data = await library.image(id: id) else { return nil }
         return RecipeHTML.Picture(data: data, crop: recipe.crop(for: id))
     }
@@ -187,7 +200,7 @@ struct RecipeDetailView: View {
     /// since the list's editor is underneath it.
     private func openEditor() {
         if recipeSheet != nil {
-            editingInPlace = latest
+            editingInPlace = recipe
         } else {
             library.editing = recipe
         }
@@ -308,6 +321,12 @@ struct RecipeDetailView: View {
         .task(id: recipe.id) {
             needsIngredientReview = await library.needsIngredientReview(recipe)
         }
+        // Every save reloads the list, so a changed list is the moment to
+        // look again — for a recipe the list holds, `recipe` has it already.
+        .task(id: library.recipes) {
+            guard !library.recipes.contains(where: { $0.id == opened.id }) else { return }
+            reread = await library.recipe(id: opened.id)
+        }
         // Keyed on servings too: nutrition is per portion, so scaling the
         // recipe has to recompute it, not just re-scale what is on screen.
         .task(id: "\(recipe.id)-\(servings)") {
@@ -324,7 +343,7 @@ struct RecipeDetailView: View {
             PlanRecipeSheet(recipe: recipe, servings: servings)
         }
         .sheet(isPresented: $isReadingStepReferences) {
-            StepReferencesSheet(recipe: latest)
+            StepReferencesSheet(recipe: recipe)
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -390,7 +409,7 @@ struct RecipeDetailView: View {
         }
         .sheet(item: $editingInPlace) { editing in
             RecipeEditorView(recipe: editing) { edited in
-                // The page reads `latest` from the library, so it shows what
+                // The page reads `recipe` from the library, so it shows what
                 // was saved without being handed it.
                 await library.save(edited)
             }
@@ -1107,7 +1126,7 @@ struct RecipeDetailView: View {
         if !recipe.steps.isEmpty {
             // Worked out once for the whole recipe, by its pasted
             // references; the steps as written where it has none that fit.
-            let rendition = latest.stepRendition(toServings: servings, formatter: formatter)
+            let rendition = recipe.stepRendition(toServings: servings, formatter: formatter)
             VStack(alignment: .leading, spacing: 14) {
                 Text("Zubereitung")
                     .font(SousStyle.sectionHeading)
