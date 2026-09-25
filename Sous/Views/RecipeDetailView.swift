@@ -949,11 +949,28 @@ struct RecipeDetailView: View {
     /// resets, and a wrap that separated the two — reset landing alone on
     /// its own line, far from the field it acts on — read as misplaced.
     /// One view keeps them together, on either side of a wrap.
-    /// What a `.glass` button comes out at under `.controlSize(.large)`,
-    /// measured on iOS 26 — the height the servings capsule has to match.
-    private static let actionControlHeight: CGFloat = 50
-
     private var servingsField: some View {
+        ZStack {
+            // A stepper is shorter than a large glass button, so the capsule
+            // stood shy of the buttons beside it. A fixed height measured on
+            // iOS then overshot on the Mac, where the same button is far
+            // flatter. An invisible twin of the buttons takes up their
+            // height instead, so the capsule matches on either platform.
+            Button {} label: {
+                Label("Einplanen", systemImage: "calendar.badge.plus")
+                    .labelStyle(.iconOnly)
+            }
+            .buttonStyle(.glass)
+            .hidden()
+            servingsControls
+        }
+        .padding(.horizontal, 10)
+        // The same glass the buttons beside it wear, so the action row
+        // reads as one family instead of two.
+        .glassEffect(in: .capsule)
+    }
+
+    private var servingsControls: some View {
         HStack(spacing: 4) {
             // Icon rather than the word "Portionen": the row already reads
             // as icon-led buttons, and a bare number beside them would have
@@ -961,13 +978,7 @@ struct RecipeDetailView: View {
             Image(systemName: "person.2")
             Text("\(servings)")
                 .monospacedDigit()
-            // The count is its own label: hiding the stepper's label would
-            // hide the number with it.
-            Stepper("Portionen", value: Binding(
-                get: { servings },
-                set: { updateServings($0.clamped(to: Recipe.servingsRange)) }
-            ), in: Recipe.servingsRange)
-            .labelsHidden()
+            servingsStepper
             if servingsOverride != nil, servingsOverride != recipe.servings {
                 Button {
                     updateServings(recipe.servings)
@@ -980,15 +991,50 @@ struct RecipeDetailView: View {
                 .padding(.leading, 4)
             }
         }
-        .padding(.horizontal, 10)
-        // A stepper is shorter than a large glass button, so the capsule
-        // stood six points shy of the buttons beside it. Padding it out to
-        // their height keeps the row on one baseline.
-        .frame(minHeight: Self.actionControlHeight)
-        // The same glass the buttons beside it wear, so the action row
-        // reads as one family instead of two.
-        .glassEffect(in: .capsule)
     }
+
+    @ViewBuilder
+    private var servingsStepper: some View {
+        #if os(macOS)
+        // The Mac draws a `Stepper` as two tiny arrows stacked on top of each
+        // other — a control for fields in a form, not for a row of large
+        // buttons. The iPhone's minus and plus side by side is what the row
+        // wants, so the Mac gets that built by hand.
+        HStack(spacing: 0) {
+            servingsStepButton("Weniger Portionen", systemImage: "minus", by: -1)
+            Divider()
+                .frame(height: 16)
+            servingsStepButton("Mehr Portionen", systemImage: "plus", by: 1)
+        }
+        .background(.quaternary, in: .capsule)
+        #else
+        // The count is its own label: hiding the stepper's label would
+        // hide the number with it.
+        Stepper("Portionen", value: Binding(
+            get: { servings },
+            set: { updateServings($0.clamped(to: Recipe.servingsRange)) }
+        ), in: Recipe.servingsRange)
+        .labelsHidden()
+        #endif
+    }
+
+    #if os(macOS)
+    private func servingsStepButton(_ title: String, systemImage: String, by delta: Int) -> some View {
+        let target = servings + delta
+        return Button {
+            updateServings(target)
+        } label: {
+            Label(title, systemImage: systemImage)
+                .labelStyle(.iconOnly)
+                .fontWeight(.semibold)
+                .frame(width: 32, height: 26)
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .disabled(!Recipe.servingsRange.contains(target))
+        .help(title)
+    }
+    #endif
 
     /// Scales the page for reading either way, and — when this recipe came
     /// from a planned meal — writes the new count back to that entry, since
