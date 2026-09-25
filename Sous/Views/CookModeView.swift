@@ -566,14 +566,33 @@ struct CookModeView: View {
             // should find what to reach for before it finds the sentence.
             // The wash is the step number's accent, so the two belong
             // together; the name stays plain on it so the amount still leads.
+            //
+            // Ticked here, where the eye already is, rather than on the
+            // ingredients page — which keeps its own ticks for gathering.
             if !used.isEmpty {
                 FlowLayout(spacing: 8, lineSpacing: 8) {
                     ForEach(used) { ingredient in
-                        IngredientLineView(ingredient: ingredient, formatter: formatter)
+                        let chip = CookSessionEntry.StepChip(stepID: step.id, ingredientID: ingredient.id)
+                        let isChecked = entry.checkedChips.contains(chip)
+                        Button {
+                            toggle(chip, entry: entry)
+                        } label: {
+                            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(.tint)
+                                IngredientLineView(ingredient: ingredient, formatter: formatter)
+                                    .strikethrough(isChecked)
+                                    .opacity(isChecked ? 0.45 : 1)
+                            }
                             .font(.callout)
                             .padding(.horizontal, 10)
                             .padding(.vertical, 5)
                             .background(.tint.opacity(SousStyle.chipTint), in: .capsule)
+                            .contentShape(.capsule)
+                        }
+                        .buttonStyle(.plain)
+                        .sensoryFeedback(.impact(flexibility: .soft), trigger: isChecked)
+                        .accessibilityAddTraits(isChecked ? .isSelected : [])
                     }
                 }
                 .padding(.leading, 60)
@@ -823,6 +842,16 @@ struct CookModeView: View {
             current.checkedIngredients.remove(id)
         } else {
             current.checkedIngredients.insert(id)
+        }
+        session.update(current)
+    }
+
+    private func toggle(_ chip: CookSessionEntry.StepChip, entry: CookSessionEntry) {
+        guard var current = session.entry(for: entry.recipeID) else { return }
+        if current.checkedChips.contains(chip) {
+            current.checkedChips.remove(chip)
+        } else {
+            current.checkedChips.insert(chip)
         }
         session.update(current)
     }
