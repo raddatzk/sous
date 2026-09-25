@@ -190,19 +190,19 @@ struct CookModeView: View {
     #if os(iOS)
     @ToolbarContentBuilder
     private var iosToolbar: some ToolbarContent {
+        // Puts cook mode away without taking anything off the hob — the
+        // band on the tab bar brings it back.
         ToolbarItem(placement: .topBarLeading) {
+            Button("Kochsicht schließen", systemImage: "chevron.down") {
+                session.isPresented = false
+            }
+        }
+        ToolbarItem(placement: .principal) { principalTitle }
+        ToolbarItem(placement: .topBarTrailing) {
             Button("Fertig") {
                 if let entry = session.activeEntry { finish(entry) }
             }
             .disabled(session.activeEntry == nil)
-        }
-        ToolbarItem(placement: .principal) { principalTitle }
-        // Puts cook mode away without taking anything off the hob — the
-        // band on the tab bar brings it back.
-        ToolbarItem(placement: .topBarTrailing) {
-            Button("Kochsicht schließen", systemImage: "chevron.down") {
-                session.isPresented = false
-            }
         }
         // The pots along the foot, where the hand already is — switching is
         // a one-handed move made with the phone propped against something.
