@@ -186,7 +186,8 @@ private struct RepresentableTextView: NSViewRepresentable {
     let restyle: (NSMutableAttributedString) -> Void
 
     func makeNSView(context: Context) -> NSTextView {
-        let textView = NSTextView()
+        // TextKit 2 explicitly: it is the one that draws the step numbers.
+        let textView = NSTextView(usingTextLayoutManager: true)
         textView.delegate = context.coordinator
         textView.drawsBackground = false
         textView.textContainerInset = .zero
@@ -214,14 +215,17 @@ private struct RepresentableTextView: NSViewRepresentable {
     /// Reports the text view's own fitting height for the Form row's
     /// proposed width, so the row grows with the content instead of the
     /// text view clipping it internally.
+    ///
+    /// Measured through TextKit 2 only. Merely reading `layoutManager`
+    /// switches an `NSTextView` to TextKit 1 for good — and TextKit 1 draws
+    /// no `NSTextList` markers, so every step would lose its number.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: NSTextView, context: Context) -> CGSize? {
         guard let width = proposal.width, width.isFinite, width > 0, let container = nsView.textContainer,
-              let layoutManager = nsView.layoutManager
+              let layout = nsView.textLayoutManager
         else { return nil }
         container.containerSize = CGSize(width: width, height: .greatestFiniteMagnitude)
-        layoutManager.ensureLayout(for: container)
-        let used = layoutManager.usedRect(for: container)
-        return CGSize(width: width, height: ceil(used.height))
+        layout.ensureLayout(for: layout.documentRange)
+        return CGSize(width: width, height: ceil(layout.usageBoundsForTextContainer.height))
     }
 
     func makeCoordinator() -> TextViewCoordinator {
