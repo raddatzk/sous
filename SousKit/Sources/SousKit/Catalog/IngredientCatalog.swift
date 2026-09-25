@@ -64,8 +64,45 @@ public struct IngredientCatalog: Sendable {
     /// Looks up an ingredient by any of its spellings.
     ///
     /// Falls back to a naive German plural: dropping a trailing "n" or "en"
-    /// catches the regular cases the catalog does not list by hand.
+    /// catches the regular cases the catalog does not list by hand. And to a
+    /// variety written the list way round — "Zwiebel, rot" is "Rote
+    /// Zwiebel" — which is also what keeps the parser from splitting such a
+    /// line into an onion prepared "rot".
     public func ingredient(for name: String) -> CatalogIngredient? {
+        if let match = spelled(name) { return match }
+
+        guard let commaIndex = name.lastIndex(of: ",") else { return nil }
+        let head = String(name[..<commaIndex]).trimmingCharacters(in: .whitespaces)
+        let tail = String(name[name.index(after: commaIndex)...])
+        guard !head.isEmpty else { return nil }
+        return ingredient(for: head, qualifiedBy: tail)
+    }
+
+    /// The ingredient a name with a trailing qualifier means, when the
+    /// catalog files it the other way round: "Zwiebel" and "rot" are "Rote
+    /// Zwiebel", "Kartoffeln" and "festkochend" are "Festkochende
+    /// Kartoffeln".
+    ///
+    /// Only a one-word qualifier is turned around, bare and with the German
+    /// adjective ending — that covers how people shorten a variety, and
+    /// anything longer is a phrase, not a word to put in front. Never a
+    /// state or qualifier word ("gegart", "TK"): those stay the preparation
+    /// they are, so the line keeps its state and the shopping list keeps
+    /// bundling canned tomatoes under "Tomate". `nil` when no reading is a
+    /// known ingredient.
+    public func ingredient(for name: String, qualifiedBy qualifier: String) -> CatalogIngredient? {
+        let word = qualifier.trimmingCharacters(in: .whitespaces)
+        guard !word.isEmpty, !word.contains(" "), !word.contains(","),
+              !IngredientStateVocabulary.isVocabulary(word)
+        else { return nil }
+        for candidate in ["\(word) \(name)", "\(word)e \(name)", "\(name) \(word)"] {
+            if let match = spelled(candidate) { return match }
+        }
+        return nil
+    }
+
+    /// A spelling or its naive plural — the lookup without the comma rule.
+    private func spelled(_ name: String) -> CatalogIngredient? {
         let key = Self.normalize(name)
         if let match = byKey[key] { return match }
 

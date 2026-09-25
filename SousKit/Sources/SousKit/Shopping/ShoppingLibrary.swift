@@ -303,23 +303,47 @@ public final class ShoppingLibrary {
 
     /// Adds a line typed by hand, parsed like an ingredient so "2 kg
     /// Kartoffeln" arrives with its amount.
+    ///
+    /// What follows the name is kept, though the parser files it as a
+    /// preparation: in a recipe "Zwiebel, rot" may be one onion among others,
+    /// but typed onto a list it says which one to buy. It is looked up as a
+    /// variety first ("Rote Zwiebel"), and otherwise stays as typed, in the
+    /// aisle of the bare name.
     public func addItem(_ line: String) async {
-        let ingredient = IngredientParser.parseLine(line)
+        let ingredient = IngredientParser.parseLine(line, catalog: catalog)
         let name = ShoppingItem.displayName(for: ingredient.name)
         guard !name.isEmpty else { return }
 
-        let known = catalog.ingredient(for: name)
+        let written: String
+        let known: CatalogIngredient?
+        let category: IngredientCategory?
+        if let qualifier = ingredient.preparation {
+            known = catalog.ingredient(for: name, qualifiedBy: qualifier)
+            written = Self.typedName(ingredient.name, in: line) ?? "\(name), \(qualifier)"
+            category = known?.category ?? catalog.category(for: name)
+        } else {
+            known = catalog.ingredient(for: name)
+            written = name
+            category = known?.category
+        }
         do {
             try await store.addManual(
-                key: ShoppingItem.key(for: ingredient.name, catalog: catalog),
-                name: known?.name ?? name,
-                category: known?.category,
+                key: ShoppingItem.key(for: known?.name ?? written, catalog: catalog),
+                name: known?.name ?? written,
+                category: category,
                 quantities: ingredient.quantity.map { [$0] } ?? []
             )
             await reload()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// The line from its name onward, as typed — "Tofu (Taifun)" rather
+    /// than the parser's "Tofu, Taifun". `nil` if the name is not in it.
+    private static func typedName(_ name: String, in line: String) -> String? {
+        guard let start = line.range(of: name)?.lowerBound else { return nil }
+        return line[start...].trimmingCharacters(in: .whitespaces)
     }
 
     public func toggle(_ item: ShoppingItem) async {

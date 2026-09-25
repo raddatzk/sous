@@ -202,6 +202,44 @@ struct ShoppingLibraryTests {
         await shopping.remove(try #require(shopping.items.first))
         #expect(shopping.items.isEmpty)
     }
+
+    @Test("What follows the comma says which one to buy", arguments: StoreBackend.allCases)
+    func manualItemKeepsQualifier(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+
+        // A variety the catalog files the other way round is found as it.
+        await shopping.addItem("Zwiebel, rot")
+        await shopping.addItem("1 kg Kartoffeln, festkochend")
+        // One it does not know stays as typed, in the bare name's aisle —
+        // and apart from the plain onion.
+        await shopping.addItem("Zwiebel, weiß")
+        await shopping.addItem("Zwiebel")
+
+        let names = shopping.items.map(\.name)
+        #expect(Set(names) == ["Rote Zwiebel", "Festkochende Kartoffeln", "Zwiebel, weiß", "Zwiebel"])
+        let white = try #require(shopping.items.first { $0.name == "Zwiebel, weiß" })
+        #expect(white.category == .vegetables)
+        let potatoes = try #require(shopping.items.first { $0.name == "Festkochende Kartoffeln" })
+        #expect(potatoes.quantities == [Quantity(1, .kilogram)])
+    }
+
+    @Test("A recipe's variety after the comma bundles with the variety", arguments: StoreBackend.allCases)
+    func recipeLineKeepsQualifier(_ backend: StoreBackend) async throws {
+        let (shopping, _, _) = try makeLibrary(backend)
+        await shopping.add(Recipe(
+            title: "Salat",
+            servings: 2,
+            ingredientsText: """
+            1 Zwiebel, rot
+            2 rote Zwiebeln
+            1 Zwiebel, fein gewürfelt
+            """
+        ))
+
+        #expect(Set(shopping.items.map(\.name)) == ["Rote Zwiebel", "Zwiebel"])
+        let red = try #require(shopping.items.first { $0.name == "Rote Zwiebel" })
+        #expect(red.quantities == [Quantity(3, .piece)])
+    }
 }
 
 // MARK: - Reconciliation: check-off is never reset

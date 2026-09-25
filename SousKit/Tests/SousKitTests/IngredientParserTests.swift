@@ -57,12 +57,27 @@ struct IngredientParserTests {
 
     @Test("A comma the catalog does not know still separates a preparation")
     func commaOutsideACatalogNameStillSplits() {
-        // "Zwiebel, rot" is not a catalog name, so the old reading stands
-        // and the bare "Zwiebel" is what gets looked up.
-        let ingredient = IngredientParser.parseLine("1 Zwiebel, rot")
+        // "Zwiebel, fein gewürfelt" is not a catalog name, so the old
+        // reading stands and the bare "Zwiebel" is what gets looked up.
+        let ingredient = IngredientParser.parseLine("1 Zwiebel, fein gewürfelt")
 
         #expect(ingredient.name == "Zwiebel")
-        #expect(ingredient.preparation == "rot")
+        #expect(ingredient.preparation == "fein gewürfelt")
+    }
+
+    @Test("A variety written the list way round stays one name")
+    func varietyAfterComma() {
+        // The catalog knows "Rote Zwiebel"; "Zwiebel, rot" is the same
+        // thing written the other way, not an onion prepared "rot".
+        let ingredient = IngredientParser.parseLine("1 Zwiebel, rot")
+
+        #expect(ingredient.name == "Zwiebel, rot")
+        #expect(ingredient.preparation == nil)
+        #expect(IngredientCatalog.bundled.canonicalName(for: ingredient.name) == "Rote Zwiebel")
+
+        // A state word is never turned into a variety.
+        let cooked = IngredientParser.parseLine("500 g Kartoffeln, gegart")
+        #expect(cooked.name == "Kartoffeln")
     }
 
     @Test("A state after the comma is read, and left where it was written")

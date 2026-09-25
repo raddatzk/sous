@@ -30,7 +30,10 @@ enum RecipeContentHash {
     /// "Stange", "Zweig", "Stiel", "cm"): the same unchanged line now
     /// parses to a different name — "Kokosmilch" instead of
     /// "Dose Kokosmilch" — and everything keyed on the name moves with it.
-    private static let readingVersion = 7
+    /// Raised to 8 when the catalog began reading a variety written the list
+    /// way round: "1 Zwiebel, rot" is no longer an onion prepared "rot" but
+    /// a whole name that resolves to "Rote Zwiebel".
+    private static let readingVersion = 8
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.
