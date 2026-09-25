@@ -24,6 +24,17 @@ struct IngredientLineView: View {
         Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(trailingPhraseText)\(commentText)")
     }
 
+    /// The same line as plain text, for where SwiftUI's styling does not
+    /// reach — the printout. Split the way the accent splits it, so the
+    /// amount can still be set apart there.
+    var plainParts: (amount: String, rest: String) {
+        var rest = String(name.characters)
+        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName {
+            rest += " \(phrase.phrase)"
+        }
+        return (amount, rest + String(comment.characters))
+    }
+
     /// The amount carries the accent, so it is its own styled run.
     private var amountText: Text {
         provisional

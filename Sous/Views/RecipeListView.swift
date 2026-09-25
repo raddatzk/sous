@@ -995,9 +995,11 @@ private struct RecipeSearchField: ViewModifier {
     @Environment(RecipeLibrary.self) private var library
     @Environment(\.householdSwitcher) private var householdSwitcher
     @Environment(IngredientCatalogLibrary.self) private var catalog
+    @Environment(LibraryCommands.self) private var commands
 
     /// What the typed text could become, counted — refreshed as it is typed.
     @State private var offers: [FilterSuggestion] = []
+    @FocusState private var isFocused: Bool
 
     func body(content: Content) -> some View {
         if shows {
@@ -1017,6 +1019,14 @@ private struct RecipeSearchField: ViewModifier {
                     Label(filter.title, systemImage: filter.symbolName)
                 }
                 .searchSuggestions { suggestions }
+                .searchFocused($isFocused)
+                // ⌘F from the menu bar. `initial`, because the request can
+                // arrive together with the switch that puts this list up.
+                .onChange(of: commands.isSearchRequested, initial: true) { _, requested in
+                    guard requested else { return }
+                    isFocused = true
+                    commands.isSearchRequested = false
+                }
                 .task(id: OfferQuestion(text: library.searchText, filters: tokens.wrappedValue)) {
                     // The same pause the list's own reload takes: counting
                     // offers is a pass over the library, not worth a letter.

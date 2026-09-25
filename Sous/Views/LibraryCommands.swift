@@ -29,6 +29,11 @@ final class LibraryCommands {
     var panel: Panel?
     /// Set while the importer's file dialog should be open.
     var isImporting = false
+    /// Set by ⌘F until the recipe list's search field has taken the focus.
+    /// The list may not be on screen yet when it is asked — the section is
+    /// switched in the same breath — so it is a request the field picks up,
+    /// not a focus binding the menu could set directly.
+    var isSearchRequested = false
     /// The recipes ticked for a bulk action, or `nil` while the list is
     /// simply a list. Here rather than in the list itself, because the Mac
     /// starts it from the menu bar, which cannot see a view's state.

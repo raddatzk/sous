@@ -20,6 +20,11 @@
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
 
+	<!-- Printing a recipe (⌘P). Without it the print panel never opens:
+	     macOS answers with "Diese App unterstützt Drucken nicht". -->
+	<key>com.apple.security.print</key>
+	<true/>
+
 	<key>com.apple.developer.icloud-container-identifiers</key>
 	<array>
 		<string>iCloud.me.raddatz.sous</string>

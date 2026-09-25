@@ -673,26 +673,25 @@ struct SousApp: App {
                 }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
             }
+            // Where the Mac keeps "Suchen": the Edit menu, under ⌘F. There
+            // the field is the recipe list's, so the list comes up first;
+            // the iPad searches in a tab of its own.
+            CommandGroup(after: .textEditing) {
+                Button("Suchen") {
+                    #if os(macOS)
+                    navigation.section = .recipes
+                    commands.isSearchRequested = true
+                    #else
+                    navigation.section = .search
+                    #endif
+                }
+                .keyboardShortcut("f", modifiers: .command)
+            }
+            RecipeCommands()
             // Managing the library rather than a recipe. Its own menu because
             // none of the standard groups is about this, and on both platforms
             // because the iPad has a menu bar too since iPadOS 26.
             CommandMenu("Bibliothek") {
-                // The app's primary action, reachable without the mouse: the
-                // recipe the window is showing goes on the hob. ⌘⏎ rather
-                // than a letter, the way "do the thing" reads elsewhere.
-                Button("Rezept kochen") {
-                    if case .recipe(let recipe) = selection.target, !recipe.isDeleted {
-                        // `start` presents cook mode itself, same as the
-                        // page's own button.
-                        session.start(recipe, servings: recipe.servings)
-                    }
-                }
-                .keyboardShortcut(.return, modifiers: .command)
-                .disabled({
-                    guard case .recipe(let recipe) = selection.target else { return true }
-                    return recipe.isDeleted || recipe.steps.isEmpty
-                }())
-                Divider()
                 // The Mac has no "Mehr" menu on the list — this is where
                 // the selection mode is reachable from.
                 Button("Rezepte auswählen") { commands.picked = [] }

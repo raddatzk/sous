@@ -118,6 +118,63 @@ struct RecipeDetailView: View {
         #endif
     }
 
+    /// Whether the menu bar acts on this page — the same "actually on
+    /// screen" as the handoff, so a page left behind in another tab does not
+    /// answer ⌘D.
+    private var publishesMenuActions: Bool {
+        #if os(iOS)
+        return tab == nil || tab == navigation?.section
+        #else
+        return true
+        #endif
+    }
+
+    /// What the menu bar's recipe items do here — the same as the page's
+    /// own buttons, so the two cannot drift apart. See ``RecipeCommands``.
+    private var menuActions: RecipePageActions? {
+        guard publishesMenuActions else { return nil }
+        let isTrashed = recipe.isDeleted
+        #if os(macOS)
+        let print: RecipePageActions.Action? = { [latest, servings, timeItems] in
+            RecipePrinting.print(latest, servings: servings, times: timeItems)
+        }
+        #else
+        let print: RecipePageActions.Action? = nil
+        #endif
+        let cook: RecipePageActions.Action = { [recipe, servings] in session.start(recipe, servings: servings) }
+        let toggleFavorite: RecipePageActions.Action = { [recipe] in Task { await library.toggleFavorite(recipe) } }
+        return RecipePageActions(
+            cook: isTrashed || recipe.steps.isEmpty ? nil : cook,
+            edit: openEditor,
+            print: print,
+            servings: servings,
+            setServings: updateServings,
+            isFavorite: recipe.isFavorite,
+            toggleFavorite: isTrashed ? nil : toggleFavorite,
+            trash: isTrashed ? nil : moveToTrash
+        )
+    }
+
+    /// Into the editor — in this sheet where the page is itself a sheet,
+    /// since the list's editor is underneath it.
+    private func openEditor() {
+        if recipeSheet != nil {
+            editingInPlace = latest
+        } else {
+            library.editing = recipe
+        }
+    }
+
+    /// The same soft delete the list offers — into the trash, not gone —
+    /// and the page leaves with the recipe: what it shows is no longer part
+    /// of the collection.
+    private func moveToTrash() {
+        Task {
+            await RecipeTrashing(library: library, plan: plan, shopping: shopping).trash([recipe])
+            dismiss()
+        }
+    }
+
     private var unknownIngredientCount: Int { library.unknownIngredients(in: recipe).count }
 
     /// The catalog banner, only while it has something to count. The review
@@ -206,6 +263,7 @@ struct RecipeDetailView: View {
         .scrollEdgeEffectStyle(.soft, for: .top)
         #endif
         .toolbar { detailToolbar }
+        .focusedSceneValue(\.recipePage, menuActions)
         .recipeExporter($export)
         // The one-time seed: `init` cannot read `plan`, since `@Environment`
         // values are not resolved yet inside a custom initializer.
@@ -1377,13 +1435,7 @@ struct RecipeDetailView: View {
                 // Editing stays: a recipe in the trash is an ordinary recipe
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
-                Button("Bearbeiten", systemImage: "pencil") {
-                    if recipeSheet != nil {
-                        editingInPlace = latest
-                    } else {
-                        library.editing = recipe
-                    }
-                }
+                Button("Bearbeiten", systemImage: "pencil") { openEditor() }
                 if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
                     // Without the sparkles once AI is switched off: what is
                     // left behind the item is assigning by hand.
@@ -1455,17 +1507,7 @@ struct RecipeDetailView: View {
                         Task { await library.toggleWantToCook(recipe) }
                     }
                     Divider()
-                    // The same soft delete the list offers — into the trash,
-                    // not gone — and the page leaves with the recipe: what
-                    // it shows is no longer part of the collection.
-                    Button("Löschen", systemImage: "trash", role: .destructive) {
-                        Task {
-                            await RecipeTrashing(
-                                library: library, plan: plan, shopping: shopping
-                            ).trash([recipe])
-                            dismiss()
-                        }
-                    }
+                    Button("Löschen", systemImage: "trash", role: .destructive) { moveToTrash() }
                 }
             }
         }

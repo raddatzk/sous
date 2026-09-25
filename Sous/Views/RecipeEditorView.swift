@@ -128,6 +128,8 @@ struct RecipeEditorView: View {
             #endif
             .modifier(DestinationSubtitle(text: destination))
             .toolbar { editorToolbar }
+            // ⌘S from the menu bar, whenever the ✓ could be pressed.
+            .focusedSceneValue(\.recipeEditor, RecipeEditorActions(save: menuSave))
             #if os(iOS)
             // Two ways out of the keyboard, because the fields here offer
             // none of their own: the number pads have no return key at all,
@@ -765,8 +767,17 @@ struct RecipeEditorView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             Button(role: .confirm) { save() }
-                .disabled(draft.title.trimmingCharacters(in: .whitespaces).isEmpty || isSaving)
+                .disabled(!canSave)
         }
+    }
+
+    private var menuSave: (@MainActor () -> Void)? {
+        guard canSave else { return nil }
+        return { save() }
+    }
+
+    private var canSave: Bool {
+        !draft.title.trimmingCharacters(in: .whitespaces).isEmpty && !isSaving
     }
 
     /// Reads picked photos into storage and references them on the draft.
@@ -860,6 +871,19 @@ struct RecipeEditorView: View {
             set: { draft[keyPath: keyPath] = $0.isEmpty ? nil : $0 }
         )
     }
+}
+
+/// What an open recipe editor offers the menu bar (see `RecipeCommands`):
+/// its "Sichern", while that can be pressed. Declared here rather than beside
+/// the menu because the share extension shows this editor and has no menu.
+struct RecipeEditorActions {
+    var save: (@MainActor () -> Void)?
+}
+
+extension FocusedValues {
+    /// Set for as long as an editor is open — the menu also reads it as
+    /// "a draft is in front", not only as the way to save it.
+    @Entry var recipeEditor: RecipeEditorActions?
 }
 
 /// The fields the editor can be typing in — the plain ones, which SwiftUI's
