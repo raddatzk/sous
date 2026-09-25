@@ -33,6 +33,10 @@ struct RecipeRow: View {
     /// nothing under its id: the nutrition figure would be cached against
     /// an id that may well belong to a recipe the library already has.
     var unsavedPictures: [Data]?
+    /// Whether the row sits on the selection's slab of accent — the Mac's
+    /// sidebar draws one. Told by the list rather than read from
+    /// `backgroundProminence`, which that sidebar never raises.
+    var isHighlighted = false
 
     @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
@@ -258,7 +262,12 @@ struct RecipeRow: View {
         systemImage: String? = nil,
         color: Color? = nil
     ) -> some View {
-        HStack(spacing: 3) {
+        // A category's colour is chosen to read on the page, and on the
+        // selected row's accent it does not: blue and purple text on rust,
+        // over a 15 % wash of itself. There the category chips turn plain
+        // like the others, whose `.secondary` already follows the selection.
+        let color = isHighlighted ? nil : color
+        return HStack(spacing: 3) {
             if let systemImage {
                 Image(systemName: systemImage)
                     .font(.caption2)

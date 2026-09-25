@@ -151,10 +151,12 @@ struct RecipeListView: View {
                 // the rows — and with them the gesture from Mail: drag down
                 // the ticks, or two fingers anywhere, and a run of recipes
                 // is selected without tapping each one.
-                List(selection: pickedRows) { listContent }
-                    .modifier(AlwaysEditing())
+                filterBarAbove(
+                    List(selection: pickedRows) { listContent }
+                        .modifier(AlwaysEditing())
+                )
             } else {
-                List(selection: $selected) { listContent }
+                filterBarAbove(List(selection: $selected) { listContent })
             }
         }
         // Without this the selected row is a solid slab of accent across the
@@ -190,14 +192,38 @@ struct RecipeListView: View {
         #endif
     }
 
+    /// On the Mac the filter bar stands above the list instead of in it.
+    ///
+    /// As a row it hung the app: AppKit's segmented control, updating inside
+    /// a table cell, asks the table for its accessibility children, the table
+    /// asks SwiftUI for the rows' — and SwiftUI is still mid-update of the
+    /// very row that asked. The attribute graph reports the cycle and goes
+    /// round it forever, and selecting a recipe is what set it off. On the
+    /// phone the segmented control is UIKit's and the bar scrolls away with
+    /// the rows as it always did.
+    @ViewBuilder
+    private func filterBarAbove(_ list: some View) -> some View {
+        #if os(macOS)
+        list.safeAreaInset(edge: .top, spacing: 0) {
+            filterBar
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+        }
+        #else
+        list
+        #endif
+    }
+
     /// The rows themselves, which both lists draw — what differs between
     /// them is only what selecting one means.
     @ViewBuilder
     private var listContent: some View {
+        #if os(iOS)
         filterBar
             .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 8, trailing: 0))
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
+        #endif
 
         // Groups are always open. A disclosure triangle would put the
         // versions of a dish behind a tap and make the list lie about how
@@ -580,12 +606,24 @@ struct RecipeListView: View {
 
     private var isPicking: Bool { commands.picked != nil }
 
+    /// Whether the Mac draws this recipe's row on the accent: the one that
+    /// is open, or every ticked one while picking. The phone pushes instead
+    /// of keeping a row selected, so there it never is.
+    private func isHighlighted(_ recipe: Recipe) -> Bool {
+        #if os(macOS)
+        if let picked = commands.picked { return picked.contains(recipe.id) }
+        return selected == .recipe(recipe.id)
+        #else
+        return false
+        #endif
+    }
+
     /// One recipe's row, whether it stands on its own or under a group.
     ///
     /// The same row while picking: the tick in front of it is the list's
     /// own, drawn by edit mode, and so are the gestures that fill it.
     private func row(for recipe: Recipe) -> some View {
-        RecipeRow(recipe: recipe)
+        RecipeRow(recipe: recipe, isHighlighted: isHighlighted(recipe))
             .tag(RecipeListSelection.recipe(recipe.id))
             // The long-press previews the recipe itself, with its actions
             // underneath rather than a bare menu — VISION.md asks for
