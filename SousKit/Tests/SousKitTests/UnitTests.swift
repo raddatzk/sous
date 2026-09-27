@@ -20,6 +20,8 @@ struct UnitTests {
         #expect(IngredientUnit(symbol: "kg") == .kilogram)
         #expect(IngredientUnit(symbol: "el") == .tablespoon)
         #expect(IngredientUnit(symbol: " g ") == .gram)
+        #expect(IngredientUnit(symbol: "Msp.") == .knifeTip)
+        #expect(IngredientUnit(symbol: "Messerspitze") == .knifeTip)
     }
 
     @Test("Conversion works within a dimension")

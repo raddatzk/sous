@@ -1339,7 +1339,7 @@ private struct IngredientMeasuresView: View {
     /// symbol. Mass and the litre stay out — a gram weighs a gram, and a
     /// millilitre is what the density answers.
     static let measurableUnits: [IngredientUnit] = [
-        .piece, .clove, .bunch, .leaf, .package, .pinch, .cup, .teaspoon, .tablespoon,
+        .piece, .clove, .bunch, .leaf, .package, .pinch, .knifeTip, .cup, .teaspoon, .tablespoon,
         .can, .jar, .stalk, .sprig, .stem, .centimeter,
     ]
 

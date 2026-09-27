@@ -124,6 +124,7 @@ struct BundledDataTests {
         // These were a Swift constant and a column of nutrition.json before.
         // A pipeline run used to blank the piece weights unconditionally.
         #expect(measures.genericGrams(forUnit: IngredientUnit.pinch.symbol) == 0.3)
+        #expect(measures.genericGrams(forUnit: IngredientUnit.knifeTip.symbol) == 0.2)
         #expect(measures.genericGrams(forUnit: IngredientUnit.leaf.symbol) == 1)
         // …and no generic piece weight, which is a decision, not an omission.
         #expect(measures.genericGrams(forUnit: IngredientUnit.piece.symbol) == nil)

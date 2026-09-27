@@ -22,6 +22,9 @@ public enum IngredientUnit: Hashable, Sendable {
     case tablespoon
     case piece
     case pinch
+    /// A knife tip's worth — "1 Msp. Muskat". Smaller than a pinch and, like
+    /// it, a gesture rather than a measure.
+    case knifeTip
     case bunch
     case clove
     case package
@@ -50,7 +53,7 @@ public enum IngredientUnit: Hashable, Sendable {
 
     public static let allKnown: [IngredientUnit] = [
         .gram, .kilogram, .milliliter, .liter, .teaspoon, .tablespoon,
-        .piece, .pinch, .bunch, .clove, .package, .portion, .leaf, .cup,
+        .piece, .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup,
         .can, .jar, .stalk, .sprig, .stem, .centimeter,
     ]
 
@@ -64,6 +67,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .tablespoon: "EL"
         case .piece: "Stk."
         case .pinch: "Prise"
+        case .knifeTip: "Msp."
         case .bunch: "Bund"
         case .clove: "Zehe"
         case .package: "Pck."
@@ -100,6 +104,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .tablespoon: ["el", "esslöffel"]
         case .piece: ["stk", "stück", "st", "x"]
         case .pinch: ["prise", "prisen"]
+        case .knifeTip: ["msp", "messerspitze", "messerspitzen"]
         case .bunch: ["bund", "bünde"]
         case .clove: ["zehe", "zehen", "zehe/n"]
         case .package: ["pck", "packung", "packungen", "päckchen", "pack", "pkg", "pkt"]
@@ -138,7 +143,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .gram, .kilogram: .mass
         case .milliliter, .liter, .teaspoon, .tablespoon: .volume
         case .piece: .count
-        case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: .imprecise
+        case .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: .imprecise
         case .can, .jar, .stalk, .sprig, .stem, .centimeter: .imprecise
         }
     }
@@ -156,7 +161,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .teaspoon: 5
         case .tablespoon: 15
         case .piece: 1
-        case .pinch, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: nil
+        case .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: nil
         case .can, .jar, .stalk, .sprig, .stem, .centimeter: nil
         }
     }

@@ -30,6 +30,7 @@ struct QuantityFormatterTests {
     func countedItems() {
         #expect(formatter.string(for: Quantity(2, .piece)) == "2")
         #expect(formatter.string(for: Quantity(1, .pinch)) == "1 Prise")
+        #expect(formatter.string(for: Quantity(0.5, .knifeTip)) == "½ Msp.")
     }
 
     @Test("Weights stay decimal rather than fractional")

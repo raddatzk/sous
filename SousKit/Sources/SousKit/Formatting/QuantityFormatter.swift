@@ -62,7 +62,7 @@ public struct QuantityFormatter: Sendable {
     /// nobody writes "½ g".
     private func usesFractions(_ unit: IngredientUnit) -> Bool {
         switch unit {
-        case .teaspoon, .tablespoon, .piece, .pinch, .bunch, .clove, .package, .portion, .leaf,
+        case .teaspoon, .tablespoon, .piece, .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf,
              .cup, .can, .jar, .stalk, .sprig, .stem, .centimeter, .custom:
             true
         case .gram, .kilogram, .milliliter, .liter:

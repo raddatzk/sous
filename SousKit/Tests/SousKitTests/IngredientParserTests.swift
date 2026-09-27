@@ -32,6 +32,14 @@ struct IngredientParserTests {
         CatalogIngredient(name: "Zwiebel", category: .vegetables),
     ])
 
+    @Test("A knife tip is a unit, not part of the name")
+    func knifeTip() {
+        #expect(IngredientParser.parseLine("1 Msp. Muskat").quantity == Quantity(1, .knifeTip))
+        #expect(IngredientParser.parseLine("1 Msp. Muskat").name == "Muskat")
+        #expect(IngredientParser.parseLine("2 Messerspitzen Zimt").quantity == Quantity(2, .knifeTip))
+        #expect(IngredientParser.parseLine("2 Messerspitzen Zimt").name == "Zimt")
+    }
+
     @Test("A catalog name that carries its own comma is not split at it")
     func commaInsideACatalogName() {
         // The comma here belongs to the name, not to a "name, preparation"
