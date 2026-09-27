@@ -47,7 +47,7 @@ struct IngredientBasisPicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            currentLine
+            header
             searchField
             if trimmedQuery.isEmpty {
                 candidateList
@@ -76,14 +76,40 @@ struct IngredientBasisPicker: View {
         return nil
     }
 
-    /// What the numbers rest on right now, and — while that is only a
-    /// proposal and still the marked row — the one tap that settles it, up
-    /// here where the eye starts. A proposal can head a list of twenty-five
-    /// rows, and saying yes to it should not mean scrolling past all of them.
+    /// The row marked in the list when it is not the one on file — what
+    /// "Übernehmen" would write instead.
+    private var markedRowName: String? {
+        guard let picked, picked != current?.code else { return nil }
+        return nutrition.row(forCode: picked)?.name
+    }
+
+    /// What the numbers rest on, what is marked instead, and the one tap that
+    /// settles it — up here where the eye starts. A proposal can head a list
+    /// of twenty-five rows, and saying yes to it should not mean scrolling
+    /// past all of them.
     ///
-    /// Once another row is marked the button leaves this line: beside
-    /// "Zurzeit" it would read as confirming the old row. The one under the
-    /// list stays, and confirms whatever is marked.
+    /// The button stays put whichever row is marked; one that vanished the
+    /// moment another row was tapped looked like the tap had broken it. The
+    /// "Ausgewählt" line is what keeps it unambiguous: beside "Zurzeit" alone
+    /// it would read as confirming the old row.
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            VStack(alignment: .leading, spacing: 1) {
+                currentLine
+                if let markedRowName {
+                    Text("Ausgewählt: \(markedRowName)")
+                        .fontWeight(.semibold)
+                        .padding(.top, 3)
+                }
+            }
+            Spacer(minLength: 0)
+            if let pendingCode {
+                confirmButton(pendingCode)
+            }
+        }
+    }
+
+    /// What the numbers rest on right now.
     @ViewBuilder
     private var currentLine: some View {
         switch current?.status {
@@ -110,18 +136,12 @@ struct IngredientBasisPicker: View {
                 }
             }
         case .proposed, .confirmed:
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
-                    // Own values name no catalog row, so they say whose they
-                    // are instead — never nothing.
-                    Text("Zurzeit: \(current?.provenance ?? current?.source ?? "")")
-                    Text(currentStatusLine)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer(minLength: 0)
-                if current?.status == .proposed, let code = current?.code, pendingCode == code {
-                    confirmButton(code)
-                }
+            VStack(alignment: .leading, spacing: 1) {
+                // Own values name no catalog row, so they say whose they
+                // are instead — never nothing.
+                Text("Zurzeit: \(current?.provenance ?? current?.source ?? "")")
+                Text(currentStatusLine)
+                    .foregroundStyle(.secondary)
             }
         }
     }
