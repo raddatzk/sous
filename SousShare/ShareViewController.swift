@@ -155,21 +155,30 @@ struct ShareRootView: View {
     private static func sharedURL(in items: [NSExtensionItem]) async -> URL? {
         for provider in items.flatMap({ $0.attachments ?? [] }) {
             if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier),
-               let url = try? await provider.loadItem(
-                   forTypeIdentifier: UTType.url.identifier
-               ) as? URL {
+               let url = await load(URL.self, from: provider) {
                 return url
             }
             if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier),
-               let text = try? await provider.loadItem(
-                   forTypeIdentifier: UTType.plainText.identifier
-               ) as? String,
+               let text = await load(String.self, from: provider),
                let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
                url.scheme?.hasPrefix("http") == true {
                 return url
             }
         }
         return nil
+    }
+
+    /// One shared item as a value, or nothing if it will not load — a
+    /// failure here only means the next attachment gets its turn.
+    private static func load<T: _ObjectiveCBridgeable & Sendable>(
+        _ type: T.Type,
+        from provider: NSItemProvider
+    ) async -> T? where T._ObjectiveCType: NSItemProviderReading {
+        await withCheckedContinuation { continuation in
+            _ = provider.loadObject(ofClass: type) { value, _ in
+                continuation.resume(returning: value)
+            }
+        }
     }
 }
 
