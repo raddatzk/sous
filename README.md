@@ -12,7 +12,7 @@ trade-offs were made, and what is deliberately out of scope.
 
 ## Status
 
-Version 1.x, distributed through TestFlight. Requires iOS 26.5 or macOS 26.
+Version 1.x, distributed through TestFlight. Requires iOS 27 or macOS 27.
 
 ## What it does
 
