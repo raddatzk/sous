@@ -3,8 +3,8 @@ options:
   bundleIdPrefix: me.raddatz
   developmentLanguage: de
   deploymentTarget:
-    iOS: "26.5"
-    macOS: "26.5"
+    iOS: "27.0"
+    macOS: "27.0"
   createIntermediateGroups: true
   groupSortPosition: top
 
