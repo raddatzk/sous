@@ -81,6 +81,11 @@ public enum NutritionAggregator {
                 lines.append(NutritionLineReport(ingredientName: displayName, outcome: .gap(.unquantified)))
                 continue
             }
+            // "2 Knoblauchzehen" counts Zehen, not pieces: the line is read in
+            // the unit its spelling implies, for the weight, the unit's state
+            // and the drill-down alike.
+            var ingredient = ingredient
+            ingredient.quantity = ingredient.quantity.map { catalog.reading($0, for: ingredient.name) }
 
             // Not the canonical name: a qualifier on the line can mean a
             // different food entirely — "Tomaten, Konserve" is its own row.

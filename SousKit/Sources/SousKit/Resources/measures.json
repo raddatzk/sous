@@ -288,13 +288,6 @@
    "note": "Kleiner als die generische Zehe."
   },
   {
-   "name": "Knoblauch",
-   "unit": "Stk.",
-   "grams": 3,
-   "assumption": true,
-   "note": "Ein gezähltes Stück Knoblauch ist in Rezepten eine Zehe (\"2 Knoblauchzehen\", \"1 Stück Knoblauchzehe\"); die ganze Knolle schreibt man als Knolle."
-  },
-  {
    "name": "Kohlrabi",
    "unit": "Stk.",
    "grams": 300,

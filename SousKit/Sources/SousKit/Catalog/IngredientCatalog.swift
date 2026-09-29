@@ -9,6 +9,9 @@ import Foundation
 public struct IngredientCatalog: Sendable {
     private var byKey: [String: CatalogIngredient]
     public private(set) var ingredients: [CatalogIngredient]
+    /// The unit a spelling implies, by normalized spelling — only for the
+    /// spellings the index files under the ingredient that declares them.
+    private var impliedUnits: [String: IngredientUnit] = [:]
 
     /// Both the index and the list are deduplicated by key, first occurrence
     /// winning — the caller puts the entries that should win in front (the
@@ -41,6 +44,13 @@ public struct IngredientCatalog: Sendable {
         }
         byKey = Self.index(resolved)
         self.ingredients = resolved.sorted { $0.name < $1.name }
+        for ingredient in resolved {
+            for (spelling, symbol) in ingredient.aliasUnits {
+                let key = Self.normalize(spelling)
+                guard byKey[key]?.name == ingredient.name else { continue }
+                impliedUnits[key] = IngredientUnit(symbol: symbol)
+            }
+        }
     }
 
     /// Every spelling pointing at its ingredient, first definition winning.
@@ -103,14 +113,35 @@ public struct IngredientCatalog: Sendable {
 
     /// A spelling or its naive plural — the lookup without the comma rule.
     private func spelled(_ name: String) -> CatalogIngredient? {
+        spellingKey(name).flatMap { byKey[$0] }
+    }
+
+    /// The indexed spelling `name` is found under: itself, or the stem its
+    /// naive plural leaves.
+    private func spellingKey(_ name: String) -> String? {
         let key = Self.normalize(name)
-        if let match = byKey[key] { return match }
+        if byKey[key] != nil { return key }
 
         for suffix in ["en", "n", "e", "s"] where key.hasSuffix(suffix) {
             let stem = String(key.dropLast(suffix.count))
-            if stem.count >= 3, let match = byKey[stem] { return match }
+            if stem.count >= 3, byKey[stem] != nil { return stem }
         }
         return nil
+    }
+
+    /// `quantity` as the catalog reads it for a line naming `name`: a count
+    /// of a spelling that implies a unit is a count in that unit. "2
+    /// Knoblauchzehen" is 2 Zehen Knoblauch, weighed by the Zehe and bundled
+    /// on the shopping list with "3 Zehen Knoblauch".
+    ///
+    /// Only a piece is replaced — what the parser makes of a number with no
+    /// unit, and of "Stück", which it cannot tell apart. A unit the line
+    /// writes itself stays: "1 EL Knoblauchzehen, gehackt" is a tablespoon.
+    public func reading(_ quantity: Quantity, for name: String) -> Quantity {
+        guard quantity.unit == .piece,
+              let key = spellingKey(name), let unit = impliedUnits[key]
+        else { return quantity }
+        return Quantity(quantity.amount, unit)
     }
 
     /// The canonical name for a written one, or the written one unchanged.

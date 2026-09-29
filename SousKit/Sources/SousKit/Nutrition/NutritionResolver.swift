@@ -64,7 +64,8 @@ public enum NutritionResolver {
         catalog: IngredientCatalog = .bundled,
         nutritionCatalog: NutritionCatalog = .bundled
     ) -> ResolvedAmount? {
-        guard let quantity = ingredient.quantity else { return nil }
+        guard let written = ingredient.quantity else { return nil }
+        let quantity = catalog.reading(written, for: ingredient.name)
 
         // A mass is not a conversion; nothing about the ingredient can make
         // 300 g weigh anything else.

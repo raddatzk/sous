@@ -50,11 +50,15 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// That this word has no basis on purpose — the source does not list the
     /// food at all. See ``IngredientCuration/Entry/withoutValues``.
     public var hasNoValues: Bool
+    /// Spellings that imply a unit — ``KitchenWords/Word/aliasUnits``.
+    /// Optional so an encoded table from before it existed still decodes.
+    public var aliasUnits: [String: String]?
 
     public init(
         word: String, aliases: [String] = [], category: IngredientCategory? = nil,
         targets: [SynonymTarget] = [], candidates: [String] = [],
-        origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false
+        origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false,
+        aliasUnits: [String: String]? = nil
     ) {
         self.word = word
         self.aliases = aliases
@@ -64,6 +68,7 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         self.origin = origin
         self.parent = parent
         self.hasNoValues = hasNoValues
+        self.aliasUnits = aliasUnits
     }
 
     /// Whether `target` is this word's own row rather than a mapping onto
@@ -167,7 +172,8 @@ public struct SynonymTable: Sendable {
                 // been answered.
                 candidates: entry?.withoutValues == true ? [] : (entry?.candidates ?? []),
                 parent: word.parent,
-                hasNoValues: entry?.withoutValues ?? false
+                hasNoValues: entry?.withoutValues ?? false,
+                aliasUnits: word.aliasUnits.isEmpty ? nil : word.aliasUnits
             )
         })
     }
@@ -176,9 +182,11 @@ public struct SynonymTable: Sendable {
     /// which is what `IngredientCatalog` is built from.
     public var catalogIngredients: [CatalogIngredient] {
         entries.map {
-            CatalogIngredient(
+            var ingredient = CatalogIngredient(
                 name: $0.word, aliases: $0.aliases, category: $0.category, parentName: $0.parent
             )
+            ingredient.aliasUnits = $0.aliasUnits ?? [:]
+            return ingredient
         }
     }
 }

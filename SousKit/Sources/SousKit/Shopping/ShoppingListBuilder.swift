@@ -202,7 +202,9 @@ public enum ShoppingListBuilder {
                 // The heading takes the catalog's spelling; the demand keeps
                 // the cook's, so a variety is still readable underneath it.
                 writtenName: written,
-                quantity: ingredient.quantity,
+                // "2 Knoblauchzehen" is a demand of 2 Zehen, so it adds up
+                // with "3 Zehen Knoblauch" under the same heading.
+                quantity: ingredient.quantity.map { catalog.reading($0, for: written) },
                 state: ingredient.state,
                 scales: scales && ingredient.scalesWithServings && ingredient.quantity != nil
             )
