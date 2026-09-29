@@ -33,8 +33,19 @@ jobs:
       - name: Install the compiler's dependencies
         run: pip install -r Scripts/data/requirements.txt
 
-      - name: Resources equal compile(Data/)
-        run: python3 Scripts/data/compile.py --check
+      # `--since` compares Data/released-ids.txt with the base: the list only
+      # grows, and a line deleted together with its entry would otherwise
+      # let an id vanish, or come back one day meaning something else.
+      - name: Resources equal compile(Data/), and no released id went missing
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+            git fetch --depth=1 origin "$BASE"
+            python3 Scripts/data/compile.py --check --since "$BASE"
+          else
+            python3 Scripts/data/compile.py --check
+          fi
 
       - name: Test the compiler
         run: python3 -m unittest discover -s Scripts/data -p 'test_*.py' -v

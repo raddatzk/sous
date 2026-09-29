@@ -341,7 +341,7 @@ struct BundledDataFingerprintTests {
         let sizes = RecipeContentHash.bundledDataSizes
         // Spelled out rather than read off `bundledDataResources`: comparing
         // the list against itself would pass however short it got.
-        #expect(sizes.count == 6)
+        #expect(sizes.count == 7)
         for file in sizes {
             #expect(file.bytes > 0, "\(file.name).json contributed nothing to the fingerprint")
         }
@@ -364,6 +364,39 @@ struct BundledDataFingerprintTests {
         // above would pass on an app that never opened it. Its own source
         // block is the thing only that file can produce.
         #expect(BLSCatalog.bundled.supplementSource != nil)
+        // `ids.json` may well be empty; that it decodes is what `bundled`
+        // asserts, and this is what makes it load.
+        _ = CatalogRenames.bundled
+    }
+
+    @Test("Every shipped word has an id, once, and is found by it")
+    func everyWordHasAnID() {
+        let words = KitchenWords.bundled.words
+        let ids = words.compactMap(\.id)
+        #expect(ids.count == words.count, "a word without an id")
+        #expect(Set(ids).count == ids.count, "an id used twice")
+        let catalog = IngredientCatalog.bundled
+        for word in words {
+            guard let id = word.id else { continue }
+            #expect(catalog.ingredient(forID: id)?.name == word.name, "\(id)")
+        }
+        #expect(catalog.ingredient(forID: "rote-zwiebel")?.name == "Rote Zwiebel")
+        #expect(catalog.ingredient(for: "Rote Zwiebeln")?.catalogID == "rote-zwiebel")
+    }
+
+    @Test("The rename map points only at words the catalog has")
+    func renamesReachWords() {
+        let catalog = IngredientCatalog.bundled
+        let renames = CatalogRenames.bundled
+        for (old, new) in renames.renamed {
+            #expect(catalog.ingredient(forID: new)?.catalogID == new, "\(old) → \(new)")
+            if case .current = catalog.resolve(id: old) {
+                Issue.record("\(old) is renamed and still an entry's id")
+            }
+        }
+        for id in renames.retired {
+            #expect(catalog.resolve(id: id) == .retired, "\(id)")
+        }
     }
 }
 

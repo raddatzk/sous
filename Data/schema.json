@@ -119,6 +119,13 @@
     }
    ]
   },
+  "formerly": {
+   "description": "Ids of entries this one absorbed. The app reads a row written with one of them as this entry.",
+   "type": "array",
+   "minItems": 1,
+   "uniqueItems": true,
+   "items": {"$ref": "#/$defs/id"}
+  },
   "ingredient": {
    "type": "object",
    "required": ["id", "name"],
@@ -137,6 +144,7 @@
      "items": {"$ref": "#/$defs/code"}
     },
     "via": {"$ref": "#/$defs/text", "description": "Why this mapping; for the curator, not the app."},
+    "formerly": {"$ref": "#/$defs/formerly"},
     "varieties": {"type": "array", "items": {"$ref": "#/$defs/ingredient"}}
    }
   },
@@ -161,7 +169,21 @@
      "propertyNames": {"$ref": "#/$defs/state"},
      "additionalProperties": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inlineRow"}}
     },
-    "via": {"$ref": "#/$defs/text"}
+    "via": {"$ref": "#/$defs/text"},
+    "formerly": {"$ref": "#/$defs/formerly"}
+   }
+  },
+  "retiredFile": {
+   "description": "Data/retired.yaml: ids whose thing left the catalog. Never used again.",
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": ["id", "reason"],
+    "additionalProperties": false,
+    "properties": {
+     "id": {"$ref": "#/$defs/id"},
+     "reason": {"$ref": "#/$defs/text"}
+    }
    }
   },
   "ingredientFile": {

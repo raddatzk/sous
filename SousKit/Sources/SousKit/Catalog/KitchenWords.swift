@@ -17,6 +17,11 @@ import Foundation
 public struct KitchenWords: Sendable {
     /// One word, as the kitchen says it.
     public struct Word: Codable, Sendable, Hashable {
+        /// The word's id in the catalog: a slug fixed when the word was
+        /// created ("rote-zwiebel"), which survives a new name and is never
+        /// given to another word. Optional because an older file has none;
+        /// an app that predates it ignores the key.
+        public var id: String?
         /// The name shown and stored: "Tomate".
         public var name: String
         /// Other ways of writing the same thing: "Tomaten", "Marille".
@@ -40,8 +45,9 @@ public struct KitchenWords: Sendable {
 
         public init(
             name: String, aliases: [String] = [], category: IngredientCategory? = nil,
-            parent: String? = nil, aliasUnits: [String: String] = [:]
+            parent: String? = nil, aliasUnits: [String: String] = [:], id: String? = nil
         ) {
+            self.id = id
             self.name = name
             self.aliases = aliases
             self.category = category
@@ -56,7 +62,8 @@ public struct KitchenWords: Sendable {
                 aliases: try container.decodeIfPresent([String].self, forKey: .aliases) ?? [],
                 category: try container.decodeIfPresent(IngredientCategory.self, forKey: .category),
                 parent: try container.decodeIfPresent(String.self, forKey: .parent),
-                aliasUnits: try container.decodeIfPresent([String: String].self, forKey: .aliasUnits) ?? [:]
+                aliasUnits: try container.decodeIfPresent([String: String].self, forKey: .aliasUnits) ?? [:],
+                id: try container.decodeIfPresent(String.self, forKey: .id)
             )
         }
     }

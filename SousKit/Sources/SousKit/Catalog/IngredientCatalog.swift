@@ -12,6 +12,10 @@ public struct IngredientCatalog: Sendable {
     /// The unit a spelling implies, by normalized spelling — only for the
     /// spellings the index files under the ingredient that declares them.
     private var impliedUnits: [String: IngredientUnit] = [:]
+    /// Every shipped word by its catalog id.
+    private var byID: [String: CatalogIngredient] = [:]
+    /// What became of the ids no entry holds any more.
+    public let renames: CatalogRenames
 
     /// Both the index and the list are deduplicated by key, first occurrence
     /// winning — the caller puts the entries that should win in front (the
@@ -29,10 +33,22 @@ public struct IngredientCatalog: Sendable {
     /// categories filled in, which is what every reader sees. The walk is
     /// ``categorySource(for:)`` — the same one the ingredient form uses to
     /// say "wie Tomate (Gemüse)", so the two can never disagree.
-    public init(ingredients: [CatalogIngredient]) {
+    ///
+    /// A shipped word's catalog id passes to the entry that wins its name:
+    /// the cook's own "Räuchertofu" answers for `raeuchertofu` from the day
+    /// the catalog learns the word (INGREDIENTS-DATA §3 F).
+    public init(ingredients: [CatalogIngredient], renames: CatalogRenames = .none) {
+        self.renames = renames
         var representatives: [CatalogIngredient] = []
-        var takenKeys = Set<String>()
-        for ingredient in ingredients where takenKeys.insert(ingredient.key).inserted {
+        var position: [String: Int] = [:]
+        for ingredient in ingredients {
+            if let index = position[ingredient.key] {
+                if representatives[index].catalogID == nil {
+                    representatives[index].catalogID = ingredient.catalogID
+                }
+                continue
+            }
+            position[ingredient.key] = representatives.count
             representatives.append(ingredient)
         }
         byKey = Self.index(representatives)
@@ -44,6 +60,9 @@ public struct IngredientCatalog: Sendable {
         }
         byKey = Self.index(resolved)
         self.ingredients = resolved.sorted { $0.name < $1.name }
+        for ingredient in resolved {
+            if let id = ingredient.catalogID, byID[id] == nil { byID[id] = ingredient }
+        }
         for ingredient in resolved {
             for (spelling, symbol) in ingredient.aliasUnits {
                 let key = Self.normalize(spelling)
@@ -68,8 +87,39 @@ public struct IngredientCatalog: Sendable {
     /// table, which is where the names and their spellings now live. One file
     /// for one thing: a word, what it answers to, what it means.
     public static let bundled: IngredientCatalog = {
-        IngredientCatalog(ingredients: SynonymTable.bundled.catalogIngredients)
+        IngredientCatalog(ingredients: SynonymTable.bundled.catalogIngredients, renames: .bundled)
     }()
+
+    /// The ingredient a stored catalog id reaches: its own entry, or the one
+    /// that absorbed it. `nil` for a retired id and for one from a newer
+    /// data version; ``resolve(id:)`` tells the two apart.
+    public func ingredient(forID id: String) -> CatalogIngredient? {
+        resolve(id: id).ingredient
+    }
+
+    /// What a stored catalog id means here. A rename is followed through
+    /// every later one, so a row written two merges ago still arrives.
+    public func resolve(id: String) -> CatalogIDResolution {
+        if let ingredient = byID[id] { return .current(ingredient) }
+        var current = id
+        var seen: Set<String> = [id]
+        while let next = renames.renamed[current], seen.insert(next).inserted {
+            if let ingredient = byID[next] { return .renamed(to: ingredient) }
+            current = next
+        }
+        return renames.retired.contains(id) ? .retired : .unknown
+    }
+
+    /// The id to write when a row holding `storedID` is saved: the absorbing
+    /// entry's where the id was renamed, otherwise `storedID` itself. A
+    /// retired id and one from a newer data version are kept as written;
+    /// only a rename is acted on, and only on a save the row sees anyway.
+    public func currentID(for storedID: String) -> String {
+        if case .renamed(to: let ingredient) = resolve(id: storedID), let id = ingredient.catalogID {
+            return id
+        }
+        return storedID
+    }
 
     /// Looks up an ingredient by any of its spellings.
     ///

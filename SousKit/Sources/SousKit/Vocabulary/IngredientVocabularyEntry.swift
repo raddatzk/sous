@@ -129,9 +129,11 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
             category: category ?? fallback?.ownCategory,
             parentName: parentName ?? fallback?.parentName
         )
-        // What only the shipped word carries survives the patch: the unit
-        // its spellings imply. Without it, a household that keeps Knoblauch
-        // in the pantry read "2 Knoblauchzehen" as two bulbs again.
+        // What only the shipped word carries survives the patch: its id,
+        // and the unit its spellings imply. Without the latter, a household
+        // that keeps Knoblauch in the pantry read "2 Knoblauchzehen" as two
+        // bulbs again.
+        ingredient.catalogID = fallback?.catalogID
         ingredient.aliasUnits = fallback?.aliasUnits ?? [:]
         return ingredient
     }

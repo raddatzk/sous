@@ -13,6 +13,9 @@ from pathlib import Path
 
 import compile as data_compiler
 
+# The rename SousKit's CatalogIDTests read, as this compiler writes it.
+SWIFT_FIXTURE = data_compiler.REPO_ROOT / "SousKit/Tests/SousKitTests/Fixtures/Renames"
+
 
 class Normalization(unittest.TestCase):
     """The vectors SousKit's NormalizationTests read too."""
@@ -56,12 +59,111 @@ class BrokenData(unittest.TestCase):
         for fragment in fragments:
             self.assertIn(fragment, str(caught.exception))
 
+    def merge_zwetschge_into_pflaume(self) -> None:
+        """A merge as a curator writes it: the absorbed entry's file goes,
+        its spellings join the survivor, and its id moves under `formerly`."""
+        (self.data / "ingredients/zwetschge.yaml").unlink()
+        self.edit("ingredients/pflaume.yaml", "    - Pflaumen\n",
+                  "    - Pflaumen\n    - Zwetschge\n  formerly: [zwetschge]\n")
+
     def test_the_real_data_compiles(self):
-        outputs, _ = data_compiler.compile_data(self.data)
+        outputs, _, released = data_compiler.compile_data(self.data)
         self.assertEqual(set(outputs), {
             "kitchen_words.json", "curation.json", "measures.json",
-            "aisles.json", "community.json", "sources.json",
+            "aisles.json", "community.json", "sources.json", "ids.json",
         })
+        self.assertEqual(released, (self.data / "released-ids.txt").read_text(encoding="utf-8"))
+
+    def test_every_word_carries_its_id(self):
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        words = json.loads(outputs["kitchen_words.json"])
+        by_name = {word["name"]: word for word in words}
+        self.assertEqual(by_name["Rote Zwiebel"]["id"], "rote-zwiebel")
+        self.assertTrue(all(word.get("id") for word in words))
+
+    def test_a_merge_compiles_to_the_rename_map(self):
+        self.merge_zwetschge_into_pflaume()
+        outputs, _, released = data_compiler.compile_data(self.data)
+        self.assertEqual(json.loads(outputs["ids.json"]),
+                         {"renamed": {"zwetschge": "pflaume"}, "retired": []})
+        self.assertIn("\nzwetschge\n", released)
+
+    def test_the_swift_fixture_is_what_the_merge_compiles_to(self):
+        self.merge_zwetschge_into_pflaume()
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        fixture_ids = json.loads((SWIFT_FIXTURE / "ids.json").read_text(encoding="utf-8"))
+        self.assertEqual(json.loads(outputs["ids.json"]), fixture_ids)
+        compiled = {word["id"]: word for word in json.loads(outputs["kitchen_words.json"])}
+        for word in json.loads((SWIFT_FIXTURE / "kitchen_words.json").read_text(encoding="utf-8")):
+            with self.subTest(id=word["id"]):
+                self.assertEqual(compiled[word["id"]]["name"], word["name"])
+                self.assertEqual(compiled[word["id"]].get("parent"), word.get("parent"))
+                self.assertLessEqual(set(word["aliases"]), set(compiled[word["id"]]["aliases"]))
+
+    def test_a_released_id_that_vanishes(self):
+        (self.data / "ingredients/zwetschge.yaml").unlink()
+        self.assertFails("the id 'zwetschge' was released and no entry has it any more",
+                         "under `formerly:` on the entry that absorbed it",
+                         "Data/retired.yaml")
+
+    def test_a_variety_whose_id_changes_without_formerly(self):
+        self.edit("ingredients/zwiebel.yaml", "- id: rote-zwiebel", "- id: zwiebel-rot")
+        self.assertFails("the id 'rote-zwiebel' was released and no entry has it any more")
+
+    def test_a_retired_id(self):
+        (self.data / "ingredients/zwetschge.yaml").unlink()
+        self.write("retired.yaml", "- id: zwetschge\n  reason: Nur ein Test.\n")
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        self.assertEqual(json.loads(outputs["ids.json"]),
+                         {"renamed": {}, "retired": ["zwetschge"]})
+
+    def test_an_absorbed_id_used_again(self):
+        self.merge_zwetschge_into_pflaume()
+        self.write("ingredients/zwetschge.yaml",
+                   "- id: zwetschge\n  name: Hauszwetschge\n  category: fruit\n"
+                   "  nutrition: without\n")
+        self.assertFails("Pflaume lists 'zwetschge' under formerly, but Hauszwetschge in ",
+                         "ingredients/zwetschge.yaml still has that id; an id is never reused")
+
+    def test_a_retired_id_used_again(self):
+        self.write("retired.yaml", "- id: zwetschge\n  reason: Nur ein Test.\n")
+        self.assertFails("Data/retired.yaml: 'zwetschge' is retired, but Zwetschge in ",
+                         "ingredients/zwetschge.yaml still has that id; an id is never reused")
+
+    def test_an_id_absorbed_twice(self):
+        self.merge_zwetschge_into_pflaume()
+        self.edit("ingredients/zwiebel.yaml", "    - Speisezwiebel\n",
+                  "    - Speisezwiebel\n  formerly: [zwetschge]\n")
+        self.assertFails("'zwetschge' is listed under formerly by both")
+
+    def test_formerly_an_id_nobody_released(self):
+        self.edit("ingredients/pflaume.yaml", "    - Pflaumen\n",
+                  "    - Pflaumen\n  formerly: [eierpflaume]\n")
+        self.assertFails("Pflaume lists 'eierpflaume' under formerly, which was never released")
+
+    def test_released_ids_only_grow(self):
+        before = "# header\napfel\nbirne\n"
+        self.assertEqual(data_compiler.lost_ids(before, "apfel\nbirne\nkiwi\n"), [])
+        self.assertEqual(data_compiler.lost_ids(before, "apfel\n"), ["birne"])
+
+    def test_a_new_inline_row_takes_a_numbered_code(self):
+        self.edit("ingredients/zwetschge.yaml",
+                  "  nutrition:\n    cooked: [F223152]\n    raw: [F223100]\n",
+                  "  nutrition:\n    unspecified:\n      - code: Z000003\n"
+                  "        name: Zwetschge\n        source: Test\n"
+                  "        per100g: {kcal: '50'}\n")
+        self.assertFails("Zwetschge's inline code Z000003 is not derived from its id; "
+                         "write Z-zwetschge")
+
+    def test_an_inline_row_named_after_its_entry(self):
+        self.edit("ingredients/zwetschge.yaml",
+                  "  nutrition:\n    cooked: [F223152]\n    raw: [F223100]\n",
+                  "  nutrition:\n    unspecified:\n      - code: Z-zwetschge\n"
+                  "        name: Zwetschge\n        source: Test\n"
+                  "        per100g: {kcal: '50'}\n")
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        codes = [row["code"] for row in json.loads(outputs["community.json"])["entries"]]
+        self.assertIn("Z-zwetschge", codes)
 
     def test_an_alias_another_entry_already_spells(self):
         self.edit("ingredients/zwiebel.yaml", "    - Zwiebeln\n",
@@ -115,7 +217,7 @@ class BrokenData(unittest.TestCase):
             "  category: grains",
             "  nutrition:",
             "    unspecified:",
-            "      - code: Z000009",
+            "      - code: Z-acme-muesli",
             "        name: Acme Müsli",
             "        source: Etikett",
             "        per100g: {kcal: '400'}",
@@ -123,8 +225,8 @@ class BrokenData(unittest.TestCase):
         ]))
         self.assertFails(
             "the product spelling 'Proteinmüsli' does not name the brand 'Acme'",
-            "the product row Z000009 has no 'checked'",
-            "the product row Z000009 has no 'per'",
+            "the product row Z-acme-muesli has no 'checked'",
+            "the product row Z-acme-muesli has no 'per'",
         )
 
 

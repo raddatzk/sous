@@ -68,7 +68,10 @@ public final class IngredientCatalogLibrary {
             .filter(\.isOwnIngredient)
             .map { $0.catalogIngredient(fallback: nil) }
             .sorted { $0.name < $1.name }
-        let merged = IngredientCatalog(ingredients: own + IngredientCatalog.bundled.ingredients)
+        let merged = IngredientCatalog(
+            ingredients: own + IngredientCatalog.bundled.ingredients,
+            renames: IngredientCatalog.bundled.renames
+        )
 
         guard vocabulary.values.contains(where: { !$0.isOwnIngredient }) else {
             catalog = merged
@@ -78,7 +81,7 @@ public final class IngredientCatalogLibrary {
             guard let entry = vocabulary[ingredient.key], !entry.isOwnIngredient else { return ingredient }
             return entry.catalogIngredient(fallback: ingredient)
         }
-        catalog = IngredientCatalog(ingredients: patched)
+        catalog = IngredientCatalog(ingredients: patched, renames: merged.renames)
     }
 
     // MARK: - Reading

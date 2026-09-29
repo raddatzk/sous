@@ -53,13 +53,17 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// Spellings that imply a unit — ``KitchenWords/Word/aliasUnits``.
     /// Optional so an encoded table from before it existed still decodes.
     public var aliasUnits: [String: String]?
+    /// The word's catalog id — ``KitchenWords/Word/id``. Optional for the
+    /// same reason.
+    public var id: String?
 
     public init(
         word: String, aliases: [String] = [], category: IngredientCategory? = nil,
         targets: [SynonymTarget] = [], candidates: [String] = [],
         origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false,
-        aliasUnits: [String: String]? = nil
+        aliasUnits: [String: String]? = nil, id: String? = nil
     ) {
+        self.id = id
         self.word = word
         self.aliases = aliases
         self.category = category
@@ -173,7 +177,8 @@ public struct SynonymTable: Sendable {
                 candidates: entry?.withoutValues == true ? [] : (entry?.candidates ?? []),
                 parent: word.parent,
                 hasNoValues: entry?.withoutValues ?? false,
-                aliasUnits: word.aliasUnits.isEmpty ? nil : word.aliasUnits
+                aliasUnits: word.aliasUnits.isEmpty ? nil : word.aliasUnits,
+                id: word.id
             )
         })
     }
@@ -186,6 +191,7 @@ public struct SynonymTable: Sendable {
                 name: $0.word, aliases: $0.aliases, category: $0.category, parentName: $0.parent
             )
             ingredient.aliasUnits = $0.aliasUnits ?? [:]
+            ingredient.catalogID = $0.id
             return ingredient
         }
     }
