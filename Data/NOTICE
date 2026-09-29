@@ -1,0 +1,40 @@
+Sous ingredient catalog
+Copyright 2026 Kevin Raddatz and contributors
+Licensed under CC BY 4.0 (see LICENSE)
+
+This data set contains, and is derived from, the following sources. Anyone
+redistributing it, whole or in part, credits them as below.
+
+
+1. Bundeslebensmittelschlüssel (BLS) 4.0
+   Max Rubner-Institut (MRI), Bundesforschungsinstitut für Ernährung und
+   Lebensmittel, release 2025. https://blsdb.de
+   Licence: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
+
+   Changes: filtered to the food groups used in cooking (Data/aisles.yaml),
+   reduced to 16 nutrient fields per 100 g, and linked to kitchen words,
+   spellings, varieties, measures and aisles. The nutrient values themselves
+   are unchanged. They ship in bls.json; the catalog refers to them by SBLS code.
+
+
+2. Table de composition nutritionnelle des aliments Ciqual 2020
+   Anses (Agence nationale de sécurité sanitaire de l'alimentation, de
+   l'environnement et du travail), France. https://ciqual.anses.fr
+   Licence: Licence Ouverte / Open Licence 2.0 (Etalab), which is compatible
+   with CC BY 4.0.
+
+   Used for single rows the BLS does not have, copied by hand with their
+   Ciqual number and name as published. Each row names its source in its
+   `source` field (community.json).
+
+
+3. Nutrition declarations of retail products
+   Where no database lists a food, a row may be read from a product's
+   nutrition declaration. A declaration is a statement of fact and carries no
+   licence. Each such row names the product and its EAN in its `source` field,
+   so it can be checked at the shelf.
+
+
+Every inline row in Data/ingredients/ names its own source, and the app shows
+it under the ingredient as „Quelle: …“. The sources screen shows the entries of
+Data/sources.yaml.

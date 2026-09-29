@@ -28,6 +28,7 @@ things.
 | `BLS_4_0_Daten_2025_DE.xlsx` | the numbers; downloaded, not in the repo |
 | `Data/aisles.yaml` | which BLS letters are in scope, their category, the per-letter keyword overrides |
 | `Data/ingredients/` | every code an ingredient names is kept, even where the group filter would drop it |
+| `Data/sources.yaml` | the release, licence and attribution `bls.json` opens with (its `bls` block, which the sources screen shows too) |
 
 ## Re-running it
 

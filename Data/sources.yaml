@@ -1,9 +1,24 @@
 # What each data source says about itself: version, release, licence and the
-# attribution it asks for. The rows themselves sit inline on their ingredient.
+# attribution it asks for. Compiled into sources.json for the app's sources
+# screen, in this order; the bls block also heads bls.json
+# (Scripts/nutrition/build_data.py) and the supplements block community.json.
+# The supplement rows themselves sit inline on their ingredient.
+bls:
+  title: Bundeslebensmittelschlüssel
+  datasetVersion: BLS 4.0
+  release: '2025'
+  license: CC BY 4.0
+  licenseURL: https://creativecommons.org/licenses/by/4.0/deed.de
+  attribution: Bundeslebensmittelschlüssel (BLS) 4.0, Max Rubner-Institut
+  changeNote: 'Für sous aufbereitet: auf küchenrelevante Lebensmittelgruppen gefiltert, auf 16
+    Nährstofffelder je 100 g gekürzt und um eine kuratierte Synonym- und Maßtabelle ergänzt.
+    Die Nährwerte selbst sind unverändert.'
 supplements:
+  title: Ergänzungen
   datasetVersion: sous Ergänzungen 1
   release: '2026-08-26'
   license: CC BY 4.0
+  licenseURL: https://creativecommons.org/licenses/by/4.0/deed.de
   attribution: 'Ergänzungen zum Bundeslebensmittelschlüssel. Enthaltene Quellen: Table de
     composition nutritionnelle Ciqual 2020, Anses (Frankreich); Nährwertdeklarationen einzelner
     Handelsprodukte. Welche Zeile woher stammt, steht bei jeder Zutat unter „Quelle“. Die

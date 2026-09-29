@@ -668,3 +668,27 @@ struct ListSeparationTests {
         }
     }
 }
+
+/// The sources screen reads `sources.json`; the data files carry their own
+/// headers, which older apps read. Both are compiled from one block in
+/// `Data/sources.yaml`, and this holds them to saying the same thing.
+@Suite("Bundled sources")
+struct BundledSourcesTests {
+    @Test("sources.json names the BLS first, then the supplements, as their files do")
+    func sourcesMatchTheFiles() throws {
+        let sources = DataSources.bundled
+        #expect(sources.map(\.id) == ["bls", "supplements"])
+        let bls = try #require(sources.first)
+        let table = BLSCatalog.bundled.source
+        #expect(bls.datasetVersion == table.datasetVersion)
+        #expect(bls.release == table.release)
+        #expect(bls.license == table.license)
+        #expect(bls.attribution == table.attribution)
+        #expect(bls.changeNote == table.changeNote)
+        let supplements = try #require(sources.last)
+        let file = try #require(BLSCatalog.bundled.supplementSource)
+        #expect(supplements.datasetVersion == file.datasetVersion)
+        #expect(supplements.attribution == file.attribution)
+        #expect(sources.allSatisfy { $0.licenseURL.scheme == "https" })
+    }
+}

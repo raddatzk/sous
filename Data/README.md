@@ -16,6 +16,8 @@ python3 Scripts/data/compile.py --check                    # what CI runs
 cd SousKit && swift test                                   # BundledDataTests, the scorecard
 ```
 
+The data is licensed CC BY 4.0; see `LICENSE` and `NOTICE`.
+
 ## Layout
 
 ```

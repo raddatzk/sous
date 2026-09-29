@@ -60,7 +60,7 @@ class BrokenData(unittest.TestCase):
         outputs, _ = data_compiler.compile_data(self.data)
         self.assertEqual(set(outputs), {
             "kitchen_words.json", "curation.json", "measures.json",
-            "aisles.json", "community.json",
+            "aisles.json", "community.json", "sources.json",
         })
 
     def test_an_alias_another_entry_already_spells(self):
