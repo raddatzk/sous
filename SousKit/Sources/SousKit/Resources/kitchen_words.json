@@ -179,6 +179,14 @@
   "category": "frozen"
  },
  {
+  "name": "Bockshornklee",
+  "aliases": [
+   "Bockshornkleesamen",
+   "Bockshornkleesaat"
+  ],
+  "category": "spices"
+ },
+ {
   "name": "Bohne",
   "aliases": [
    "Bohnen"
@@ -354,6 +362,13 @@
   "name": "Crème fraîche mit Kräutern",
   "aliases": [],
   "parent": "Creme fraiche"
+ },
+ {
+  "name": "Curryblätter",
+  "aliases": [
+   "Curryblatt"
+  ],
+  "category": "spices"
  },
  {
   "name": "Currypaste",
@@ -1409,6 +1424,14 @@
   "category": "vegetables"
  },
  {
+  "name": "Pandanblatt",
+  "aliases": [
+   "Pandanblätter",
+   "Pandan"
+  ],
+  "category": "spices"
+ },
+ {
   "name": "Paprika",
   "aliases": [
    "Paprikaschote",
@@ -1854,6 +1877,14 @@
   "name": "Schwarzer Pfeffer",
   "aliases": [],
   "parent": "Pfeffer"
+ },
+ {
+  "name": "Schwarzkümmel",
+  "aliases": [
+   "Schwarzkümmelsamen",
+   "Nigella"
+  ],
+  "category": "spices"
  },
  {
   "name": "Schweinefleisch",

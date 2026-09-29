@@ -229,4 +229,30 @@ struct NutritionAggregatorTests {
         #expect(coverage.openIngredients.map(\.name) == ["Einhornstaub", "Safran"])
         #expect(coverage.openIngredientsWithKnownName.map(\.name) == ["Safran"])
     }
+
+    @Test("A can is weighed drained and counted as cooked")
+    func aCanCarriesItsState() {
+        // The dry row would count the 240 g of a drained can about two and a
+        // half times too high; the can's own state sends it to the cooked row.
+        let catalog = IngredientCatalog(ingredients: [CatalogIngredient(name: "Kichererbsen", category: .legumes)])
+        let nutrition = NutritionCatalog(entries: [
+            CatalogNutrition(
+                name: "Kichererbsen",
+                bases: [
+                    "unspecified": NutritionBasis(values: info(kcal: 330)),
+                    "cooked": NutritionBasis(values: info(kcal: 150)),
+                ],
+                unitWeightsGrams: ["Dose": 240],
+                unitStates: ["Dose": .cooked]
+            ),
+        ])
+        func kcal(_ text: String) -> Double {
+            NutritionAggregator.aggregate(
+                recipe: Recipe(title: "Hummus", servings: 1, ingredientsText: text),
+                servings: 1, catalog: catalog, nutritionCatalog: nutrition, resolve: { _ in nil }
+            ).total.kcal
+        }
+        #expect(kcal("1 Dose Kichererbsen") == 360) // 240 g cooked
+        #expect(kcal("100 g Kichererbsen") == 330) // grams name no state: the dry row
+    }
 }

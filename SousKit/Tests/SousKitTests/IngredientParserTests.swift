@@ -206,10 +206,10 @@ struct IngredientParserTests {
 
     @Test("An unknown word after the amount stays part of the name")
     func unknownUnitIsName() {
-        let ingredient = IngredientParser.parseLine("2 Handvoll Spinat")
+        let ingredient = IngredientParser.parseLine("2 Kugeln Vanilleeis")
 
         #expect(ingredient.quantity == Quantity(2, .piece))
-        #expect(ingredient.name == "Handvoll Spinat")
+        #expect(ingredient.name == "Kugeln Vanilleeis")
     }
 
     @Test("Container words are units, not the front half of a name")
@@ -233,6 +233,14 @@ struct IngredientParserTests {
         let length = IngredientParser.parseLine("2 cm Ingwer")
         #expect(length.quantity == Quantity(2, .centimeter))
         #expect(length.name == "Ingwer")
+
+        let handful = IngredientParser.parseLine("1 Handvoll Basilikum")
+        #expect(handful.quantity == Quantity(1, .handful))
+        #expect(handful.name == "Basilikum")
+
+        let stems = IngredientParser.parseLine("6 Stängel Petersilie")
+        #expect(stems.quantity == Quantity(6, .stem))
+        #expect(stems.name == "Petersilie")
 
         let sprigs = IngredientParser.parseLine("2 Zweig/e Rosmarin")
         #expect(sprigs.quantity == Quantity(2, .sprig))

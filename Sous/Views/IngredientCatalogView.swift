@@ -1340,7 +1340,7 @@ private struct IngredientMeasuresView: View {
     /// millilitre is what the density answers.
     static let measurableUnits: [IngredientUnit] = [
         .piece, .clove, .bunch, .leaf, .package, .pinch, .knifeTip, .cup, .teaspoon, .tablespoon,
-        .can, .jar, .stalk, .sprig, .stem, .centimeter,
+        .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful,
     ]
 
     /// The units worth showing: everything anybody has a weight for, plus

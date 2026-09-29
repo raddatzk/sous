@@ -487,6 +487,144 @@
    "unit": "Stk.",
    "grams": 800,
    "assumption": true
+  },
+  {
+   "name": "Basilikum",
+   "unit": "Handvoll",
+   "grams": 10,
+   "assumption": true
+  },
+  {
+   "name": "Petersilie",
+   "unit": "Handvoll",
+   "grams": 10,
+   "assumption": true
+  },
+  {
+   "name": "Koriander",
+   "unit": "Handvoll",
+   "grams": 10,
+   "assumption": true
+  },
+  {
+   "name": "Minze",
+   "unit": "Handvoll",
+   "grams": 5,
+   "assumption": true
+  },
+  {
+   "name": "Dill",
+   "unit": "Handvoll",
+   "grams": 5,
+   "assumption": true
+  },
+  {
+   "name": "Schnittlauch",
+   "unit": "Handvoll",
+   "grams": 10,
+   "assumption": true
+  },
+  {
+   "name": "Spinat",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Rucola",
+   "unit": "Handvoll",
+   "grams": 20,
+   "assumption": true
+  },
+  {
+   "name": "Salat",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Cashew",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Walnuss",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Mandel",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Haselnuss",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Pinienkerne",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Getrocknete Tomaten",
+   "unit": "Handvoll",
+   "grams": 30,
+   "assumption": true
+  },
+  {
+   "name": "Kichererbsen",
+   "unit": "Dose",
+   "grams": 240,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
+   "name": "Kidneybohnen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
+   "name": "Weiße Bohnen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
+   "name": "Schwarze Bohnen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
+   "name": "Linsen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
+   "name": "Mais",
+   "unit": "Dose",
+   "grams": 285,
+   "assumption": true,
+   "note": "Eine 340-g-Dose Zuckermais, abgetropft.",
+   "state": "cooked"
   }
  ],
  "densities": [

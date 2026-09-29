@@ -49,12 +49,17 @@ public enum IngredientUnit: Hashable, Sendable {
     case stem
     /// A length of something — "2 cm Ingwer".
     case centimeter
+    /// What fits in one hand — "1 Handvoll Basilikum". A gesture like a
+    /// pinch, but one whose weight depends entirely on what is held: a
+    /// handful of basil is not a handful of spinach, so it is answered only
+    /// by a weight authored for the ingredient, never by a general default.
+    case handful
     case custom(String)
 
     public static let allKnown: [IngredientUnit] = [
         .gram, .kilogram, .milliliter, .liter, .teaspoon, .tablespoon,
         .piece, .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup,
-        .can, .jar, .stalk, .sprig, .stem, .centimeter,
+        .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful,
     ]
 
     public var symbol: String {
@@ -80,6 +85,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .sprig: "Zweig"
         case .stem: "Stiel"
         case .centimeter: "cm"
+        case .handful: "Handvoll"
         case .custom(let symbol): symbol
         }
     }
@@ -115,8 +121,9 @@ public enum IngredientUnit: Hashable, Sendable {
         case .jar: ["glas", "gläser"]
         case .stalk: ["stange", "stangen", "stange/n"]
         case .sprig: ["zweig", "zweige", "zweig/e"]
-        case .stem: ["stiel", "stiele", "stiel/e"]
+        case .stem: ["stiel", "stiele", "stiel/e", "stängel"]
         case .centimeter: ["cm", "zentimeter"]
+        case .handful: ["handvoll", "händevoll"]
         case .custom: []
         }
     }
@@ -144,7 +151,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .milliliter, .liter, .teaspoon, .tablespoon: .volume
         case .piece: .count
         case .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: .imprecise
-        case .can, .jar, .stalk, .sprig, .stem, .centimeter: .imprecise
+        case .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful: .imprecise
         }
     }
 
@@ -162,7 +169,7 @@ public enum IngredientUnit: Hashable, Sendable {
         case .tablespoon: 15
         case .piece: 1
         case .pinch, .knifeTip, .bunch, .clove, .package, .portion, .leaf, .cup, .custom: nil
-        case .can, .jar, .stalk, .sprig, .stem, .centimeter: nil
+        case .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful: nil
         }
     }
 

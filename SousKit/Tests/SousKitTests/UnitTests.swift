@@ -6,8 +6,8 @@ import Testing
 struct UnitTests {
     @Test("Unknown symbols round-trip as custom units")
     func unknownSymbolBecomesCustom() throws {
-        let unit = IngredientUnit(symbol: "Handvoll")
-        #expect(unit == .custom("Handvoll"))
+        let unit = IngredientUnit(symbol: "Kugel")
+        #expect(unit == .custom("Kugel"))
         #expect(unit.dimension == .imprecise)
         #expect(!unit.isConvertible)
 

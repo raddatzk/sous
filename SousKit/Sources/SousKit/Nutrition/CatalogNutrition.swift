@@ -160,6 +160,11 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// this ingredient specifically — "1 Zehe Knoblauch" ≈ 3 g. Keyed by
     /// `IngredientUnit.symbol`, filled from the measure table.
     public var unitWeightsGrams: [String: Double]
+    /// The state a unit's weight is measured in, where the unit implies one
+    /// — a can is weighed drained, which is cooked. Keyed like
+    /// `unitWeightsGrams`; a line that names no state of its own is counted
+    /// in this one.
+    public var unitStates: [String: IngredientState]
     /// Needed to turn a volume amount into grams — a teaspoon of oil and a
     /// teaspoon of honey do not weigh the same. Curated in `measures.json`
     /// — the named row where there is one, the food group's otherwise. A
@@ -189,6 +194,7 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         name: String,
         bases: [String: NutritionBasis],
         unitWeightsGrams: [String: Double] = [:],
+        unitStates: [String: IngredientState] = [:],
         densityGramsPerMl: Double? = nil,
         source: String = CatalogNutrition.blsSource,
         candidateCodes: [String] = [],
@@ -197,6 +203,7 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         self.name = name
         self.bases = bases
         self.unitWeightsGrams = unitWeightsGrams
+        self.unitStates = unitStates
         self.densityGramsPerMl = densityGramsPerMl
         self.source = source
         self.candidateCodes = candidateCodes
@@ -232,6 +239,9 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
             bases: try container.decode([String: NutritionBasis].self, forKey: .bases),
             unitWeightsGrams: try container.decodeIfPresent(
                 [String: Double].self, forKey: .unitWeightsGrams
+            ) ?? [:],
+            unitStates: try container.decodeIfPresent(
+                [String: IngredientState].self, forKey: .unitStates
             ) ?? [:],
             densityGramsPerMl: try container.decodeIfPresent(Double.self, forKey: .densityGramsPerMl),
             source: try container.decodeIfPresent(String.self, forKey: .source) ?? Self.blsSource,
@@ -309,6 +319,9 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         merged.name = other.name
         merged.bases.merge(other.bases) { _, theirs in theirs }
         merged.unitWeightsGrams.merge(other.unitWeightsGrams) { _, theirs in theirs }
+        // A cook's own weight for a unit says how much, not in which state;
+        // the state the catalog knows for that unit stays.
+        merged.unitStates.merge(other.unitStates) { _, theirs in theirs }
         merged.densityGramsPerMl = other.densityGramsPerMl ?? densityGramsPerMl
         if !other.bases.isEmpty { merged.source = other.source }
         if !other.candidateCodes.isEmpty { merged.candidateCodes = other.candidateCodes }
@@ -326,6 +339,7 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         merged.bases = parent.bases.mapValues { $0.inherited(from: parent.name) }
         merged.inheritedFrom = parent.name
         merged.unitWeightsGrams = parent.unitWeightsGrams.merging(unitWeightsGrams) { _, mine in mine }
+        merged.unitStates = parent.unitStates.merging(unitStates) { _, mine in mine }
         merged.densityGramsPerMl = densityGramsPerMl ?? parent.densityGramsPerMl
         merged.source = parent.source
         if merged.candidateCodes.isEmpty { merged.candidateCodes = parent.candidateCodes }
