@@ -25,12 +25,28 @@ public enum IngredientParser {
     /// comma from a name followed by a preparation — see `parseLine`.
     public static func parse(_ text: String, catalog: IngredientCatalog = .bundled) -> [RecipeIngredient] {
         var result: [RecipeIngredient] = []
+        for written in writtenLines(in: text) {
+            var ingredient = parseLine(written.text, catalog: catalog)
+            ingredient.id = StableID.make(namespace: "ingredient", index: result.count, content: written.text)
+            ingredient.group = written.group
+            result.append(ingredient)
+        }
+        return result
+    }
+
+    /// A list's ingredient lines as written, trimmed, each with its group
+    /// and where it stands in the text — the very lines ``parse(_:catalog:)``
+    /// reads, in the same order, so the n-th of these is the n-th
+    /// ingredient. For whoever has to change a line in place and leave the
+    /// rest of the text as it was typed.
+    public static func writtenLines(in text: String) -> [(text: String, group: String?, textLine: Int)] {
+        var result: [(text: String, group: String?, textLine: Int)] = []
         var currentGroup: String?
         // A blank line straight under the heading is layout, not the end
         // of a group that has not had a line yet.
         var groupHasLines = false
 
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+        for (index, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else {
                 if groupHasLines { currentGroup = nil }
@@ -43,13 +59,14 @@ public enum IngredientParser {
                 continue
             }
             groupHasLines = currentGroup != nil
-
-            var ingredient = parseLine(line, catalog: catalog)
-            ingredient.id = StableID.make(namespace: "ingredient", index: result.count, content: line)
-            ingredient.group = currentGroup
-            result.append(ingredient)
+            result.append((line, currentGroup, index))
         }
         return result
+    }
+
+    /// Whether `line` opens a group rather than naming an ingredient.
+    public static func isGroupHeading(_ line: String) -> Bool {
+        groupHeading(in: line.trimmingCharacters(in: .whitespaces)) != nil
     }
 
     /// Renders lines back into the text the user edits.

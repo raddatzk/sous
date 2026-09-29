@@ -513,14 +513,7 @@ public enum StepReferencesPrompt {
         struct Answer: Decodable {
             struct Step: Decodable {
                 let schritt: Int
-                let bezuege: [Item]
-            }
-            struct Item: Decodable {
-                let art: String?
-                let stelle: String?
-                let vorkommen: Int?
-                let zeile: Int?
-                let menge: String?
+                let bezuege: [AnswerItem]
             }
             let schritte: [Step]
             let hinweise: [String]?
@@ -528,13 +521,36 @@ public enum StepReferencesPrompt {
         guard let answer = try? JSONDecoder().decode(Answer.self, from: Data(pasted[open...close].utf8)) else {
             return .failure(.unreadable)
         }
+        return reading(
+            steps: answer.schritte.map { ($0.schritt, $0.bezuege) },
+            notes: answer.hinweise ?? [],
+            for: recipe
+        )
+    }
 
+    /// One reference as the answer writes it, before it is checked.
+    struct AnswerItem: Decodable {
+        var art: String?
+        var stelle: String?
+        var vorkommen: Int?
+        var zeile: Int?
+        var menge: String?
+    }
+
+    /// Checks an answer's references against `recipe` — its lines and steps
+    /// numbered from 1 — and stamps them with its fingerprint. The one reader
+    /// behind every prompt that asks for references.
+    static func reading(
+        steps answerSteps: [(schritt: Int, bezuege: [AnswerItem])],
+        notes answerNotes: [String],
+        for recipe: Recipe
+    ) -> Result<Reading, Failure> {
         let lines = recipe.ingredients
         let steps = recipe.steps
         var referencesByStep = Array(repeating: [StepReferences.Reference](), count: steps.count)
         var warnings: [Warning] = []
         var taken: [Int: Quantity] = [:]
-        for step in answer.schritte {
+        for step in answerSteps {
             guard steps.indices.contains(step.schritt - 1) else {
                 return .failure(.unknownStep(step.schritt))
             }
@@ -593,7 +609,7 @@ public enum StepReferencesPrompt {
                 warnings.append(.overbooked(line: line, percent: Int((share * 100).rounded())))
             }
         }
-        let notes = (answer.hinweise ?? [])
+        let notes = answerNotes
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         return .success(Reading(

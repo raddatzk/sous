@@ -113,6 +113,7 @@ public enum MelaImport: RecipeImportFormat {
             totalTimeSeconds: total,
             suitableSlots: suitableSlots(from: object),
             variantGroupID: group?.id,
+            original: original(from: object),
             createdAt: date(object["date"]) ?? .nowInSyncPrecision,
             updatedAt: .nowInSyncPrecision
         )
@@ -144,6 +145,18 @@ public enum MelaImport: RecipeImportFormat {
         guard let raw = object["sousSuitableSlots"] as? [Any] else { return nil }
         let slots = raw.compactMap { string($0).flatMap(MealSlot.init(rawValue:)) }
         return slots.isEmpty ? nil : Set(slots)
+    }
+
+    /// The text the recipe was imported as before Sous optimized it — Sous's
+    /// own key, absent from anything Mela wrote. Without it the library
+    /// keeps what this file says as the original.
+    private static func original(from object: [String: Any]) -> RecipeOriginal? {
+        guard let raw = object["sousOriginal"] as? [String: Any] else { return nil }
+        return RecipeOriginal(
+            ingredientsText: lines(raw["ingredients"]),
+            instructionsText: lines(raw["instructions"]),
+            notes: nonEmpty(string(raw["notes"]))
+        )
     }
 
     private static func identifier(for object: [String: Any]) -> UUID {

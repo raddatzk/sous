@@ -8,9 +8,27 @@ import Foundation
 public enum StepParser {
     public static func parse(_ text: String) -> [RecipeStep] {
         var result: [RecipeStep] = []
+        for written in writtenLines(in: text) {
+            let text = stripListMarker(from: written.text)
+            result.append(RecipeStep(
+                id: StableID.make(namespace: "step", index: result.count, content: written.text),
+                text: text,
+                group: written.group,
+                // A time written into the step is a timer the cook mode can
+                // offer, without asking for the same number twice.
+                durationSeconds: DurationParser.seconds(in: text)
+            ))
+        }
+        return result
+    }
+
+    /// The step lines as written, trimmed, each with its section and where
+    /// it stands in the text — the n-th of these is the n-th step.
+    public static func writtenLines(in text: String) -> [(text: String, group: String?, textLine: Int)] {
+        var result: [(text: String, group: String?, textLine: Int)] = []
         var currentGroup: String?
 
-        for rawLine in text.split(separator: "\n", omittingEmptySubsequences: false) {
+        for (index, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
             let line = rawLine.trimmingCharacters(in: .whitespaces)
             guard !line.isEmpty else { continue }
 
@@ -19,16 +37,7 @@ public enum StepParser {
                 currentGroup = heading.isEmpty ? nil : heading
                 continue
             }
-
-            let text = stripListMarker(from: line)
-            result.append(RecipeStep(
-                id: StableID.make(namespace: "step", index: result.count, content: line),
-                text: text,
-                group: currentGroup,
-                // A time written into the step is a timer the cook mode can
-                // offer, without asking for the same number twice.
-                durationSeconds: DurationParser.seconds(in: text)
-            ))
+            result.append((line, currentGroup, index))
         }
         return result
     }

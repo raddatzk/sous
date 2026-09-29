@@ -700,6 +700,44 @@ public final class RecipeLibrary {
         await save(current)
     }
 
+    /// Takes an optimization: the recipe's text becomes `applied`'s, with
+    /// its step references, and the text it had before is kept as the
+    /// original if the recipe has none yet — a recipe from before originals
+    /// were kept, optimized for the first time.
+    ///
+    /// Refused (`false`) where the recipe was changed since the answer was
+    /// read — on this device or another — as the answer was about the text
+    /// it was asked about, not the one there is now.
+    @discardableResult
+    public func applyOptimization(_ applied: RecipeOptimization.Applied, to asked: Recipe) async -> Bool {
+        guard var current = await self.recipe(id: asked.id) else { return false }
+        guard current.ingredientsText == asked.ingredientsText,
+              current.instructionsText == asked.instructionsText,
+              current.notes == asked.notes
+        else { return false }
+        current = current.keepingOriginal()
+        current.ingredientsText = applied.recipe.ingredientsText
+        current.instructionsText = applied.recipe.instructionsText
+        current.notes = applied.recipe.notes
+        current.stepReferences = applied.recipe.stepReferences
+        await save(current)
+        return true
+    }
+
+    /// A variant the optimization proposed for a group of alternatives, born
+    /// in `recipe`'s variant group (one is made, titled after the recipe, if
+    /// it has none). It starts without step references.
+    public func addVariant(_ proposal: RecipeOptimization.VariantProposal, of recipe: Recipe) async -> Recipe? {
+        guard let current = await self.recipe(id: recipe.id),
+              var variant = await addVariant(of: current, title: proposal.title, groupTitle: current.title)
+        else { return nil }
+        variant.ingredientsText = proposal.ingredientsText
+        variant.instructionsText = proposal.instructionsText
+        variant.stepReferences = nil
+        await save(variant)
+        return variant
+    }
+
     public func toggleWantToCook(_ recipe: Recipe) async {
         var updated = recipe
         updated.wantToCook.toggle()
@@ -753,7 +791,8 @@ public final class RecipeLibrary {
 
         do {
             let found = try await RecipeWebImporter().draft(from: url)
-            var draft = found.recipe
+            // Kept as the page gave it, before the cook touches the draft.
+            var draft = found.recipe.keepingOriginal()
             for image in found.images {
                 if let id = try? await imageStore.add(image, to: draft.id) {
                     draft.imageIDs.append(id)
@@ -961,7 +1000,7 @@ public final class RecipeLibrary {
         if let group = item.variantGroup {
             try await store.saveVariantGroup(group)
         }
-        var recipe = item.recipe
+        var recipe = item.recipe.keepingOriginal()
         recipe.imageIDs = []
         try await store.save(recipe)
 
