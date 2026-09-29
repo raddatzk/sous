@@ -72,6 +72,19 @@ public struct StepReferences: Codable, Hashable, Sendable {
         fingerprint == StepReferencesPrompt.fingerprint(for: recipe)
     }
 
+    /// These references stamped with today's fingerprint, if they carry the
+    /// one from before the fingerprint moved to the raw text and still match
+    /// `recipe` by it — `nil` otherwise, including when they are current
+    /// already or stale either way. See ``StepReferencesPrompt/fingerprint(for:)``.
+    public func restamped(for recipe: Recipe) -> StepReferences? {
+        guard !isCurrent(for: recipe),
+              fingerprint == StepReferencesPrompt.parsedFingerprint(for: recipe)
+        else { return nil }
+        var restamped = self
+        restamped.fingerprint = StepReferencesPrompt.fingerprint(for: recipe)
+        return restamped
+    }
+
     /// The column's JSON, or `nil` for no references.
     static func encode(_ references: StepReferences?) -> String? {
         guard let references, let data = try? SousCoding.encoder.encode(references) else { return nil }
@@ -388,11 +401,41 @@ public enum StepReferencesPrompt {
         "\(rules)\n\nRezept: \(recipe.title)\n\(body(for: recipe))"
     }
 
-    /// Hash of what the model is shown about the recipe, title aside —
-    /// renaming a dish does not change what its steps refer to.
+    /// Hash of the recipe as the cook wrote it, title aside — renaming a
+    /// dish does not change what its steps refer to.
+    ///
+    /// The raw text, not the lines as parsed. The parse asks the catalog, so
+    /// a hash over it moved whenever the shipped data did: a new word, a new
+    /// spelling, and a recipe nobody touched lost its scaling and its chips.
+    /// With data arriving without an app release that would happen at any
+    /// time. What the references depend on is what was written, so that is
+    /// what is hashed. Blank lines and surrounding whitespace do not count;
+    /// the serving count does, as the answer's amounts are at that count.
     public static func fingerprint(for recipe: Recipe) -> String {
-        let input = "\(version)\n\(body(for: recipe))"
-        return SHA256.hash(data: Data(input.utf8))
+        func lines(_ text: String) -> String {
+            text.split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n")
+        }
+        let input = "\(version)|\(fingerprintScheme)\n\(recipe.servings)\n"
+            + "\(lines(recipe.ingredientsText))\n--\n\(lines(recipe.instructionsText))"
+        return sha256(input)
+    }
+
+    /// Part of the fingerprint, apart from `version`: the prompt did not
+    /// change when the hash moved to the raw text, the hash did.
+    static let fingerprintScheme = "raw1"
+
+    /// The fingerprint as it was before it moved to the raw text: a hash
+    /// over the parsed lines. Read only to restamp references made then —
+    /// see ``StepReferences/restamped(for:)``.
+    static func parsedFingerprint(for recipe: Recipe) -> String {
+        sha256("\(version)\n\(body(for: recipe))")
+    }
+
+    private static func sha256(_ input: String) -> String {
+        SHA256.hash(data: Data(input.utf8))
             .map { String(format: "%02x", $0) }
             .joined()
     }

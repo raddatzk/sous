@@ -585,6 +585,9 @@ struct SousApp: App {
                         hasRecipes: !library.recipes.isEmpty || library.importProgress != nil
                     )
                     await reconcileBundledData()
+                    // Before the shipped data can move under them: answers
+                    // stamped over the parsed lines move to the raw text.
+                    await library.restampStepReferences()
                     // Before anything asks what an ingredient is: the
                     // catalog screens are not the only readers of it, and a
                     // recipe resolved against the bundled list alone would

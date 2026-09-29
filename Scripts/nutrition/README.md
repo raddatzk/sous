@@ -14,7 +14,7 @@ files in this directory.
 
 ## What it produces
 
-Four files in `SousKit/Sources/SousKit/Resources/`, all plain, pretty-printed,
+Five files in `SousKit/Sources/SousKit/Resources/`, all plain, pretty-printed,
 human-readable JSON so that a contributor can fix one entry with a small
 hand-edited PR - see "Fixing data by hand". You do **not** need to re-run any
 of this to fix one entry.
@@ -22,13 +22,16 @@ of this to fix one entry.
 | File | What it is | Written by |
 | --- | --- | --- |
 | `bls.json` | One row per BLS entry: SBLS code, catalog name, food group, aisle, the 16 nutrient fields per 100 g. Plus the dataset version, licence, attribution and change note. **No averaging, no merging.** | the pipeline |
-| `synonyms.json` | Kitchen word → SBLS codes, weighted, with the aliases and category that used to live in `ingredients.json`. | the pipeline |
+| `kitchen_words.json` | The kitchen's words: names, spellings, categories and the variety relation. | copied verbatim from `kitchen_words.json` here |
+| `curation.json` | Kitchen word → SBLS codes per state, or a settled "without values". | copied verbatim from `curation.json` here |
 | `measures.json` | The gram bridge: generic unit weights, per-group and per-ingredient weights, densities. | copied verbatim from `measures.json` here |
 | `aisles.json` | BLS food group → `IngredientCategory` default. | the pipeline, from `group_codes.json` |
 
-`ingredients.json` and `nutrition.json` are gone. Their content lives in
-`synonyms.json` (the names, spellings and categories) and `bls.json` (the
-numbers); the piece weights moved to `measures.json`.
+`ingredients.json`, `nutrition.json` and the merged `synonyms.json` are gone.
+The names, spellings and categories live in `kitchen_words.json`, the link to
+the table's rows in `curation.json` - the app joins the two at run time
+(`SynonymTable`) - the numbers in `bls.json`, and the piece weights in
+`measures.json`.
 
 ## Its inputs
 
@@ -110,26 +113,18 @@ from BLS names on every run.
 If you add a kitchen word or a piece weight, it goes in this directory, not in
 `Resources/`.
 
-## Re-running only the mapping, without the workbook
+## Changing the curation, without the workbook
 
-A curation change - a word gaining an alias, a variety moving out of an alias
-list - touches only the mapping half, and the rows it maps onto are already in
-`bls.json` exactly as the workbook left them:
-
-```
-python3 rebuild_synonyms.py          # --dry-run to see the counts first
-```
-
-It reads `bls.json` back into the shape `extract_bls` produces and runs the
-*same* `SynonymBuilder`, so a later full re-run with the workbook produces the
-same file. It writes only `synonyms.json`; anything that changes the rows
-themselves still needs `build_data.py` and the xlsx.
+A curation change - a word, a spelling, a code, a weight - needs no re-run.
+Edit `kitchen_words.json`, `curation.json` or `measures.json` here and copy the
+file to `Resources/` unchanged: the build copies them verbatim, so the two
+copies must stay identical. `BundledDataTests` checks what the app reads.
 
 ## Varieties: a spelling and a kind are not the same thing
 
 `kitchen_words.json` entries may carry `"parent"`. That word is then a *variety*
-of another one - "Cocktailtomate" of "Tomate" - and reaches `synonyms.json` as
-a word of its own with a `parent` field, not as a spelling in its parent's
+of another one - "Cocktailtomate" of "Tomate" - and is a word of its own with a
+`parent` field, not a spelling in its parent's
 alias list, which is where 57 of them used to sit.
 
 The difference is not cosmetic: aliases are what the shopping list is allowed
@@ -153,14 +148,12 @@ Watch the parent when moving a variety out. Five words got their BLS row
 *through* the alias that became a variety - "Salz" through "Meersalz",
 "Sellerie" through "Knollensellerie", and likewise "Schinken", "Melone",
 "Essig" - and were left without a basis. `curation.json` now names the plain
-row for each, which is what the bare word meant all along. `build_data.py` and
-`rebuild_synonyms.py` both print the variety count; a word dropping out of
-`targets` shows up in "words without any target".
+row for each, which is what the bare word meant all along. `build_data.py`
+prints the variety count; a word dropping out of `targets` shows up in "words
+without any target".
 
 ## What each script does
 
-- **`rebuild_synonyms.py`** - `build_data.py`'s mapping half, fed from the
-  shipped `bls.json` instead of the workbook. See above.
 - **`extract_bls.py`** - reads the xlsx sheet `BLS_4_0_Daten_2025_DE`, locates
   each of the 16 target nutrient columns *by searching the header row* for a
   cell starting with `"<BLS CODE> "` (e.g. `"ENERCC Energie (Kilokalorien)
@@ -239,12 +232,15 @@ row for each, which is what the bare word meant all along. `build_data.py` and
     pasta.
 
 - **`build_data.py`** - the main entry point, replacing `merge_states.py`.
-  Extracts, then builds the synonym table, then writes the four files.
+  Extracts, runs the synonym builder as a check, then writes `bls.json` and
+  `aisles.json` and copies the three curated files.
 
 ### How a kitchen word finds its codes
 
-Three sources feed `synonyms.json`, in this order of authority. Every one of
-them reports what it did.
+What the app computes with is `curation.json` alone: the build no longer
+derives a mapping. Its `SynonymBuilder` still runs the name analysis below and
+reports it - that is how a curator finds candidates and conflicts - but ships
+nothing of it. In order of authority:
 
 1. **The curation** (`curation.json`). A word whose codes were written down by
    hand wins over everything else. This is where "Kartoffel" learns that BLS
@@ -489,7 +485,7 @@ documentation says not to read either as zero.
     unit** — those beat the density, for that one unit.
   - **Every `byIngredient` and named `densities` row has to name a word the
     vocabulary knows** — the word itself or one of its spellings in
-    `synonyms.json`. A row for a name nothing resolves to is curation that
+    `kitchen_words.json`. A row for a name nothing resolves to is curation that
     silently does nothing. If the food has no word yet, add it to
     `kitchen_words.json` (see below) rather than leaving the row dangling.
 - **Wrong nutrition value** → that is a BLS value. Do not patch it here; if BLS

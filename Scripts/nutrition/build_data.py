@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the four bundled data files from the BLS workbook and the curation.
+"""Build the bundled data files from the BLS workbook and the curation.
 
 Replaces `merge_states.py`, whose name said what it did: it merged BLS rows by
 name and threw the SBLS code away. This one does the opposite - the code is the
@@ -10,9 +10,10 @@ Outputs (SousKit/Sources/SousKit/Resources/):
 
   - `bls.json`       one row per BLS entry: SBLS code, catalog name, food
                      group, the 16 nutrient fields. No averaging.
-  - `synonyms.json`  kitchen word -> SBLS codes, weighted, plus the aliases
-                     and category that used to live in `ingredients.json`.
-  - `measures.json`  the gram bridge, copied verbatim from the curation.
+  - `kitchen_words.json`, `curation.json`, `measures.json`  the curated files,
+                     copied verbatim. The app joins the first two into its
+                     synonym table at run time (`SynonymTable`); nothing here
+                     merges them.
   - `aisles.json`    BLS food group -> IngredientCategory default.
 
 Inputs, all in this directory and all hand-curated except the workbook:
