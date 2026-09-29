@@ -2807,6 +2807,392 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Pfifferling": {
+   "targets": {
+    "raw": [
+     "K713100"
+    ],
+    "cooked": [
+     "K713152",
+     "K713182",
+     "K713142",
+     "K713062"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Vollkornnudeln": {
+   "targets": {
+    "raw": [
+     "E510000"
+    ],
+    "cooked": [
+     "E500032"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Schwarze Oliven": {
+   "targets": {
+    "unspecified": [
+     "H520800"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Getrocknete Tomaten": {
+   "targets": {
+    "unspecified": [
+     "G567702"
+    ]
+   },
+   "via": "BLS-Name \"Tomate getrocknet, in Öl, Konserve, abgetropft\" — so kommen sie meist ins Rezept",
+   "candidates": [
+    "G560400",
+    "G569902"
+   ]
+  },
+  "Sojadrink": {
+   "targets": {
+    "unspecified": [
+     "H841100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "H841400"
+   ]
+  },
+  "Haferdrink": {
+   "targets": {
+    "unspecified": [
+     "C660000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "C660200"
+   ]
+  },
+  "Rosenkohl": {
+   "targets": {
+    "raw": [
+     "G332100"
+    ],
+    "cooked": [
+     "G332132",
+     "G332152",
+     "G332182",
+     "G332162"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "G332200"
+   ]
+  },
+  "Kohlrabi": {
+   "targets": {
+    "raw": [
+     "G331100"
+    ],
+    "cooked": [
+     "G331132",
+     "G331152",
+     "G331182",
+     "G331162"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Miso": {
+   "targets": {
+    "unspecified": [
+     "H862200"
+    ]
+   },
+   "via": "BLS-Name \"Miso/Sojabohnenpaste\""
+  },
+  "Knoblauchpulver": {
+   "targets": {
+    "unspecified": [
+     "G490400"
+    ]
+   },
+   "via": "BLS-Name \"Knoblauch getrocknet\""
+  },
+  "Zwiebelpulver": {
+   "targets": {
+    "unspecified": [
+     "G480400"
+    ]
+   },
+   "via": "BLS-Name \"Speisezwiebel getrocknet\""
+  },
+  "Mandelmus": {
+   "targets": {
+    "unspecified": [
+     "H212800"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Radieschen": {
+   "targets": {
+    "raw": [
+     "G691100"
+    ],
+    "cooked": [
+     "G691152"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Edamame": {
+   "targets": {
+    "raw": [
+     "G750100"
+    ]
+   },
+   "via": "BLS-Name \"Sojabohne unreif (Edamame) roh\"",
+   "candidates": [
+    "G750902"
+   ]
+  },
+  "Rucola": {
+   "targets": {
+    "raw": [
+     "G130100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Leinsamen": {
+   "targets": {
+    "unspecified": [
+     "H410100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "H410600"
+   ]
+  },
+  "Geschroteter Leinsamen": {
+   "targets": {
+    "unspecified": [
+     "H410400"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Dinkel": {
+   "targets": {
+    "unspecified": [
+     "C235100"
+    ],
+    "cooked": [
+     "C235132"
+    ]
+   },
+   "via": "Das BLS führt Dinkel nur gemahlen; der Vollkornschrot ist das ganze Korn, nur zerkleinert, und hat je 100 g dieselben Werte"
+  },
+  "Grünkern": {
+   "targets": {
+    "raw": [
+     "C311000"
+    ],
+    "cooked": [
+     "C311032"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "C317000"
+   ]
+  },
+  "Rettich": {
+   "targets": {
+    "raw": [
+     "G680100"
+    ],
+    "cooked": [
+     "G680152"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Marone": {
+   "targets": {
+    "raw": [
+     "H230100"
+    ],
+    "cooked": [
+     "H230132"
+    ]
+   },
+   "via": "BLS-Name \"Edelkastanie/Marone\""
+  },
+  "Gorgonzola": {
+   "targets": {
+    "unspecified": [
+     "M5B1600"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Nori": {
+   "targets": {
+    "unspecified": [
+     "G995000"
+    ]
+   },
+   "via": "BLS-Name \"Nori-Blatt geröstet\""
+  },
+  "Rum": {
+   "targets": {
+    "unspecified": [
+     "P741000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Bärlauch": {
+   "targets": {
+    "raw": [
+     "G492100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Grünkohl": {
+   "targets": {
+    "raw": [
+     "G322100"
+    ],
+    "cooked": [
+     "G322132",
+     "G322152",
+     "G322182",
+     "G322142"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "G322200"
+   ]
+  },
+  "Sambal Oelek": {
+   "targets": {
+    "unspecified": [
+     "R146100"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Puddingpulver": {
+   "targets": {
+    "unspecified": [
+     "R481100"
+    ]
+   },
+   "via": "BLS-Name \"Puddingpulver Vanille, ungezuckert\"",
+   "candidates": [
+    "R481200"
+   ]
+  },
+  "Tapiokastärke": {
+   "targets": {
+    "unspecified": [
+     "K512000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Gnocchi": {
+   "targets": {
+    "raw": [
+     "K270000"
+    ],
+    "cooked": [
+     "K270032"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "K271000"
+   ]
+  },
+  "Pak Choi": {
+   "targets": {
+    "raw": [
+     "G324100"
+    ],
+    "cooked": [
+     "G324132",
+     "G324152",
+     "G324182"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Tortelloni": {
+   "targets": {
+    "raw": [
+     "E609100"
+    ],
+    "cooked": [
+     "E609132"
+    ]
+   },
+   "via": "BLS-Name \"Eierteigwaren Tortelloni (Ricotta-Spinat-Füllung)\""
+  },
+  "Öl": {
+   "targets": {
+    "unspecified": [
+     "Q180000"
+    ]
+   },
+   "via": "Ohne Angabe meint eine deutsche Küche mit Öl fast immer Raps- oder Sonnenblumenöl; beide liegen bei 100 g Fett und unterscheiden sich kaum",
+   "candidates": [
+    "Q320000"
+   ]
+  },
+  "Wirsing": {
+   "targets": {
+    "raw": [
+     "G343100"
+    ],
+    "cooked": [
+     "G343132",
+     "G343152",
+     "G343142",
+     "G343182"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Spitzkohl": {
+   "targets": {
+    "raw": [
+     "G344100"
+    ],
+    "cooked": [
+     "G344132",
+     "G344152",
+     "G344182"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Kürbiskernöl": {
+   "targets": {
+    "unspecified": [
+     "Q250000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
   }
  }
 }

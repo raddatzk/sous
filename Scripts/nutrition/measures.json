@@ -289,6 +289,204 @@
    "grams": 200,
    "assumption": true,
    "note": "Eine Packung ist ein Block."
+  },
+  {
+   "name": "Knoblauch",
+   "unit": "Stk.",
+   "grams": 3,
+   "assumption": true,
+   "note": "Ein gezähltes Stück Knoblauch ist in Rezepten eine Zehe (\"2 Knoblauchzehen\", \"1 Stück Knoblauchzehe\"); die ganze Knolle schreibt man als Knolle."
+  },
+  {
+   "name": "Rote Zwiebel",
+   "unit": "Stk.",
+   "grams": 100,
+   "assumption": true,
+   "note": "Etwas kleiner als eine gelbe Speisezwiebel."
+  },
+  {
+   "name": "Avocado",
+   "unit": "Stk.",
+   "grams": 150,
+   "assumption": true
+  },
+  {
+   "name": "Blumenkohl",
+   "unit": "Stk.",
+   "grams": 600,
+   "assumption": true
+  },
+  {
+   "name": "Brokkoli",
+   "unit": "Stk.",
+   "grams": 400,
+   "assumption": true
+  },
+  {
+   "name": "Chili",
+   "unit": "Stk.",
+   "grams": 8,
+   "assumption": true
+  },
+  {
+   "name": "Fenchel",
+   "unit": "Stk.",
+   "grams": 300,
+   "assumption": true
+  },
+  {
+   "name": "Fladenbrot",
+   "unit": "Stk.",
+   "grams": 400,
+   "assumption": true
+  },
+  {
+   "name": "Frühlingszwiebel",
+   "unit": "Stange",
+   "grams": 15,
+   "assumption": true
+  },
+  {
+   "name": "Hokkaido",
+   "unit": "Stk.",
+   "grams": 1000,
+   "assumption": true
+  },
+  {
+   "name": "Ingwer",
+   "unit": "cm",
+   "grams": 5,
+   "assumption": true
+  },
+  {
+   "name": "Lauch",
+   "unit": "Stk.",
+   "grams": 200,
+   "assumption": true
+  },
+  {
+   "name": "Lauch",
+   "unit": "Stange",
+   "grams": 200,
+   "assumption": true
+  },
+  {
+   "name": "Mandarine",
+   "unit": "Stk.",
+   "grams": 70,
+   "assumption": true
+  },
+  {
+   "name": "Petersilie",
+   "unit": "Stiel",
+   "grams": 2,
+   "assumption": true
+  },
+  {
+   "name": "Schnittlauch",
+   "unit": "Stiel",
+   "grams": 1,
+   "assumption": true
+  },
+  {
+   "name": "Staudensellerie",
+   "unit": "Stange",
+   "grams": 40,
+   "assumption": true
+  },
+  {
+   "name": "Süßkartoffel",
+   "unit": "Stk.",
+   "grams": 300,
+   "assumption": true
+  },
+  {
+   "name": "Kokosmilch",
+   "unit": "Dose",
+   "grams": 392,
+   "assumption": true,
+   "note": "Die übliche 400-ml-Dose, mit der Dichte 0,98 in Gramm."
+  },
+  {
+   "name": "Passierte Tomaten",
+   "unit": "Dose",
+   "grams": 400,
+   "assumption": true,
+   "note": "Die übliche 400-g-Dose; der Saft gehört dazu."
+  },
+  {
+   "name": "Lasagneplatten",
+   "unit": "Stk.",
+   "grams": 20,
+   "assumption": true,
+   "note": "Eine getrocknete Platte."
+  },
+  {
+   "name": "Gehackte Tomaten",
+   "unit": "Dose",
+   "grams": 400,
+   "assumption": true,
+   "note": "Die übliche 400-g-Dose; der Saft gehört dazu."
+  },
+  {
+   "name": "Kohlrabi",
+   "unit": "Stk.",
+   "grams": 300,
+   "assumption": true
+  },
+  {
+   "name": "Radieschen",
+   "unit": "Stk.",
+   "grams": 10,
+   "assumption": true
+  },
+  {
+   "name": "Radieschen",
+   "unit": "Bund",
+   "grams": 200,
+   "assumption": true
+  },
+  {
+   "name": "Nori",
+   "unit": "Blatt",
+   "grams": 3,
+   "assumption": true
+  },
+  {
+   "name": "Bärlauch",
+   "unit": "Bund",
+   "grams": 100,
+   "assumption": true
+  },
+  {
+   "name": "Puddingpulver",
+   "unit": "Pck.",
+   "grams": 37,
+   "assumption": true
+  },
+  {
+   "name": "Pak Choi",
+   "unit": "Stk.",
+   "grams": 250,
+   "assumption": true
+  },
+  {
+   "name": "Baby Pak Choi",
+   "unit": "Stk.",
+   "grams": 60,
+   "assumption": true
+  },
+  {
+   "name": "Wirsing",
+   "unit": "Stk.",
+   "grams": 800,
+   "assumption": true
+  },
+  {
+   "name": "Spitzkohl",
+   "unit": "Stk.",
+   "grams": 800,
+   "assumption": true
   }
  ],
  "densities": [
