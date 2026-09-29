@@ -1,0 +1,13 @@
+- id: milch
+  name: Milch
+  aliases:
+    - Frischmilch
+  category: dairy
+  density: 1.03
+  nutrition:
+    unspecified: [M111300]
+  candidates: [M111100, M111200, M114100, M114200]
+  via: BLS-Gruppe "Vollmilch frisch, 3,5 % Fett, pasteurisiert"
+  varieties:
+    - id: vollmilch
+      name: Vollmilch

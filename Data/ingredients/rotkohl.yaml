@@ -1,0 +1,11 @@
+- id: rotkohl
+  name: Rotkohl
+  aliases:
+    - Blaukraut
+    - Rotkraut
+  category: vegetables
+  nutrition:
+    cooked: [G341132, G341152, G341162, G341182]
+    raw: [G341100]
+  candidates: [G341142]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

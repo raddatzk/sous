@@ -1,0 +1,20 @@
+- id: knoblauch
+  name: Knoblauch
+  aliases:
+    - Knoblauchzehe
+    - Knoblauchzehen
+  category: vegetables
+  measures:
+    Zehe:
+      grams: 3
+      note: Kleiner als die generische Zehe.
+    Stk.:
+      grams: 3
+      note: Ein gezähltes Stück Knoblauch ist in Rezepten eine Zehe ("2 Knoblauchzehen", "1
+        Stück Knoblauchzehe"); die ganze Knolle schreibt man als Knolle.
+  nutrition:
+    cooked: [G490132, G490152, G490162, G490182]
+    raw: [G490100]
+  candidates: [G490042, G490200, G490232, G490242, G490252, G490262, G490282, G490400, G490500,
+    G491702, G491802]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

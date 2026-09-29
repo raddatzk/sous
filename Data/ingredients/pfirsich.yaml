@@ -1,0 +1,10 @@
+- id: pfirsich
+  name: Pfirsich
+  aliases:
+    - Pfirsiche
+  category: fruit
+  nutrition:
+    cooked: [F203152]
+    raw: [F203100]
+  candidates: [F203400, F203902, F206902, F207902, F208902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

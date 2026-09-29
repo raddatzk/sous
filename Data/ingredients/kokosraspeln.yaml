@@ -1,0 +1,9 @@
+- id: kokosraspeln
+  name: Kokosraspeln
+  aliases:
+    - Kokosflocken
+    - Kokosraspel
+  category: nuts
+  nutrition:
+    unspecified: [H150400]
+  via: BLS-Gruppe "Kokos Fruchtfleisch, geraspelt, getrocknet"

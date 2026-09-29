@@ -1,0 +1,11 @@
+- id: cashew
+  name: Cashew
+  aliases:
+    - Cashewkerne
+    - Cashews
+    - Cashewnüsse
+  category: nuts
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [H170100]
+  via: BLS-Gruppe "Cashewkern"

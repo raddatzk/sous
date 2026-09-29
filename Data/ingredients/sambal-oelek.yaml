@@ -1,0 +1,9 @@
+- id: sambal-oelek
+  name: Sambal Oelek
+  aliases:
+    - Sambal Olek
+    - Sambal
+  category: canned
+  nutrition:
+    unspecified: [R146100]
+  via: BLS-Name, in die Küchenliste übernommen

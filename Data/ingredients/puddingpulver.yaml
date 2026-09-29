@@ -1,0 +1,11 @@
+- id: puddingpulver
+  name: Puddingpulver
+  aliases:
+    - Vanillepuddingpulver
+    - Vanille-Puddingpulver
+  category: baking
+  measures: {Pck.: 37}
+  nutrition:
+    unspecified: [R481100]
+  candidates: [R481200]
+  via: BLS-Name "Puddingpulver Vanille, ungezuckert"

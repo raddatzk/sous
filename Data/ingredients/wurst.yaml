@@ -1,0 +1,7 @@
+- id: wurst
+  name: Wurst
+  category: meat
+  nutrition:
+    cooked: [W234032, W234062, W234082]
+    unspecified: [W234000]
+  via: BLS-Gruppe "Fleischwurst"

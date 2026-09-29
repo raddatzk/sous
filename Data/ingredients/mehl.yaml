@@ -1,0 +1,24 @@
+- id: mehl
+  name: Mehl
+  category: grains
+  density:
+    gramsPerMl: 0.55
+    note: Locker eingefüllt, nicht gepresst.
+  measures: {Tasse: 120}
+  nutrition:
+    unspecified: [C214100]
+  via: BLS-Gruppe "Weizen Mehl, Type 405"
+  varieties:
+    - id: dinkelmehl
+      name: Dinkelmehl
+    - id: mehl-type-405
+      name: Mehl Type 405
+    - id: mehl-type-550
+      name: Mehl Type 550
+    - id: weizenmehl
+      name: Weizenmehl
+      aliases:
+        - Weizenmehl Type 405
+      varieties:
+        - id: weizenmehl-type-550
+          name: Weizenmehl Type 550

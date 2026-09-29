@@ -1,0 +1,57 @@
+# Measures that belong to a unit or a whole BLS food group. A measure of one
+# ingredient sits on that ingredient, under Data/ingredients/. Every value
+# here is an assumption and is shown with ≈.
+note: 'Die Maßtabelle: (Einheit, Bezug) → Gramm, plus Dichten für Volumenangaben. Handgepflegt,
+  nicht aus dem BLS abgeleitet — der BLS rechnet je 100 g und kennt weder Stückgewichte noch
+  Dichten. Diese Datei ist Eingabe der Pipeline, nicht Ausgabe: ein Neulauf kopiert sie unverändert
+  nach Resources/measures.json und kann sie nicht überschreiben.'
+assumptionNote: Jeder Eintrag ist eine Annahme, keine gemessene Größe — eine mittelgroße Zwiebel,
+  ein Ei der Größe M. Die App zeigt daraus abgeleitete Gramm mit ≈ und lässt sie korrigieren.
+unitRule: 'Einheiten MIT Volumenfaktor (ml, l, TL = 5 ml, EL = 15 ml) rechnen über die Dichte,
+  nicht über byGroup — ein Weg, der auch ml und l abdeckt. byGroup und units gelten nur für
+  Einheiten ohne Volumenfaktor (Prise, Msp., Tasse, Bund, Zehe, Blatt, Pck., Stk.). Soll ein
+  Löffel für EINE Zutat anders zählen als ihre Dichte hergibt (ein Esslöffel wird nicht randvoll),
+  gehört das als byIngredient-Zeile mit dieser Einheit hierher: sie schlägt die Dichte. Reihenfolge
+  in der App: byIngredient/eigene Korrektur → Dichte (Name, dann Gruppe, sonst Wasser) → byGroup
+  → units.'
+units:
+  - unit: Prise
+    grams: 0.3
+    note: Was zwischen zwei Finger passt.
+  - unit: Msp.
+    grams: 0.2
+    note: Was auf die Messerspitze passt, etwas weniger als eine Prise.
+  - unit: Zehe
+    grams: 5
+    note: Eine Knoblauchzehe, geschält.
+  - unit: Blatt
+    grams: 1
+    note: Ein Basilikum- oder Lorbeerblatt.
+  - unit: Bund
+    grams: 75
+    note: Ein Bund Kräuter oder Suppengrün.
+  - unit: Pck.
+    grams: 250
+    note: Eine Packung, wie sie im Handel meistens steht.
+  - unit: Portion
+    grams: 100
+    note: Nur als letzte Rettung; eine Portion ist keine Menge.
+  - unit: Tasse
+    grams: 150
+    note: Die deutsche Rezept-Tasse, nicht der US-Cup (240 ml).
+byGroup:
+  - group: R
+    unit: Prise
+    grams: 0.4
+    note: Salz und gemahlene Gewürze.
+  - group: C
+    unit: Tasse
+    grams: 120
+    note: Mehl und Getreide, locker eingefüllt.
+densities:
+  - group: Q
+    gramsPerMl: 0.92
+    note: Speiseöle und flüssige Fette.
+  - group: R
+    gramsPerMl: 0.8
+    note: Gemahlene Gewürze; ein Teelöffel davon wiegt rund 4 g.

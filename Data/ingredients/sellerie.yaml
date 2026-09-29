@@ -1,0 +1,24 @@
+- id: sellerie
+  name: Sellerie
+  category: vegetables
+  nutrition:
+    raw: [G660100]
+    cooked: [G660132, G660152]
+  via: Stauden- und Knollensellerie sind eigene Sorten; das nackte Wort ist der Knollensellerie
+  varieties:
+    - id: knollensellerie
+      name: Knollensellerie
+      nutrition:
+        cooked: [G660132, G660152, G660162, G660182]
+        raw: [G660100]
+      candidates: [G660802]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: staudensellerie
+      name: Staudensellerie
+      measures: {Stange: 40}
+      nutrition:
+        raw: [G220100]
+        cooked: [G220132, G220152, G220162]
+      candidates: [G220142]
+      via: Erbte bisher Knollensellerie — eine andere Pflanze. Das BLS nennt die Stangen „Bleichsellerie“,
+        was keine Küche schreibt; 17 statt 30 kcal, und vor allem das richtige Gemüse.

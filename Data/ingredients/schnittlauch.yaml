@@ -1,0 +1,8 @@
+- id: schnittlauch
+  name: Schnittlauch
+  category: herbs
+  measures: {Bund: 25, Stiel: 1, Handvoll: 10}
+  nutrition:
+    raw: [G081100]
+  candidates: [G081400]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

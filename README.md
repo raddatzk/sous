@@ -74,7 +74,9 @@ closed grammar — is conventional code, on purpose. The nutrition pipeline in
 | `Sous/` | The app — SwiftUI views, cook sessions, timers, App Intents, household switching. |
 | `SousShare/` | The share extension: it opens the same editor the app uses, because iOS does not let an extension launch its host. |
 | `SousWidgets/` | The cook-timer Live Activity. |
-| `Scripts/nutrition/` | The pipeline that derives the bundled food data from the BLS workbook. Has its own [README](Scripts/nutrition/README.md). |
+| `Data/` | The ingredient catalog as YAML — words, spellings, varieties, BLS codes, weights, aisles — and the one place it is edited. Has its own [README](Data/README.md). |
+| `Scripts/data/` | The compiler that turns `Data/` into the bundled resources; CI checks the two agree. |
+| `Scripts/nutrition/` | The pipeline that derives `bls.json` from the BLS workbook. Has its own [README](Scripts/nutrition/README.md). |
 | `project.yml` | The source of truth for the Xcode project. |
 
 The three targets share an app group (`group.me.raddatz.sous`) so the extension

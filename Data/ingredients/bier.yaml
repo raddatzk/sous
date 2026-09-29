@@ -1,0 +1,6 @@
+- id: bier
+  name: Bier
+  category: drinks
+  nutrition:
+    unspecified: [P163000]
+  via: BLS-Gruppe "Pilsner Bier"

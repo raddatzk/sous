@@ -1,0 +1,10 @@
+- id: mandarine
+  name: Mandarine
+  aliases:
+    - Mandarinen
+  category: fruit
+  measures: {Stk.: 70}
+  nutrition:
+    raw: [F606100]
+  candidates: [F606902, F640902, F6A6902, F6B6902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

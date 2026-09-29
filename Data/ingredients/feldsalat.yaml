@@ -1,0 +1,6 @@
+- id: feldsalat
+  name: Feldsalat
+  category: vegetables
+  nutrition:
+    raw: [G104100]
+  via: BLS-Gruppe "Feldsalat/Rapunzel"

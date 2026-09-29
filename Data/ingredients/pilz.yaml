@@ -1,0 +1,36 @@
+- id: pilz
+  name: Pilz
+  aliases:
+    - Pilze
+  category: vegetables
+  nutrition:
+    raw: [K701100]
+    cooked: [K701132, K701152, K701182, K701162, K701172]
+  via: BLS-Gruppe "Champignon"
+  varieties:
+    - id: champignon
+      name: Champignon
+      aliases:
+        - Champignons
+      measures: {Stk.: 20}
+      nutrition:
+        cooked: [K701132, K701152, K701162, K701172, K701182]
+        raw: [K701100]
+      candidates: [K701142, K701200, K701242, K701262, K701282, K701400, K701432, K701502,
+        K701902]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+      varieties:
+        - id: brauner-champignon
+          name: Brauner Champignon
+          aliases:
+            - Braune Champignons
+    - id: pfifferling
+      name: Pfifferling
+      aliases:
+        - Pfifferlinge
+      nutrition:
+        raw: [K713100]
+        cooked: [K713152, K713182, K713142, K713062]
+      via: BLS-Name, in die Küchenliste übernommen
+    - id: waldpilze
+      name: Waldpilze

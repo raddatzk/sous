@@ -1,0 +1,10 @@
+- id: banane
+  name: Banane
+  aliases:
+    - Bananen
+  category: fruit
+  measures: {Stk.: 120}
+  nutrition:
+    raw: [F503100]
+  candidates: [F503400]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

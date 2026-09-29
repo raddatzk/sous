@@ -1,0 +1,9 @@
+- id: sesam
+  name: Sesam
+  aliases:
+    - Sesamsamen
+  category: nuts
+  nutrition:
+    unspecified: [H420100]
+  candidates: [H420610]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

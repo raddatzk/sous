@@ -1,0 +1,11 @@
+- id: walnuss
+  name: Walnuss
+  aliases:
+    - Walnüsse
+    - Walnusskerne
+  category: nuts
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [H120100]
+  candidates: [H120400, H120610]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

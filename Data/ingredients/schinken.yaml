@@ -1,0 +1,18 @@
+- id: schinken
+  name: Schinken
+  category: meat
+  nutrition:
+    unspecified: [W424000, W423000]
+  candidates: [W291100, W850200]
+  via: Koch-, Serrano-, Parmaschinken sind eigene Sorten; das nackte Wort ist der Kochschinken
+  varieties:
+    - id: kochschinken
+      name: Kochschinken
+    - id: parmaschinken
+      name: Parmaschinken
+      nutrition:
+        cooked: [W441032, W441082]
+        unspecified: [W441000]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: serranoschinken
+      name: Serranoschinken

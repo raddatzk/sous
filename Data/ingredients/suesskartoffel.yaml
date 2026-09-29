@@ -1,0 +1,10 @@
+- id: suesskartoffel
+  name: Süßkartoffel
+  aliases:
+    - Süßkartoffeln
+  category: vegetables
+  measures: {Stk.: 300}
+  nutrition:
+    raw: [K420100]
+    cooked: [K420132, K420182, K420162]
+  via: BLS-Gruppe "Batate/Süßkartoffel"

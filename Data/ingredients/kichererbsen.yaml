@@ -1,0 +1,13 @@
+- id: kichererbsen
+  name: Kichererbsen
+  category: legumes
+  measures:
+    Dose:
+      grams: 240
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    cooked: [G770432]
+    unspecified: [G770400]
+  via: BLS-Gruppe "Kichererbse reif"

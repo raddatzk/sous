@@ -1,0 +1,6 @@
+- id: schmand
+  name: Schmand
+  category: dairy
+  nutrition:
+    unspecified: [M172700]
+  via: BLS-Gruppe "Sauerrahm/Schmand, mind. 20 % Fett"

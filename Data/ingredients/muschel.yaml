@@ -1,0 +1,19 @@
+- id: muschel
+  name: Muschel
+  aliases:
+    - Muscheln
+  category: fish
+  nutrition:
+    raw: [T792100]
+    cooked: [T792132]
+  via: BLS-Gruppe "Miesmuschel"
+  varieties:
+    - id: miesmuschel
+      name: Miesmuschel
+      aliases:
+        - Miesmuscheln
+      nutrition:
+        cooked: [T792132]
+        raw: [T792100]
+      candidates: [T792182, T792200, T792232, T792282, T792702, T832900]
+      via: BLS-Namensabgleich, einmalig festgeschrieben

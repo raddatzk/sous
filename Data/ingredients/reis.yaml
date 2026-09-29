@@ -1,0 +1,20 @@
+- id: reis
+  name: Reis
+  category: grains
+  density: 0.85
+  measures: {Tasse: 180}
+  nutrition:
+    raw: [C352000]
+    cooked: [C352032]
+  candidates: [C350042, C350222, C351000, C351032, C351082, C352082, C356000, C356032, C359000,
+    C359032, C359042, C359082, C453000, C456000, C457000, C532000]
+  via: kuratierte Auswahl
+  varieties:
+    - id: langkornreis
+      name: Langkornreis
+    - id: naturreis
+      name: Naturreis
+      aliases:
+        - Vollkornreis
+    - id: sushireis
+      name: Sushireis

@@ -1,0 +1,10 @@
+- id: sojadrink
+  name: Sojadrink
+  aliases:
+    - Sojamilch
+    - Sojadrinks
+  category: dairy
+  nutrition:
+    unspecified: [H841100]
+  candidates: [H841400]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,8 @@
+- id: brauner-zucker
+  name: Brauner Zucker
+  aliases:
+    - Rohrzucker
+  category: baking
+  nutrition:
+    unspecified: [S112000]
+  via: BLS-Gruppe "Zucker braun (Kandisfarin/Rohzucker)"

@@ -1,0 +1,13 @@
+- id: brot
+  name: Brot
+  category: bakery
+  nutrition:
+    unspecified: [B271000]
+  via: BLS-Gruppe "Roggenmischbrot"
+  varieties:
+    - id: bauernbrot
+      name: Bauernbrot
+    - id: sauerteigbrot
+      name: Sauerteigbrot
+    - id: vollkornbrot
+      name: Vollkornbrot

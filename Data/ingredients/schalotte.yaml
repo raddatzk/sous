@@ -1,0 +1,8 @@
+- id: schalotte
+  name: Schalotte
+  category: vegetables
+  measures: {Stk.: 25}
+  nutrition:
+    cooked: [G485132, G485082, G485152]
+    raw: [G485100]
+  via: BLS-Name, in die Küchenliste übernommen

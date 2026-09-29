@@ -1,0 +1,8 @@
+- id: kohlrabi
+  name: Kohlrabi
+  category: vegetables
+  measures: {Stk.: 300}
+  nutrition:
+    raw: [G331100]
+    cooked: [G331132, G331152, G331182, G331162]
+  via: BLS-Name, in die Küchenliste übernommen

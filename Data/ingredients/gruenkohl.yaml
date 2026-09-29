@@ -1,0 +1,8 @@
+- id: gruenkohl
+  name: Grünkohl
+  category: vegetables
+  nutrition:
+    raw: [G322100]
+    cooked: [G322132, G322152, G322182, G322142]
+  candidates: [G322200]
+  via: BLS-Name, in die Küchenliste übernommen

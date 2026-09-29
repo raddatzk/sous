@@ -1,0 +1,9 @@
+- id: avocado
+  name: Avocado
+  aliases:
+    - Avocados
+  category: vegetables
+  measures: {Stk.: 150}
+  nutrition:
+    raw: [F502100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

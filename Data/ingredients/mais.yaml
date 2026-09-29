@@ -1,0 +1,15 @@
+- id: mais
+  name: Mais
+  aliases:
+    - Maiskolben
+  category: vegetables
+  measures:
+    Dose:
+      grams: 285
+      state: cooked
+      note: Eine 340-g-Dose Zuckermais, abgetropft.
+  nutrition:
+    cooked: [C341032]
+    raw: [C341000]
+  candidates: [C341162, C346000, C346032, C347000, C347032, C443000, C446000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

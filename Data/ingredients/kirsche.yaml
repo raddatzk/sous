@@ -1,0 +1,9 @@
+- id: kirsche
+  name: Kirsche
+  aliases:
+    - Kirschen
+  category: fruit
+  nutrition:
+    raw: [F211100]
+    cooked: [F211152]
+  via: BLS-Gruppe "Süßkirsche"

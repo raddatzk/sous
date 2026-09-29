@@ -1,0 +1,10 @@
+- id: tortelloni
+  name: Tortelloni
+  aliases:
+    - Tortelloni Spinat-Ricotta
+    - Tortelloni Ricotta-Spinat
+  category: grains
+  nutrition:
+    raw: [E609100]
+    cooked: [E609132]
+  via: BLS-Name "Eierteigwaren Tortelloni (Ricotta-Spinat-Füllung)"

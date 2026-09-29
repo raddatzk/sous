@@ -1,0 +1,12 @@
+- id: penne
+  name: Penne
+  category: grains
+  nutrition:
+    raw: [E401000]
+    cooked: [E401032]
+  via: kuratierte Auswahl
+  varieties:
+    - id: vollkorn-penne
+      name: Vollkorn-Penne
+      aliases:
+        - Vollkornpenne

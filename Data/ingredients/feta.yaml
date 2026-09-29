@@ -1,0 +1,9 @@
+- id: feta
+  name: Feta
+  aliases:
+    - Schafskäse
+    - Hirtenkäse
+  category: dairy
+  nutrition:
+    unspecified: [M012200]
+  via: BLS-Gruppe "Feta mind. 45 % Fett i. Tr."

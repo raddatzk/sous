@@ -1,0 +1,14 @@
+- id: sojahack
+  name: Sojahack
+  aliases:
+    - Sojaschnetzel
+    - Sojagranulat
+    - Sojahackfleisch
+    - Soja-Hack
+  category: legumes
+  nutrition:
+    unspecified: [H765000]
+    cooked: [H765082]
+  via: BLS nennt es "Sojaschnetzel/Sojagranulat, texturiert". Trocken ist, was ein Rezept
+    abwiegt (351 kcal); eingeweicht und gebraten ist der gekochte Zustand (99 kcal) — ein
+    Faktor 3,5, deshalb müssen beide Zustände benannt sein.

@@ -1,0 +1,7 @@
+- id: gouda
+  name: Gouda
+  category: dairy
+  nutrition:
+    unspecified: [M402600]
+  candidates: [M402400, M402500]
+  via: BLS-Gruppe "Gouda 48 % Fett i. Tr."

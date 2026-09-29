@@ -1,0 +1,10 @@
+- id: margarine
+  name: Margarine
+  aliases:
+    - Pflanzenmargarine
+    - vegane Margarine
+  category: dairy
+  nutrition:
+    unspecified: [Q400000]
+  candidates: [Q4C4000, Q4A4000, Q4A1000, Q440000]
+  via: BLS-Gruppe "Pflanzenmargarine Vollfett"

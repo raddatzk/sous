@@ -1,0 +1,7 @@
+- id: pinienkerne
+  name: Pinienkerne
+  category: nuts
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [H320100]
+  via: BLS-Gruppe "Pinienkern"

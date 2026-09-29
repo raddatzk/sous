@@ -1,0 +1,10 @@
+- id: kabeljau
+  name: Kabeljau
+  aliases:
+    - Dorsch
+  category: fish
+  nutrition:
+    raw: [T204100]
+    cooked: [T204152, T204132, T204162, T204182, T204172]
+  candidates: [T940200]
+  via: BLS-Gruppe "Dorsch/Kabeljau"

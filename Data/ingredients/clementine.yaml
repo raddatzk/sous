@@ -1,0 +1,6 @@
+- id: clementine
+  name: Clementine
+  category: fruit
+  nutrition:
+    raw: [F607100]
+  via: BLS-Name, in die Küchenliste übernommen

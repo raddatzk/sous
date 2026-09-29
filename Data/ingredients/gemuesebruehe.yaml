@@ -1,0 +1,11 @@
+- id: gemuesebruehe
+  name: Gemüsebrühe
+  aliases:
+    - Gemüsebrühe Pulver
+    - Brühe
+    - Gemüsefond
+    - glutenfreie Gemüsebrühe
+  category: canned
+  nutrition:
+    unspecified: [X416243]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

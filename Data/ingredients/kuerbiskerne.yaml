@@ -1,0 +1,6 @@
+- id: kuerbiskerne
+  name: Kürbiskerne
+  category: nuts
+  nutrition:
+    unspecified: [H310100]
+  via: BLS-Gruppe "Kürbiskern"

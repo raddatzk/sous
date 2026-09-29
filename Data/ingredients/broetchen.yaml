@@ -1,0 +1,10 @@
+- id: broetchen
+  name: Brötchen
+  aliases:
+    - Semmel
+    - Semmeln
+    - Brotchen
+  category: bakery
+  nutrition:
+    unspecified: [B511000]
+  via: BLS-Gruppe "Weizenbrötchen"

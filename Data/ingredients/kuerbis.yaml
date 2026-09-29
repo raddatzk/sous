@@ -1,0 +1,27 @@
+- id: kuerbis
+  name: Kürbis
+  category: vegetables
+  nutrition:
+    raw: [G581100]
+    cooked: [G581132, G581152, G581182, G581162]
+  candidates: [G581000, G581032, G581042, G581052, G581062, G581082, G581142, G581802]
+  via: BLS-Gruppe "Kürbis Pumpkin (C. pepo)"
+  varieties:
+    - id: butternut
+      name: Butternut
+      aliases:
+        - Butternusskürbis
+      nutrition:
+        raw: [G581100, G581000]
+        cooked: [G581132, G581032]
+      via: kuratierte Auswahl
+    - id: hokkaido
+      name: Hokkaido
+      aliases:
+        - Hokkaido-Kürbis
+        - Hokkaidokürbis
+      measures: {Stk.: 1000}
+      nutrition:
+        raw: [G581000]
+        cooked: [G581032, G581052, G581082, G581062]
+      via: BLS-Gruppe "Kürbis Hokkaido (C. maxima)"

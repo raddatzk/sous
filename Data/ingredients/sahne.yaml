@@ -1,0 +1,15 @@
+- id: sahne
+  name: Sahne
+  aliases:
+    - Schlagobers
+    - Süße Sahne
+  category: dairy
+  density: 0.99
+  nutrition:
+    unspecified: [M173800]
+  candidates: [G898200]
+  via: BLS-Gruppe "Schlagsahne mind. 30 % Fett"
+  varieties:
+    - id: schlagsahne
+      name: Schlagsahne
+      density: 0.99

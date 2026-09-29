@@ -1,0 +1,10 @@
+- id: pflaume
+  name: Pflaume
+  aliases:
+    - Pflaumen
+  category: fruit
+  nutrition:
+    cooked: [F220152]
+    raw: [F220100]
+  candidates: [F220400, F220902, F227902, F22A902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

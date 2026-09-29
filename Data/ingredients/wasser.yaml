@@ -1,0 +1,9 @@
+- id: wasser
+  name: Wasser
+  category: drinks
+  nutrition:
+    unspecified: [N110000]
+  via: BLS-Gruppe "Trinkwasser"
+  varieties:
+    - id: mineralwasser
+      name: Mineralwasser

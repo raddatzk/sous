@@ -1,0 +1,7 @@
+- id: zwetschge
+  name: Zwetschge
+  category: fruit
+  nutrition:
+    cooked: [F223152]
+    raw: [F223100]
+  via: BLS-Name, in die Küchenliste übernommen

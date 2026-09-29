@@ -1,0 +1,17 @@
+- id: mandel
+  name: Mandel
+  aliases:
+    - Mandeln
+  category: nuts
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [H210100]
+  candidates: [H210200, H210400, H210600, H210710, H220100]
+  via: BLS-Gruppe "Mandel süß"
+  varieties:
+    - id: gemahlene-mandeln
+      name: Gemahlene Mandeln
+    - id: mandelblaettchen
+      name: Mandelblättchen
+      aliases:
+        - gehobelte Mandeln

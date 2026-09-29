@@ -1,0 +1,12 @@
+- id: creme-fraiche
+  name: Creme fraiche
+  aliases:
+    - Crème fraîche
+    - Creme fraîche
+  category: dairy
+  nutrition:
+    unspecified: [M176800]
+  via: BLS-Gruppe "Sauerrahm/Creme fraiche, 30 % Fett"
+  varieties:
+    - id: creme-fraiche-mit-kraeutern
+      name: Crème fraîche mit Kräutern

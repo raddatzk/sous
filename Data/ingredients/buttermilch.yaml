@@ -1,0 +1,7 @@
+- id: buttermilch
+  name: Buttermilch
+  category: dairy
+  density: 1.03
+  nutrition:
+    unspecified: [M150000]
+  via: BLS-Name, in die Küchenliste übernommen

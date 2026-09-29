@@ -1,0 +1,8 @@
+- id: zucchini
+  name: Zucchini
+  category: vegetables
+  measures: {Stk.: 250}
+  nutrition:
+    cooked: [G582132, G582152, G582162, G582172, G582182]
+    raw: [G582100]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,24 @@
+- id: olive
+  name: Olive
+  aliases:
+    - Oliven
+  category: vegetables
+  measures:
+    Glas:
+      grams: 170
+      note: Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft.
+  nutrition:
+    unspecified: [H510802, H520800]
+  via: kuratierte Auswahl
+  varieties:
+    - id: schwarze-oliven
+      name: Schwarze Oliven
+      aliases:
+        - schwarze Olive
+      measures:
+        Glas:
+          grams: 170
+          note: Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft.
+      nutrition:
+        unspecified: [H520800]
+      via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,13 @@
+- id: fruehlingszwiebel
+  name: Frühlingszwiebel
+  aliases:
+    - Frühlingszwiebeln
+    - Lauchzwiebel
+    - Lauchzwiebeln
+  category: vegetables
+  measures: {Stk.: 15, Stange: 15}
+  nutrition:
+    raw: [G482100]
+    cooked: [G482132, G482152, G482182, G482162]
+  candidates: [G482142, G486100, G486132, G486142, G486152, G486162, G486182]
+  via: BLS-Gruppe "Frühlingszwiebel/Lauchzwiebel"

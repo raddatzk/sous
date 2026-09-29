@@ -1,0 +1,7 @@
+- id: blaetterteig
+  name: Blätterteig
+  category: frozen
+  nutrition:
+    raw: [D072000]
+    cooked: [D072062]
+  via: BLS-Gruppe "Blätterteig eifrei"

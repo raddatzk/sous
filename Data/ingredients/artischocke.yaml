@@ -1,0 +1,10 @@
+- id: artischocke
+  name: Artischocke
+  aliases:
+    - Artischocken
+  category: vegetables
+  nutrition:
+    cooked: [G410132]
+    raw: [G410100]
+  candidates: [G410702, G410732, G410902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

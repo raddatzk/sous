@@ -1,0 +1,9 @@
+- id: vollkornmehl
+  name: Vollkornmehl
+  aliases:
+    - Weizenvollkornmehl
+  category: grains
+  density: 0.6
+  nutrition:
+    unspecified: [C211000, C221000, C235000]
+  via: BLS-Gruppe "Weizen Vollkornmehl"

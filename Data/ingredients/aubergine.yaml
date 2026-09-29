@@ -1,0 +1,11 @@
+- id: aubergine
+  name: Aubergine
+  aliases:
+    - Auberginen
+  category: vegetables
+  measures: {Stk.: 300}
+  nutrition:
+    cooked: [G510132, G510152, G510162, G510172, G510182]
+    raw: [G510100]
+  candidates: [G510142, G510702]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

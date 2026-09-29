@@ -1,0 +1,7 @@
+- id: tortellini
+  name: Tortellini
+  category: grains
+  nutrition:
+    cooked: [E609232]
+    unspecified: [E609200]
+  via: BLS-Gruppe "Eierteigwaren Tortellini (Fleischfüllung) getrocknet"

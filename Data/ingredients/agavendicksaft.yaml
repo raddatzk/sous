@@ -1,0 +1,9 @@
+- id: agavendicksaft
+  name: Agavendicksaft
+  aliases:
+    - Agavensirup
+  category: baking
+  density: 1.35
+  nutrition: without
+  via: Das BLS führt keinen Agavendicksaft. Ahornsirup wäre der nächste Nachbar, ist aber
+    ein anderer Zucker — die Zuordnung gehört dem Koch, nicht der Kuratierung.

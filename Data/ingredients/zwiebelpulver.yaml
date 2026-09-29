@@ -1,0 +1,8 @@
+- id: zwiebelpulver
+  name: Zwiebelpulver
+  aliases:
+    - Zwiebelgranulat
+  category: spices
+  nutrition:
+    unspecified: [G480400]
+  via: BLS-Name "Speisezwiebel getrocknet"

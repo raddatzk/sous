@@ -1,0 +1,13 @@
+- id: oel
+  name: Öl
+  aliases:
+    - Pflanzenöl
+    - Speiseöl
+    - neutrales Öl
+    - Bratöl
+  category: oils
+  nutrition:
+    unspecified: [Q180000]
+  candidates: [Q320000]
+  via: Ohne Angabe meint eine deutsche Küche mit Öl fast immer Raps- oder Sonnenblumenöl;
+    beide liegen bei 100 g Fett und unterscheiden sich kaum

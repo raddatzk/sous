@@ -1,0 +1,11 @@
+- id: limette
+  name: Limette
+  aliases:
+    - Limetten
+    - Limettensaft
+  category: fruit
+  measures: {Stk.: 65}
+  nutrition:
+    raw: [F602100]
+    unspecified: [F602600]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

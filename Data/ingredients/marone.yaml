@@ -1,0 +1,11 @@
+- id: marone
+  name: Marone
+  aliases:
+    - Maronen
+    - Esskastanie
+    - Esskastanien
+  category: nuts
+  nutrition:
+    raw: [H230100]
+    cooked: [H230132]
+  via: BLS-Name "Edelkastanie/Marone"

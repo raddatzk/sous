@@ -1,0 +1,17 @@
+- id: melone
+  name: Melone
+  category: fruit
+  nutrition:
+    raw: [F533100, F532100]
+  via: Wasser- und Honigmelone sind eigene Sorten; das nackte Wort ist die Honigmelone
+  varieties:
+    - id: honigmelone
+      name: Honigmelone
+      nutrition:
+        raw: [F533100]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: wassermelone
+      name: Wassermelone
+      nutrition:
+        raw: [F535100]
+      via: BLS-Namensabgleich, einmalig festgeschrieben

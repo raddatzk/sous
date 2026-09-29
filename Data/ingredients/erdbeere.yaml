@@ -1,0 +1,10 @@
+- id: erdbeere
+  name: Erdbeere
+  aliases:
+    - Erdbeeren
+  category: fruit
+  nutrition:
+    cooked: [F301152]
+    raw: [F301100]
+  candidates: [F301400, F301902, F340902, F341902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

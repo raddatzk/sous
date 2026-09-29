@@ -1,0 +1,28 @@
+- id: tofu
+  name: Tofu
+  aliases:
+    - Naturtofu
+    - Tofu Natur
+  category: legumes
+  measures:
+    Stk.:
+      grams: 200
+      note: Ein Block, wie er im Kühlregal liegt.
+    Pck.:
+      grams: 200
+      note: Eine Packung ist ein Block.
+  nutrition:
+    raw: [H861000]
+    cooked: [H861032, H861042, H861082, H861062]
+  via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: raeuchertofu
+      name: Räuchertofu
+      aliases:
+        - geräucherter Tofu
+    - id: seidentofu
+      name: Seidentofu
+      nutrition:
+        raw: [H861100]
+        cooked: [H861132]
+      via: BLS-Name, in die Küchenliste übernommen

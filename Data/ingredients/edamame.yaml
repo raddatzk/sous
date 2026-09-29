@@ -1,0 +1,7 @@
+- id: edamame
+  name: Edamame
+  category: legumes
+  nutrition:
+    raw: [G750100]
+  candidates: [G750902]
+  via: BLS-Name "Sojabohne unreif (Edamame) roh"

@@ -1,0 +1,7 @@
+- id: basmatireis
+  name: Basmatireis
+  category: grains
+  nutrition:
+    raw: [C352000]
+    cooked: [C352032]
+  via: kuratierte Auswahl

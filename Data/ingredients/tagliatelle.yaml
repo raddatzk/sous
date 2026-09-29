@@ -1,0 +1,7 @@
+- id: tagliatelle
+  name: Tagliatelle
+  category: grains
+  nutrition:
+    raw: [E432000]
+    cooked: [E432032]
+  via: kuratierte Auswahl

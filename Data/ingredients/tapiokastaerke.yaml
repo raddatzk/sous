@@ -1,0 +1,9 @@
+- id: tapiokastaerke
+  name: Tapiokastärke
+  aliases:
+    - Tapioka
+    - Tapiokamehl
+  category: baking
+  nutrition:
+    unspecified: [K512000]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,27 @@
+- id: paprika
+  name: Paprika
+  aliases:
+    - Paprikaschote
+    - Paprikaschoten
+  category: vegetables
+  measures: {Stk.: 160}
+  nutrition:
+    raw: [G543100, G541100, G542100]
+    cooked: [G543032, G542132, G541032, G543152, G542152, G541152, G543082, G542182, G541082,
+      G543162, G542162, G541162, G543072, G542172, G541072]
+  via: kuratierte Auswahl
+  varieties:
+    - id: gelbe-paprika
+      name: Gelbe Paprika
+      aliases:
+        - Paprika gelb
+    - id: gruene-paprika
+      name: Grüne Paprika
+      aliases:
+        - Paprika grün
+    - id: rote-paprika
+      name: Rote Paprika
+      aliases:
+        - rote Paprikaschote
+        - rote Paprikaschoten
+        - Paprika rot

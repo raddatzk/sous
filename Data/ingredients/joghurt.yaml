@@ -1,0 +1,17 @@
+- id: joghurt
+  name: Joghurt
+  aliases:
+    - Vollmilchjoghurt
+  category: dairy
+  density: 1.03
+  nutrition:
+    unspecified: [M141300]
+  candidates: [M141100, M141200, M148100, M148200, M148300, M1B1100, M1B2200, M1E3300, M241100,
+    M241200, M241300, M246000, M248000, M276300, M293300, M2A3200, M2A3300, M2A9200, M2D1100,
+    M2J1100, M2J2100, M2K7200, M2L7300, M2R2200, M2R7300, M2R8300, M2R9300]
+  via: BLS-Gruppe "Joghurt mild, mind. 3,5 % Fett"
+  varieties:
+    - id: griechischer-joghurt
+      name: Griechischer Joghurt
+    - id: naturjoghurt
+      name: Naturjoghurt

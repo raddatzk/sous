@@ -1,0 +1,11 @@
+- id: schweinefleisch
+  name: Schweinefleisch
+  aliases:
+    - Schweinefilet
+    - Schnitzel
+  category: meat
+  nutrition:
+    raw: [U611100, U622100]
+    cooked: [U611162, U622162, U611172, U622172]
+  candidates: [U950100]
+  via: kuratierte Auswahl

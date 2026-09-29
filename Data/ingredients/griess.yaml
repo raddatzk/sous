@@ -1,0 +1,10 @@
+- id: griess
+  name: Grieß
+  category: grains
+  nutrition:
+    cooked: [C219332]
+    unspecified: [C219300]
+  via: BLS-Gruppe "Hartweizen Grieß"
+  varieties:
+    - id: hartweizengriess
+      name: Hartweizengrieß

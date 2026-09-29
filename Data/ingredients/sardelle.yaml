@@ -1,0 +1,11 @@
+- id: sardelle
+  name: Sardelle
+  aliases:
+    - Sardellen
+    - Anchovis
+  category: fish
+  nutrition:
+    cooked: [T104162, T104172, T104182]
+    raw: [T104100]
+  candidates: [T104400, T104702]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

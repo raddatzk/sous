@@ -1,0 +1,7 @@
+- id: couscous
+  name: Couscous
+  category: grains
+  nutrition:
+    raw: [C119200]
+    cooked: [C119232]
+  via: BLS-Gruppe "Couscous (Hartweizen)"

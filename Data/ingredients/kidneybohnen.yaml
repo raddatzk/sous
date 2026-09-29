@@ -1,0 +1,13 @@
+- id: kidneybohnen
+  name: Kidneybohnen
+  category: legumes
+  measures:
+    Dose:
+      grams: 250
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    cooked: [H742132]
+    unspecified: [H742100]
+  via: BLS-Gruppe "Kidneybohne reif"

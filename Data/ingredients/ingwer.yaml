@@ -1,0 +1,7 @@
+- id: ingwer
+  name: Ingwer
+  category: vegetables
+  measures: {cm: 5}
+  nutrition:
+    raw: [R211200]
+  via: BLS-Gruppe "Ingwer/Ingwerwurzel"

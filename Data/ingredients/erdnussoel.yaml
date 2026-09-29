@@ -1,0 +1,6 @@
+- id: erdnussoel
+  name: Erdnussöl
+  category: oils
+  nutrition:
+    unspecified: [Q210000]
+  via: BLS-Name, in die Küchenliste übernommen

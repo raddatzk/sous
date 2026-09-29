@@ -1,0 +1,16 @@
+- id: gurke
+  name: Gurke
+  aliases:
+    - Gurken
+  category: vegetables
+  measures: {Stk.: 400}
+  nutrition:
+    cooked: [G520132, G520062, G520152, G520182]
+    raw: [G520100]
+  candidates: [G520042, G520802]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: salatgurke
+      name: Salatgurke
+      aliases:
+        - Salatgurken

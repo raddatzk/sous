@@ -1,0 +1,15 @@
+- id: sojasauce
+  name: Sojasauce
+  aliases:
+    - Sojasoße
+    - Soja Sauce
+  category: canned
+  density: 1.2
+  nutrition:
+    unspecified: [R143000]
+  via: BLS-Gruppe "Sojasauce/Sojasoße"
+  varieties:
+    - id: dunkle-sojasauce
+      name: Dunkle Sojasauce
+      aliases:
+        - dunkle Sojasoße

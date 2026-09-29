@@ -1,0 +1,8 @@
+- id: spitzkohl
+  name: Spitzkohl
+  category: vegetables
+  measures: {Stk.: 800}
+  nutrition:
+    raw: [G344100]
+    cooked: [G344132, G344152, G344182]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,10 @@
+- id: johannisbeere
+  name: Johannisbeere
+  aliases:
+    - Johannisbeeren
+  category: fruit
+  nutrition:
+    raw: [F321100]
+    cooked: [F321152]
+  candidates: [F321902, F322100, F323100, F323152, F323902, F324902]
+  via: BLS-Gruppe "Johannisbeere rot"

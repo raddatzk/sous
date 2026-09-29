@@ -1,0 +1,7 @@
+- id: sesamoel
+  name: Sesamöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q230000]
+  via: BLS-Name, in die Küchenliste übernommen

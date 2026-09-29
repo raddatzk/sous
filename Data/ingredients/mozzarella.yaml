@@ -1,0 +1,17 @@
+- id: mozzarella
+  name: Mozzarella
+  category: dairy
+  nutrition:
+    unspecified: [M032100]
+  candidates: [M0A1000]
+  via: BLS-Gruppe "Mozzarella mind. 45 % Fett i. Tr."
+  varieties:
+    - id: bueffelmozzarella
+      name: Büffelmozzarella
+      aliases:
+        - Büffel-Mozzarella
+    - id: mini-mozzarella
+      name: Mini-Mozzarella
+      aliases:
+        - Minimozzarella
+        - Mozzarella-Kugeln

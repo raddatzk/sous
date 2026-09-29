@@ -1,0 +1,10 @@
+- id: vanille
+  name: Vanille
+  aliases:
+    - Vanilleschote
+    - Vanilleschoten
+  category: spices
+  nutrition: without
+  via: Das BLS führt keine Vanille als Gewürz, nur Vanillezucker (S114000) und Vanillinzucker.
+    Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es hier früher
+    geschah, wäre falscher als keine Werte.

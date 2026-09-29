@@ -1,0 +1,11 @@
+- id: erbse
+  name: Erbse
+  aliases:
+    - Erbsen
+    - Zuckerschoten
+  category: vegetables
+  nutrition:
+    raw: [G760100]
+    cooked: [G760132, G760152, G760182, G760162]
+  candidates: [G760200, G760232, G760252, G760262, G760282, G760400, G760432, G760902]
+  via: BLS-Gruppe "Erbse grün"

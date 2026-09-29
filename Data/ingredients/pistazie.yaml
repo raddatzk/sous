@@ -1,0 +1,9 @@
+- id: pistazie
+  name: Pistazie
+  aliases:
+    - Pistazien
+  category: nuts
+  nutrition:
+    unspecified: [H250100]
+  candidates: [H250600, H250700]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

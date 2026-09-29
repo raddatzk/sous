@@ -1,0 +1,7 @@
+- id: fladenbrot
+  name: Fladenbrot
+  category: bakery
+  measures: {Stk.: 400}
+  nutrition:
+    unspecified: [B782100]
+  via: BLS-Gruppe "Weizenfladenbrot"

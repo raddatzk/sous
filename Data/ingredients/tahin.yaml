@@ -1,0 +1,11 @@
+- id: tahin
+  name: Tahin
+  aliases:
+    - Tahini
+    - Tahina
+    - Sesammus
+    - Sesampaste
+  category: nuts
+  nutrition:
+    unspecified: [Q901000]
+  via: 'BLS-Name "Tahin (Sesammus)" — nicht Sesam: die Paste, nicht die Saat'

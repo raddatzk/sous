@@ -1,0 +1,10 @@
+- id: forelle
+  name: Forelle
+  aliases:
+    - Forellenfilet
+  category: fish
+  nutrition:
+    cooked: [T420152, T420132, T420162, T420172, T420182]
+    raw: [T422100]
+  candidates: [T420232, T420252, T420262, T420282, T422112, T422200, T422272, T422400, T422600]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

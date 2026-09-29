@@ -1,0 +1,8 @@
+- id: fenchel
+  name: Fenchel
+  category: vegetables
+  measures: {Stk.: 300}
+  nutrition:
+    raw: [G430100]
+    cooked: [G430132, G430152, G430182, G430162]
+  via: BLS-Gruppe "Gemüsefenchel"

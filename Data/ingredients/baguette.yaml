@@ -1,0 +1,6 @@
+- id: baguette
+  name: Baguette
+  category: bakery
+  nutrition:
+    unspecified: [B781200]
+  via: BLS-Gruppe "Weizenbaguette"

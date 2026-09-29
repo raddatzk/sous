@@ -1,0 +1,20 @@
+- id: bohne
+  name: Bohne
+  aliases:
+    - Bohnen
+  category: vegetables
+  nutrition:
+    raw: [G710100]
+    cooked: [G710132, G710152, G710182, G710162]
+  candidates: [G710042, G710142, G710200, G710232, G710252, G710262, G710282, G710802, G710902,
+    G880402]
+  via: BLS-Gruppe "Bohne grün"
+  varieties:
+    - id: buschbohne
+      name: Buschbohne
+      aliases:
+        - Buschbohnen
+    - id: gruene-bohne
+      name: Grüne Bohne
+      aliases:
+        - Grüne Bohnen

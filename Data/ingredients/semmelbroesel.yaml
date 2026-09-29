@@ -1,0 +1,9 @@
+- id: semmelbroesel
+  name: Semmelbrösel
+  aliases:
+    - Paniermehl
+  category: bakery
+  density: 0.35
+  nutrition:
+    unspecified: [B821000]
+  via: BLS-Gruppe "Paniermehl/Semmelbrösel/Semmelmehl"

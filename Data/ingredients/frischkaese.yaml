@@ -1,0 +1,7 @@
+- id: frischkaese
+  name: Frischkäse
+  category: dairy
+  nutrition:
+    unspecified: [M710800]
+  candidates: [M7A1600, M7B1600]
+  via: BLS-Gruppe "Frischkäsezubereitung Natur, mind. 60 % Fett i. Tr."

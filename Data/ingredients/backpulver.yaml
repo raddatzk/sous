@@ -1,0 +1,7 @@
+- id: backpulver
+  name: Backpulver
+  category: baking
+  measures: {Pck.: 16}
+  nutrition:
+    unspecified: [R421100]
+  via: BLS-Name, in die Küchenliste übernommen

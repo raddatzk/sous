@@ -1,0 +1,7 @@
+- id: ananas
+  name: Ananas
+  category: fruit
+  nutrition:
+    cooked: [F501152]
+    raw: [F501100]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,8 @@
+- id: toast
+  name: Toast
+  aliases:
+    - Toastbrot
+  category: bakery
+  nutrition:
+    unspecified: [B314000]
+  via: BLS-Gruppe "Weizentoastbrot/Buttertoastbrot"

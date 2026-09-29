@@ -1,0 +1,7 @@
+- id: rote-linsen
+  name: Rote Linsen
+  category: legumes
+  nutrition:
+    cooked: [H730032]
+    unspecified: [H730000]
+  via: kuratierte Auswahl

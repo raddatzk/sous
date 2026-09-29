@@ -1,0 +1,10 @@
+- id: honig
+  name: Honig
+  aliases:
+    - Blütenhonig
+    - flüssiger Honig
+  category: baking
+  density: 1.42
+  nutrition:
+    unspecified: [S120000]
+  via: BLS-Name, in die Küchenliste übernommen

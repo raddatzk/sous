@@ -1,0 +1,7 @@
+- id: melasse
+  name: Melasse
+  category: baking
+  density: 1.4
+  nutrition:
+    unspecified: [S152000]
+  via: BLS-Name, in die Küchenliste übernommen

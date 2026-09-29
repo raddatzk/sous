@@ -1,0 +1,10 @@
+- id: haehnchenschenkel
+  name: Hähnchenschenkel
+  aliases:
+    - Hähnchenkeule
+    - Hähnchenkeulen
+  category: meat
+  nutrition:
+    raw: [V4A5100, V4B5100]
+    cooked: [V4A5162, V4B5162, V4A5182, V4B5182, V4A5172, V4B5172]
+  via: kuratierte Auswahl

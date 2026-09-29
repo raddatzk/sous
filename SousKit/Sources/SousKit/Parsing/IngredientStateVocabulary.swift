@@ -8,12 +8,13 @@ import Foundation
 /// cooked, fried, frozen, canned, dried. **Only the first two are states
 /// here**, and that is a decision the data forces rather than a shortcut:
 ///
-/// - The pipeline (`Scripts/nutrition/state_suffix.py`) folds exactly `roh`
-///   and the cooking words together into one ingredient with two bases. That
-///   is the dimension a *basis* is chosen along, and `IngredientState` is the
-///   key those bases are stored under.
+/// - The catalog files a word's bases under exactly `roh` and the cooking
+///   words (`nutrition: {raw: …, cooked: …}` in `Data/ingredients/`); the
+///   retired `state_suffix.py` drew the same line when the bases were first
+///   derived from BLS names. That is the dimension a *basis* is chosen along,
+///   and `IngredientState` is the key those bases are stored under.
 /// - Everything else — `tiefgefroren`, `Konserve`, `getrocknet` and their
-///   companions in `NONMERGE_WORDS` — stays a **name** in the shipped data:
+///   companions — stays a **name** in the shipped data:
 ///   649 BLS rows end in one, and the synonym table carries them as words of
 ///   their own ("Tomate Konserve", "Erbse grün, tiefgefroren"). Canned
 ///   tomatoes are not tomatoes in a state, they are a different food with
@@ -29,15 +30,15 @@ import Foundation
 /// down names that work today and changes the bundled data for every one of
 /// them.
 public enum IngredientStateVocabulary {
-    /// Mirrors `RAW_WORDS` in the pipeline. The two lists have to agree: this
-    /// one decides which state a line asks for, that one decided which state
-    /// the bases were filed under.
+    /// The words the catalog files a `raw` basis under. The two have to
+    /// agree: this list decides which state a line asks for, the catalog
+    /// decided which state the bases were filed under.
     static let rawWords: Set<String> = ["roh"]
 
-    /// Mirrors `COOKED_WORDS` in the pipeline, plus "blanchiert", which a
-    /// recipe writes and the catalog does not.
+    /// The words the catalog files a `cooked` basis under, plus
+    /// "blanchiert", which a recipe writes and the BLS does not.
     ///
-    /// Kept as tight as the pipeline's: every word here can end a name and
+    /// Kept tight: every word here can end a name and
     /// be split off it, so a word that is sometimes something else — "gar",
     /// which is also half of "gar nicht" — costs more than it is worth.
     static let cookedWords: Set<String> = [

@@ -1,0 +1,10 @@
+- id: kokosnuss
+  name: Kokosnuss
+  aliases:
+    - Kokosnüsse
+    - frische Kokosnuss
+    - Kokosfleisch
+  category: fruit
+  nutrition:
+    raw: [H150100]
+  via: BLS-Name "Kokos Fruchtfleisch, roh" — die frische Nuss; getrocknete Raspeln sind Kokosraspeln

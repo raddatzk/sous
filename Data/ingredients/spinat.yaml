@@ -1,0 +1,14 @@
+- id: spinat
+  name: Spinat
+  category: vegetables
+  measures: {Handvoll: 30}
+  nutrition:
+    cooked: [G210132, G211152, G211162, G211182]
+    raw: [G211100]
+  candidates: [G210232, G210252, G210262, G210282, G210902, G211200]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: babyspinat
+      name: Babyspinat
+    - id: blattspinat
+      name: Blattspinat

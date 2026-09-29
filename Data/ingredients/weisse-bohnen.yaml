@@ -1,0 +1,15 @@
+- id: weisse-bohnen
+  name: Weiße Bohnen
+  aliases:
+    - Cannellini
+  category: legumes
+  measures:
+    Dose:
+      grams: 250
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    raw: [H742100]
+    cooked: [H742132]
+  via: kuratierte Auswahl

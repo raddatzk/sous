@@ -1,0 +1,8 @@
+- id: bratwurst
+  name: Bratwurst
+  category: meat
+  nutrition:
+    cooked: [W222182, W222172]
+    unspecified: [W222100]
+  candidates: [W184000, W221100]
+  via: BLS-Gruppe "Bratwurst mittelgrob"
