@@ -33,6 +33,8 @@ final class CDRecipe: CDHouseholdMember {
     /// Named for the first prototype, which stored chips only; the column
     /// now holds `StepReferences`, and renaming it would be a schema change.
     @NSManaged var stepChipsJSON: String?
+    /// `RecipeOriginal` as JSON: the text as imported, read-only.
+    @NSManaged var originalText: String?
     @NSManaged var createdBy: UUID?
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
@@ -74,6 +76,7 @@ final class CDRecipe: CDHouseholdMember {
         effortOverrideRaw = recipe.effortOverride?.rawValue
         variantGroupID = recipe.variantGroupID
         stepChipsJSON = StepReferences.encode(recipe.stepReferences)
+        originalText = RecipeOriginal.encode(recipe.original)
         createdBy = recipe.createdBy
         createdAt = recipe.createdAt
         updatedAt = recipe.updatedAt
@@ -125,6 +128,7 @@ final class CDRecipe: CDHouseholdMember {
             effortOverride: effortOverrideRaw.flatMap(RecipeEffort.Level.init(rawValue:)),
             variantGroupID: variantGroupID,
             stepReferences: StepReferences.decode(stepChipsJSON),
+            original: RecipeOriginal.decode(originalText),
             createdBy: createdBy,
             // A row that lost its timestamps is readable; it just sorts last
             // and looks untouched, which is what it is.

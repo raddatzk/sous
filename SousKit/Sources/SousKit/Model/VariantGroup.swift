@@ -124,6 +124,9 @@ extension Recipe {
         copy.imageCrops = [:]
         copy.isFavorite = false
         copy.wantToCook = false
+        // The original is the text this recipe was imported as; the variant
+        // was never imported, it starts as the cook's own text.
+        copy.original = nil
         copy.createdAt = now
         copy.updatedAt = now
         copy.deletedAt = nil

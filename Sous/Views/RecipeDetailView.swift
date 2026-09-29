@@ -79,6 +79,9 @@ struct RecipeDetailView: View {
     @State private var effort: RecipeEffort.Level?
     @State private var isPlanning = false
     @State private var isReadingStepReferences = false
+    @State private var isOptimizing = false
+    /// "Reduziert": the recipe as imported, where an optimization changed it.
+    @State private var showsOriginal = false
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
@@ -247,21 +250,30 @@ struct RecipeDetailView: View {
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
                         actionSection(isWide: isWide)
-                        if isWide {
-                            // What to get out and what to do with it, side by
-                            // side: the cook reads the steps and glances left
-                            // instead of scrolling back up.
-                            HStack(alignment: .top, spacing: 40) {
-                                ingredients
-                                    .frame(width: Self.ingredientColumn, alignment: .leading)
-                                steps
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                        } else {
-                            ingredients
-                            steps
+                        if changedOriginal != nil {
+                            modePicker
                         }
-                        notes
+                        if showsOriginal, let original = changedOriginal {
+                            // The imported text in place of the working
+                            // one; nutrition and the source stay.
+                            originalText(original)
+                        } else {
+                            if isWide {
+                                // What to get out and what to do with it, side by
+                                // side: the cook reads the steps and glances left
+                                // instead of scrolling back up.
+                                HStack(alignment: .top, spacing: 40) {
+                                    ingredients
+                                        .frame(width: Self.ingredientColumn, alignment: .leading)
+                                    steps
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                            } else {
+                                ingredients
+                                steps
+                            }
+                            notes
+                        }
                         nutritionDetail
                         sourceFooter
                     }
@@ -344,6 +356,9 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isReadingStepReferences) {
             StepReferencesSheet(recipe: recipe)
+        }
+        .sheet(isPresented: $isOptimizing) {
+            RecipeOptimizationSheet(recipe: recipe)
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -1151,6 +1166,55 @@ struct RecipeDetailView: View {
         }
     }
 
+    /// The original, where the recipe reads differently from it now — only
+    /// then is there a second mode to show.
+    private var changedOriginal: RecipeOriginal? {
+        recipe.original.flatMap { $0.matches(recipe) ? nil : $0 }
+    }
+
+    private var modePicker: some View {
+        Picker("Ansicht", selection: $showsOriginal) {
+            Text("Sous-optimiert").tag(false)
+            Text("Reduziert").tag(true)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    /// The recipe exactly as imported: text, nothing interpreted, nothing
+    /// scaled, nothing to tap. Read-only history.
+    private func originalText(_ original: RecipeOriginal) -> some View {
+        VStack(alignment: .leading, spacing: 28) {
+            if !original.ingredientsText.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Zutaten")
+                        .font(SousStyle.sectionHeading)
+                    Text(original.ingredientsText)
+                        .textSelection(.enabled)
+                }
+            }
+            if !original.instructionsText.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Zubereitung")
+                        .font(SousStyle.sectionHeading)
+                    Text(original.instructionsText)
+                        .textSelection(.enabled)
+                }
+            }
+            if let notes = original.notes, !notes.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notizen")
+                        .font(SousStyle.sectionHeading)
+                    Text(notes)
+                        .textSelection(.enabled)
+                }
+            }
+            Text("So wurde das Rezept importiert. Nur zum Nachlesen; Einkauf, Nährwerte und Kochmodus arbeiten mit der optimierten Fassung.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+    }
+
     @ViewBuilder
     private var notes: some View {
         if let notes = recipe.notes, !notes.isEmpty {
@@ -1539,6 +1603,12 @@ struct RecipeDetailView: View {
                         systemImage: stepReferencesChat == .off ? "list.bullet.indent" : "sparkles"
                     ) {
                         isReadingStepReferences = true
+                    }
+                }
+                // All AI: nothing is left of it once AI is switched off.
+                if !recipe.ingredients.isEmpty, stepReferencesChat != .off, !recipe.isDeleted {
+                    Button("Für Sous optimieren", systemImage: "wand.and.stars") {
+                        isOptimizing = true
                     }
                 }
                 // The banner below settles for good once it has been

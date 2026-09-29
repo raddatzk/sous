@@ -98,6 +98,16 @@ public enum MelaExport {
         if let slots = recipe.suitableSlots {
             object["sousSuitableSlots"] = slots.map(\.rawValue).sorted()
         }
+        // Only where the recipe reads differently now: an original equal to
+        // the text says nothing a re-import would not keep anyway.
+        if let original = recipe.original, !original.matches(recipe) {
+            var kept: [String: Any] = [
+                "ingredients": original.ingredientsText,
+                "instructions": original.instructionsText,
+            ]
+            if let notes = original.notes { kept["notes"] = notes }
+            object["sousOriginal"] = kept
+        }
         return object
     }
 

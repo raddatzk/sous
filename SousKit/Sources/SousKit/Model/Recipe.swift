@@ -97,6 +97,11 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// so an edit does not clear them, they just stop being current.
     public var stepReferences: StepReferences?
 
+    /// The text as it was imported, kept read-only where the recipe was
+    /// optimized since (or imported after originals were kept). See
+    /// ``RecipeOriginal``.
+    public var original: RecipeOriginal?
+
     /// The user who created it. Optional until user management exists.
     public var createdBy: UUID?
     public var createdAt: Date
@@ -127,6 +132,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         effortOverride: RecipeEffort.Level? = nil,
         variantGroupID: UUID? = nil,
         stepReferences: StepReferences? = nil,
+        original: RecipeOriginal? = nil,
         createdBy: UUID? = nil,
         createdAt: Date = .nowInSyncPrecision,
         updatedAt: Date = .nowInSyncPrecision,
@@ -152,6 +158,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         self.effortOverride = effortOverride
         self.variantGroupID = variantGroupID
         self.stepReferences = stepReferences
+        self.original = original
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.updatedAt = updatedAt

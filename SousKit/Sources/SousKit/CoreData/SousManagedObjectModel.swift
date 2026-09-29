@@ -116,6 +116,9 @@ enum SousManagedObjectModel {
             // Optional like every later addition: `nil` reads as nobody
             // having pasted a model's answer in. See `StepReferences`.
             attribute("stepChipsJSON", .stringAttributeType, optional: true),
+            // `RecipeOriginal` as JSON; `nil` for a recipe imported before
+            // originals were kept and never optimized since.
+            attribute("originalText", .stringAttributeType, optional: true),
             attribute("createdBy", .UUIDAttributeType, optional: true),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
