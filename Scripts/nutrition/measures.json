@@ -625,6 +625,27 @@
    "assumption": true,
    "note": "Eine 340-g-Dose Zuckermais, abgetropft.",
    "state": "cooked"
+  },
+  {
+   "name": "Kopfsalat",
+   "unit": "Stk.",
+   "grams": 300,
+   "assumption": true,
+   "note": "Ein Kopf, geputzt."
+  },
+  {
+   "name": "Olive",
+   "unit": "Glas",
+   "grams": 170,
+   "assumption": true,
+   "note": "Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft."
+  },
+  {
+   "name": "Schwarze Oliven",
+   "unit": "Glas",
+   "grams": 170,
+   "assumption": true,
+   "note": "Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft."
   }
  ],
  "densities": [
