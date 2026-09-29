@@ -11,6 +11,8 @@ Inputs:
   - the xlsx (not in the repo, see README)
   - `Data/aisles.yaml`   which BLS letters are in scope, their category, and
                          the per-letter keyword overrides
+  - `Data/sources.yaml`  the release, licence and attribution bls.json opens
+                         with
   - `Data/ingredients/`  every code an ingredient names is kept even where the
                          group filter would drop it, with that ingredient's
                          category
@@ -36,20 +38,10 @@ import compile as data_compiler  # noqa: E402
 
 RESOURCES = REPO_ROOT / "SousKit/Sources/SousKit/Resources"
 
-# Written into bls.json so the shipped data says which release it is and what
-# CC BY 4.0 asks it to say - rather than a Swift constant claiming it.
-DATASET_VERSION = "BLS 4.0"
-DATASET_RELEASE = "2025"
-LICENSE = "CC BY 4.0"
-ATTRIBUTION = "Bundeslebensmittelschlüssel (BLS) 4.0, Max Rubner-Institut"
-CHANGE_NOTE = (
-    "Für sous aufbereitet: auf küchenrelevante Lebensmittelgruppen gefiltert, "
-    "auf 16 Nährstofffelder je 100 g gekürzt und um eine kuratierte Synonym- "
-    "und Maßtabelle ergänzt. Die Nährwerte selbst sind unverändert."
-)
-
-
-def build_bls(rows: list[dict]) -> dict:
+def build_bls(rows: list[dict], source: dict) -> dict:
+    """The rows, headed by what `Data/sources.yaml` says about the release:
+    the shipped data names its version and what CC BY 4.0 asks it to say,
+    from the same block the sources screen reads."""
     entries = [
         {
             "code": row["blsCode"],
@@ -61,11 +53,11 @@ def build_bls(rows: list[dict]) -> dict:
         for row in sorted(rows, key=lambda r: r["blsCode"])
     ]
     return {
-        "datasetVersion": DATASET_VERSION,
-        "release": DATASET_RELEASE,
-        "license": LICENSE,
-        "attribution": ATTRIBUTION,
-        "changeNote": CHANGE_NOTE,
+        "datasetVersion": source["datasetVersion"],
+        "release": source["release"],
+        "license": source["license"],
+        "attribution": source["attribution"],
+        "changeNote": source["changeNote"],
         "entries": entries,
     }
 
@@ -97,7 +89,7 @@ def main():
     group_codes = data_compiler.load_group_codes(args.data)
     force = forced_codes(args.data, args.resources)
     rows, stats = extract_bls.extract_rows(args.xlsx_path, group_codes, force)
-    bls = build_bls(rows)
+    bls = build_bls(rows, data_compiler.load_sources(args.data)["bls"])
 
     print(f"Source rows: {stats['total_source_rows']}")
     print(f"Skipped (group filter): {stats['skipped_by_group_filter']}")

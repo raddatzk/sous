@@ -262,9 +262,11 @@
   },
   "source": {
    "type": "object",
-   "required": ["datasetVersion", "release", "license", "attribution", "changeNote"],
+   "required": ["title", "datasetVersion", "release", "license", "licenseURL", "attribution", "changeNote"],
    "additionalProperties": false,
    "properties": {
+    "title": {"$ref": "#/$defs/text"},
+    "licenseURL": {"type": "string", "pattern": "^https://"},
     "datasetVersion": {"$ref": "#/$defs/text"},
     "release": {"$ref": "#/$defs/text"},
     "license": {"$ref": "#/$defs/text"},
@@ -274,9 +276,9 @@
   },
   "sourcesFile": {
    "type": "object",
-   "required": ["supplements"],
+   "required": ["bls", "supplements"],
    "additionalProperties": false,
-   "properties": {"supplements": {"$ref": "#/$defs/source"}}
+   "properties": {"bls": {"$ref": "#/$defs/source"}, "supplements": {"$ref": "#/$defs/source"}}
   }
  }
 }

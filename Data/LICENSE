@@ -1,0 +1,17 @@
+The ingredient catalog in this directory (Data/), and the files compiled from it
+into SousKit/Sources/SousKit/Resources/ (kitchen_words.json, curation.json,
+measures.json, aisles.json, community.json, sources.json, and bls.json, which is
+generated from the BLS), are licensed under the Creative Commons Attribution 4.0
+International License (CC BY 4.0).
+
+Copyright 2026 Kevin Raddatz and contributors.
+
+You may share and adapt the data for any purpose, including commercially, as
+long as you give appropriate credit, provide a link to the licence, and indicate
+if changes were made. The data contains material from third-party sources that
+must be credited as well; see NOTICE.
+
+Licence: https://creativecommons.org/licenses/by/4.0/
+Legal code: https://creativecommons.org/licenses/by/4.0/legalcode
+
+This licence covers the data only. The source code of Sous is not covered by it.

@@ -5,13 +5,11 @@ import SwiftUI
 struct SettingsForm: View {
     @AppStorage(SousSetting.appearance, store: .sous)
     private var appearance: SousAppearance = .system
-    /// The shipped table speaking for itself. Reachable without any
-    /// environment — which this form does not get on the Mac, where it is the
-    /// `Settings` scene's root and nothing injects anything into it.
-    private let source = BLSCatalog.bundled.source
-    /// The supplements file, where the app ships one — the second source the
-    /// section below was written to expect.
-    private let supplements = BLSCatalog.bundled.supplementSource
+    /// The shipped data speaking for itself: the BLS first, then the rows
+    /// it does not have. Reachable without any environment — which this form
+    /// does not get on the Mac, where it is the `Settings` scene's root and
+    /// nothing injects anything into it.
+    private let sources = DataSources.bundled
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen
@@ -63,14 +61,25 @@ struct SettingsForm: View {
     /// nutrition, which is what makes this section legible once a second
     /// source joins BLS.
     ///
-    /// Every word of it now comes out of `bls.json`, which is the file that
-    /// changes when the data changes. It used to be hardcoded here — and had
+    /// Every word of it comes out of `sources.json`, which is compiled with
+    /// the data it describes (`Data/sources.yaml`). It used to be hardcoded
+    /// here — and had
     /// gone false: it claimed the values were "zusammengefasst und
     /// gemittelt", which is exactly the averaging decision O2 abolished in
     /// phase 3. A licence notice that describes changes the data no longer
     /// carries is not a detail; CC BY 4.0 asks for it to be accurate.
     @ViewBuilder
     private var dataSources: some View {
+        if let source = sources.first {
+            primarySource(source)
+        }
+        ForEach(sources.dropFirst()) { source in
+            furtherSource(source)
+        }
+    }
+
+    @ViewBuilder
+    private func primarySource(_ source: DataSource) -> some View {
         Section {
             Text(source.attribution)
             LabeledContent("Datenstand") {
@@ -87,42 +96,32 @@ struct SettingsForm: View {
             Text("Eigene Angaben, die du zu einer Zutat einträgst, sind bei der Zutat als solche gekennzeichnet.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            Link(
-                "Lizenz \(source.license)",
-                destination: URL(string: "https://creativecommons.org/licenses/by/4.0/deed.de")!
-            )
+            Link("Lizenz \(source.license)", destination: source.licenseURL)
         } header: {
             Text("Datenquellen")
         }
-
-        if let supplements {
-            supplementSources(supplements)
-        }
     }
 
-    /// The foods the BLS does not list, and who measured them instead.
+    /// Every source after the BLS — today the foods it does not list, and
+    /// who measured them instead.
     ///
     /// Its own section rather than a line in the one above, because the
     /// attribution it carries is somebody else's: CC BY asks for the source
     /// to be named, and naming it inside a block headed by the BLS's own
     /// attribution would credit the wrong institute. The per-row half of the
     /// same duty is the „Quelle: …“ line under each ingredient.
-    @ViewBuilder
-    private func supplementSources(_ supplements: BLSCatalog.Source) -> some View {
+    private func furtherSource(_ source: DataSource) -> some View {
         Section {
-            Text(supplements.attribution)
+            Text(source.attribution)
             LabeledContent("Datenstand") {
-                Text("\(supplements.datasetVersion), Stand \(supplements.release)")
+                Text("\(source.datasetVersion), Stand \(source.release)")
             }
-            Text(supplements.changeNote)
+            Text(source.changeNote)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-            Link(
-                "Lizenz \(supplements.license)",
-                destination: URL(string: "https://creativecommons.org/licenses/by/4.0/deed.de")!
-            )
+            Link("Lizenz \(source.license)", destination: source.licenseURL)
         } header: {
-            Text("Ergänzungen")
+            Text(source.title)
         }
     }
 }

@@ -18,7 +18,8 @@ Reads:
                                to check that every code exists
 
 Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`
-and `community.json`, in the shapes the app has always read.
+and `community.json`, in the shapes the app has always read, and
+`sources.json`, which the sources screen reads.
 
 The YAML loader is strict, because YAML's conveniences are traps in a data
 set: every scalar is read as a string (`no` stays "no", `1.10` stays "1.10",
@@ -556,6 +557,28 @@ def community(dataset: Dataset) -> dict:
     }
 
 
+def sources(dataset: Dataset) -> dict:
+    """Every source as it asks to be named, in the order `sources.yaml`
+    writes them: what CC BY 4.0 asks the app to show."""
+    return {"sources": [
+        {
+            "id": source_id,
+            "title": source["title"],
+            "datasetVersion": source["datasetVersion"],
+            "release": source["release"],
+            "license": source["license"],
+            "licenseURL": source["licenseURL"],
+            "attribution": source["attribution"],
+            "changeNote": source["changeNote"],
+        }
+        for source_id, source in dataset.sources.items()
+    ]}
+
+
+def load_sources(data: Path = DATA) -> dict:
+    return load_yaml(data / "sources.yaml")
+
+
 def dump_json(data) -> str:
     # No trailing newline, as the resources have always been written.
     return json.dumps(data, indent=1, ensure_ascii=False)
@@ -570,6 +593,7 @@ def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[s
         "measures.json": dump_json(measures(dataset)),
         "aisles.json": dump_json(aisles(dataset)),
         "community.json": dump_json(community(dataset)),
+        "sources.json": dump_json(sources(dataset)),
     }, dataset.warnings
 
 
