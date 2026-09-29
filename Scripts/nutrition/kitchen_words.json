@@ -324,6 +324,13 @@
   "category": "dairy"
  },
  {
+  "name": "Currypaste",
+  "aliases": [
+   "Thai-Currypaste"
+  ],
+  "category": "spices"
+ },
+ {
   "name": "Currypulver",
   "aliases": [
    "Curry"
@@ -502,6 +509,11 @@
   "category": "canned"
  },
  {
+  "name": "Gelbe Currypaste",
+  "aliases": [],
+  "parent": "Currypaste"
+ },
+ {
   "name": "Gelbe Paprika",
   "aliases": [],
   "parent": "Paprika"
@@ -555,6 +567,16 @@
    "Grüne Bohnen"
   ],
   "parent": "Bohne"
+ },
+ {
+  "name": "Grüne Currypaste",
+  "aliases": [],
+  "parent": "Currypaste"
+ },
+ {
+  "name": "Grüner Spargel",
+  "aliases": [],
+  "parent": "Spargel"
  },
  {
   "name": "Gurke",
@@ -615,6 +637,13 @@
    "Himbeeren"
   ],
   "category": "fruit"
+ },
+ {
+  "name": "Hirse",
+  "aliases": [
+   "Goldhirse"
+  ],
+  "category": "grains"
  },
  {
   "name": "Hokkaido",
@@ -782,6 +811,26 @@
   "category": "canned"
  },
  {
+  "name": "Kokosmilch fettarm",
+  "aliases": [
+   "Kokosmilch light",
+   "Light Kokosmilch",
+   "Kokosmilch fettreduziert",
+   "fettarme Kokosmilch",
+   "fettreduzierte Kokosmilch"
+  ],
+  "parent": "Kokosmilch"
+ },
+ {
+  "name": "Kokosnuss",
+  "aliases": [
+   "Kokosnüsse",
+   "frische Kokosnuss",
+   "Kokosfleisch"
+  ],
+  "category": "fruit"
+ },
+ {
   "name": "Kokosraspeln",
   "aliases": [
    "Kokosflocken"
@@ -926,6 +975,14 @@
    "Mangos"
   ],
   "category": "fruit"
+ },
+ {
+  "name": "Margarine",
+  "aliases": [
+   "Pflanzenmargarine",
+   "vegane Margarine"
+  ],
+  "category": "dairy"
  },
  {
   "name": "Marmelade",
@@ -1279,6 +1336,11 @@
   "category": "vegetables"
  },
  {
+  "name": "Rote Currypaste",
+  "aliases": [],
+  "parent": "Currypaste"
+ },
+ {
   "name": "Rote Linsen",
   "aliases": [],
   "category": "legumes"
@@ -1321,6 +1383,13 @@
   "name": "Räucherspeck",
   "aliases": [],
   "parent": "Speck"
+ },
+ {
+  "name": "Räuchertofu",
+  "aliases": [
+   "geräucherter Tofu"
+  ],
+  "parent": "Tofu"
  },
  {
   "name": "Römersalat",
@@ -1441,6 +1510,11 @@
   "category": "meat"
  },
  {
+  "name": "Seidentofu",
+  "aliases": [],
+  "parent": "Tofu"
+ },
+ {
   "name": "Sellerie",
   "aliases": [],
   "category": "vegetables"
@@ -1470,8 +1544,7 @@
  {
   "name": "Sesam",
   "aliases": [
-   "Sesamsamen",
-   "Tahini"
+   "Sesamsamen"
   ],
   "category": "nuts"
  },
@@ -1512,6 +1585,13 @@
   "name": "Spaghetti",
   "aliases": [],
   "category": "grains"
+ },
+ {
+  "name": "Spargel",
+  "aliases": [
+   "Spargelstangen"
+  ],
+  "category": "vegetables"
  },
  {
   "name": "Speck",
@@ -1564,6 +1644,16 @@
   "category": "grains"
  },
  {
+  "name": "Tahin",
+  "aliases": [
+   "Tahini",
+   "Tahina",
+   "Sesammus",
+   "Sesampaste"
+  ],
+  "category": "nuts"
+ },
+ {
   "name": "Tee",
   "aliases": [],
   "category": "drinks"
@@ -1591,6 +1681,14 @@
    "Toastbrot"
   ],
   "category": "bakery"
+ },
+ {
+  "name": "Tofu",
+  "aliases": [
+   "Naturtofu",
+   "Tofu Natur"
+  ],
+  "category": "legumes"
  },
  {
   "name": "Tomate",
@@ -1634,10 +1732,16 @@
   "name": "Vanille",
   "aliases": [
    "Vanilleschote",
-   "Vanilleschoten",
-   "Vanillezucker"
+   "Vanilleschoten"
   ],
   "category": "spices"
+ },
+ {
+  "name": "Vanillezucker",
+  "aliases": [
+   "Bourbon-Vanillezucker"
+  ],
+  "category": "baking"
  },
  {
   "name": "Vollkornbrot",
@@ -1694,6 +1798,11 @@
    "Cannellini"
   ],
   "category": "legumes"
+ },
+ {
+  "name": "Weißer Spargel",
+  "aliases": [],
+  "parent": "Spargel"
  },
  {
   "name": "Weißkohl",

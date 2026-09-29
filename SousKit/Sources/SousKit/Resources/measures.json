@@ -275,6 +275,20 @@
    "unit": "Tasse",
    "grams": 90,
    "assumption": true
+  },
+  {
+   "name": "Tofu",
+   "unit": "Stk.",
+   "grams": 200,
+   "assumption": true,
+   "note": "Ein Block, wie er im Kühlregal liegt."
+  },
+  {
+   "name": "Tofu",
+   "unit": "Pck.",
+   "grams": 200,
+   "assumption": true,
+   "note": "Eine Packung ist ein Block."
   }
  ],
  "densities": [

@@ -2371,12 +2371,8 @@
    "via": "BLS-Gruppe \"Weintraube\""
   },
   "Vanille": {
-   "targets": {
-    "unspecified": [
-     "S114000"
-    ]
-   },
-   "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+   "withoutValues": true,
+   "via": "Das BLS führt keine Vanille als Gewürz, nur Vanillezucker (S114000) und Vanillinzucker. Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es hier früher geschah, wäre falscher als keine Werte."
   },
   "Vollkornmehl": {
    "targets": {
@@ -2711,6 +2707,106 @@
    "candidates": [
     "G220142"
    ]
+  },
+  "Currypaste": {
+   "withoutValues": true,
+   "via": "Das BLS führt keine Currypaste — in allen 3.983 Zeilen keine Entsprechung. Die Pasten im Handel unterscheiden sich stark in Öl, Zucker und Salz, also lieber keine Werte als geratene; ein Produkt mit Etikett kann später eine eigene Zeile bekommen."
+  },
+  "Hirse": {
+   "targets": {
+    "raw": [
+     "C332000"
+    ],
+    "cooked": [
+     "C334032"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "C333100",
+    "C432000"
+   ]
+  },
+  "Kokosnuss": {
+   "targets": {
+    "raw": [
+     "H150100"
+    ]
+   },
+   "via": "BLS-Name \"Kokos Fruchtfleisch, roh\" — die frische Nuss; getrocknete Raspeln sind Kokosraspeln"
+  },
+  "Margarine": {
+   "targets": {
+    "unspecified": [
+     "Q400000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Pflanzenmargarine Vollfett\"",
+   "candidates": [
+    "Q4C4000",
+    "Q4A4000",
+    "Q4A1000",
+    "Q440000"
+   ]
+  },
+  "Spargel": {
+   "targets": {
+    "raw": [
+     "G450100"
+    ],
+    "cooked": [
+     "G450132",
+     "G450152",
+     "G450142",
+     "G450162"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen",
+   "candidates": [
+    "G450902",
+    "G450200"
+   ]
+  },
+  "Tahin": {
+   "targets": {
+    "unspecified": [
+     "Q901000"
+    ]
+   },
+   "via": "BLS-Name \"Tahin (Sesammus)\" — nicht Sesam: die Paste, nicht die Saat"
+  },
+  "Tofu": {
+   "targets": {
+    "raw": [
+     "H861000"
+    ],
+    "cooked": [
+     "H861032",
+     "H861042",
+     "H861082",
+     "H861062"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Seidentofu": {
+   "targets": {
+    "raw": [
+     "H861100"
+    ],
+    "cooked": [
+     "H861132"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Vanillezucker": {
+   "targets": {
+    "unspecified": [
+     "S114000"
+    ]
+   },
+   "via": "BLS-Name, in die Küchenliste übernommen"
   }
  }
 }
