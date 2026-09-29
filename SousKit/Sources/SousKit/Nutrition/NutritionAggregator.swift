@@ -109,7 +109,14 @@ public enum NutritionAggregator {
                 ))
             }
 
-            guard let basis = entry?.basis(for: ingredient.state) else {
+            // A unit may carry its own state: "1 Dose Kichererbsen" is weighed
+            // drained, so it is counted as cooked unless the line says
+            // otherwise. Only the row changes — the line keeps its words.
+            let basisState = ingredient.state == .unspecified
+                ? ingredient.quantity.flatMap { entry?.unitStates[$0.unit.symbol] } ?? .unspecified
+                : ingredient.state
+
+            guard let basis = entry?.basis(for: basisState) else {
                 // A name nothing knows wants a catalog entry first; a known
                 // name without numbers wants the numbers — different fixes,
                 // different reasons.

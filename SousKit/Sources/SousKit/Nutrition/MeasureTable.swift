@@ -44,6 +44,12 @@ public struct MeasureTable: Sendable {
         public var grams: Double
         public var assumption: Bool
         public var note: String?
+        /// The state the weight is measured in, where the unit implies one.
+        /// A can of chickpeas is weighed drained, and a drained chickpea is a
+        /// cooked one: its 240 g must meet the cooked row, not the dry one it
+        /// would otherwise fall back to — against which it would count about
+        /// two and a half times too much.
+        public var state: IngredientState?
     }
 
     public struct Density: Codable, Hashable, Sendable {
@@ -69,6 +75,7 @@ public struct MeasureTable: Sendable {
     private var genericByUnit: [String: Double]
     private var weightsByGroup: [String: [String: Double]]
     private var weightsByIngredient: [String: [String: Double]]
+    private var statesByIngredient: [String: [String: IngredientState]]
     private var densityByIngredient: [String: Double]
     private var densityByGroup: [String: Double]
 
@@ -86,6 +93,10 @@ public struct MeasureTable: Sendable {
         }
         weightsByIngredient = byIngredient.reduce(into: [:]) { result, entry in
             result[IngredientCatalog.normalize(entry.name), default: [:]][entry.unit] = entry.grams
+        }
+        statesByIngredient = byIngredient.reduce(into: [:]) { result, entry in
+            guard let state = entry.state else { return }
+            result[IngredientCatalog.normalize(entry.name), default: [:]][entry.unit] = state
         }
         densityByIngredient = densities.reduce(into: [:]) { result, entry in
             guard let name = entry.name else { return }
@@ -122,6 +133,17 @@ public struct MeasureTable: Sendable {
         for spelling in spellings {
             let weights = grams(forIngredient: spelling)
             if !weights.isEmpty { return weights }
+        }
+        return [:]
+    }
+
+    /// The states the weights of ``grams(forAnyOf:)`` are measured in, keyed
+    /// by unit symbol — taken from the same spelling, so a weight and its
+    /// state never come from two different rows.
+    public func states(forAnyOf spellings: [String]) -> [String: IngredientState] {
+        for spelling in spellings {
+            let key = IngredientCatalog.normalize(spelling)
+            if weightsByIngredient[key]?.isEmpty == false { return statesByIngredient[key] ?? [:] }
         }
         return [:]
     }

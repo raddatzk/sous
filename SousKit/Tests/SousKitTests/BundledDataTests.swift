@@ -158,6 +158,18 @@ struct BundledDataTests {
         #expect(measures.grams(forGroup: "R")[IngredientUnit.pinch.symbol] == 0.4)
     }
 
+    @Test("A can of legumes is a drained weight on the cooked row")
+    func legumeCansAreDrainedAndCooked() throws {
+        let chickpeas = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Kichererbsen"))
+        #expect(chickpeas.unitWeightsGrams[IngredientUnit.can.symbol] == 240)
+        #expect(chickpeas.unitStates[IngredientUnit.can.symbol] == .cooked)
+        // A handful has no general weight: only what someone wrote for the
+        // ingredient answers it.
+        #expect(measures.genericGrams(forUnit: IngredientUnit.handful.symbol) == nil)
+        let basil = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Basilikum"))
+        #expect(basil.unitWeightsGrams[IngredientUnit.handful.symbol] == 10)
+    }
+
     @Test("Every measure row names something the vocabulary knows")
     func everyMeasureRowIsReachable() {
         // A row nobody can reach is curation that silently does nothing —

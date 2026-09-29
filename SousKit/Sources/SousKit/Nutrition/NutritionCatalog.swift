@@ -116,6 +116,7 @@ public struct NutritionCatalog: Sendable {
                 name: word.word,
                 bases: bases,
                 unitWeightsGrams: unitWeights,
+                unitStates: measures.states(forAnyOf: spellings),
                 densityGramsPerMl: density,
                 source: wordSource,
                 candidateCodes: candidates,

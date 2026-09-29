@@ -3193,6 +3193,22 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Curryblätter": {
+   "withoutValues": true,
+   "via": "Das BLS führt Curryblätter nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Bockshornklee": {
+   "withoutValues": true,
+   "via": "Das BLS führt Bockshornklee nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Pandanblatt": {
+   "withoutValues": true,
+   "via": "Das BLS führt Pandanblätter nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Schwarzkümmel": {
+   "withoutValues": true,
+   "via": "Das BLS führt Schwarzkümmel nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
   }
  }
 }
