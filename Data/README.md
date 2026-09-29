@@ -60,7 +60,7 @@ catalog refers to its rows by code.
 |---|---|---|---|
 | `id` | yes | — | a slug fixed when the word is created; never changes, never reused. Not compiled yet (phase 3) |
 | `name` | yes | — | the display name |
-| `aliases` | no | — | other spellings |
+| `aliases` | no | — | other spellings. `Knoblauchzehe: {unit: Zehe}` is a spelling that implies a unit |
 | `category` | on a root | inherits the nearest ancestor's | one of `IngredientCategory`'s cases; the aisle follows from it |
 | `measures` | no | inherits nothing yet | unit → grams, or `{grams, state, note}`; always an assumption, shown with ≈ |
 | `density` | no | inherits nothing yet | g/ml, or `{gramsPerMl, note}`; otherwise the group's, otherwise water's |

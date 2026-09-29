@@ -34,6 +34,11 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// The ingredient this one is a variety of, by name. Any depth: a variety
     /// inherits from the nearest ancestor that has what it lacks.
     public var parentName: String?
+    /// Spellings that imply a unit, by the spelling as written:
+    /// "Knoblauchzehe" → "Zehe". Only the shipped catalog writes these, so
+    /// they are not part of the encoded form; see
+    /// ``IngredientCatalog/reading(_:for:)``.
+    public var aliasUnits: [String: String] = [:]
 
     /// Normalized name, used as the identity.
     public var key: String { IngredientCatalog.normalize(name) }

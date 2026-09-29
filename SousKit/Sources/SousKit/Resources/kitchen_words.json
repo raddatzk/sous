@@ -946,6 +946,10 @@
    "Knoblauchzehe",
    "Knoblauchzehen"
   ],
+  "aliasUnits": {
+   "Knoblauchzehe": "Zehe",
+   "Knoblauchzehen": "Zehe"
+  },
   "category": "vegetables"
  },
  {

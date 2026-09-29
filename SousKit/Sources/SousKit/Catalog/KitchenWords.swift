@@ -32,15 +32,21 @@ public struct KitchenWords: Sendable {
         /// the same from outside, and the difference decides whether the
         /// shopping list may add two lines up.
         public var parent: String?
+        /// Spellings that imply a unit, by the spelling as written:
+        /// "Knoblauchzehe" → "Zehe" reads "2 Knoblauchzehen" as 2 Zehen
+        /// Knoblauch. Each is also in `aliases`, so an app that predates
+        /// this field still recognizes the spelling.
+        public var aliasUnits: [String: String]
 
         public init(
             name: String, aliases: [String] = [], category: IngredientCategory? = nil,
-            parent: String? = nil
+            parent: String? = nil, aliasUnits: [String: String] = [:]
         ) {
             self.name = name
             self.aliases = aliases
             self.category = category
             self.parent = parent
+            self.aliasUnits = aliasUnits
         }
 
         public init(from decoder: any Decoder) throws {
@@ -49,7 +55,8 @@ public struct KitchenWords: Sendable {
                 name: try container.decode(String.self, forKey: .name),
                 aliases: try container.decodeIfPresent([String].self, forKey: .aliases) ?? [],
                 category: try container.decodeIfPresent(IngredientCategory.self, forKey: .category),
-                parent: try container.decodeIfPresent(String.self, forKey: .parent)
+                parent: try container.decodeIfPresent(String.self, forKey: .parent),
+                aliasUnits: try container.decodeIfPresent([String: String].self, forKey: .aliasUnits) ?? [:]
             )
         }
     }

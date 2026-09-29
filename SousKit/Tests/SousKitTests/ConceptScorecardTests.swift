@@ -358,6 +358,35 @@ struct ConceptScorecardTests {
         #expect(item.quantities == [Quantity(1, .clove)])
     }
 
+    // MARK: - 7b · "2 Knoblauchzehen"
+
+    /// *A spelling may imply a unit (DATA §3 G): "Knoblauchzehe" is Knoblauch
+    /// counted in Zehen. It replaces the piece and nothing else, so a written
+    /// tablespoon stays a tablespoon. The list carries the cloves under
+    /// Knoblauch, beside the ones written as Zehen.* A counted Knoblauch
+    /// without the spelling is a bulb, which has no weight on record.
+    @Test("2 Knoblauchzehen are two cloves, on the scale and on the list")
+    func knoblauchzehenAreCloves() async throws {
+        let stack = try stack()
+        await stack.nutrition.ensureLoaded()
+        let recipe = self.recipe("Aioli", "2 Knoblauchzehen\n3 Zehen Knoblauch\n1 EL Knoblauchzehen")
+
+        let computed = try #require(await stack.nutrition.nutrition(for: recipe))
+        let lines = computed.coverage.contributions
+        try #require(lines.count == 3)
+        #expect(lines[0].quantity == Quantity(2, .clove))
+        #expect(lines[0].grams == 6)
+        #expect(lines[1].grams == 9)
+        #expect(lines[2].quantity == Quantity(1, .tablespoon))
+
+        await stack.shopping.add(recipe)
+        let item = try #require(stack.shopping.items.first { $0.name == "Knoblauch" })
+        #expect(item.quantities.contains(Quantity(5, .clove)))
+
+        let bulbs = try #require(await stack.nutrition.nutrition(for: self.recipe("Knolle", "2 Knoblauch")))
+        #expect(bulbs.coverage.gaps.map(\.reason) == [.noGramEquivalent])
+    }
+
     // MARK: - 8 · "2 EL Olivenöl"
 
     /// *No density model, a table entry: "EL" for oils ≈ 10 g, so ≈ 20 g in

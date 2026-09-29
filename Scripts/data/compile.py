@@ -426,6 +426,10 @@ def kitchen_words(dataset: Dataset) -> list[dict]:
     out = []
     for word in catalog_order(dataset.words):
         row: dict = {"name": word.name, "aliases": word.aliases}
+        # The spelling stays in `aliases` too, so an app that predates
+        # `aliasUnits` still recognizes it; it only misses the unit.
+        if word.alias_units:
+            row["aliasUnits"] = word.alias_units
         if word.category is not None:
             row["category"] = word.category
         if word.parent is not None:
