@@ -670,6 +670,26 @@ public final class RecipeLibrary {
         await save(current)
     }
 
+    /// Moves every stored reading onto the fingerprint over the raw text,
+    /// where it still matches the recipe by the old one. Idempotent and
+    /// cheap, so it runs at every launch: an older app in the household may
+    /// still stamp a new answer the old way, and this catches it up.
+    public func restampStepReferences() async {
+        var changed = false
+        for recipe in recipes {
+            guard let restamped = recipe.stepReferences?.restamped(for: recipe) else { continue }
+            var updated = recipe
+            updated.stepReferences = restamped
+            do {
+                try await store.save(updated)
+                changed = true
+            } catch {
+                report(error)
+            }
+        }
+        if changed { await reload() }
+    }
+
     /// Keeps a chat model's reading of which step refers to which line beside
     /// the recipe, or drops it with `nil`. See ``StepReferences``.
     public func setStepReferences(_ references: StepReferences?, for recipe: Recipe) async {

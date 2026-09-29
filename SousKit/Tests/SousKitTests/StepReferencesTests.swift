@@ -286,3 +286,36 @@ struct StepReferencesTests {
         #expect(StepReferences.decode(#"{"fingerprint":"x","usesByStep":[[{"line":1,"amount":"1"}]],"createdAt":0}"#) == nil)
     }
 }
+
+extension StepReferencesTests {
+    @Test("The fingerprint is the text as written, not the lines as parsed")
+    func fingerprintHashesTheRawText() {
+        var same = recipe
+        same.title = "Anderer Titel"
+        same.ingredientsText = "\n" + recipe.ingredientsText + "\n\n"
+        #expect(StepReferencesPrompt.fingerprint(for: same) == StepReferencesPrompt.fingerprint(for: recipe))
+
+        var edited = recipe
+        edited.ingredientsText = recipe.ingredientsText.replacingOccurrences(of: "200 g Mehl", with: "250 g Mehl")
+        #expect(StepReferencesPrompt.fingerprint(for: edited) != StepReferencesPrompt.fingerprint(for: recipe))
+
+        var rescaled = recipe
+        rescaled.servings = 8
+        #expect(StepReferencesPrompt.fingerprint(for: rescaled) != StepReferencesPrompt.fingerprint(for: recipe))
+    }
+
+    @Test("An answer stamped the old way moves onto the new fingerprint, once")
+    func oldStampsAreRestamped() throws {
+        let old = StepReferences(
+            fingerprint: StepReferencesPrompt.parsedFingerprint(for: recipe),
+            steps: [[], [], []]
+        )
+        #expect(!old.isCurrent(for: recipe))
+        let restamped = try #require(old.restamped(for: recipe))
+        #expect(restamped.isCurrent(for: recipe))
+        #expect(restamped.steps == old.steps)
+        // Current already, or stale either way: nothing to do.
+        #expect(restamped.restamped(for: recipe) == nil)
+        #expect(StepReferences(fingerprint: "stale", steps: [[], [], []]).restamped(for: recipe) == nil)
+    }
+}
