@@ -200,4 +200,18 @@ struct IngredientCatalogLibraryTests {
         // Tomaten is known, the link is a recipe, and the repeat is folded.
         #expect(unknown == ["Gochujang", "Sumach"])
     }
+
+    @Test("A shipped word the household patched keeps the unit its spellings imply",
+          arguments: StoreBackend.allCases)
+    func patchedWordKeepsAliasUnits(_ backend: StoreBackend) async throws {
+        // A pantry flag makes a vocabulary row for Knoblauch, and the rebuild
+        // lays that row over the shipped word. The patch used to rebuild the
+        // word without its alias units, so "2 Knoblauchzehen" read as two
+        // bulbs in exactly the households that cared about garlic.
+        let library = try makeLibrary(backend)
+        await library.reload()
+        await library.setPantry(true, name: "Knoblauch")
+
+        #expect(library.catalog.reading(Quantity(2, .piece), for: "Knoblauchzehen").unit == .clove)
+    }
 }

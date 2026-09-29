@@ -120,7 +120,7 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
 
     /// The identity half, for `IngredientCatalog`.
     public func catalogIngredient(fallback: CatalogIngredient?) -> CatalogIngredient {
-        CatalogIngredient(
+        var ingredient = CatalogIngredient(
             name: isOwnIngredient ? name : (fallback?.name ?? name),
             aliases: (fallback?.aliases ?? []) + aliases,
             // The *written* one on either side: a shipped variety that
@@ -129,6 +129,11 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
             category: category ?? fallback?.ownCategory,
             parentName: parentName ?? fallback?.parentName
         )
+        // What only the shipped word carries survives the patch: the unit
+        // its spellings imply. Without it, a household that keeps Knoblauch
+        // in the pantry read "2 Knoblauchzehen" as two bulbs again.
+        ingredient.aliasUnits = fallback?.aliasUnits ?? [:]
+        return ingredient
     }
 
     /// The nutrition half, as an override laid over the shipped catalog —
