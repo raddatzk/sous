@@ -51,8 +51,8 @@ public actor SwiftDataVocabularyStore: VocabularyStore {
 
     @discardableResult
     public func save(_ entry: IngredientVocabularyEntry) async throws -> IngredientVocabularyEntry? {
-        guard !entry.key.isEmpty else { return nil }
-        let existing = try row(key: entry.key)
+        guard !entry.storageKey.isEmpty else { return nil }
+        let existing = try row(key: entry.storageKey)
 
         guard !entry.isEmpty else {
             if let existing {
@@ -64,7 +64,7 @@ public actor SwiftDataVocabularyStore: VocabularyStore {
         }
 
         let row = existing ?? {
-            let made = StoredIngredientVocabulary(key: entry.key, name: entry.name)
+            let made = StoredIngredientVocabulary(key: entry.storageKey, name: entry.name)
             made.id = entry.id
             modelContext.insert(made)
             return made
@@ -103,7 +103,7 @@ public actor SwiftDataVocabularyStore: VocabularyStore {
     /// shortest loop and is refused the same way. The walk is capped so that
     /// a store somehow already holding a cycle cannot hang the write.
     private func parentID(named name: String, of child: StoredIngredientVocabulary) throws -> UUID? {
-        let key = IngredientCatalog.normalize(name)
+        let key = IngredientCatalog.storageKey(name)
         guard !key.isEmpty else { return nil }
         guard key != child.key else {
             throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)

@@ -5,12 +5,29 @@ broken copy of it fails with a message that says what is wrong and where.
 """
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
 
 import compile as data_compiler
+
+
+class Normalization(unittest.TestCase):
+    """The vectors SousKit's NormalizationTests read too."""
+
+    vectors = json.loads((data_compiler.DATA / "normalize-cases.json").read_text(encoding="utf-8"))
+
+    def test_cases(self):
+        for case in self.vectors["cases"]:
+            with self.subTest(input=case["input"]):
+                self.assertEqual(data_compiler.normalize(case["input"]), case["key"])
+
+    def test_distinct(self):
+        for a, b in self.vectors["distinct"]:
+            with self.subTest(pair=(a, b)):
+                self.assertNotEqual(data_compiler.normalize(a), data_compiler.normalize(b))
 
 
 class BrokenData(unittest.TestCase):
@@ -54,6 +71,11 @@ class BrokenData(unittest.TestCase):
     def test_an_alias_that_differs_only_by_normalization(self):
         self.edit("ingredients/zwiebel.yaml", "    - Zwiebeln\n", "    - Rot-Kohl\n")
         self.assertFails("'Rot-Kohl' (Zwiebel) is already spelled 'Rotkohl' by Rotkohl")
+
+    def test_a_spelling_the_entry_already_has(self):
+        self.edit("ingredients/weisswein.yaml", "    - trockener Weißwein\n",
+                  "    - trockener Weißwein\n    - Weisswein\n")
+        self.assertFails("'Weisswein' and 'Weißwein' are the same spelling once normalized ('weisswein'); keep one")
 
     def test_a_key_written_twice(self):
         self.edit("ingredients/zwiebel.yaml", "  category: vegetables\n",

@@ -46,7 +46,7 @@ final class CDVocabularyEntry: CDHouseholdMember {
     /// Writes everything but the identity and the parent join, which the
     /// store owns.
     func apply(_ entry: IngredientVocabularyEntry) {
-        key = entry.key
+        key = entry.storageKey
         name = entry.name
         aliasesJSON = JSONField.encode(entry.aliases)
         categoryRaw = entry.category?.rawValue
@@ -105,10 +105,10 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
 
     @discardableResult
     public func save(_ entry: IngredientVocabularyEntry) async throws -> IngredientVocabularyEntry? {
-        guard !entry.key.isEmpty else { return nil }
+        guard !entry.storageKey.isEmpty else { return nil }
 
         return try await context.perform {
-            let existing = try self.row(key: entry.key)
+            let existing = try self.row(key: entry.storageKey)
 
             guard !entry.isEmpty else {
                 if let existing, let id = existing.id {
@@ -131,7 +131,7 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
                 // become its own parent — and get a second row under its own
                 // key for the privilege. The SwiftData row takes key and name
                 // in its initializer; this is the same moment here.
-                row.key = entry.key
+                row.key = entry.storageKey
                 row.name = entry.name
             }
             // The parent first, before anything else about the row is touched
@@ -168,9 +168,9 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     /// parent is named rather than pointed at: the entry knows the word, and
     /// only the store can turn it into the row's id.
     public func adopt(_ entry: IngredientVocabularyEntry) async throws {
-        guard !entry.key.isEmpty else { return }
+        guard !entry.storageKey.isEmpty else { return }
         try await context.perform {
-            let row = try self.row(key: entry.key) ?? {
+            let row = try self.row(key: entry.storageKey) ?? {
                 let made = CDVocabularyEntry(context: self.context)
                 made.id = entry.id
                 made.createdAt = .nowInSyncPrecision
@@ -189,7 +189,7 @@ public final class CoreDataVocabularyStore: VocabularyStore, @unchecked Sendable
     /// Any depth, but never a loop — the same rule as the SwiftData store,
     /// for the same reasons, and refusing just as loudly.
     private func parentID(named name: String, of child: CDVocabularyEntry) throws -> UUID? {
-        let key = IngredientCatalog.normalize(name)
+        let key = IngredientCatalog.storageKey(name)
         guard !key.isEmpty else { return nil }
         guard key != child.key else {
             throw VocabularyStoreError.wouldCycle(child: child.name, parent: name)

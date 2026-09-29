@@ -312,7 +312,7 @@ def check(dataset: Dataset) -> None:
             if key in owner:
                 other, other_spelling = owner[key]
                 if other is word:
-                    warnings.append(
+                    errors.append(
                         f"{word.file}: {spelling!r} and {other_spelling!r} are the same "
                         f"spelling once normalized ({key!r}); keep one"
                     )

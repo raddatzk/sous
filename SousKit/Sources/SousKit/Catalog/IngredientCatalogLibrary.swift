@@ -213,12 +213,18 @@ public final class IngredientCatalogLibrary {
     /// *was* the ingredient.
     public func delete(_ ingredient: CatalogIngredient) async {
         do {
-            try await store.delete(key: ingredient.key)
+            try await store.delete(key: storageKey(of: ingredient))
             await reload()
             try await nutritionCache?.invalidateAll()
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// The key the store holds `ingredient`'s entry under — the entry's own
+    /// when there is one, since a row is stored under its name as written.
+    private func storageKey(of ingredient: CatalogIngredient) -> String {
+        vocabulary[ingredient.key]?.storageKey ?? IngredientCatalog.storageKey(ingredient.name)
     }
 
     /// Takes back every ingredient the cook added — part of erasing a
@@ -230,7 +236,7 @@ public final class IngredientCatalogLibrary {
         guard !own.isEmpty else { return 0 }
         do {
             for ingredient in own {
-                try await store.delete(key: ingredient.key)
+                try await store.delete(key: storageKey(of: ingredient))
             }
             await reload()
             try await nutritionCache?.invalidateAll()

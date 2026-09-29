@@ -1,7 +1,6 @@
 - id: weisswein
   name: Weißwein
   aliases:
-    - Weisswein
     - trockener Weißwein
   category: drinks
   density: 0.99

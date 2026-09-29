@@ -30,7 +30,6 @@
       name: Udon-Nudeln
       aliases:
         - Udon
-        - Udonnudeln
     - id: vollkornnudeln
       name: Vollkornnudeln
       aliases:

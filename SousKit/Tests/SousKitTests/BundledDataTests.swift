@@ -235,9 +235,10 @@ struct BundledDataTests {
 
     @Test("No two words collide under the catalog's normalization")
     func normalizationKeepsWordsApart() {
-        // `IngredientCatalog.normalize` is trim and lowercase, nothing more —
-        // no umlaut folding, no punctuation. Two words that differ only in
-        // case would mean one of them is unreachable, forever and silently.
+        // `IngredientCatalog.normalize` folds case, ß, hyphens and spacing,
+        // and keeps umlauts and accents (`NormalizationTests`). Two words that
+        // differ only in those would mean one of them is unreachable, forever
+        // and silently. The compiler refuses such data before it gets here.
         var seen: [String: String] = [:]
         var collisions: [String] = []
         for entry in synonyms.entries {

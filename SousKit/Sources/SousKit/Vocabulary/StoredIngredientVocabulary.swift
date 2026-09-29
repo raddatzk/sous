@@ -109,7 +109,7 @@ public final class StoredIngredientVocabulary {
     /// Writes everything but the identity and the parent join, which the
     /// store owns.
     public func apply(_ entry: IngredientVocabularyEntry) {
-        key = entry.key
+        key = entry.storageKey
         name = entry.name
         aliases = entry.aliases
         categoryRaw = entry.category?.rawValue

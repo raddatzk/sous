@@ -72,11 +72,12 @@ catalog refers to its rows by code.
 ### Names and spellings
 
 **Every name and alias is unique across the whole catalog, products included,
-after normalization.** Normalization folds case,
+after normalization.** Normalization is what the app compares by: case,
 ß/ss, hyphens and repeated spaces do not count, so "Weißwein", "Weisswein",
 "Hokkaido-Kürbis" and "Hokkaidokürbis" are each one spelling, and writing the
 second one down is redundant. Accents do count: "Créme" is a typo, not a
-spelling.
+spelling. `Data/normalize-cases.json` holds the cases both the compiler and
+SousKit are tested against.
 
 A name or alias holds letters, digits, space and `- ' % / . ,` only: no
 parentheses, no typographic quotes, no `½`. Quote a spelling with a comma in

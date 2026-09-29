@@ -506,7 +506,8 @@ public final class ShoppingLibrary {
 
     public func isPantry(_ item: ShoppingItem) -> Bool {
         let pantry = pantryKeys
-        return pantry.contains(item.key) || inherited(of: item).contains { pantry.contains($0.key) }
+        return pantry.contains(IngredientCatalog.normalize(item.key))
+            || inherited(of: item).contains { pantry.contains($0.key) }
     }
 
     /// Loads the vocabulary without touching the list — for screens that
@@ -529,7 +530,7 @@ public final class ShoppingLibrary {
     /// list.
     public func preferredStore(of item: ShoppingItem) -> String? {
         let stores = catalogLibrary?.preferredStores ?? [:]
-        if let store = stores[item.key] { return store }
+        if let store = stores[IngredientCatalog.normalize(item.key)] { return store }
         for ancestor in inherited(of: item) {
             if let store = stores[ancestor.key] { return store }
         }
@@ -539,7 +540,7 @@ public final class ShoppingLibrary {
     /// What to know at the shelf for `item`, same lookup as its store.
     public func shoppingNote(of item: ShoppingItem) -> String? {
         guard let vocabulary = catalogLibrary?.vocabulary else { return nil }
-        if let note = vocabulary[item.key]?.shoppingNote { return note }
+        if let note = vocabulary[IngredientCatalog.normalize(item.key)]?.shoppingNote { return note }
         for ancestor in inherited(of: item) {
             if let note = vocabulary[ancestor.key]?.shoppingNote { return note }
         }

@@ -24,8 +24,11 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     public let itemID: UUID
     public var id: UUID { itemID }
 
-    /// The normalized ingredient name the item bundles under — or, for a
-    /// line the app could not interpret, the normalized raw text itself.
+    /// The ingredient name the item bundles under — or, for a line the app
+    /// could not interpret, the raw text itself — as a stored key
+    /// (``IngredientCatalog/storageKey(_:)``): it is persisted and matched
+    /// by the stores, including an older app's on a shared list. Compare it
+    /// with anything else through ``IngredientCatalog/normalize(_:)``.
     public var key: String
     public var name: String
     /// The aisle it is found in, when the catalog knows the ingredient.
@@ -125,7 +128,7 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// syntax and resolved through the catalog, so "Tomaten", "tomate" and
     /// "Cocktailtomaten" are one line on the list.
     public static func key(for name: String, catalog: IngredientCatalog = .bundled) -> String {
-        IngredientCatalog.normalize(catalog.canonicalName(for: displayName(for: name)))
+        IngredientCatalog.storageKey(catalog.canonicalName(for: displayName(for: name)))
     }
 
     /// The name without link syntax, for display.

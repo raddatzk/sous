@@ -33,7 +33,10 @@ enum RecipeContentHash {
     /// Raised to 8 when the catalog began reading a variety written the list
     /// way round: "1 Zwiebel, rot" is no longer an onion prepared "rot" but
     /// a whole name that resolves to "Rote Zwiebel".
-    private static let readingVersion = 8
+    /// Raised to 9 when `IngredientCatalog.normalize` began folding ß and
+    /// hyphens: "Weisswein" and "Hokkaido-Kürbis" now find what "Weißwein"
+    /// and "Hokkaidokürbis" found, in code alone.
+    private static let readingVersion = 9
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.

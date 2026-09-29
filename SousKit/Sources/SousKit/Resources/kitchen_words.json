@@ -276,9 +276,7 @@
  },
  {
   "name": "Büffelmozzarella",
-  "aliases": [
-   "Büffel-Mozzarella"
-  ],
+  "aliases": [],
   "parent": "Mozzarella"
  },
  {
@@ -786,7 +784,6 @@
  {
   "name": "Hokkaido",
   "aliases": [
-   "Hokkaido-Kürbis",
    "Hokkaidokürbis"
   ],
   "parent": "Kürbis"
@@ -1273,7 +1270,6 @@
  {
   "name": "Mini-Mozzarella",
   "aliases": [
-   "Minimozzarella",
    "Mozzarella-Kugeln"
   ],
   "parent": "Mozzarella"
@@ -1362,8 +1358,7 @@
   "aliases": [
    "Noriblatt",
    "Noriblätter",
-   "Nori Blätter",
-   "Nori-Blätter"
+   "Nori Blätter"
   ],
   "category": "canned"
  },
@@ -1556,8 +1551,7 @@
  {
   "name": "Puddingpulver",
   "aliases": [
-   "Vanillepuddingpulver",
-   "Vanille-Puddingpulver"
+   "Vanillepuddingpulver"
   ],
   "category": "baking"
  },
@@ -1951,8 +1945,7 @@
   "aliases": [
    "Sojaschnetzel",
    "Sojagranulat",
-   "Sojahackfleisch",
-   "Soja-Hack"
+   "Sojahackfleisch"
   ],
   "category": "legumes"
  },
@@ -2071,9 +2064,7 @@
  },
  {
   "name": "Thai-Basilikum",
-  "aliases": [
-   "Thaibasilikum"
-  ],
+  "aliases": [],
   "parent": "Basilikum"
  },
  {
@@ -2158,8 +2149,7 @@
  {
   "name": "Udon-Nudeln",
   "aliases": [
-   "Udon",
-   "Udonnudeln"
+   "Udon"
   ],
   "parent": "Nudeln"
  },
@@ -2180,9 +2170,7 @@
  },
  {
   "name": "Vollkorn-Penne",
-  "aliases": [
-   "Vollkornpenne"
-  ],
+  "aliases": [],
   "parent": "Penne"
  },
  {
@@ -2263,15 +2251,12 @@
  },
  {
   "name": "Weißkohl",
-  "aliases": [
-   "Weisskohl"
-  ],
+  "aliases": [],
   "category": "vegetables"
  },
  {
   "name": "Weißwein",
   "aliases": [
-   "Weisswein",
    "trockener Weißwein"
   ],
   "category": "drinks"
