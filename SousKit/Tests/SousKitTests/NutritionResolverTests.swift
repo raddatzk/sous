@@ -125,12 +125,24 @@ struct NutritionResolverTests {
     }
 
     @Test("A measure written under a spelling still reaches the word")
-    func aliasReachesTheMeasure() throws {
-        // "Vanillezucker" is a spelling of "Vanille" in the vocabulary, and
-        // its packet weight was written down under the spelling — which made
-        // it unreachable, since the build only ever asked for the word.
-        let entry = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Vanille"))
-        #expect(entry.unitWeightsGrams[IngredientUnit.package.symbol] == 8)
+    func aliasReachesTheMeasure() {
+        // A packet weight written down under a spelling rather than the word
+        // used to be unreachable, since the build only ever asked for the
+        // word. The bundled case that found it — "Vanillezucker" filed under
+        // "Vanille" — is a word of its own now, so the rule is kept here.
+        let table = MeasureTable(byIngredient: [
+            .init(name: "Vanillezucker", unit: IngredientUnit.package.symbol, grams: 8, assumption: true),
+        ])
+        #expect(table.grams(forAnyOf: ["Vanille", "Vanillezucker"])[IngredientUnit.package.symbol] == 8)
+    }
+
+    @Test("Vanillezucker weighs its packet; the vanilla pod is not sugar")
+    func vanillaSugarIsItsOwnWord() throws {
+        let sugar = try #require(NutritionCatalog.bundled.nutrition(forCanonicalName: "Vanillezucker"))
+        #expect(sugar.unitWeightsGrams[IngredientUnit.package.symbol] == 8)
+        let pod = NutritionCatalog.bundled.nutrition(forCanonicalName: "Vanille")?
+            .basis(for: .unspecified)
+        #expect(pod?.status == .deliberatelyWithout)
     }
 
     @Test("A clove resolves via the ingredient's own unit weight")
