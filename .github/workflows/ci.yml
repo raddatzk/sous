@@ -21,24 +21,28 @@ jobs:
     # keys, unlocked login keychain and all. Hosted runners are free for public
     # repositories and this job signs nothing, so there is nothing to gain by
     # using one.
-    runs-on: macos-26
+    #
+    # `xcode-27`, not `macos-26`: the app targets iOS 27, which needs the
+    # iOS 27 SDK and so Xcode 27, and `macos-26` carries only Xcode 26. It is a
+    # preview label; move to `macos-27` once GitHub ships that as GA.
+    runs-on: xcode-27
     timeout-minutes: 75
 
     steps:
       - uses: actions/checkout@v4
 
-      # The image ships several Xcodes. Take the newest and say out loud
-      # which one it was, because GitHub rolls the image forward on its own
-      # schedule and a quiet move to an older Xcode would otherwise fail much
-      # later with a confusing SDK error — the deployment target is iOS 26.5.
+      # The image ships several Xcodes, betas among them, so "the newest"
+      # would pick a beta. Take the image's default instead — GitHub points it
+      # at the current release — and say out loud which one it was, because a
+      # quiet move to an older Xcode would otherwise fail much later with a
+      # confusing SDK error: the deployment target is iOS 27 (macOS 26.5).
       - name: Select Xcode
         run: |
-          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          sudo xcode-select -s "$latest"
+          sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           major=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
-          if [ "$major" -lt 26 ]; then
-            echo "::error::Xcode $major is too old — the project targets iOS 26.5 and needs Xcode 26 or newer."
+          if [ "$major" -lt 27 ]; then
+            echo "::error::Xcode $major is too old — the project targets iOS 27 and needs Xcode 27 or newer."
             exit 1
           fi
 

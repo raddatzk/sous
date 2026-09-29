@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "SousKit",
-    platforms: [.iOS("27.0"), .macOS("27.0")],
+    platforms: [.iOS("27.0"), .macOS("26.5")],
     products: [
         .library(name: "SousKit", targets: ["SousKit"])
     ],
