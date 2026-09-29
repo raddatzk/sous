@@ -1,0 +1,9 @@
+- id: speisestaerke
+  name: Speisestärke
+  aliases:
+    - Maisstärke
+  category: grains
+  density: 0.6
+  nutrition:
+    unspecified: [C446000, C216000, K230000]
+  via: BLS-Gruppe "Mais Stärke"

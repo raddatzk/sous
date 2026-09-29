@@ -1,0 +1,7 @@
+- id: puderzucker
+  name: Puderzucker
+  category: baking
+  density: 0.55
+  nutrition:
+    unspecified: [S111100]
+  via: BLS-Name, in die Küchenliste übernommen

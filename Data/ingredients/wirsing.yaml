@@ -1,0 +1,10 @@
+- id: wirsing
+  name: Wirsing
+  aliases:
+    - Wirsingkohl
+  category: vegetables
+  measures: {Stk.: 800}
+  nutrition:
+    raw: [G343100]
+    cooked: [G343132, G343152, G343142, G343182]
+  via: BLS-Name, in die Küchenliste übernommen

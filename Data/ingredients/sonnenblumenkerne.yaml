@@ -1,0 +1,6 @@
+- id: sonnenblumenkerne
+  name: Sonnenblumenkerne
+  category: nuts
+  nutrition:
+    unspecified: [H430100]
+  via: BLS-Gruppe "Sonnenblumenkern"

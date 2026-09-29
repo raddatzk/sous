@@ -1,0 +1,10 @@
+- id: lammfleisch
+  name: Lammfleisch
+  aliases:
+    - Lammkeule
+    - Lammfilet
+  category: meat
+  nutrition:
+    raw: [U807000]
+  candidates: [W139100, W149100]
+  via: BLS-Gruppe "Lamm Muskelfleisch"

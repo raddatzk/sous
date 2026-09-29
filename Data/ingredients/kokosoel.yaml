@@ -1,0 +1,7 @@
+- id: kokosoel
+  name: Kokosöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q550000]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,9 @@
+- id: rosine
+  name: Rosine
+  aliases:
+    - Rosinen
+    - Sultaninen
+  category: fruit
+  nutrition:
+    unspecified: [F840100]
+  via: BLS-Gruppe "Rosine/Sultanine (Weinbeere getrocknet)"

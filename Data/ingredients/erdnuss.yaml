@@ -1,0 +1,10 @@
+- id: erdnuss
+  name: Erdnuss
+  aliases:
+    - Erdnüsse
+    - Erdnussbutter
+  category: nuts
+  nutrition:
+    unspecified: [H110600]
+  candidates: [H110700, H810100]
+  via: BLS-Gruppe "Erdnuss geröstet"

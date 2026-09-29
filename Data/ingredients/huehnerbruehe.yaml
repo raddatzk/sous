@@ -1,0 +1,8 @@
+- id: huehnerbruehe
+  name: Hühnerbrühe
+  aliases:
+    - Hühnerfond
+  category: canned
+  nutrition:
+    unspecified: [X411243]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

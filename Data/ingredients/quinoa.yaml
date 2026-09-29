@@ -1,0 +1,8 @@
+- id: quinoa
+  name: Quinoa
+  category: grains
+  nutrition:
+    raw: [C118000]
+    cooked: [C118032]
+  candidates: [C118100, C118122, C530200]
+  via: BLS-Gruppe "Quinoa weiß"

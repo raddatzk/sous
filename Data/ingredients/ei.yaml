@@ -1,0 +1,17 @@
+- id: ei
+  name: Ei
+  aliases:
+    - Eier
+    - Hühnerei
+    - Hühnereier
+    - Eigelb
+    - Eiweiß
+  category: dairy
+  measures:
+    Stk.:
+      grams: 55
+      note: Größe M, ohne Schale.
+  nutrition:
+    cooked: [E111132, E107122, E111162, E111182]
+    raw: [E111100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

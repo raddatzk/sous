@@ -1,0 +1,15 @@
+- id: pfeffer
+  name: Pfeffer
+  category: spices
+  nutrition:
+    unspecified: [R258100]
+  via: BLS-Gruppe "Pfeffer schwarz, getrocknet"
+  varieties:
+    - id: pfefferkoerner
+      name: Pfefferkörner
+    - id: rosa-pfeffer
+      name: Rosa Pfeffer
+      aliases:
+        - rosa Pfefferbeeren
+    - id: schwarzer-pfeffer
+      name: Schwarzer Pfeffer

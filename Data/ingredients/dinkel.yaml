@@ -1,0 +1,10 @@
+- id: dinkel
+  name: Dinkel
+  aliases:
+    - Dinkelkörner
+  category: grains
+  nutrition:
+    unspecified: [C235100]
+    cooked: [C235132]
+  via: Das BLS führt Dinkel nur gemahlen; der Vollkornschrot ist das ganze Korn, nur zerkleinert,
+    und hat je 100 g dieselben Werte

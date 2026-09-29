@@ -1,0 +1,6 @@
+- id: mascarpone
+  name: Mascarpone
+  category: dairy
+  nutrition:
+    unspecified: [M7A6800]
+  via: BLS-Gruppe "Mascarpone mind. 80 % Fett i. Tr."

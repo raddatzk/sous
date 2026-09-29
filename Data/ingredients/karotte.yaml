@@ -1,0 +1,15 @@
+- id: karotte
+  name: Karotte
+  aliases:
+    - Karotten
+    - Möhre
+    - Möhren
+    - Mohrrübe
+    - Mohrrüben
+  category: vegetables
+  measures: {Stk.: 80}
+  nutrition:
+    raw: [G620100]
+    cooked: [G620132, G620152, G620182, G620162]
+  candidates: [G620142, G620200, G620232, G620242, G620252, G620262, G620282, G620802, G620902]
+  via: BLS-Gruppe "Karotte/Möhre"

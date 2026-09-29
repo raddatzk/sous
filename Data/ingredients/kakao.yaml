@@ -1,0 +1,9 @@
+- id: kakao
+  name: Kakao
+  aliases:
+    - Kakaopulver
+  category: baking
+  density: 0.5
+  nutrition:
+    unspecified: [S713000]
+  via: BLS-Gruppe "Kakaopulver stark entölt"

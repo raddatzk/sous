@@ -1,0 +1,7 @@
+- id: halloumi
+  name: Halloumi
+  category: dairy
+  nutrition:
+    cooked: [M524582, M524562, M524572]
+    unspecified: [M524500]
+  via: BLS-Gruppe "Halloumi Grillkäse"

@@ -1,0 +1,12 @@
+- id: speck
+  name: Speck
+  aliases:
+    - Bacon
+  category: meat
+  nutrition:
+    cooked: [W411332]
+    unspecified: [W411300]
+  via: BLS-Gruppe "Schwein Bauchspeck, Rohpökelware, geräuchert"
+  varieties:
+    - id: raeucherspeck
+      name: Räucherspeck

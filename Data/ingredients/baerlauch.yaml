@@ -1,0 +1,7 @@
+- id: baerlauch
+  name: Bärlauch
+  category: herbs
+  measures: {Bund: 100}
+  nutrition:
+    raw: [G492100]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,9 @@
+- id: parmesan
+  name: Parmesan
+  aliases:
+    - Parmigiano
+    - Grana Padano
+  category: dairy
+  nutrition:
+    unspecified: [M306400]
+  via: BLS-Gruppe "Parmesan mind. 30 % Fett i. Tr."

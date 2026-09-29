@@ -1,0 +1,10 @@
+- id: gnocchi
+  name: Gnocchi
+  aliases:
+    - frische Gnocchi
+  category: grains
+  nutrition:
+    raw: [K270000]
+    cooked: [K270032]
+  candidates: [K271000]
+  via: BLS-Name, in die Küchenliste übernommen

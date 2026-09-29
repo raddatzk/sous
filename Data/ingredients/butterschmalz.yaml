@@ -1,0 +1,8 @@
+- id: butterschmalz
+  name: Butterschmalz
+  aliases:
+    - Ghee
+  category: oils
+  nutrition:
+    unspecified: [Q683000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

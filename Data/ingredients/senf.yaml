@@ -1,0 +1,12 @@
+- id: senf
+  name: Senf
+  category: canned
+  nutrition:
+    unspecified: [R132000]
+  candidates: [R133000, R134000, R135000]
+  via: BLS-Gruppe "Senf mittelscharf"
+  varieties:
+    - id: dijonsenf
+      name: Dijonsenf
+    - id: mittelscharfer-senf
+      name: Mittelscharfer Senf

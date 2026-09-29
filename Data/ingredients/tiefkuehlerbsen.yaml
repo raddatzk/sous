@@ -1,0 +1,9 @@
+- id: tiefkuehlerbsen
+  name: Tiefkühlerbsen
+  aliases:
+    - TK-Erbsen
+  category: frozen
+  nutrition:
+    cooked: [G760232, G760252, G760282, G760262]
+    unspecified: [G760200]
+  via: BLS-Gruppe "Erbse grün, tiefgefroren"

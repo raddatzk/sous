@@ -1,0 +1,11 @@
+- id: weisswein
+  name: Weißwein
+  aliases:
+    - Weisswein
+    - trockener Weißwein
+  category: drinks
+  density: 0.99
+  nutrition:
+    unspecified: [P210000]
+  candidates: [P220000, P230000, P231000]
+  via: BLS-Gruppe "Weißwein trocken"

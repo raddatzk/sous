@@ -1,0 +1,6 @@
+- id: kuvertuere
+  name: Kuvertüre
+  category: baking
+  nutrition:
+    unspecified: [S671000]
+  via: BLS-Gruppe "Zartbitter-/Halbbitter-Kuvertüre"

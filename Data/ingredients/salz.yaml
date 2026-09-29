@@ -1,0 +1,21 @@
+- id: salz
+  name: Salz
+  aliases:
+    - Speisesalz
+    - Tafelsalz
+  category: spices
+  density: 1.2
+  nutrition:
+    unspecified: [R111000, R114000]
+  via: Meersalz ist eine eigene Sorte; das nackte Wort ist das Speisesalz
+  varieties:
+    - id: kala-namak
+      name: Kala Namak
+      aliases:
+        - Kala-Namak
+        - Schwarzsalz
+    - id: meersalz
+      name: Meersalz
+      nutrition:
+        unspecified: [R112000]
+      via: BLS-Namensabgleich, einmalig festgeschrieben

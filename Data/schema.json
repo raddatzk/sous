@@ -1,0 +1,282 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Sous catalog data",
+ "description": "The shape of the YAML under Data/. The compiler reads every scalar as a string, so numbers, dates and booleans are strings here with a pattern; compile.py converts them. Checks across files (unique spellings, codes that exist, a root that maps) live in compile.py.",
+ "$defs": {
+  "text": {"type": "string", "minLength": 1},
+  "number": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$"},
+  "boolean": {"enum": ["true", "false"]},
+  "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+  "id": {
+   "type": "string",
+   "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+   "description": "A slug fixed when the word is created; it never changes and is never reused."
+  },
+  "code": {
+   "type": "string",
+   "pattern": "^([B-Y][0-9A-Z]{6}|Z[0-9]{6}|Z-[a-z0-9]+(-[a-z0-9]+)*)$",
+   "description": "An SBLS code (B-Y), or an inline row's Z code."
+  },
+  "group": {"type": "string", "pattern": "^[B-Z]$"},
+  "category": {
+   "enum": ["vegetables", "fruit", "herbs", "spices", "meat", "fish", "dairy", "bakery",
+            "grains", "legumes", "nuts", "oils", "baking", "canned", "drinks", "frozen", "other"]
+  },
+  "state": {"enum": ["raw", "cooked", "unspecified"]},
+  "unit": {
+   "description": "IngredientUnit's symbols; mass and volume units need no measure.",
+   "enum": ["Stk.", "Prise", "Msp.", "Bund", "Zehe", "Pck.", "Portion", "Blatt", "Tasse",
+            "Dose", "Glas", "Stange", "Zweig", "Stiel", "cm", "Handvoll", "TL", "EL"]
+  },
+  "nutrient": {
+   "enum": ["kcal", "proteinG", "fatG", "saturatedFatG", "carbsG", "sugarG", "fiberG",
+            "sodiumMg", "vitaminAMcg", "vitaminCMg", "vitaminDMcg", "vitaminEMg",
+            "calciumMg", "ironMg", "magnesiumMg", "potassiumMg"]
+  },
+  "alias": {
+   "oneOf": [
+    {"$ref": "#/$defs/text"},
+    {
+     "type": "object",
+     "description": "A spelling that implies a unit: `Knoblauchzehe: {unit: Zehe}` reads \"2 Knoblauchzehen\" as 2 Zehen Knoblauch.",
+     "minProperties": 1,
+     "maxProperties": 1,
+     "additionalProperties": {
+      "type": "object",
+      "required": ["unit"],
+      "additionalProperties": false,
+      "properties": {"unit": {"$ref": "#/$defs/unit"}}
+     }
+    }
+   ]
+  },
+  "density": {
+   "description": "Grams per milliliter; otherwise the group's, otherwise water's.",
+   "oneOf": [
+    {"$ref": "#/$defs/number"},
+    {
+     "type": "object",
+     "required": ["gramsPerMl"],
+     "additionalProperties": false,
+     "properties": {"gramsPerMl": {"$ref": "#/$defs/number"}, "note": {"$ref": "#/$defs/text"}}
+    }
+   ]
+  },
+  "measures": {
+   "description": "What one of a unit weighs for this ingredient. Always an assumption, shown with ≈. `state` names the nutrition row the weight belongs to (a can's drained weight is cooked).",
+   "type": "object",
+   "propertyNames": {"$ref": "#/$defs/unit"},
+   "additionalProperties": {
+    "oneOf": [
+     {"$ref": "#/$defs/number"},
+     {
+      "type": "object",
+      "required": ["grams"],
+      "additionalProperties": false,
+      "properties": {
+       "grams": {"$ref": "#/$defs/number"},
+       "state": {"$ref": "#/$defs/state"},
+       "note": {"$ref": "#/$defs/text"}
+      }
+     }
+    ]
+   }
+  },
+  "inlineRow": {
+   "description": "Values the BLS does not have, written out with their source. Its code is a Z code.",
+   "type": "object",
+   "required": ["code", "name", "source", "per100g"],
+   "additionalProperties": false,
+   "properties": {
+    "code": {"$ref": "#/$defs/code"},
+    "name": {"$ref": "#/$defs/text"},
+    "group": {"$ref": "#/$defs/group"},
+    "category": {"$ref": "#/$defs/category"},
+    "source": {"$ref": "#/$defs/text"},
+    "checked": {"$ref": "#/$defs/date"},
+    "per": {"enum": ["as-sold", "drained"]},
+    "per100g": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {"$ref": "#/$defs/nutrient"},
+     "additionalProperties": {"$ref": "#/$defs/number"}
+    }
+   }
+  },
+  "nutrition": {
+   "description": "Per state an ordered list: the first code is the basis, the rest are alternatives. Or `without`: the catalog knows this and settles it without values.",
+   "oneOf": [
+    {"const": "without"},
+    {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {"$ref": "#/$defs/state"},
+     "additionalProperties": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"oneOf": [{"$ref": "#/$defs/code"}, {"$ref": "#/$defs/inlineRow"}]}
+     }
+    }
+   ]
+  },
+  "ingredient": {
+   "type": "object",
+   "required": ["id", "name"],
+   "additionalProperties": false,
+   "properties": {
+    "id": {"$ref": "#/$defs/id"},
+    "name": {"$ref": "#/$defs/text"},
+    "aliases": {"type": "array", "items": {"$ref": "#/$defs/alias"}},
+    "category": {"$ref": "#/$defs/category"},
+    "density": {"$ref": "#/$defs/density"},
+    "measures": {"$ref": "#/$defs/measures"},
+    "nutrition": {"$ref": "#/$defs/nutrition"},
+    "candidates": {
+     "description": "Further rows that may mean this word; offered to the curator, never computed with.",
+     "type": "array",
+     "items": {"$ref": "#/$defs/code"}
+    },
+    "via": {"$ref": "#/$defs/text", "description": "Why this mapping; for the curator, not the app."},
+    "varieties": {"type": "array", "items": {"$ref": "#/$defs/ingredient"}}
+   }
+  },
+  "product": {
+   "type": "object",
+   "required": ["id", "kind", "name", "brand", "category", "nutrition"],
+   "additionalProperties": false,
+   "properties": {
+    "id": {"$ref": "#/$defs/id"},
+    "kind": {"const": "product"},
+    "name": {"$ref": "#/$defs/text"},
+    "brand": {"$ref": "#/$defs/text"},
+    "aliases": {"type": "array", "items": {"$ref": "#/$defs/alias"}},
+    "category": {"$ref": "#/$defs/category"},
+    "ean": {"type": "array", "items": {"type": "string", "pattern": "^[0-9]{8,14}$"}},
+    "discontinued": {"$ref": "#/$defs/boolean"},
+    "density": {"$ref": "#/$defs/density"},
+    "measures": {"$ref": "#/$defs/measures"},
+    "nutrition": {
+     "type": "object",
+     "minProperties": 1,
+     "propertyNames": {"$ref": "#/$defs/state"},
+     "additionalProperties": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inlineRow"}}
+    },
+    "via": {"$ref": "#/$defs/text"}
+   }
+  },
+  "ingredientFile": {
+   "description": "Data/ingredients/<root id>.yaml: one family.",
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/ingredient"}
+  },
+  "productFile": {
+   "description": "Data/products/<brand>.yaml: products stand beside the ingredients, never nested.",
+   "type": "array",
+   "minItems": 1,
+   "items": {"$ref": "#/$defs/product"}
+  },
+  "measuresFile": {
+   "type": "object",
+   "required": ["note", "assumptionNote", "unitRule", "units", "byGroup", "densities"],
+   "additionalProperties": false,
+   "properties": {
+    "note": {"$ref": "#/$defs/text"},
+    "assumptionNote": {"$ref": "#/$defs/text"},
+    "unitRule": {"$ref": "#/$defs/text"},
+    "units": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": ["unit", "grams"],
+      "additionalProperties": false,
+      "properties": {"unit": {"$ref": "#/$defs/unit"}, "grams": {"$ref": "#/$defs/number"},
+                     "note": {"$ref": "#/$defs/text"}}
+     }
+    },
+    "byGroup": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": ["group", "unit", "grams"],
+      "additionalProperties": false,
+      "properties": {"group": {"$ref": "#/$defs/group"}, "unit": {"$ref": "#/$defs/unit"},
+                     "grams": {"$ref": "#/$defs/number"}, "note": {"$ref": "#/$defs/text"}}
+     }
+    },
+    "densities": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "required": ["group", "gramsPerMl"],
+      "additionalProperties": false,
+      "properties": {"group": {"$ref": "#/$defs/group"}, "gramsPerMl": {"$ref": "#/$defs/number"},
+                     "note": {"$ref": "#/$defs/text"}}
+     }
+    }
+   }
+  },
+  "aislesFile": {
+   "type": "object",
+   "required": ["note", "letters"],
+   "additionalProperties": false,
+   "properties": {
+    "readme": {"$ref": "#/$defs/text"},
+    "note": {"$ref": "#/$defs/text"},
+    "global_exclude_keywords": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+    "global_exclude_keywords_note": {"$ref": "#/$defs/text"},
+    "letters": {
+     "type": "object",
+     "propertyNames": {"$ref": "#/$defs/group"},
+     "additionalProperties": {
+      "type": "object",
+      "required": ["include", "category"],
+      "additionalProperties": false,
+      "properties": {
+       "include": {"$ref": "#/$defs/boolean"},
+       "category": {"$ref": "#/$defs/category"},
+       "note": {"$ref": "#/$defs/text"},
+       "overrides": {
+        "type": "array",
+        "items": {
+         "type": "object",
+         "required": ["mode", "keywords"],
+         "additionalProperties": false,
+         "properties": {
+          "mode": {"enum": ["starts_with", "contains"]},
+          "keywords": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+          "category": {"$ref": "#/$defs/category"},
+          "action": {"const": "exclude"}
+         }
+        }
+       },
+       "special_include_codes": {
+        "type": "object",
+        "propertyNames": {"$ref": "#/$defs/code"},
+        "additionalProperties": {"$ref": "#/$defs/category"}
+       }
+      }
+     }
+    }
+   }
+  },
+  "source": {
+   "type": "object",
+   "required": ["datasetVersion", "release", "license", "attribution", "changeNote"],
+   "additionalProperties": false,
+   "properties": {
+    "datasetVersion": {"$ref": "#/$defs/text"},
+    "release": {"$ref": "#/$defs/text"},
+    "license": {"$ref": "#/$defs/text"},
+    "attribution": {"$ref": "#/$defs/text"},
+    "changeNote": {"$ref": "#/$defs/text"}
+   }
+  },
+  "sourcesFile": {
+   "type": "object",
+   "required": ["supplements"],
+   "additionalProperties": false,
+   "properties": {"supplements": {"$ref": "#/$defs/source"}}
+  }
+ }
+}

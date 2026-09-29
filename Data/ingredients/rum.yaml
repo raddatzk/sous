@@ -1,0 +1,6 @@
+- id: rum
+  name: Rum
+  category: drinks
+  nutrition:
+    unspecified: [P741000]
+  via: BLS-Name, in die Küchenliste übernommen

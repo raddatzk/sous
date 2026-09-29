@@ -1,0 +1,20 @@
+- id: lachs
+  name: Lachs
+  aliases:
+    - Lachsfilet
+  category: fish
+  nutrition:
+    cooked: [T410052, T410062, T410072, T410082, T410132]
+    raw: [T410100]
+  candidates: [T410200, T410252, T410262, T410272, T410282, T410600, T410702, T410902, T411222,
+    T411700, T824900]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: raeucherlachs
+      name: Räucherlachs
+      nutrition:
+        unspecified: [T410600]
+      candidates: [T411700]
+      via: Erbte bisher „Lachs roh“ mit 32 mg Natrium; die eigene Zeile hat 1170 mg. Die Zeile
+        war über die Namenssuche immer auffindbar — falsch war die Zuordnung nur, weil die
+        Vererbung die Frage beantwortet hatte, bevor sie jemand gestellt bekam.

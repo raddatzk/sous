@@ -1,0 +1,7 @@
+- id: bulgur
+  name: Bulgur
+  category: grains
+  nutrition:
+    raw: [C119100]
+    cooked: [C119132]
+  via: BLS-Gruppe "Bulgur (Hartweizen)"

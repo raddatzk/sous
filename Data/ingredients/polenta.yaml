@@ -1,0 +1,9 @@
+- id: polenta
+  name: Polenta
+  aliases:
+    - Maisgrieß
+  category: grains
+  nutrition:
+    cooked: [C526062, C526082]
+    unspecified: [C526000]
+  via: BLS-Gruppe "Polenta (Maisgrieß mit Wasser, Fett und Salz) gekocht"

@@ -1,0 +1,6 @@
+- id: tee
+  name: Tee
+  category: drinks
+  nutrition:
+    unspecified: [N630000]
+  via: BLS-Gruppe "Schwarztee (Getränk)"

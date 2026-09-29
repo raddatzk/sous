@@ -1,0 +1,8 @@
+- id: mayonnaise
+  name: Mayonnaise
+  aliases:
+    - Mayo
+  category: canned
+  nutrition:
+    unspecified: [Q991000]
+  via: BLS-Gruppe "Mayonnaise (Fertigprodukt)"

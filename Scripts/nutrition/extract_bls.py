@@ -2,7 +2,7 @@
 """Extract base-ingredient rows from the BLS 4.0 main data workbook.
 
 Reads ``BLS_4_0_Daten_2025_DE.xlsx`` (sheet ``BLS_4_0_Daten_2025_DE``), applies the
-food-group include/category/exclude decisions documented in ``group_codes.json``,
+food-group include/category/exclude decisions documented in ``Data/aisles.yaml``,
 and returns one dict per surviving row:
 
     {"blsCode": "G541100", "germanName": "Gemüsepaprika grün, roh",
@@ -15,10 +15,10 @@ the header row for a cell whose text starts with "<CODE> " (e.g. "ENERCC Energie
 (Kilokalorien) [kcal/100g]" for code "ENERCC") and cache the resulting column index.
 
 Usage:
-    python3 extract_bls.py <path-to-BLS_4_0_Daten_2025_DE.xlsx> [--group-codes group_codes.json]
+    python3 extract_bls.py <path-to-BLS_4_0_Daten_2025_DE.xlsx> [--data Data]
 
 Run standalone it prints summary counts and (with --dump) writes the extracted rows
-to a JSON file for inspection. Normally it is imported by merge_states.py instead.
+to a JSON file for inspection. Normally it is imported by build_data.py instead.
 """
 from __future__ import annotations
 
@@ -27,6 +27,9 @@ import json
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "data"))
+import compile as data_compiler  # noqa: E402
 
 import openpyxl
 
@@ -54,11 +57,6 @@ NUTRIENT_CODES: dict[str, str] = {
     "potassiumMg": "K",
 }
 VITAMIN_A_FALLBACK_CODE = "VITA"
-
-
-def load_group_codes(path: Path) -> dict:
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
 
 
 def find_header_columns(header_row: tuple, codes: set[str]) -> dict[str, int]:
@@ -110,7 +108,7 @@ def extract_nutrients(row: tuple, col_by_code: dict[str, int]) -> dict:
 
 
 class RowClassifier:
-    """Applies group_codes.json's per-letter include/category/override rules."""
+    """Applies Data/aisles.yaml's per-letter include/category/override rules."""
 
     def __init__(self, group_codes: dict):
         self.global_exclude_keywords = [
@@ -161,7 +159,7 @@ def _rule_matches(rule: dict, german_name: str) -> bool:
     raise ValueError(f"Unknown rule mode: {mode}")
 
 
-# See group_codes.json's "X"/"Y" notes for the full rationale. Matches names like
+# See Data/aisles.yaml's "X"/"Y" notes for the full rationale. Matches names like
 # "Hühnerbrühe", "Doppelte Rinderkraftbrühe", "Geflügelkraftbrühe (Huhn)",
 # "Fleischbrühe (Rind)" but NOT "Tomatensuppe aus frischen Tomaten und
 # Gemüsebrühe" or "Maultaschen ... gegart in Fleischbrühe".
@@ -252,16 +250,11 @@ def extract_rows(
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("xlsx_path", type=Path, help="Path to BLS_4_0_Daten_2025_DE.xlsx")
-    parser.add_argument(
-        "--group-codes",
-        type=Path,
-        default=Path(__file__).parent / "group_codes.json",
-        help="Path to group_codes.json",
-    )
+    parser.add_argument("--data", type=Path, default=data_compiler.DATA, help="Path to Data/")
     parser.add_argument("--dump", type=Path, help="Optional path to write extracted rows as JSON")
     args = parser.parse_args()
 
-    group_codes = load_group_codes(args.group_codes)
+    group_codes = data_compiler.load_group_codes(args.data)
     rows, stats = extract_rows(args.xlsx_path, group_codes)
 
     print(f"Total source rows: {stats['total_source_rows']}")

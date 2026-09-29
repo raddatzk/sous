@@ -1,0 +1,8 @@
+- id: marmelade
+  name: Marmelade
+  aliases:
+    - Konfitüre
+  category: baking
+  nutrition:
+    unspecified: [S135000]
+  via: BLS-Gruppe "Marmelade (hergestellt aus Zitrusfrüchten)"

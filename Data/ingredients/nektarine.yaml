@@ -1,0 +1,7 @@
+- id: nektarine
+  name: Nektarine
+  category: fruit
+  nutrition:
+    cooked: [F202152]
+    raw: [F202100]
+  via: BLS-Name, in die Küchenliste übernommen

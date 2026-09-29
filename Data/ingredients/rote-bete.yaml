@@ -1,0 +1,10 @@
+- id: rote-bete
+  name: Rote Bete
+  aliases:
+    - Rote Beete
+    - Randen
+  category: vegetables
+  nutrition:
+    raw: [G613100]
+    cooked: [G613132, G613152]
+  via: BLS-Gruppe "Rote Rübe/Rote Bete"

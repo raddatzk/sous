@@ -1,0 +1,6 @@
+- id: cheddar
+  name: Cheddar
+  category: dairy
+  nutrition:
+    unspecified: [M303700, M303600]
+  via: kuratierte Auswahl

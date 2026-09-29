@@ -1,0 +1,10 @@
+- id: weisskohl
+  name: Weißkohl
+  aliases:
+    - Weisskohl
+  category: vegetables
+  nutrition:
+    cooked: [G342132, G342152, G342162, G342182]
+    raw: [G342100]
+  candidates: [G342142]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

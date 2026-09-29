@@ -1,0 +1,9 @@
+- id: dattel
+  name: Dattel
+  aliases:
+    - Datteln
+  category: fruit
+  nutrition:
+    raw: [F504100]
+  candidates: [F504400]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

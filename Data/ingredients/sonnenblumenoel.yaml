@@ -1,0 +1,7 @@
+- id: sonnenblumenoel
+  name: Sonnenblumenöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q320000]
+  via: BLS-Name, in die Küchenliste übernommen

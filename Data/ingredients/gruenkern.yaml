@@ -1,0 +1,8 @@
+- id: gruenkern
+  name: Grünkern
+  category: grains
+  nutrition:
+    raw: [C311000]
+    cooked: [C311032]
+  candidates: [C317000]
+  via: BLS-Name, in die Küchenliste übernommen

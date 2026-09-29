@@ -1,0 +1,11 @@
+- id: haehnchenbrust
+  name: Hähnchenbrust
+  aliases:
+    - Hähnchenbrustfilet
+    - Hühnerbrust
+    - Hähnchenbrüste
+  category: meat
+  nutrition:
+    raw: [V416100]
+    cooked: [V416132, V416162, V416182, V416172]
+  via: BLS-Gruppe "Hähnchen Brustfilet"

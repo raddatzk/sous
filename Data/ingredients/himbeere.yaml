@@ -1,0 +1,10 @@
+- id: himbeere
+  name: Himbeere
+  aliases:
+    - Himbeeren
+  category: fruit
+  nutrition:
+    cooked: [F302152]
+    raw: [F302100]
+  candidates: [F302400, F302902, F3A2902, F3B2902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

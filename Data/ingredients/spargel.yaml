@@ -1,0 +1,15 @@
+- id: spargel
+  name: Spargel
+  aliases:
+    - Spargelstangen
+  category: vegetables
+  nutrition:
+    raw: [G450100]
+    cooked: [G450132, G450152, G450142, G450162]
+  candidates: [G450902, G450200]
+  via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: gruener-spargel
+      name: Grüner Spargel
+    - id: weisser-spargel
+      name: Weißer Spargel

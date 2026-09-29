@@ -1,0 +1,8 @@
+- id: leinoel
+  name: Leinöl
+  aliases:
+    - Leinsamenöl
+  category: oils
+  nutrition:
+    unspecified: [Q160000]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,10 @@
+- id: birne
+  name: Birne
+  aliases:
+    - Birnen
+  category: fruit
+  nutrition:
+    cooked: [F130152]
+    raw: [F130100]
+  candidates: [F130400, F130902, F131902, F133902, F134902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

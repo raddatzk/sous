@@ -1,0 +1,16 @@
+- id: currypaste
+  name: Currypaste
+  aliases:
+    - Thai-Currypaste
+  category: spices
+  nutrition: without
+  via: Das BLS führt keine Currypaste — in allen 3.983 Zeilen keine Entsprechung. Die Pasten
+    im Handel unterscheiden sich stark in Öl, Zucker und Salz, also lieber keine Werte als
+    geratene; ein Produkt mit Etikett kann später eine eigene Zeile bekommen.
+  varieties:
+    - id: gelbe-currypaste
+      name: Gelbe Currypaste
+    - id: gruene-currypaste
+      name: Grüne Currypaste
+    - id: rote-currypaste
+      name: Rote Currypaste

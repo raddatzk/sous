@@ -1,0 +1,10 @@
+- id: tortilla
+  name: Tortilla
+  aliases:
+    - Tortillas
+    - Wraps
+    - Tortilla Wraps
+  category: bakery
+  nutrition:
+    unspecified: [B783012]
+  via: BLS-Gruppe "Weizentortilla"

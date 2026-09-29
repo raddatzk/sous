@@ -1,0 +1,9 @@
+- id: schmelzkaese
+  name: Schmelzkäse
+  aliases:
+    - Schmelzkäsescheiben
+  category: dairy
+  nutrition:
+    unspecified: [M771600]
+  candidates: [M771300, M771400, M771700, M772800]
+  via: kuratierte Auswahl

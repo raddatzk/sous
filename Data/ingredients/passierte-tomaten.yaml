@@ -1,0 +1,13 @@
+- id: passierte-tomaten
+  name: Passierte Tomaten
+  aliases:
+    - Tomatenpassata
+    - Passata
+  category: canned
+  measures:
+    Dose:
+      grams: 400
+      note: Die übliche 400-g-Dose; der Saft gehört dazu.
+  nutrition:
+    unspecified: [R161200]
+  via: BLS-Gruppe "Tomaten passiert/Tomatenpüree"

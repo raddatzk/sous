@@ -1,0 +1,16 @@
+- id: apfel
+  name: Apfel
+  aliases:
+    - Äpfel
+  category: fruit
+  measures: {Stk.: 150}
+  nutrition:
+    cooked: [F110152]
+    raw: [F110100]
+  candidates: [F110400, F119902, F120100, F120152, F120400]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: gruener-apfel
+      name: Grüner Apfel
+      aliases:
+        - grüne Äpfel

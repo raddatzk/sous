@@ -1,0 +1,9 @@
+- id: haferdrink
+  name: Haferdrink
+  aliases:
+    - Hafermilch
+  category: dairy
+  nutrition:
+    unspecified: [C660000]
+  candidates: [C660200]
+  via: BLS-Name, in die Küchenliste übernommen

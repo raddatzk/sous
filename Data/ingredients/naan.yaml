@@ -1,0 +1,6 @@
+- id: naan
+  name: Naan
+  category: bakery
+  nutrition:
+    unspecified: [B782100]
+  via: BLS-Gruppe "Weizenfladenbrot"

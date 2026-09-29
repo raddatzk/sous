@@ -1,0 +1,9 @@
+- id: curryblaetter
+  name: Curryblätter
+  aliases:
+    - Curryblatt
+  category: spices
+  nutrition: without
+  via: Das BLS führt Curryblätter nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz,
+    das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte
+    als geratene.

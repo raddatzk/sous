@@ -1,0 +1,8 @@
+- id: rosenkohl
+  name: Rosenkohl
+  category: vegetables
+  nutrition:
+    raw: [G332100]
+    cooked: [G332132, G332152, G332182, G332162]
+  candidates: [G332200]
+  via: BLS-Name, in die Küchenliste übernommen

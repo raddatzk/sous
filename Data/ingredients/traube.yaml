@@ -1,0 +1,9 @@
+- id: traube
+  name: Traube
+  aliases:
+    - Trauben
+    - Weintrauben
+  category: fruit
+  nutrition:
+    raw: [F310100]
+  via: BLS-Gruppe "Weintraube"

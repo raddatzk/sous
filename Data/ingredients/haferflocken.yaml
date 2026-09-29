@@ -1,0 +1,11 @@
+- id: haferflocken
+  name: Haferflocken
+  aliases:
+    - Hafer
+  category: grains
+  density: 0.4
+  measures: {Tasse: 90}
+  nutrition:
+    cooked: [C133032]
+    unspecified: [C133000]
+  via: BLS-Gruppe "Hafer Flocken"

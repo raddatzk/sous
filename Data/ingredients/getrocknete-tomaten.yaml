@@ -1,0 +1,11 @@
+- id: getrocknete-tomaten
+  name: Getrocknete Tomaten
+  aliases:
+    - getrocknete Tomate
+  category: canned
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [G567702]
+  candidates: [G560400, G569902]
+  via: BLS-Name "Tomate getrocknet, in Öl, Konserve, abgetropft" — so kommen sie meist ins
+    Rezept

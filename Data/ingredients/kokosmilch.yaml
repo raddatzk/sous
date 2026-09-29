@@ -1,0 +1,56 @@
+- id: kokosmilch
+  name: Kokosmilch
+  category: canned
+  density: 0.98
+  measures:
+    Dose:
+      grams: 392
+      note: Die übliche 400-ml-Dose, mit der Dichte 0,98 in Gramm.
+  nutrition:
+    unspecified: [H154000]
+  via: BLS-Gruppe "Kokosmilch/Kokosnussmilch"
+  varieties:
+    - id: kokosmilch-fettarm
+      name: Kokosmilch fettarm
+      aliases:
+        - Kokosmilch light
+        - Light Kokosmilch
+        - Kokosmilch fettreduziert
+        - fettarme Kokosmilch
+        - fettreduzierte Kokosmilch
+      density:
+        gramsPerMl: 0.99
+        note: 'Mehr Wasser als die Vollfettdose: 12 % Fett statt 21,9 %. Zwischen Wasser (1,0)
+          und der Vollfettmilch (0,98) linear am Fettanteil interpoliert.'
+      nutrition:
+        unspecified:
+          - code: Z000002
+            name: Kokosmilch fettreduziert, 41 % Kokosmark
+            category: fruit
+            source: 'Nährwertdeklaration REWE Beste Wahl „Kokosmilch fettreduziert“, 400 ml,
+              EAN 4388844280076 (Wasser 59 %, Kokosmark 41 %). Deklariert je 100 ml: 119 kcal,
+              12 g Fett, 10,6 g gesättigt, 1,6 g KH, 0,9 g Zucker, 1,1 g Eiweiß, 0,1 g Salz
+              — hier auf 100 g umgerechnet mit der Dichte 0,98 g/ml aus measures.json. Ballaststoffe
+              und Mikronährstoffe deklariert das Etikett nicht; sie sind aus H154000 „Kokosmilch/Kokosnussmilch“
+              mit dem Verdünnungsfaktor 0,56 abgeleitet, den das deklarierte Fett gegenüber
+              der BLS-Zeile ergibt.'
+            per100g:
+              kcal: 121.4
+              proteinG: 1.12
+              fatG: 12.24
+              saturatedFatG: 10.82
+              carbsG: 1.63
+              sugarG: 0.92
+              fiberG: 2.8
+              sodiumMg: 40.8
+              vitaminAMcg: 0
+              vitaminCMg: 0.67
+              vitaminDMcg: 0
+              vitaminEMg: 0.24
+              calciumMg: 4.9
+              ironMg: 0.19
+              magnesiumMg: 13
+              potassiumMg: 87.8
+      via: Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit
+        12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm
+        — siehe community.json Z000002.

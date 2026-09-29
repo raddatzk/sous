@@ -1,0 +1,7 @@
+- id: ketchup
+  name: Ketchup
+  category: canned
+  density: 1.14
+  nutrition:
+    unspecified: [R141100]
+  via: BLS-Gruppe "Tomatenketchup"

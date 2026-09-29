@@ -1,0 +1,9 @@
+- id: rucola
+  name: Rucola
+  aliases:
+    - Rauke
+  category: vegetables
+  measures: {Handvoll: 20}
+  nutrition:
+    raw: [G130100]
+  via: BLS-Name, in die Küchenliste übernommen

@@ -1,0 +1,18 @@
+- id: leinsamen
+  name: Leinsamen
+  aliases:
+    - Leinsaat
+  category: nuts
+  nutrition:
+    unspecified: [H410100]
+  candidates: [H410600]
+  via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: geschroteter-leinsamen
+      name: Geschroteter Leinsamen
+      aliases:
+        - Leinsamen geschrotet
+        - Leinsamenschrot
+      nutrition:
+        unspecified: [H410400]
+      via: BLS-Name, in die Küchenliste übernommen

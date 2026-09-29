@@ -1,0 +1,6 @@
+- id: ricotta
+  name: Ricotta
+  category: dairy
+  nutrition:
+    unspecified: [M741600]
+  via: BLS-Gruppe "Ricotta, Molkeneiweißkäse, mind. 45 % Fett i. Tr."

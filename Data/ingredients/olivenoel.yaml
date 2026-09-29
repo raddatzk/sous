@@ -1,0 +1,13 @@
+- id: olivenoel
+  name: Olivenöl
+  aliases:
+    - Olivenoel
+    - raffiniertes Olivenöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q120000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: natives-olivenoel
+      name: Natives Olivenöl

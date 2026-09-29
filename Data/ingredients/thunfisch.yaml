@@ -1,0 +1,7 @@
+- id: thunfisch
+  name: Thunfisch
+  category: fish
+  nutrition:
+    cooked: [T121132, T121162, T121172, T121182]
+    raw: [T121100]
+  via: BLS-Name, in die Küchenliste übernommen

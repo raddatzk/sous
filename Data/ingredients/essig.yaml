@@ -1,0 +1,20 @@
+- id: essig
+  name: Essig
+  category: oils
+  density: 1.01
+  nutrition:
+    unspecified: [R121000, R122000, R124000]
+  via: Sortengetrennt (Weißwein-, Rotwein-, Apfelessig) sind eigene Sorten; das nackte Wort
+    ist der Weinessig
+  varieties:
+    - id: apfelessig
+      name: Apfelessig
+      nutrition:
+        unspecified: [R123100]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: reisessig
+      name: Reisessig
+    - id: rotweinessig
+      name: Rotweinessig
+    - id: weissweinessig
+      name: Weißweinessig

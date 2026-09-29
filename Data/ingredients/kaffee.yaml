@@ -1,0 +1,6 @@
+- id: kaffee
+  name: Kaffee
+  category: drinks
+  nutrition:
+    unspecified: [N410100]
+  via: BLS-Gruppe "Kaffee (Getränk)"

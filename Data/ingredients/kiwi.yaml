@@ -1,0 +1,9 @@
+- id: kiwi
+  name: Kiwi
+  aliases:
+    - Kiwis
+  category: fruit
+  nutrition:
+    cooked: [F514152]
+    raw: [F514100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

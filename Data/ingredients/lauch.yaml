@@ -1,0 +1,11 @@
+- id: lauch
+  name: Lauch
+  aliases:
+    - Porree
+    - Stangenlauch
+  category: vegetables
+  measures: {Stk.: 200, Stange: 200}
+  nutrition:
+    raw: [G470100]
+    cooked: [G470132, G470152, G470182, G470162]
+  via: BLS-Gruppe "Porree/Lauch"

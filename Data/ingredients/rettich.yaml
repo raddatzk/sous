@@ -1,0 +1,7 @@
+- id: rettich
+  name: Rettich
+  category: vegetables
+  nutrition:
+    raw: [G680100]
+    cooked: [G680152]
+  via: BLS-Name, in die Küchenliste übernommen

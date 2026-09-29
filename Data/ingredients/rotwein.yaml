@@ -1,0 +1,8 @@
+- id: rotwein
+  name: Rotwein
+  category: drinks
+  density: 0.99
+  nutrition:
+    unspecified: [P2A3000]
+  candidates: [P253000, P2A1000, P2A2000]
+  via: BLS-Gruppe "Rotwein trocken"

@@ -1,0 +1,11 @@
+- id: rindfleisch
+  name: Rindfleisch
+  aliases:
+    - Rindersteak
+    - Rinderfilet
+  category: meat
+  nutrition:
+    raw: [U284100, U211100]
+    cooked: [U284132, U284162, U211162]
+  candidates: [U912000, U931100]
+  via: kuratierte Auswahl

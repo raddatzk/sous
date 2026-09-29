@@ -1,0 +1,10 @@
+- id: hirse
+  name: Hirse
+  aliases:
+    - Goldhirse
+  category: grains
+  nutrition:
+    raw: [C332000]
+    cooked: [C334032]
+  candidates: [C333100, C432000]
+  via: BLS-Name, in die Küchenliste übernommen

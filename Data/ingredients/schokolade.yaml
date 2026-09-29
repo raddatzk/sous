@@ -1,0 +1,16 @@
+- id: schokolade
+  name: Schokolade
+  category: baking
+  nutrition:
+    unspecified: [S500000]
+  candidates: [S580000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: vollmilchschokolade
+      name: Vollmilchschokolade
+      nutrition:
+        unspecified: [S539900]
+      candidates: [C532100]
+      via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: zartbitterschokolade
+      name: Zartbitterschokolade

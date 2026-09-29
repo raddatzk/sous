@@ -1,0 +1,18 @@
+- id: pak-choi
+  name: Pak Choi
+  aliases:
+    - Pak Choy
+    - Pak-Choi
+  category: vegetables
+  measures: {Stk.: 250}
+  nutrition:
+    raw: [G324100]
+    cooked: [G324132, G324152, G324182]
+  via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: baby-pak-choi
+      name: Baby Pak Choi
+      aliases:
+        - Mini-Pak Choi
+        - Mini Pak Choi
+      measures: {Stk.: 60}

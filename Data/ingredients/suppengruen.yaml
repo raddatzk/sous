@@ -1,0 +1,11 @@
+- id: suppengruen
+  name: Suppengrün
+  aliases:
+    - Suppenkraut
+  category: vegetables
+  measures: {Bund: 300}
+  nutrition:
+    raw: [G093100]
+    cooked: [G093132]
+  candidates: [G093200, G093232, G093400, G093432]
+  via: BLS-Gruppe "Suppengrün/Suppenkraut"

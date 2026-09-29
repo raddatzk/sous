@@ -1,0 +1,16 @@
+- id: salat
+  name: Salat
+  category: vegetables
+  measures: {Handvoll: 30}
+  nutrition:
+    raw: [G105100]
+  via: BLS-Gruppe "Kopfsalat"
+  varieties:
+    - id: blattsalat
+      name: Blattsalat
+    - id: kopfsalat
+      name: Kopfsalat
+      measures:
+        Stk.:
+          grams: 300
+          note: Ein Kopf, geputzt.

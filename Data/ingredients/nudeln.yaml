@@ -1,0 +1,41 @@
+- id: nudeln
+  name: Nudeln
+  aliases:
+    - Pasta
+  category: grains
+  nutrition:
+    raw: [E401000]
+    cooked: [E401032]
+  via: kuratierte Auswahl
+  varieties:
+    - id: lasagneplatten
+      name: Lasagneplatten
+      aliases:
+        - Lasagneplatte
+        - Lasagneblätter
+        - Lasagneblatt
+      measures:
+        Stk.:
+          grams: 20
+          note: Eine getrocknete Platte.
+    - id: orecchiette
+      name: Orecchiette
+    - id: orzo
+      name: Orzo
+      aliases:
+        - Kritharaki
+    - id: rigatoni
+      name: Rigatoni
+    - id: udon-nudeln
+      name: Udon-Nudeln
+      aliases:
+        - Udon
+        - Udonnudeln
+    - id: vollkornnudeln
+      name: Vollkornnudeln
+      aliases:
+        - Vollkornpasta
+      nutrition:
+        raw: [E510000]
+        cooked: [E500032]
+      via: BLS-Name, in die Küchenliste übernommen

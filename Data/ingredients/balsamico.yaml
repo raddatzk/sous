@@ -1,0 +1,10 @@
+- id: balsamico
+  name: Balsamico
+  aliases:
+    - Balsamicoessig
+    - Aceto Balsamico
+  category: oils
+  density: 1.06
+  nutrition:
+    unspecified: [R125000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

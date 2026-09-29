@@ -1,0 +1,8 @@
+- id: knoblauchpulver
+  name: Knoblauchpulver
+  aliases:
+    - Knoblauchgranulat
+  category: spices
+  nutrition:
+    unspecified: [G490400]
+  via: BLS-Name "Knoblauch getrocknet"

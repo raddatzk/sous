@@ -1,0 +1,11 @@
+- id: orange
+  name: Orange
+  aliases:
+    - Orangen
+    - Apfelsine
+    - Apfelsinen
+  category: fruit
+  measures: {Stk.: 180}
+  nutrition:
+    raw: [F603100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

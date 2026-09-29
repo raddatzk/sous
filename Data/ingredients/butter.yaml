@@ -1,0 +1,11 @@
+- id: butter
+  name: Butter
+  category: dairy
+  measures: {Pck.: 250}
+  nutrition:
+    unspecified: [Q611000]
+  candidates: [Q6A4000]
+  via: BLS-Gruppe "Butter mild gesäuert"
+  varieties:
+    - id: kraeuterbutter
+      name: Kräuterbutter

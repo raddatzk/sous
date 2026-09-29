@@ -1,0 +1,6 @@
+- id: gorgonzola
+  name: Gorgonzola
+  category: dairy
+  nutrition:
+    unspecified: [M5B1600]
+  via: BLS-Name, in die Küchenliste übernommen

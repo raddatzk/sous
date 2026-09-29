@@ -1,0 +1,8 @@
+- id: saure-sahne
+  name: Saure Sahne
+  aliases:
+    - Sauerrahm
+  category: dairy
+  nutrition:
+    unspecified: [M172500]
+  via: BLS-Gruppe "Sauerrahm/Saure Sahne, mind. 10 % Fett"

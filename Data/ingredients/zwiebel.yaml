@@ -1,0 +1,28 @@
+- id: zwiebel
+  name: Zwiebel
+  aliases:
+    - Zwiebeln
+    - Speisezwiebel
+  category: vegetables
+  measures: {Stk.: 110}
+  nutrition:
+    raw: [G480100]
+    cooked: [G480132, G480152, G480182, G480162, G480072]
+  via: BLS-Gruppe "Speisezwiebel"
+  varieties:
+    - id: gemuesezwiebel
+      name: Gemüsezwiebel
+      aliases:
+        - Gemüsezwiebeln
+    - id: rote-zwiebel
+      name: Rote Zwiebel
+      aliases:
+        - Rote Zwiebeln
+      measures:
+        Stk.:
+          grams: 100
+          note: Etwas kleiner als eine gelbe Speisezwiebel.
+      nutrition:
+        raw: [G480100]
+        cooked: [G480132, G480152, G480182, G480162, G480072]
+      via: BLS-Gruppe "Speisezwiebel"

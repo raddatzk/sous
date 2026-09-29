@@ -1,0 +1,10 @@
+- id: risottoreis
+  name: Risottoreis
+  aliases:
+    - Arborio
+    - Carnaroli
+  category: grains
+  nutrition:
+    raw: [C352000]
+    cooked: [C352032]
+  via: kuratierte Auswahl

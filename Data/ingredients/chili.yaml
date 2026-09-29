@@ -1,0 +1,26 @@
+- id: chili
+  name: Chili
+  aliases:
+    - Chilischote
+    - Chilischoten
+    - Peperoni
+  category: vegetables
+  measures: {Stk.: 8}
+  nutrition:
+    raw: [G554100, G553100]
+    cooked: [G554132, G554152, G554182, G553132, G553152, G553182]
+  candidates: [G550702, G550802]
+  via: Das BLS führt die frische Chilischote als „Pfefferschote“ — ein Wort, das keine Küche
+    schreibt, weshalb weder Namenssuche noch Vorschlag je darauf kam. Rot vor grün, weil „Chili“
+    ohne Zusatz meist die rote meint.
+  varieties:
+    - id: gruene-chili
+      name: Grüne Chili
+      aliases:
+        - grüne Chilis
+        - grüne Chilischote
+    - id: rote-chili
+      name: Rote Chili
+      aliases:
+        - rote Chilis
+        - rote Chilischote

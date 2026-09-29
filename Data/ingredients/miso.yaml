@@ -1,0 +1,11 @@
+- id: miso
+  name: Miso
+  aliases:
+    - Misopaste
+    - helle Misopaste
+    - weiße Misopaste
+    - Shiro Miso
+  category: canned
+  nutrition:
+    unspecified: [H862200]
+  via: BLS-Name "Miso/Sojabohnenpaste"

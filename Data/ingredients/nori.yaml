@@ -1,0 +1,12 @@
+- id: nori
+  name: Nori
+  aliases:
+    - Noriblatt
+    - Noriblätter
+    - Nori Blätter
+    - Nori-Blätter
+  category: canned
+  measures: {Blatt: 3}
+  nutrition:
+    unspecified: [G995000]
+  via: BLS-Name "Nori-Blatt geröstet"

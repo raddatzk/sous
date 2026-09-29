@@ -1,0 +1,9 @@
+- id: roemersalat
+  name: Römersalat
+  aliases:
+    - Romanasalat
+    - Romana
+  category: vegetables
+  nutrition:
+    raw: [G107100]
+  via: BLS-Gruppe "Römischer Salat/Romanasalat"

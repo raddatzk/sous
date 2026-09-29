@@ -1,0 +1,9 @@
+- id: ajvar
+  name: Ajvar
+  aliases:
+    - Ajvar Konserve
+    - Ajvar scharf
+  category: canned
+  nutrition:
+    unspecified: [G898400]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

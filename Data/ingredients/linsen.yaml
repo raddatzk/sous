@@ -1,0 +1,18 @@
+- id: linsen
+  name: Linsen
+  category: legumes
+  measures:
+    Dose:
+      grams: 250
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    cooked: [H730132]
+    unspecified: [H725100]
+  via: BLS-Gruppe "Linse reif"
+  varieties:
+    - id: belugalinsen
+      name: Belugalinsen
+    - id: berglinsen
+      name: Berglinsen

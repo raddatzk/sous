@@ -1,0 +1,11 @@
+- id: blaubeere
+  name: Blaubeere
+  aliases:
+    - Blaubeeren
+    - Heidelbeere
+    - Heidelbeeren
+  category: fruit
+  nutrition:
+    cooked: [F304152]
+    raw: [F304100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

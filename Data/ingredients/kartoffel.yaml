@@ -1,0 +1,16 @@
+- id: kartoffel
+  name: Kartoffel
+  aliases:
+    - Kartoffeln
+    - Salzkartoffeln
+  category: vegetables
+  measures: {Stk.: 120}
+  nutrition:
+    raw: [K110100]
+    cooked: [K110132, K110182, K110162]
+  candidates: [E605000, E605032, E605062, E605082, K110142, K110143, K110902, K120100, K120134,
+    K120164, K120184, K120200, K120264]
+  via: BLS-Gruppe "Kartoffel geschält"
+  varieties:
+    - id: festkochende-kartoffeln
+      name: Festkochende Kartoffeln

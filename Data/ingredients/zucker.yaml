@@ -1,0 +1,12 @@
+- id: zucker
+  name: Zucker
+  aliases:
+    - Kristallzucker
+    - Haushaltszucker
+  category: baking
+  density: 0.85
+  measures: {Tasse: 200}
+  nutrition:
+    unspecified: [S111000]
+  candidates: [S112000]
+  via: BLS-Gruppe "Zucker weiß (Raffinadezucker/Weißzucker)"

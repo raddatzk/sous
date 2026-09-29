@@ -1,0 +1,10 @@
+- id: pastinake
+  name: Pastinake
+  aliases:
+    - Pastinaken
+  category: vegetables
+  nutrition:
+    cooked: [G640132, G640152, G640162, G640182]
+    raw: [G640100]
+  candidates: [G640142]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

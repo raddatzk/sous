@@ -1,0 +1,7 @@
+- id: ahornsirup
+  name: Ahornsirup
+  category: baking
+  density: 1.33
+  nutrition:
+    unspecified: [S151100]
+  via: BLS-Name, in die Küchenliste übernommen

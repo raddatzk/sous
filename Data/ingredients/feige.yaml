@@ -1,0 +1,9 @@
+- id: feige
+  name: Feige
+  aliases:
+    - Feigen
+  category: fruit
+  nutrition:
+    raw: [F505100]
+  candidates: [F505400, F505902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

@@ -1,0 +1,13 @@
+- id: basilikum
+  name: Basilikum
+  category: herbs
+  measures: {Bund: 20, Handvoll: 10}
+  nutrition:
+    raw: [G061000]
+  candidates: [R231000]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: thai-basilikum
+      name: Thai-Basilikum
+      aliases:
+        - Thaibasilikum

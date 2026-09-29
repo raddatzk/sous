@@ -1,0 +1,11 @@
+- id: hackfleisch
+  name: Hackfleisch
+  aliases:
+    - Rinderhack
+    - Gemischtes Hack
+    - Hack
+  category: meat
+  nutrition:
+    raw: [U050100]
+    cooked: [U050132, U050162, U050182]
+  via: BLS-Gruppe "Rind/Schwein, Hackfleisch gemischt"

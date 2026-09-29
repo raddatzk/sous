@@ -1,0 +1,7 @@
+- id: spaghetti
+  name: Spaghetti
+  category: grains
+  nutrition:
+    raw: [E401000]
+    cooked: [E401032]
+  via: kuratierte Auswahl

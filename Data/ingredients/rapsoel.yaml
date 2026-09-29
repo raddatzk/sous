@@ -1,0 +1,9 @@
+- id: rapsoel
+  name: Rapsöl
+  aliases:
+    - Rapsoel
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q180000]
+  via: BLS-Gruppe "Rapsöl/Rüböl"

@@ -1,0 +1,26 @@
+- id: tomate
+  name: Tomate
+  aliases:
+    - Tomaten
+  category: vegetables
+  measures: {Stk.: 90}
+  nutrition:
+    cooked: [G561132, G561072, G561082, G561152, G561162]
+    raw: [G561100]
+  candidates: [G560142, G560400, G560900, G561500, G561802, G567702, G568900, G569902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: cocktailtomate
+      name: Cocktailtomate
+      aliases:
+        - Cocktailtomaten
+    - id: kirschtomate
+      name: Kirschtomate
+      aliases:
+        - Kirschtomaten
+        - Cherrytomate
+        - Cherrytomaten
+    - id: strauchtomate
+      name: Strauchtomate
+      aliases:
+        - Strauchtomaten

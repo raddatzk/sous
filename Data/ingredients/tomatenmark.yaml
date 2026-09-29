@@ -1,0 +1,7 @@
+- id: tomatenmark
+  name: Tomatenmark
+  category: canned
+  density: 1.1
+  nutrition:
+    unspecified: [R160000]
+  via: BLS-Name, in die Küchenliste übernommen

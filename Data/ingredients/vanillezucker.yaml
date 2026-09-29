@@ -1,0 +1,9 @@
+- id: vanillezucker
+  name: Vanillezucker
+  aliases:
+    - Bourbon-Vanillezucker
+  category: baking
+  measures: {Pck.: 8}
+  nutrition:
+    unspecified: [S114000]
+  via: BLS-Name, in die Küchenliste übernommen

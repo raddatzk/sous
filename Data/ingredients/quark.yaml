@@ -1,0 +1,11 @@
+- id: quark
+  name: Quark
+  aliases:
+    - Speisequark
+  category: dairy
+  nutrition:
+    unspecified: [M713100]
+  via: BLS-Gruppe "Speisequark Magerstufe, Magerquark < 10 % Fett i. Tr."
+  varieties:
+    - id: magerquark
+      name: Magerquark

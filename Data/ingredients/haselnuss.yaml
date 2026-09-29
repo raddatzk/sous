@@ -1,0 +1,11 @@
+- id: haselnuss
+  name: Haselnuss
+  aliases:
+    - Haselnüsse
+    - Haselnusskerne
+  category: nuts
+  measures: {Handvoll: 30}
+  nutrition:
+    unspecified: [H130100]
+  candidates: [H130400, H130610]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

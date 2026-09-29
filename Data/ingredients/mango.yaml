@@ -1,0 +1,9 @@
+- id: mango
+  name: Mango
+  aliases:
+    - Mangos
+  category: fruit
+  nutrition:
+    raw: [F516100]
+  candidates: [F516400, F516902]
+  via: BLS-Namensabgleich, einmalig festgeschrieben

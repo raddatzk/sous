@@ -1,0 +1,9 @@
+- id: bergkaese
+  name: Bergkäse
+  aliases:
+    - Emmentaler
+    - Gruyere
+  category: dairy
+  nutrition:
+    unspecified: [M302600, M302700]
+  via: kuratierte Auswahl

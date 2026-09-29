@@ -1,0 +1,8 @@
+- id: granatapfel
+  name: Granatapfel
+  aliases:
+    - Granatapfelkerne
+  category: fruit
+  nutrition:
+    raw: [F506100]
+  via: BLS-Namensabgleich, einmalig festgeschrieben
