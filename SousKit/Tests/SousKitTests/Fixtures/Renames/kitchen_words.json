@@ -1,0 +1,20 @@
+[
+ {
+  "id": "pflaume",
+  "name": "Pflaume",
+  "aliases": [
+   "Pflaumen",
+   "Zwetschge"
+  ],
+  "category": "fruit"
+ },
+ {
+  "id": "zwiebel",
+  "name": "Zwiebel",
+  "aliases": [
+   "Zwiebeln",
+   "Speisezwiebel"
+  ],
+  "category": "vegetables"
+ }
+]

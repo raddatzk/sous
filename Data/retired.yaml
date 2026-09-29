@@ -1,0 +1,10 @@
+# Ids that left the catalog for good, each with the reason it went.
+#
+# Retire an id only when the thing it names truly leaves the catalog. A merge
+# is not a retirement: list the absorbed id under `formerly:` on the entry
+# that absorbed it. A split is not one either: the old id stays, as the more
+# general word. A retired id is never used again.
+#
+# - id: beispiel
+#   reason: Why it went, for whoever finds a household row still pointing at it.
+[]

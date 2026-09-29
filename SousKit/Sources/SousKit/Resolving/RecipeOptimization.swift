@@ -642,7 +642,9 @@ public enum RecipeOptimizationPrompt {
     }
 
     /// The catalog as the model sees it: "Name | Alias, Alias", no values,
-    /// no weights. Keyed by name until the catalog has ids (phase 3).
+    /// no weights. Keyed by name, not by catalog id, on purpose: the answer
+    /// is recipe text, which names things, and a name is unique in the
+    /// catalog, so Sous derives the id itself wherever it stores one.
     static func catalogList(_ catalog: IngredientCatalog) -> String {
         let rows = catalog.ingredients.map { ingredient in
             ingredient.aliases.isEmpty ? ingredient.name : "\(ingredient.name) | \(ingredient.aliases.joined(separator: ", "))"

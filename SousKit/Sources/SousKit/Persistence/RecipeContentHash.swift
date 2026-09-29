@@ -45,7 +45,7 @@ enum RecipeContentHash {
     /// day it is added is the day every cached figure has to be recomputed:
     /// a word that resolved to nothing yesterday may have a basis today.
     static let bundledDataResources = [
-        "bls", "community", "kitchen_words", "curation", "measures", "aisles",
+        "bls", "community", "kitchen_words", "curation", "measures", "aisles", "ids",
     ]
 
     /// How many bytes each listed file contributed — internal so a test can

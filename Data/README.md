@@ -29,6 +29,9 @@ Data/
   aisles.yaml             BLS food group → default aisle, and the group filter
                           Scripts/nutrition/build_data.py applies to the workbook
   sources.yaml            what each data source says about itself
+  retired.yaml            ids that left the catalog, each with a reason
+  released-ids.txt        every id ever released; compile.py adds to it, nobody
+                          removes from it
   schema.json             the shape all of the above is validated against
 ```
 
@@ -60,7 +63,7 @@ catalog refers to its rows by code.
 
 | field | required | a variety that leaves it out | notes |
 |---|---|---|---|
-| `id` | yes | — | a slug fixed when the word is created; never changes, never reused. Not compiled yet (phase 3) |
+| `id` | yes | — | a slug fixed when the word is created; never changes, never reused. See [Ids](#ids-renames-merges-and-splits) |
 | `name` | yes | — | the display name |
 | `aliases` | no | — | other spellings. `Knoblauchzehe: {unit: Zehe}` is a spelling that implies a unit |
 | `category` | on a root | inherits the nearest ancestor's | one of `IngredientCategory`'s cases; the aisle follows from it |
@@ -69,6 +72,7 @@ catalog refers to its rows by code.
 | `nutrition` | on a root | inherits the parent's whole block | per state `raw` / `cooked` / `unspecified`, an ordered list of codes; or `without` |
 | `candidates` | no | — | further rows that may mean this word, for the curator; never computed with |
 | `via` | no | — | why this mapping; for the curator, not the app |
+| `formerly` | no | — | ids of entries this one absorbed in a merge |
 | `varieties` | no | — | nested entries of the same shape |
 
 ### Names and spellings
@@ -84,6 +88,54 @@ SousKit are tested against.
 A name or alias holds letters, digits, space and `- ' % / . ,` only: no
 parentheses, no typographic quotes, no `½`. Quote a spelling with a comma in
 it (`"Zwiebeln, rot"`).
+
+### Ids, renames, merges and splits
+
+The name is what a recipe says; the id is what a household row will hold
+(pantry, store, a local answer) once rows are keyed by it. So the id is the
+one thing about a word that never changes:
+
+- **Pick it once, from the name**, when the word is created: lowercase,
+  `ä ö ü ß` as `ae oe ue ss`, words joined by `-` (`rote-zwiebel`).
+- **A new name keeps the id.** Rename "Möhre" to "Karotte" and the id stays
+  `moehre`; nothing reads meaning into it. Keep the old name as an alias:
+  recipes are text and say "Möhre", and the alias is what still finds them.
+- **A merge moves the absorbed id under `formerly:`** on the entry that
+  absorbs it, together with the absorbed entry's spellings:
+
+  ```yaml
+  - id: pflaume
+    name: Pflaume
+    aliases:
+      - Pflaumen
+      - Zwetschge          # the absorbed entry's name, now a spelling
+    formerly: [zwetschge]
+  ```
+
+  The absorbed entry's own `formerly` moves along with it. The compiler turns
+  every `formerly` into the rename map `ids.json`, and the app reads a row
+  holding `zwetschge` as Pflaume. It rewrites the row only when the row is
+  saved anyway: there is no mass rewrite when new data arrives, which would
+  run on every device of a household on a different day.
+- **A split is an addition.** "Paprika" becoming rot, gelb and grün adds three
+  varieties under `paprika`; the old id stays, as the more general word, and
+  what a household said about Paprika reaches the varieties through their
+  parent.
+- **Retire an id only when its thing leaves the catalog for good**, in
+  `retired.yaml` with the reason. A row holding it then resolves to nothing,
+  and says so.
+- **An id is never reused**, not after a merge and not after a retirement: a
+  row somewhere may still hold it, and would silently change meaning.
+
+`released-ids.txt` is how the compiler knows. `compile.py` adds every id of
+the catalog to it; nobody removes a line, and CI fails a pull request whose
+list lost one. An id listed there must still be an entry's id, sit under some
+`formerly`, or be retired, or the data does not compile. If you added a word
+and renamed its id before it was ever merged, remove that line by hand: it
+was never released.
+
+An app that meets an id it neither knows nor has retired is looking at data
+newer than its own, and leaves the row alone until its data catches up.
 
 ### A variety and a spelling are not the same thing
 
@@ -135,7 +187,7 @@ ingredient that needs it, with its source:
 ```yaml
       nutrition:
         unspecified:
-          - code: Z000002
+          - code: Z000002                  # a new row would be Z-kokosmilch-fettarm
             name: Kokosmilch fettreduziert, 41 % Kokosmark
             category: fruit            # only where it differs from the ingredient's
             source: Nährwertdeklaration REWE Beste Wahl …, EAN 4388844280076 …
@@ -144,10 +196,13 @@ ingredient that needs it, with its source:
 
 It compiles into `community.json`. The rules:
 
-1. **Codes start with `Z` and are never reissued.** The BLS only ever uses
-   B–Y, so `Z` cannot collide. A deleted row's code lapses: a reused code would
-   silently move a cook's basis onto a different food. (New rows will take
-   `Z-<id>` codes from phase 3 on; Z000001 and Z000002 keep theirs.)
+1. **The code is `Z-` plus the entry's id** (`Z-hefeflocken`), and
+   `Z-<id>-<state>` where the entry has a row per state. The BLS only ever
+   uses B–Y, so `Z` cannot collide, and a code derived from the id needs no
+   next free number, so two pull requests cannot both take the same one.
+   Z000001 and Z000002 were numbered before that and keep their codes. A
+   code is never reissued: a deleted row's code lapses, since a reused one
+   would silently move a cook's basis onto a different food.
 2. **The name is the source's name, verbatim**: "Nutritional yeast", not
    "Hefeflocken". A translated name exists in no database, so nobody could
    check it. The German word is the ingredient's name.
@@ -205,6 +260,9 @@ numbers where numbers belong), then across files:
 - names and aliases unique after normalization
 - every code exists, in `bls.json` or inline; inline codes unique
 - ids unique; an ingredient file holds one family named after its root's id
+- no released id vanishes: each is an entry's, under one `formerly`, or
+  retired; an absorbed or retired id is never an entry's again
+- a new inline code is derived from its entry's id
 - a root has a category and maps or says `without`
 - no ancestor loops
 - product spellings name the brand; product rows carry `source`, `checked`, `per`

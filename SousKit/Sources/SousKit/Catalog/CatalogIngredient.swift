@@ -39,6 +39,12 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// they are not part of the encoded form; see
     /// ``IngredientCatalog/reading(_:for:)``.
     public var aliasUnits: [String: String] = [:]
+    /// The shipped word's id in the catalog ("rote-zwiebel"), which outlives
+    /// a new name; `nil` for a word only the cook knows. Not `id`, which
+    /// `Identifiable` spends on the normalized name, and not part of the
+    /// encoded form: only the shipped catalog writes it. See
+    /// ``IngredientCatalog/ingredient(forID:)``.
+    public var catalogID: String?
 
     /// Normalized name, used as the identity.
     public var key: String { IngredientCatalog.normalize(name) }

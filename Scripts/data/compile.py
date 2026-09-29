@@ -12,14 +12,19 @@ Reads:
   - `Data/measures.yaml`       units, group weights, group densities
   - `Data/aisles.yaml`         BLS group -> category, and the extraction filter
   - `Data/sources.yaml`        what each source says about itself
+  - `Data/retired.yaml`        ids that left the catalog, each with a reason
+  - `Data/released-ids.txt`    every id ever released; it only grows
   - `Data/schema.json`         the shape all of the above is validated against
   - `Resources/bls.json`       generated from the BLS workbook by
                                `Scripts/nutrition/build_data.py`; read here only
                                to check that every code exists
 
 Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`
-and `community.json`, in the shapes the app has always read, and
-`sources.json`, which the sources screen reads.
+and `community.json`, in the shapes the app has always read, `sources.json`,
+which the sources screen reads, and `ids.json`, the rename map: every id an
+entry absorbed under `formerly`, pointing at the entry, and the retired ids.
+It also adds the catalog's ids to `Data/released-ids.txt`, and fails when an
+id listed there is gone without being renamed or retired.
 
 The YAML loader is strict, because YAML's conveniences are traps in a data
 set: every scalar is read as a string (`no` stays "no", `1.10` stays "1.10",
@@ -29,6 +34,9 @@ are refused. Numbers are converted where the schema says a field is one.
 Usage:
     python3 Scripts/data/compile.py            write the resources
     python3 Scripts/data/compile.py --check    fail if the resources differ
+    python3 Scripts/data/compile.py --check --since REF
+                                               also fail if released-ids.txt
+                                               lost an id it had at git REF
 
 Needs PyYAML and jsonschema (`pip install -r Scripts/data/requirements.txt`).
 """
@@ -37,6 +45,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 import unicodedata
 from dataclasses import dataclass, field
@@ -50,6 +59,18 @@ DATA = REPO_ROOT / "Data"
 RESOURCES = REPO_ROOT / "SousKit/Sources/SousKit/Resources"
 
 STATES = ("raw", "cooked", "unspecified")
+
+# Inline rows written before phase 3 carry numbered codes. They keep them; a
+# new row's code is derived from its entry's id instead, so two pull requests
+# adding a row each cannot both take the next number.
+NUMBERED_Z_CODES = {"Z000001", "Z000002"}
+
+RELEASED_IDS_HEADER = """\
+# Every id the catalog has ever released, one per line, sorted.
+# compile.py adds new ids; nobody removes one. An id listed here stays an
+# entry's id, moves under `formerly:` on the entry that absorbed it, or is
+# retired in Data/retired.yaml. It is never used for anything else again.
+"""
 
 # The texts curation.json has always opened with. The app does not read them;
 # they are kept word for word so the compiled file is the file it replaces.
@@ -179,6 +200,7 @@ class Word:
     nutrition: object = None          # None, "without", or state -> [code | row]
     candidates: list[str] = field(default_factory=list)
     via: str | None = None
+    formerly: list[str] = field(default_factory=list)
     raw: dict = field(default_factory=dict)
 
     @property
@@ -207,6 +229,7 @@ def flatten(entry: dict, file: str, parent: Word | None, out: list[Word]) -> Non
     word.nutrition = entry.get("nutrition")
     word.candidates = list(entry.get("candidates", []))
     word.via = entry.get("via")
+    word.formerly = list(entry.get("formerly", []))
     out.append(word)
     for variety in entry.get("varieties", []):
         flatten(variety, file, word, out)
@@ -219,6 +242,8 @@ class Dataset:
     aisles: dict
     sources: dict
     bls_codes: set[str]
+    retired: dict[str, str] = field(default_factory=dict)
+    released: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -255,6 +280,15 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
     measures = validated(data / "measures.yaml", "measuresFile")
     aisles = validated(data / "aisles.yaml", "aislesFile")
     sources = validated(data / "sources.yaml", "sourcesFile")
+    retired = validated(data / "retired.yaml", "retiredFile") or []
+    if errors:
+        raise DataError("\n".join(errors))
+
+    retired_ids: dict[str, str] = {}
+    for row in retired:
+        if row["id"] in retired_ids:
+            errors.append(f"Data/retired.yaml: {row['id']!r} is retired twice")
+        retired_ids[row["id"]] = row["reason"]
     if errors:
         raise DataError("\n".join(errors))
 
@@ -262,7 +296,20 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
     return Dataset(
         words=words, measures=measures, aisles=aisles, sources=sources,
         bls_codes={row["code"] for row in bls["entries"]},
+        retired=retired_ids,
+        released=read_released(data / "released-ids.txt"),
     )
+
+
+def read_released(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    return parse_released(path.read_text(encoding="utf-8"))
+
+
+def parse_released(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines()
+            if line.strip() and not line.startswith("#")]
 
 
 # --------------------------------------------------------------------------
@@ -287,18 +334,75 @@ def codes_of(word: Word):
                 yield state, item["code"] if isinstance(item, dict) else item
 
 
+def id_errors(dataset: Dataset) -> list[str]:
+    """INGREDIENTS-DATA §3 F. An id is fixed when its entry is created and is
+    never reused. Once released, it stays an entry's id, moves under
+    `formerly:` on the entry that absorbed it, or is retired; the app resolves
+    a household row written with an old id through what this leaves behind."""
+    errors: list[str] = []
+    by_id: dict[str, Word] = {}
+    for word in dataset.words:
+        if word.id in by_id:
+            errors.append(f"{word.file}: the id {word.id!r} is used twice "
+                          f"({by_id[word.id].name!r} and {word.name!r})")
+        by_id[word.id] = word
+
+    absorbed: dict[str, Word] = {}
+    for word in dataset.words:
+        for old in word.formerly:
+            if old in by_id:
+                errors.append(
+                    f"{word.file}: {word.name} lists {old!r} under formerly, but "
+                    f"{by_id[old].name} in {by_id[old].file} still has that id; an id "
+                    f"is never reused"
+                )
+            elif old in absorbed:
+                errors.append(f"{word.file}: {old!r} is listed under formerly by both "
+                              f"{absorbed[old].name} and {word.name}; one entry absorbs it")
+            absorbed[old] = word
+    for old, reason in dataset.retired.items():
+        if old in by_id:
+            errors.append(f"Data/retired.yaml: {old!r} is retired, but {by_id[old].name} in "
+                          f"{by_id[old].file} still has that id; an id is never reused")
+        elif old in absorbed:
+            errors.append(f"Data/retired.yaml: {old!r} is retired and listed under formerly "
+                          f"by {absorbed[old].name}; it is one or the other")
+
+    released = set(dataset.released)
+    for old in sorted(released - set(by_id) - set(absorbed) - set(dataset.retired)):
+        errors.append(
+            f"Data/released-ids.txt: the id {old!r} was released and no entry has it any "
+            f"more. A released id never disappears: keep it on its entry (a new name keeps "
+            f"the id), list it under `formerly:` on the entry that absorbed it, or retire "
+            f"it in Data/retired.yaml with a reason"
+        )
+    for old, word in sorted(absorbed.items()):
+        if old not in released:
+            errors.append(f"{word.file}: {word.name} lists {old!r} under formerly, which was "
+                          f"never released; nothing can point at it, so drop it")
+    for old in sorted(set(dataset.retired) - released):
+        errors.append(f"Data/retired.yaml: {old!r} was never released; nothing can point "
+                      f"at it, so drop it")
+    return errors
+
+
+def released_ids(dataset: Dataset) -> str:
+    """`Data/released-ids.txt` with this catalog's ids added."""
+    ids = set(dataset.released) | {word.id for word in dataset.words}
+    return RELEASED_IDS_HEADER + "".join(f"{i}\n" for i in sorted(ids))
+
+
+def lost_ids(before: str, after: str) -> list[str]:
+    """Ids a version of `released-ids.txt` had that a later one lacks."""
+    return sorted(set(parse_released(before)) - set(parse_released(after)))
+
+
 def check(dataset: Dataset) -> None:
     errors: list[str] = []
     warnings = dataset.warnings
     words = dataset.words
 
-    # Ids: a slug, once.
-    by_id: dict[str, Word] = {}
-    for word in words:
-        if word.id in by_id:
-            errors.append(f"{word.file}: the id {word.id!r} is used twice "
-                          f"({by_id[word.id].name!r} and {word.name!r})")
-        by_id[word.id] = word
+    errors.extend(id_errors(dataset))
 
     # Names and aliases: once across the whole catalog, products included,
     # compared the way the app compares them.
@@ -359,7 +463,7 @@ def check(dataset: Dataset) -> None:
             current = by_name.get(current.parent) if current.parent else None
 
     # Codes: every one exists, in bls.json or inline; inline ones are Z codes,
-    # written once.
+    # written once, and a new one is named after its entry's id.
     inline: dict[str, Word] = {}
     for word in words:
         for row in inline_rows(word):
@@ -367,6 +471,13 @@ def check(dataset: Dataset) -> None:
             if code in inline or code in dataset.bls_codes:
                 errors.append(f"{word.file}: the inline code {code} is used twice")
             inline[code] = word
+            own = f"Z-{word.id}"
+            if code not in NUMBERED_Z_CODES and code != own and not (
+                code.startswith(own + "-") and code[len(own) + 1:] in STATES
+            ):
+                errors.append(f"{word.file}: {word.name}'s inline code {code} is not "
+                              f"derived from its id; write {own}, or {own}-<state> where "
+                              f"the entry has a row per state")
     known = dataset.bls_codes | set(inline)
     for word in words:
         for state, code in codes_of(word):
@@ -426,7 +537,8 @@ def category_of(word: Word, by_name: dict[str, Word]) -> str:
 def kitchen_words(dataset: Dataset) -> list[dict]:
     out = []
     for word in catalog_order(dataset.words):
-        row: dict = {"name": word.name, "aliases": word.aliases}
+        # `id` is new in phase 3; an app that predates it ignores the key.
+        row: dict = {"id": word.id, "name": word.name, "aliases": word.aliases}
         # The spelling stays in `aliases` too, so an app that predates
         # `aliasUnits` still recognizes it; it only misses the unit.
         if word.alias_units:
@@ -579,12 +691,25 @@ def load_sources(data: Path = DATA) -> dict:
     return load_yaml(data / "sources.yaml")
 
 
+def ids(dataset: Dataset) -> dict:
+    """The rename map: every absorbed id pointing at the entry that absorbed
+    it, and the retired ids. An id in neither and not in the catalog comes
+    from a newer data version; the app leaves a row with it alone."""
+    return {
+        "renamed": dict(sorted(
+            (old, word.id) for word in dataset.words for old in word.formerly
+        )),
+        "retired": sorted(dataset.retired),
+    }
+
+
 def dump_json(data) -> str:
     # No trailing newline, as the resources have always been written.
     return json.dumps(data, indent=1, ensure_ascii=False)
 
 
-def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[str, str], list[str]]:
+def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[str, str], list[str], str]:
+    """The resources by file name, the warnings, and `released-ids.txt`."""
     dataset = load_dataset(data, resources)
     check(dataset)
     return {
@@ -594,24 +719,29 @@ def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[s
         "aisles.json": dump_json(aisles(dataset)),
         "community.json": dump_json(community(dataset)),
         "sources.json": dump_json(sources(dataset)),
-    }, dataset.warnings
+        "ids.json": dump_json(ids(dataset)),
+    }, dataset.warnings, released_ids(dataset)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true",
                         help="compile in memory and fail if the resources differ")
+    parser.add_argument("--since", metavar="REF",
+                        help="with --check: also fail if Data/released-ids.txt lost an "
+                             "id it had at this git revision")
     parser.add_argument("--data", type=Path, default=DATA)
     parser.add_argument("--resources", type=Path, default=RESOURCES)
     args = parser.parse_args()
 
     try:
-        outputs, warnings = compile_data(args.data, args.resources)
+        outputs, warnings, released = compile_data(args.data, args.resources)
     except DataError as error:
         print(f"Data/ does not compile:\n{error}", file=sys.stderr)
         return 1
     for warning in warnings:
         print(f"warning: {warning}", file=sys.stderr)
+    released_path = args.data / "released-ids.txt"
 
     if args.check:
         stale = [
@@ -619,18 +749,43 @@ def main() -> int:
             if not (args.resources / name).exists()
             or (args.resources / name).read_text(encoding="utf-8") != text
         ]
+        if not released_path.exists() or released_path.read_text(encoding="utf-8") != released:
+            stale.append(relative(released_path))
         if stale:
             print("The resources differ from compile(Data/): " + ", ".join(stale) + ".\n"
                   "Edit Data/, not the resources, and run: python3 Scripts/data/compile.py",
                   file=sys.stderr)
             return 1
+        if args.since:
+            lost = lost_ids(released_at(args.since, released_path), released)
+            if lost:
+                print(f"Data/released-ids.txt lost {', '.join(lost)} since {args.since}. "
+                      f"The list only grows: put the ids back, and rename or retire them "
+                      f"in Data/ instead.", file=sys.stderr)
+                return 1
         print(f"Resources match compile(Data/): {', '.join(outputs)}")
         return 0
 
     for name, text in outputs.items():
         (args.resources / name).write_text(text, encoding="utf-8")
-    print(f"Wrote {', '.join(outputs)} to {relative(args.resources)}")
+    released_path.write_text(released, encoding="utf-8")
+    print(f"Wrote {', '.join(outputs)} to {relative(args.resources)}, "
+          f"and {relative(released_path)}")
     return 0
+
+
+def released_at(ref: str, path: Path) -> str:
+    """The released-ids list as it was at a git revision; empty before it
+    existed. An unknown revision is an error, not an empty list."""
+    known = subprocess.run(["git", "cat-file", "-e", f"{ref}^{{commit}}"],
+                           cwd=REPO_ROOT, capture_output=True)
+    if known.returncode != 0:
+        raise SystemExit(f"--since: {ref!r} is not a commit this checkout has")
+    result = subprocess.run(
+        ["git", "show", f"{ref}:{path.resolve().relative_to(REPO_ROOT).as_posix()}"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    return result.stdout if result.returncode == 0 else ""
 
 
 if __name__ == "__main__":
