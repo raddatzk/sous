@@ -25,7 +25,8 @@ jobs:
     # GitHub-hosted, like CI. Only a manual dispatch starts this job, and
     # secrets are never handed to a workflow triggered from a fork, so the
     # signing material stays out of reach of anyone opening a pull request.
-    runs-on: macos-26
+    # `xcode-27` for the 27 SDKs, as in CI; see there.
+    runs-on: xcode-27
     timeout-minutes: 120
 
     outputs:
@@ -43,12 +44,11 @@ jobs:
 
       - name: Select Xcode
         run: |
-          latest=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
-          sudo xcode-select -s "$latest"
+          sudo xcode-select -s /Applications/Xcode.app
           xcodebuild -version
           major=$(xcodebuild -version | head -1 | sed -E 's/Xcode ([0-9]+).*/\1/')
-          if [ "$major" -lt 26 ]; then
-            echo "::error::Xcode $major is too old — the project targets iOS 26.5 and needs Xcode 26 or newer."
+          if [ "$major" -lt 27 ]; then
+            echo "::error::Xcode $major is too old — the project targets iOS 27 and needs Xcode 27 or newer."
             exit 1
           fi
 

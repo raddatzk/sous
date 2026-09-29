@@ -12,7 +12,7 @@ trade-offs were made, and what is deliberately out of scope.
 
 ## Status
 
-Version 1.x, distributed through TestFlight. Requires iOS 27 or macOS 27.
+Version 1.x, distributed through TestFlight. Requires iOS 27 or macOS 26.5.
 
 ## What it does
 
@@ -116,8 +116,9 @@ SOUS_TAG_LIBRARY=/path/to/library.melarecipes swift test --filter NutritionTagCa
 ## CI and releases
 
 [`ci.yml`](.github/workflows/ci.yml) runs on every push to `main` and every
-pull request on GitHub's `macos-26` image: regenerate the project, `swift
-test`, then build for the iOS Simulator and for macOS. Nothing is signed, so it
+pull request on GitHub's `xcode-27` image, the one that carries Xcode 27 and
+with it the iOS 27 SDK: regenerate the project, `swift test`, then build for the
+iOS Simulator and for macOS. Nothing is signed, so it
 needs no secrets. The repository is public, so a pull request can come from
 anyone — which is exactly why this does not run on a Mac of ours.
 
