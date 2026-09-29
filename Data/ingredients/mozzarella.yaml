@@ -8,10 +8,7 @@
   varieties:
     - id: bueffelmozzarella
       name: Büffelmozzarella
-      aliases:
-        - Büffel-Mozzarella
     - id: mini-mozzarella
       name: Mini-Mozzarella
       aliases:
-        - Minimozzarella
         - Mozzarella-Kugeln

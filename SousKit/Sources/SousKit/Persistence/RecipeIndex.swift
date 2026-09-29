@@ -27,7 +27,7 @@ public enum RecipeIndex {
         var keys: [String] = []
         for ingredient in recipe.ingredients {
             let name = ShoppingItem.displayName(for: ingredient.name)
-            let own = ShoppingItem.key(for: ingredient.name, catalog: catalog)
+            let own = IngredientCatalog.normalize(ShoppingItem.key(for: ingredient.name, catalog: catalog))
             var resolved = catalog.ingredient(for: name)
             var headKey: String?
             if resolved == nil, let head = headWord(of: name) {

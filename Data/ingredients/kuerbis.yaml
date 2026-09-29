@@ -18,7 +18,6 @@
     - id: hokkaido
       name: Hokkaido
       aliases:
-        - Hokkaido-Kürbis
         - Hokkaidokürbis
       measures: {Stk.: 1000}
       nutrition:

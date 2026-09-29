@@ -1,0 +1,33 @@
+{
+ "note": "How two spellings are compared (R7). Read by SousKit's NormalizationTests and by Scripts/data/test_compile.py, so IngredientCatalog.normalize and the compiler's normalize cannot drift apart. `cases`: input -> key. `distinct`: pairs that must not become one key.",
+ "cases": [
+  {"input": "Zwiebel", "key": "zwiebel"},
+  {"input": "  Rote   Bete ", "key": "rote bete", "why": "trimmed, inner runs collapsed"},
+  {"input": "Rote\tBete", "key": "rote bete", "why": "a tab is whitespace"},
+  {"input": "Rote Bete", "key": "rote bete", "why": "so is a no-break space"},
+  {"input": "Weißwein", "key": "weisswein", "why": "ß is written ss"},
+  {"input": "Weisswein", "key": "weisswein"},
+  {"input": "WEISSWEIN", "key": "weisswein"},
+  {"input": "GROẞE Zwiebel", "key": "grosse zwiebel", "why": "capital sharp s lowercases to ß, then folds"},
+  {"input": "Süßkartoffel", "key": "süsskartoffel", "why": "umlauts stay"},
+  {"input": "Äpfel", "key": "äpfel"},
+  {"input": "Hokkaido-Kürbis", "key": "hokkaidokürbis", "why": "a hyphen is dropped, not spaced"},
+  {"input": "Hokkaidokürbis", "key": "hokkaidokürbis"},
+  {"input": "Mini‑Pak Choi", "key": "minipak choi", "why": "the non-breaking hyphen too"},
+  {"input": "Mini‐Pak Choi", "key": "minipak choi", "why": "and the typographic one"},
+  {"input": "Tortelloni Spinat-Ricotta", "key": "tortelloni spinatricotta"},
+  {"input": "Linsen -", "key": "linsen", "why": "a dangling hyphen leaves nothing behind"},
+  {"input": "Salz – Pfeffer", "key": "salz – pfeffer", "why": "a dash separates; it is not a hyphen"},
+  {"input": "Crème fraîche", "key": "crème fraîche", "why": "decomposed input is composed first"},
+  {"input": "Crème fraîche", "key": "crème fraîche"},
+  {"input": "Mehl Type 405", "key": "mehl type 405"},
+  {"input": "", "key": ""},
+  {"input": "   ", "key": ""}
+ ],
+ "distinct": [
+  ["Créme fraîche", "Crème fraîche"],
+  ["Pak Choi", "Pak-Choi"],
+  ["Apfel", "Äpfel"],
+  ["Mais", "Reis"]
+ ]
+}

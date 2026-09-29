@@ -358,9 +358,42 @@ public struct IngredientCatalog: Sendable {
         }
     }
 
-    /// Lowercased and stripped of surrounding whitespace. Comparison is on
-    /// this form throughout, so "Rote Bete" and "rote bete" are one thing.
+    /// The form two spellings are compared in: composed (NFC), lowercased,
+    /// ß written as ss, hyphens dropped, and whitespace trimmed and
+    /// collapsed. So "Rote Bete" and "rote  bete" are one thing, and so are
+    /// "Weißwein" and "Weisswein", "Hokkaido-Kürbis" and "Hokkaidokürbis".
+    /// Accents stay: "Créme" is a typo of "Crème", not a spelling of it.
+    ///
+    /// `Scripts/data/compile.py` normalizes the same way when it checks that
+    /// no two catalog spellings collide; `Data/normalize-cases.json` holds
+    /// the cases both are tested against, so the two cannot drift apart.
+    ///
+    /// Not what the stores persist: see ``storageKey(_:)``.
     public static func normalize(_ name: String) -> String {
+        let folded = name.precomposedStringWithCanonicalMapping
+            .lowercased()
+            .replacingOccurrences(of: "ß", with: "ss")
+            .filter { !hyphens.contains($0) }
+        return folded
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+    }
+
+    /// Hyphen-minus, hyphen and non-breaking hyphen. Not the dashes: " – "
+    /// separates, it does not join.
+    private static let hyphens: Set<Character> = ["-", "\u{2010}", "\u{2011}"]
+
+    /// The key the vocabulary and shopping rows are stored under: trimmed
+    /// and lowercased, nothing more — what ``normalize(_:)`` was before it
+    /// learned to fold ß and hyphens.
+    ///
+    /// Frozen on purpose. An older app in the same household looks its rows
+    /// up by exactly this string, and so does this one when it upserts a row
+    /// written before the change: a stored field keeps its meaning (the
+    /// schema only grows). Everything read back is compared through
+    /// ``normalize(_:)``, which folds this key the same as the name it came
+    /// from.
+    public static func storageKey(_ name: String) -> String {
         name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()

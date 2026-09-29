@@ -85,6 +85,12 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
     /// everything else in the app normalizes.
     public var key: String { IngredientCatalog.normalize(name) }
 
+    /// What the stores file this entry under — ``IngredientCatalog/storageKey(_:)``,
+    /// which is frozen, so a row written before ``key`` learned to fold ß and
+    /// hyphens, or by an older app in the household, is found and updated
+    /// rather than written a second time.
+    public var storageKey: String { IngredientCatalog.storageKey(name) }
+
     /// Whether this entry still says anything. One that does not is swept:
     /// the vocabulary is meant to hold decisions, not the residue of having
     /// opened a form once.
