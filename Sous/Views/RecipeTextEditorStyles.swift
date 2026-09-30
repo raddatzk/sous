@@ -107,7 +107,7 @@ enum RecipeTextEditorStyle {
                 value: RecipeTextHighlighting.paragraphStyle(indent: ingredientIndent, spacingBefore: 0),
                 range: line.paragraphRange
             )
-            guard let length = IngredientParser.leadingAmountAndUnitLength(in: String(line.trimmed)) else { continue }
+            guard let length = IngredientLineReader.measure(in: String(line.trimmed))?.length else { continue }
             let amountRange = RecipeTextHighlighting.prefixRange((String(line.trimmed).prefix(length) as NSString).length, of: line)
             attributed.addAttribute(.foregroundColor, value: PlatformColor(.sousAccent), range: amountRange)
             attributed.addAttribute(.font, value: boldBodyFont(), range: amountRange)

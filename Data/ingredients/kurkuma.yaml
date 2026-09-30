@@ -5,3 +5,6 @@
   via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
     findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
     also lieber keine Werte als falsche.
+  varieties:
+    - id: frische-kurkuma
+      name: Frische Kurkuma

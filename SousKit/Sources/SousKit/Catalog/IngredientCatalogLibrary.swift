@@ -18,17 +18,27 @@ public final class IngredientCatalogLibrary {
     private let nutritionCache: (any RecipeNutritionStore)?
 
     /// Everything the app knows, ready to look up.
-    public private(set) var catalog: IngredientCatalog = .bundled
+    public private(set) var catalog: IngredientCatalog = .bundled {
+        didSet {
+            if readsRecipes { IngredientLineReader.catalog = catalog }
+        }
+    }
+    /// Whether this is the app's catalog, the one every recipe's lines are
+    /// read against (``IngredientLineReader/catalog``). Off for the many
+    /// libraries tests build side by side.
+    private let readsRecipes: Bool
     /// Everything the cook has said about an ingredient, by normalized name.
     public private(set) var vocabulary: [String: IngredientVocabularyEntry] = [:]
     public var errorMessage: String?
 
     public init(
         store: any VocabularyStore,
-        nutritionCache: (any RecipeNutritionStore)? = nil
+        nutritionCache: (any RecipeNutritionStore)? = nil,
+        readsRecipes: Bool = false
     ) {
         self.store = store
         self.nutritionCache = nutritionCache
+        self.readsRecipes = readsRecipes
     }
 
     /// Whether the cook's own data has been read at least once. Until it

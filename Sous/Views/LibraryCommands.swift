@@ -22,6 +22,8 @@ final class LibraryCommands {
         case catalog
         case categories
         case trash
+        /// "Bibliothek umstellen", the preview of the move into the fixed form.
+        case migration
 
         var id: String { rawValue }
     }

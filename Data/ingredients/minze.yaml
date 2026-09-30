@@ -1,5 +1,7 @@
 - id: minze
   name: Minze
+  aliases:
+    - frische Minze
   category: herbs
   measures: {Bund: 20, Handvoll: 5}
   nutrition: without

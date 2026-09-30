@@ -447,7 +447,9 @@
   "id": "dattel",
   "name": "Dattel",
   "aliases": [
-   "Datteln"
+   "Datteln",
+   "entsteinte Dattel",
+   "entsteinte Datteln"
   ],
   "category": "fruit"
  },
@@ -611,6 +613,20 @@
   "category": "fish"
  },
  {
+  "id": "frische-kurkuma",
+  "name": "Frische Kurkuma",
+  "aliases": [],
+  "parent": "Kurkuma"
+ },
+ {
+  "id": "frisches-lorbeerblatt",
+  "name": "Frisches Lorbeerblatt",
+  "aliases": [
+   "frische Lorbeerblätter"
+  ],
+  "parent": "Lorbeerblatt"
+ },
+ {
   "id": "frischhefe",
   "name": "Frischhefe",
   "aliases": [],
@@ -720,6 +736,14 @@
    "getrocknete Tomate"
   ],
   "category": "canned"
+ },
+ {
+  "id": "glatte-petersilie",
+  "name": "Glatte Petersilie",
+  "aliases": [
+   "frische glatte Petersilie"
+  ],
+  "parent": "Petersilie"
  },
  {
   "id": "gnocchi",
@@ -957,7 +981,9 @@
  {
   "id": "ingwer",
   "name": "Ingwer",
-  "aliases": [],
+  "aliases": [
+   "frischer Ingwer"
+  ],
   "category": "vegetables"
  },
  {
@@ -1178,7 +1204,8 @@
   "id": "koriander",
   "name": "Koriander",
   "aliases": [
-   "Koriandergrün"
+   "Koriandergrün",
+   "frischer Koriander"
   ],
   "category": "herbs"
  },
@@ -1479,7 +1506,9 @@
  {
   "id": "minze",
   "name": "Minze",
-  "aliases": [],
+  "aliases": [
+   "frische Minze"
+  ],
   "category": "herbs"
  },
  {
@@ -1711,7 +1740,9 @@
  {
   "id": "petersilie",
   "name": "Petersilie",
-  "aliases": [],
+  "aliases": [
+   "frische Petersilie"
+  ],
   "category": "herbs"
  },
  {
@@ -2312,7 +2343,9 @@
  {
   "id": "spinat",
   "name": "Spinat",
-  "aliases": [],
+  "aliases": [
+   "frischer Spinat"
+  ],
   "category": "vegetables"
  },
  {

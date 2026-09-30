@@ -26,7 +26,7 @@
   "unit": {
    "description": "IngredientUnit's symbols; mass and volume units need no measure.",
    "enum": ["Stk.", "Prise", "Msp.", "Bund", "Zehe", "Pck.", "Portion", "Blatt", "Tasse",
-            "Dose", "Glas", "Stange", "Zweig", "Stiel", "cm", "Handvoll", "TL", "EL"]
+            "Dose", "Glas", "Stange", "Zweig", "Stiel", "cm", "Handvoll", "Spritzer", "Kopf", "TL", "EL"]
   },
   "nutrient": {
    "enum": ["kcal", "proteinG", "fatG", "saturatedFatG", "carbsG", "sugarG", "fiberG",

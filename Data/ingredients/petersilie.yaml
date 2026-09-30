@@ -1,7 +1,14 @@
 - id: petersilie
   name: Petersilie
+  aliases:
+    - frische Petersilie
   category: herbs
   measures: {Bund: 30, Stiel: 2, Handvoll: 10}
   nutrition:
     raw: [G250100]
   via: BLS-Gruppe "Petersilienblatt"
+  varieties:
+    - id: glatte-petersilie
+      name: Glatte Petersilie
+      aliases:
+        - frische glatte Petersilie

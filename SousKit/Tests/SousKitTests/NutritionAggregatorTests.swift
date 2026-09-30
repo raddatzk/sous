@@ -147,7 +147,7 @@ struct NutritionAggregatorTests {
     func unquantifiedLineIsNotADefect() {
         let recipe = Recipe(
             title: "Gemüsepfanne", servings: 2,
-            ingredientsText: "300 g Zucchini\nSalz nach Geschmack"
+            ingredientsText: "300 g Zucchini\nSalz, nach Geschmack"
         )
 
         let coverage = aggregate(recipe).coverage

@@ -223,7 +223,10 @@ struct ShoppingLibraryTests {
         #expect(potatoes.quantities == [Quantity(1, .kilogram)])
     }
 
-    @Test("A recipe's variety after the comma bundles with the variety", arguments: StoreBackend.allCases)
+    /// In the fixed form a word after the comma is an annotation, never part
+    /// of the name: the variety is the name written as such, which is what
+    /// "Bibliothek umstellen" turns "1 Zwiebel, rot" into.
+    @Test("A recipe's word after the comma is an annotation, not a variety", arguments: StoreBackend.allCases)
     func recipeLineKeepsQualifier(_ backend: StoreBackend) async throws {
         let (shopping, _, _) = try makeLibrary(backend)
         await shopping.add(Recipe(
@@ -238,7 +241,9 @@ struct ShoppingLibraryTests {
 
         #expect(Set(shopping.items.map(\.name)) == ["Rote Zwiebel", "Zwiebel"])
         let red = try #require(shopping.items.first { $0.name == "Rote Zwiebel" })
-        #expect(red.quantities == [Quantity(3, .piece)])
+        #expect(red.quantities == [Quantity(2, .piece)])
+        let plain = try #require(shopping.items.first { $0.name == "Zwiebel" })
+        #expect(plain.quantities == [Quantity(2, .piece)])
     }
 }
 

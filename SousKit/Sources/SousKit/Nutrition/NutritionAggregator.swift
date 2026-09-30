@@ -45,7 +45,7 @@ public enum NutritionAggregator {
         seen.insert(recipe.id)
 
         var total = NutritionInfo.zero
-        for ingredient in recipe.scaledIngredients(toServings: servings) {
+        for ingredient in recipe.scaledIngredients(toServings: servings, catalog: catalog) {
             let displayName = ShoppingItem.displayName(for: ingredient.name)
 
             // A linked recipe contributes what it is made of, not itself —
@@ -81,15 +81,23 @@ public enum NutritionAggregator {
                 lines.append(NutritionLineReport(ingredientName: displayName, outcome: .gap(.unquantified)))
                 continue
             }
+            // Outside the fixed form nothing is read as a name, so the catalog
+            // is not asked — however close the words come to one. Only values
+            // the household gave for exactly these words count; everything
+            // else stays the open question it was.
+            let outsideForm = ingredient.isOutsideForm
+
             // "2 Knoblauchzehen" counts Zehen, not pieces: the line is read in
             // the unit its spelling implies, for the weight, the unit's state
             // and the drill-down alike.
             var ingredient = ingredient
-            ingredient.quantity = ingredient.quantity.map { catalog.reading($0, for: ingredient.name) }
+            if !outsideForm {
+                ingredient.quantity = ingredient.quantity.map { catalog.reading($0, for: ingredient.name) }
+            }
 
             // Not the canonical name: a qualifier on the line can mean a
             // different food entirely — "Tomaten, Konserve" is its own row.
-            let canonicalName = catalog.nutritionName(for: ingredient)
+            let canonicalName = outsideForm ? ingredient.name : catalog.nutritionName(for: ingredient)
             let entry = nutritionCatalog.nutrition(forCanonicalName: canonicalName)
             // The candidates ride along on every outcome, gaps included: the
             // line with no basis is the one the picker exists for.
@@ -126,7 +134,7 @@ public enum NutritionAggregator {
                 // name without numbers wants the numbers — different fixes,
                 // different reasons.
                 let reason: NutritionCoverage.GapReason =
-                    entry == nil && catalog.ingredient(for: ingredient.name) == nil
+                    entry == nil && (outsideForm || catalog.ingredient(for: ingredient.name) == nil)
                         ? .noCatalogMatch : .noNutritionValues
                 report(.gap(reason))
                 continue

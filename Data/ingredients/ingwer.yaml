@@ -1,5 +1,7 @@
 - id: ingwer
   name: Ingwer
+  aliases:
+    - frischer Ingwer
   category: vegetables
   measures: {cm: 5}
   nutrition:

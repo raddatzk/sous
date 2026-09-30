@@ -68,7 +68,7 @@ struct IngredientJourneyExample {
 
     @MainActor
     init(catalog: IngredientCatalog, nutrition: NutritionLibrary) {
-        parsed = IngredientParser.parseLine(Self.line, catalog: catalog)
+        parsed = IngredientLineReader.readLine(Self.line, catalog: catalog)
         ingredient = catalog.ingredient(for: parsed.name)
         let name = ingredient?.name ?? parsed.name
         spellings = Array((ingredient?.aliases ?? []).filter {

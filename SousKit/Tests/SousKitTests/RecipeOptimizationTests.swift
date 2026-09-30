@@ -261,6 +261,20 @@ struct RecipeOptimizationTests {
         #expect(optimization.lines[2].issues == [.unknownClaim("Tomatenwürfel aus Dosen")])
     }
 
+    @Test("A rewritten line outside the fixed form reads as nothing, however close it comes")
+    func claimOutsideTheForm() throws {
+        let optimization = try read(answer(
+            lines: unchanged(chili, except: [
+                5: #"{"zeile": 5, "neu": [{"nr": 5, "text": "1 TL frisch geriebener Ingwer", "zutat": "Ingwer"}]}"#,
+            ]),
+            steps: oldSteps(chili)
+        ), for: chili)
+        #expect(optimization.lines[4].issues.contains(
+            .readsAs(line: "1 TL frisch geriebener Ingwer", claimed: "Ingwer", read: nil)
+        ))
+        #expect(!optimization.lines[4].isPreTicked)
+    }
+
     // MARK: - Preparation, grams, steps
 
     @Test("Preparation becomes a step; Sous weighs a measured line from the catalog, never the model")

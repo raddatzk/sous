@@ -25,8 +25,19 @@ public enum IngredientCompletion {
         guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), !trimmed.hasSuffix(":") else { return nil }
         guard RecipeLink.referencedIDs(in: line).isEmpty else { return nil }
 
-        let name = IngredientParser.parseLine(line, catalog: catalog).name.trimmingCharacters(in: .whitespaces)
+        let read = IngredientLineReader.readLine(line, catalog: catalog)
+        // A name still being typed is not known yet, so the line is outside
+        // the form and its words run on: the name is what comes before the
+        // annotation.
+        let name = (read.isOutsideForm ? typedName(in: read.name) : read.name)
+            .trimmingCharacters(in: .whitespaces)
         return name.count >= 2 ? name : nil
+    }
+
+    /// "Toma, gewürfelt" → "Toma"; "Toma (gewürfelt)" as well, the way a
+    /// line is often still typed.
+    private static func typedName(in words: String) -> String {
+        String(words.prefix { $0 != "," && $0 != "(" })
     }
 
     /// Ingredients worth offering for a line, best match first.
@@ -70,7 +81,7 @@ public enum IngredientCompletion {
             }
             let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
             guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { continue }
-            let name = IngredientParser.parseLine(rawLine, catalog: catalog).name.trimmingCharacters(in: .whitespaces)
+            let name = IngredientLineReader.readLine(rawLine, catalog: catalog).name.trimmingCharacters(in: .whitespaces)
             guard !name.isEmpty else { continue }
             names.insert(IngredientCatalog.normalize(name))
         }

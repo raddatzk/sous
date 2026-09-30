@@ -120,7 +120,9 @@ struct SousApp: App {
                 // Teaching the app a spelling, or confirming what a word
                 // means, can change what a recipe's nutrition adds up to —
                 // and that is cached per recipe text, which never notices.
-                nutritionCache: nutritionStore
+                nutritionCache: nutritionStore,
+                // And it decides which lines are in the fixed form at all.
+                readsRecipes: true
             )
             _catalog = State(initialValue: catalogLibrary)
             let recipeLibrary = RecipeLibrary(
@@ -733,6 +735,7 @@ struct SousApp: App {
                     .keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
+                Button("Bibliothek umstellen…") { commands.panel = .migration }
             }
             // The Mac's way to switch: its window draws no title for the menu
             // the phone hangs there. The iPad gets both.

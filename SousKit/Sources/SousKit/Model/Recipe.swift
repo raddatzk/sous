@@ -189,8 +189,17 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
         return resting > 0 ? resting : nil
     }
 
+    /// The lines in the fixed form, read against the household's catalog —
+    /// see ``IngredientLineReader``.
     public var ingredients: [RecipeIngredient] {
-        IngredientParser.parse(ingredientsText)
+        ingredients(readWith: nil)
+    }
+
+    /// The lines read against `catalog`, for whoever holds one: which lines
+    /// are in the form depends on which names are known. `nil` is the
+    /// household's (``IngredientLineReader/catalog``).
+    public func ingredients(readWith catalog: IngredientCatalog?) -> [RecipeIngredient] {
+        IngredientLineReader.read(ingredientsText, catalog: catalog)
     }
 
     public var steps: [RecipeStep] {

@@ -86,6 +86,8 @@ feta
 filoteig
 fladenbrot
 forelle
+frische-kurkuma
+frisches-lorbeerblatt
 frischhefe
 frischkaese
 fruehlingszwiebel
@@ -100,6 +102,7 @@ gemuesebruehe
 gemuesezwiebel
 geschroteter-leinsamen
 getrocknete-tomaten
+glatte-petersilie
 gnocchi
 gorgonzola
 gouda

@@ -115,7 +115,7 @@ public enum ShoppingListBuilder {
         var seen = visited
         seen.insert(recipe.id)
 
-        for ingredient in recipe.scaledIngredients(toServings: servings) {
+        for ingredient in recipe.scaledIngredients(toServings: servings, catalog: catalog) {
             // Only where a choice was made, and only over this recipe's own
             // lines — the recursion below hands its children `nil`.
             if let selected, !selected.contains(ingredient.id) { continue }
@@ -185,10 +185,14 @@ public enum ShoppingListBuilder {
         into capture: inout ShoppingCapture
     ) {
         let written = ShoppingItem.displayName(for: ingredient.name)
-        let key = ShoppingItem.key(for: ingredient.name, catalog: catalog)
+        // A line outside the fixed form goes on as the raw text it is,
+        // never filed under a catalog word its words happen to reach.
+        let key = ingredient.isOutsideForm
+            ? IngredientCatalog.storageKey(written)
+            : ShoppingItem.key(for: ingredient.name, catalog: catalog)
         guard !key.isEmpty else { return }
 
-        let known = catalog.ingredient(for: written)
+        let known = ingredient.isOutsideForm ? nil : catalog.ingredient(for: written)
         capture.demands.append(CapturedShoppingDemand(
             key: key,
             // A known ingredient is shown under its catalog name, so the

@@ -493,7 +493,8 @@ extension IngredientParserTests {
             CatalogIngredient(name: "Mehl", category: .baking),
         ])
 
-        #expect(catalog.unknownIngredients(in: "Salz nach Geschmack\netwas Mehl").isEmpty)
+        // In the fixed form the phrase is the annotation after the comma.
+        #expect(catalog.unknownIngredients(in: "Salz, nach Geschmack\nMehl, etwas").isEmpty)
     }
 }
 

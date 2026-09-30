@@ -36,7 +36,10 @@ enum RecipeContentHash {
     /// Raised to 9 when `IngredientCatalog.normalize` began folding ß and
     /// hyphens: "Weisswein" and "Hokkaido-Kürbis" now find what "Weißwein"
     /// and "Hokkaidokürbis" found, in code alone.
-    private static let readingVersion = 9
+    /// Raised to 10 when `IngredientLineReader` replaced the tolerant parser:
+    /// a line outside the fixed form ("Salz nach Geschmack", "1 Chili (rot)")
+    /// no longer reaches a name, and "1 1/2 TL" is one and a half.
+    private static let readingVersion = 10
 
     /// The bundled data files. Everything the catalogs and the resolver read
     /// belongs in this list.

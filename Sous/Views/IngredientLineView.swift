@@ -21,7 +21,17 @@ struct IngredientLineView: View {
         // Interpolated rather than added together: `Text + Text` is
         // deprecated as of the 26 SDKs, and interpolation keeps each part's
         // own styling the way the sum did.
-        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(trailingPhraseText)\(commentText)")
+        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(trailingPhraseText)\(commentText)\(outsideFormText)")
+    }
+
+    /// A line outside the fixed form shows its words as written and says
+    /// that it waits for the optimization — it scales, and nothing else
+    /// about it is read.
+    private var outsideFormText: Text {
+        guard ingredient.isOutsideForm else { return Text("") }
+        return Text("  \(Image(systemName: "sparkles")) neu optimieren")
+            .font(.caption)
+            .foregroundStyle(.orange)
     }
 
     /// The amount carries the accent, so it is its own styled run.
