@@ -1,11 +1,10 @@
 import Foundation
 
-/// Turns a written ingredient list into structured lines, and back.
+/// The tolerant parser that read every recipe before the fixed form.
 ///
-/// Typing "300 g Zucchini, fein gehackt" is how a recipe is actually
-/// written down, and how it arrives from an import or from the model. The
-/// structure is still what gets stored — scaling, nutrition and shopping
-/// lists all need the amount as a number.
+/// It is kept only as the tool of ``LibraryMigration``, which runs it once
+/// over a library written before ``IngredientLineReader`` — on this device
+/// or on another household member's. Nothing else reads recipes through it.
 public enum IngredientParser {
     /// Unicode fractions, and the ASCII forms people type instead.
     private static let fractions: [String: Double] = [
@@ -34,39 +33,15 @@ public enum IngredientParser {
         return result
     }
 
-    /// A list's ingredient lines as written, trimmed, each with its group
-    /// and where it stands in the text — the very lines ``parse(_:catalog:)``
-    /// reads, in the same order, so the n-th of these is the n-th
-    /// ingredient. For whoever has to change a line in place and leave the
-    /// rest of the text as it was typed.
+    /// A list's ingredient lines as written — the very lines
+    /// ``IngredientLineReader`` reads, so both number them alike.
     public static func writtenLines(in text: String) -> [(text: String, group: String?, textLine: Int)] {
-        var result: [(text: String, group: String?, textLine: Int)] = []
-        var currentGroup: String?
-        // A blank line straight under the heading is layout, not the end
-        // of a group that has not had a line yet.
-        var groupHasLines = false
-
-        for (index, rawLine) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            guard !line.isEmpty else {
-                if groupHasLines { currentGroup = nil }
-                continue
-            }
-
-            if let heading = groupHeading(in: line) {
-                currentGroup = heading
-                groupHasLines = false
-                continue
-            }
-            groupHasLines = currentGroup != nil
-            result.append((line, currentGroup, index))
-        }
-        return result
+        IngredientLineReader.writtenLines(in: text)
     }
 
     /// Whether `line` opens a group rather than naming an ingredient.
     public static func isGroupHeading(_ line: String) -> Bool {
-        groupHeading(in: line.trimmingCharacters(in: .whitespaces)) != nil
+        IngredientLineReader.isGroupHeading(line)
     }
 
     /// Renders lines back into the text the user edits.
@@ -87,19 +62,6 @@ public enum IngredientParser {
             lines.append(formatter.string(for: ingredient))
         }
         return lines.joined(separator: "\n")
-    }
-
-    /// A group heading: "Für den Teig:" or "# Für den Teig".
-    private static func groupHeading(in line: String) -> String? {
-        if line.hasPrefix("#") {
-            let heading = line.drop { $0 == "#" }.trimmingCharacters(in: .whitespaces)
-            return heading.isEmpty ? nil : heading
-        }
-        guard line.hasSuffix(":") else { return nil }
-        let heading = String(line.dropLast()).trimmingCharacters(in: .whitespaces)
-        // "300 g Tomaten:" is a strange line, but it is not a heading.
-        guard !heading.isEmpty, leadingAmount(in: heading) == nil else { return nil }
-        return heading
     }
 
     /// Parses one line into an ingredient.

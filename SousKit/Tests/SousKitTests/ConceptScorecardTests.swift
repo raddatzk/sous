@@ -433,7 +433,8 @@ struct ConceptScorecardTests {
     func salzNachGeschmack() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
-        let recipe = self.recipe("Nudeln", "500 g Nudeln\nSalz nach Geschmack")
+        // In the fixed form "nach Geschmack" is the annotation after the comma.
+        let recipe = self.recipe("Nudeln", "500 g Nudeln\nSalz, nach Geschmack")
 
         let computed = try #require(await stack.nutrition.nutrition(for: recipe))
         let gap = try #require(computed.coverage.gaps.first)

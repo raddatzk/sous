@@ -92,6 +92,10 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
     public var linkedRecipeID: UUID?
     /// Seasoning and frying oil do not scale linearly with servings.
     public var scalesWithServings: Bool
+    /// The line is not in the fixed form (see ``IngredientLineReader``): its
+    /// words are kept as written in `name`, its amount is still read, and it
+    /// gets no nutrition until it is optimized.
+    public var isOutsideForm: Bool
 
     public init(
         id: UUID = UUID(),
@@ -104,7 +108,8 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         state: IngredientState = .unspecified,
         resolvedGrams: Double? = nil,
         linkedRecipeID: UUID? = nil,
-        scalesWithServings: Bool = true
+        scalesWithServings: Bool = true,
+        isOutsideForm: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -117,5 +122,6 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         self.resolvedGrams = resolvedGrams
         self.linkedRecipeID = linkedRecipeID
         self.scalesWithServings = scalesWithServings
+        self.isOutsideForm = isOutsideForm
     }
 }

@@ -670,6 +670,39 @@ public final class RecipeLibrary {
         await save(current)
     }
 
+    // MARK: - The fixed form
+
+    /// What "Bibliothek umstellen" would do, without doing it: every recipe,
+    /// the trash included, since a restored recipe should not come back in
+    /// the old writing.
+    public func libraryMigrationPreview() async -> LibraryMigration.Summary {
+        LibraryMigration.migrate(await allRecipesIncludingTrash(), catalog: catalogLibrary?.catalog).summary
+    }
+
+    /// "Bibliothek umstellen": writes every line the old parser understands
+    /// in the fixed form, keeping each changed recipe's original first. Only
+    /// ever on the cook's word — it rewrites recipe text, and that syncs to
+    /// every member of the household. Worked out afresh from the recipes as
+    /// they are now, so an edit since the preview is not overwritten, and a
+    /// second run finds nothing left to do.
+    @discardableResult
+    public func migrateLibrary() async -> LibraryMigration.Summary {
+        let (outcomes, summary) = LibraryMigration.migrate(
+            await allRecipesIncludingTrash(), catalog: catalogLibrary?.catalog
+        )
+        var changed = false
+        for outcome in outcomes where outcome.changed {
+            do {
+                try await store.save(outcome.recipe)
+                changed = true
+            } catch {
+                report(error)
+            }
+        }
+        if changed { await reload() }
+        return summary
+    }
+
     /// Moves every stored reading onto the fingerprint over the raw text,
     /// where it still matches the recipe by the old one. Idempotent and
     /// cheap, so it runs at every launch: an older app in the household may

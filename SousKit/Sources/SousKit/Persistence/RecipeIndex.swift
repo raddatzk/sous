@@ -25,7 +25,7 @@ public enum RecipeIndex {
     public static func ingredientKeys(for recipe: Recipe, catalog: IngredientCatalog) -> [String] {
         var seen = Set<String>()
         var keys: [String] = []
-        for ingredient in recipe.ingredients {
+        for ingredient in recipe.ingredients(readWith: catalog) {
             let name = ShoppingItem.displayName(for: ingredient.name)
             let own = IngredientCatalog.normalize(ShoppingItem.key(for: ingredient.name, catalog: catalog))
             var resolved = catalog.ingredient(for: name)

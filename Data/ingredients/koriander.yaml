@@ -2,6 +2,7 @@
   name: Koriander
   aliases:
     - Koriandergrün
+    - frischer Koriander
   category: herbs
   measures: {Bund: 25, Handvoll: 10}
   nutrition: without

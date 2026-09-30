@@ -298,7 +298,7 @@ extension RecipeOptimization {
 
         // Ingredients, in place: headings, blank lines and untouched lines
         // stay as typed.
-        let written = IngredientParser.writtenLines(in: recipe.ingredientsText)
+        let written = IngredientLineReader.writtenLines(in: recipe.ingredientsText)
         var replacement: [Int: [String]] = [:]
         for (index, entry) in written.enumerated() where lines.indices.contains(index) {
             replacement[entry.textLine] = finalTexts(of: lines[index])
@@ -404,7 +404,7 @@ extension RecipeOptimization {
         var currentHeading: Int?
         for (index, raw) in rawLines.enumerated() {
             let trimmed = raw.trimmingCharacters(in: .whitespaces)
-            if IngredientParser.isGroupHeading(trimmed) {
+            if IngredientLineReader.isGroupHeading(trimmed) {
                 currentHeading = index
             } else if replacement[index] != nil, let currentHeading {
                 headingOf[index] = currentHeading
@@ -656,7 +656,7 @@ public enum RecipeOptimizationPrompt {
     static func body(for recipe: Recipe) -> String {
         var text = "Portionen: \(recipe.servings)\n\nZutaten:\n"
         var lastGroup: String?
-        for (index, line) in IngredientParser.writtenLines(in: recipe.ingredientsText).enumerated() {
+        for (index, line) in IngredientLineReader.writtenLines(in: recipe.ingredientsText).enumerated() {
             if let group = line.group, group != lastGroup { text += "[\(group)]\n" }
             lastGroup = line.group
             text += "Z\(index + 1): \(line.text)\n"
@@ -785,8 +785,8 @@ public enum RecipeOptimizationPrompt {
             return .failure(.unreadable)
         }
 
-        let written = IngredientParser.writtenLines(in: recipe.ingredientsText)
-        let parsed = IngredientParser.parse(recipe.ingredientsText, catalog: catalog)
+        let written = IngredientLineReader.writtenLines(in: recipe.ingredientsText)
+        let parsed = IngredientLineReader.read(recipe.ingredientsText, catalog: catalog)
 
         // Every old line exactly once.
         var entries: [Int: Answer.Entry] = [:]
@@ -938,7 +938,7 @@ public enum RecipeOptimizationPrompt {
         let writtenAmounts = amountsWritten(in: written)
         var carriers = 0
         for text in rewritten {
-            let new = IngredientParser.parseLine(text, catalog: catalog)
+            let new = IngredientLineReader.readLine(text, catalog: catalog)
             guard let quantity = new.quantity else { continue }
             carriers += 1
             // The size belongs to the amount: "1 großer Blumenkohl" is not
@@ -992,7 +992,11 @@ public enum RecipeOptimizationPrompt {
             }
         }
         // A correction only counts if the corrected line reads.
-        let reads = rewritten.map { catalog.ingredient(for: IngredientParser.parseLine($0, catalog: catalog).name) }
+        // A line outside the fixed form reads as nothing, however close it is.
+        let reads = rewritten.map { text -> CatalogIngredient? in
+            let read = IngredientLineReader.readLine(text, catalog: catalog)
+            return read.isOutsideForm ? nil : catalog.ingredient(for: read.name)
+        }
         if !typos.isEmpty, reads.contains(where: { $0 == nil }) {
             issues.append(.typoDoesNotResolve(typos.map(\.right).joined(separator: ", ")))
         }
@@ -1014,10 +1018,10 @@ public enum RecipeOptimizationPrompt {
         // catalog's measure; without one, the unit stays.
         var weighing: Line.Weighing?
         if changes.contains(.preparation), rewritten.count == 1, !issues.contains(where: \.refuses) {
-            let new = IngredientParser.parseLine(rewritten[0], catalog: catalog)
+            let new = IngredientLineReader.readLine(rewritten[0], catalog: catalog)
             if let quantity = new.quantity,
                let grams = weighedGrams(new, catalog: catalog, nutritionCatalog: nutritionCatalog),
-               let length = IngredientParser.leadingAmountAndUnitLength(in: rewritten[0], catalog: catalog) {
+               let length = IngredientLineReader.measure(in: rewritten[0], catalog: catalog)?.length {
                 let rounded = RecipeOptimization.roundedGrams(grams)
                 let amount = QuantityFormatter(locale: Locale(identifier: "de_DE")).string(for: Quantity(rounded, .gram), size: nil)
                 let rest = rewritten[0].dropFirst(length).trimmingCharacters(in: .whitespaces)
@@ -1073,9 +1077,9 @@ public enum RecipeOptimizationPrompt {
         let lines = variant.zutaten.map(singleLine).filter { !$0.isEmpty }
         guard !title.isEmpty, !lines.isEmpty else { return nil }
         let known = parsed.compactMap(\.quantity)
-            + IngredientParser.writtenLines(in: recipe.ingredientsText).flatMap { amountsWritten(in: $0.text) }
+            + IngredientLineReader.writtenLines(in: recipe.ingredientsText).flatMap { amountsWritten(in: $0.text) }
         let foreign = lines.filter { line in
-            guard let quantity = IngredientParser.parseLine(line).quantity else { return false }
+            guard let quantity = IngredientLineReader.readLine(line).quantity else { return false }
             return !known.contains { sameAmount(quantity, $0, writtenIn: "") }
         }
         return .init(
@@ -1147,7 +1151,7 @@ public enum RecipeOptimizationPrompt {
     /// A line's amount and unit as written — "1,5 TL", "1 Dose" — for the
     /// cook to recognize in a message.
     static func measure(of line: String) -> String {
-        guard let length = IngredientParser.leadingAmountAndUnitLength(in: line) else { return line }
+        guard let length = IngredientLineReader.measure(in: line)?.length else { return line }
         return String(line.trimmingCharacters(in: .whitespaces).prefix(length)).trimmingCharacters(in: .whitespaces)
     }
 

@@ -651,8 +651,9 @@ public enum StepReferencesPrompt {
     /// An amount as written, read the way an ingredient line would be —
     /// "150 g", "½ TL", "1 kleine".
     static func quantity(in amount: String) -> (quantity: Quantity, size: IngredientSize?)? {
-        let parsed = IngredientParser.parseLine("\(amount) x")
-        if let quantity = parsed.quantity { return (quantity, parsed.size) }
+        if let measure = IngredientLineReader.measure(in: "\(amount) x", catalog: .bundled) {
+            return (measure.quantity, measure.size)
+        }
         // What a sentence writes where a list would write a digit: "etwa
         // 25 g", "einer Prise", "Zwei".
         var words = amount.split(separator: " ").map(String.init)
@@ -660,8 +661,8 @@ public enum StepReferencesPrompt {
         if let first = words.first, let number = numberWords[first.lowercased()] { words[0] = number }
         let rewritten = words.joined(separator: " ")
         guard rewritten != amount else { return nil }
-        let retried = IngredientParser.parseLine("\(rewritten) x")
-        return retried.quantity.map { ($0, retried.size) }
+        return IngredientLineReader.measure(in: "\(rewritten) x", catalog: .bundled)
+            .map { ($0.quantity, $0.size) }
     }
 
     private static let approximationWords: Set<String> = ["etwa", "ca.", "ca", "circa", "ungefähr", "rund", "knapp"]

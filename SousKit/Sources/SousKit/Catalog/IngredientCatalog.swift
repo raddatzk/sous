@@ -138,6 +138,13 @@ public struct IngredientCatalog: Sendable {
         return ingredient(for: head, qualifiedBy: tail)
     }
 
+    /// The ingredient `name` is one of the spellings of, or the naive plural
+    /// of one — the lookup without the qualifier turn. What
+    /// ``IngredientLineReader`` calls a known name.
+    public func ingredient(writtenAs name: String) -> CatalogIngredient? {
+        spelled(name)
+    }
+
     /// The ingredient a name with a trailing qualifier means, when the
     /// catalog files it the other way round: "Zwiebel" and "rot" are "Rote
     /// Zwiebel", "Kartoffeln" and "festkochend" are "Festkochende
@@ -426,7 +433,7 @@ public struct IngredientCatalog: Sendable {
     /// ingredients" review checks against.
     public func unknownIngredients(in text: String) -> [String] {
         var seen = Set<String>()
-        return IngredientParser.parse(text, catalog: self).compactMap { ingredient in
+        return IngredientLineReader.read(text, catalog: self).compactMap { ingredient in
             let name = ShoppingItem.displayName(for: ingredient.name)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard name.count >= 2,

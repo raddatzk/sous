@@ -535,6 +535,13 @@ struct ShoppingListView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    // Went on as raw text: the recipe line is outside the
+                    // fixed form and waits for the optimization.
+                    if shopping.needsOptimization(item) {
+                        Label("neu optimieren", systemImage: "sparkles")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
                     if showingSource, let origin = originText(for: item) {
                         Text(origin)
                             .font(.caption)

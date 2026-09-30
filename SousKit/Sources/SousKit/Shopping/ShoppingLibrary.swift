@@ -142,6 +142,11 @@ public final class ShoppingLibrary {
     /// Every line still on the list, swept rows already left out.
     public private(set) var items: [ShoppingItem] = []
     public private(set) var planEntries: [ShoppingPlanEntry] = []
+    /// The recipe lines behind the list that are outside the fixed form, by
+    /// `RecipeIngredient.id` — read from the recipes as they are now, so a
+    /// line that has since been optimized stops being flagged. Derived on
+    /// every read, never stored with the list.
+    public private(set) var linesToOptimize: Set<UUID> = []
     /// Whether the list has ever been read. An empty list and a list not yet
     /// read look the same from outside, and they are not the same answer.
     public private(set) var hasLoaded = false
@@ -174,6 +179,7 @@ public final class ShoppingLibrary {
             let snapshot = try await store.snapshot()
             items = snapshot.items.filter { !$0.isCleared }
             planEntries = snapshot.planEntries
+            linesToOptimize = try await outsideFormLines(of: planEntries)
             hasLoaded = true
         } catch {
             errorMessage = error.localizedDescription
@@ -291,6 +297,24 @@ public final class ShoppingLibrary {
         lastAddition = description
     }
 
+    /// Which lines of the planned recipes, and of what they link, are
+    /// outside the fixed form.
+    private func outsideFormLines(of entries: [ShoppingPlanEntry]) async throws -> Set<UUID> {
+        var recipes: [UUID: Recipe] = [:]
+        for id in Set(entries.compactMap(\.recipeID)) where recipes[id] == nil {
+            guard let recipe = try await recipeStore.recipe(id: id) else { continue }
+            recipes[id] = recipe
+            try await resolveLinks(of: recipe, into: &recipes)
+        }
+        return Set(recipes.values.flatMap { $0.ingredients(readWith: catalog).filter(\.isOutsideForm).map(\.id) })
+    }
+
+    /// Whether `item` carries a recipe line that is outside the fixed form,
+    /// and so went on as the text it is.
+    public func needsOptimization(_ item: ShoppingItem) -> Bool {
+        item.demands.contains { $0.lineID.map(linesToOptimize.contains) ?? false }
+    }
+
     /// Follows links a level at a time so the builder can resolve them.
     private func resolveLinks(of recipe: Recipe, into known: inout [UUID: Recipe], depth: Int = 0) async throws {
         guard depth < 3 else { return }
@@ -304,13 +328,13 @@ public final class ShoppingLibrary {
     /// Adds a line typed by hand, parsed like an ingredient so "2 kg
     /// Kartoffeln" arrives with its amount.
     ///
-    /// What follows the name is kept, though the parser files it as a
-    /// preparation: in a recipe "Zwiebel, rot" may be one onion among others,
+    /// What follows the name is kept, though the reader files it as an
+    /// annotation: in a recipe "Zwiebel, rot" may be one onion among others,
     /// but typed onto a list it says which one to buy. It is looked up as a
     /// variety first ("Rote Zwiebel"), and otherwise stays as typed, in the
     /// aisle of the bare name.
     public func addItem(_ line: String) async {
-        let ingredient = IngredientParser.parseLine(line, catalog: catalog)
+        let ingredient = IngredientLineReader.readLine(line, catalog: catalog)
         let name = ShoppingItem.displayName(for: ingredient.name)
         guard !name.isEmpty else { return }
 

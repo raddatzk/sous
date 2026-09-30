@@ -1,5 +1,7 @@
 - id: spinat
   name: Spinat
+  aliases:
+    - frischer Spinat
   category: vegetables
   measures: {Handvoll: 30}
   nutrition:
