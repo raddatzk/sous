@@ -78,6 +78,28 @@ struct BundledDataTests {
         #expect(cookedRow.perHundredGrams.kcal < rawRow.perHundredGrams.kcal)
     }
 
+    @Test("A word's candidates come in one order: bases raw, cooked, unspecified, then the rest")
+    func candidateOrderIsFixed() throws {
+        // The states are a dictionary in curation.json, and Swift orders a
+        // dictionary differently in every process: the candidates used to
+        // come out shuffled from one launch to the next.
+        let curation = IngredientCuration(words: [
+            "Testwurzel": .init(
+                targets: ["unspecified": ["U1"], "cooked": ["C1", "C2"], "raw": ["R1", "R2"]],
+                candidates: ["X1", "R2"]
+            ),
+        ])
+        let table = SynonymTable(
+            kitchen: KitchenWords(words: [.init(name: "Testwurzel")]), curation: curation
+        )
+        let entry = try #require(table.entry(for: "Testwurzel"))
+        #expect(entry.candidateCodes == ["R1", "C1", "U1", "R2", "C2", "X1"])
+        #expect(entry.target(for: .cooked)?.code == "C1")
+
+        let potato = try #require(synonyms.entry(for: "Kartoffel"))
+        #expect(Array(potato.candidateCodes.prefix(2)) == ["K110100", "K110132"])
+    }
+
     @Test("Schmelzkäse offers more than one row to choose from")
     func processedCheeseHasCandidates() throws {
         // The concept's own example: the cook writes one word, the catalog
