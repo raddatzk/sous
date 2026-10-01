@@ -26,6 +26,17 @@ entry absorbed under `formerly`, pointing at the entry, and the retired ids.
 It also adds the catalog's ids to `Data/released-ids.txt`, and fails when an
 id listed there is gone without being renamed or retired.
 
+Last it writes `manifest.json`, which names the data set these files make:
+its format (`schema`), its release (`dataVersion`), and the SHA-256 of every
+file, `bls.json` included. The app reads a set only through its manifest,
+bundled or fetched (SousKit's `DataSet`).
+
+`dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this
+content, and a counter within that day. It is raised only when some file's
+bytes changed, read off the manifest already there, so compiling unchanged
+data leaves it alone and `--check` never needs a clock. Bundled and published
+data are one series: phase 9 publishes the manifest of `main` as it is.
+
 The YAML loader is strict, because YAML's conveniences are traps in a data
 set: every scalar is read as a string (`no` stays "no", `1.10` stays "1.10",
 an EAN keeps its leading zeros), a key written twice is an error, and anchors
@@ -36,19 +47,23 @@ Usage:
     python3 Scripts/data/compile.py --check    fail if the resources differ
     python3 Scripts/data/compile.py --check --since REF
                                                also fail if released-ids.txt
-                                               lost an id it had at git REF
+                                               lost an id it had at git REF,
+                                               or if the data changed since
+                                               REF and dataVersion did not grow
 
 Needs PyYAML and jsonschema (`pip install -r Scripts/data/requirements.txt`).
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import subprocess
 import sys
 import unicodedata
 from dataclasses import dataclass, field
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import jsonschema
@@ -59,6 +74,17 @@ DATA = REPO_ROOT / "Data"
 RESOURCES = REPO_ROOT / "SousKit/Sources/SousKit/Resources"
 
 STATES = ("raw", "cooked", "unspecified")
+
+# The format of a data set's files, SousKit's `DataSetManifest.supportedSchema`.
+# Raised only when their shape changes in a way an older app would misread.
+SCHEMA = 1
+MANIFEST = "manifest.json"
+# The files a data set consists of, SousKit's `DataSet.File`. `bls.json` is
+# not written here but belongs to the set all the same.
+SET_FILES = (
+    "aisles.json", "bls.json", "community.json", "curation.json",
+    "ids.json", "kitchen_words.json", "measures.json", "sources.json",
+)
 
 # Inline rows written before phase 3 carry numbered codes. They keep them; a
 # new row's code is derived from its entry's id instead, so two pull requests
@@ -708,11 +734,74 @@ def dump_json(data) -> str:
     return json.dumps(data, indent=1, ensure_ascii=False)
 
 
-def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[str, str], list[str], str]:
-    """The resources by file name, the warnings, and `released-ids.txt`."""
+# --------------------------------------------------------------------------
+# The manifest
+
+def sha256_hex(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def set_digest(files: dict[str, str]) -> str:
+    """The hash of a whole set: over one `<name> <hash>` line per file,
+    sorted by name. SousKit's `DataSetManifest.digest(of:)` is the same."""
+    return sha256_hex("".join(f"{name} {files[name]}\n" for name in sorted(files)).encode("utf-8"))
+
+
+def next_version(previous: int | None, today: date) -> int:
+    """`YYYYMMDDnn`: the first release of a UTC day is that day's `00`, a
+    later one the same day counts up. Never below the previous release + 1,
+    so the series only grows, past a hundredth release in a day or a clock
+    set back alike."""
+    floor = int(today.strftime("%Y%m%d")) * 100
+    return floor if previous is None else max(floor, previous + 1)
+
+
+def manifest(set_bytes: dict[str, bytes], previous: dict | None, today: date) -> dict:
+    """The manifest of a set: its version stays what `previous` says while
+    the content is the same, and moves on when any file's bytes change.
+
+    `sha256` and `dataVersion` sit on neighbouring lines, so two pull
+    requests that each change the data conflict right there and one of them
+    compiles again, rather than both merging under one number."""
+    files = {name: sha256_hex(set_bytes[name]) for name in sorted(set_bytes)}
+    digest = set_digest(files)
+    if previous and previous.get("schema") == SCHEMA and previous.get("sha256") == digest:
+        version = previous["dataVersion"]
+    else:
+        version = next_version(previous.get("dataVersion") if previous else None, today)
+    return {"schema": SCHEMA, "dataVersion": version, "sha256": digest, "files": files}
+
+
+def read_manifest(text: str | None) -> dict | None:
+    if not text:
+        return None
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return None
+
+
+def version_errors(before: dict | None, after: dict) -> list[str]:
+    """What is wrong with `after` as the release following `before`."""
+    if not before:
+        return []
+    errors = []
+    if after["dataVersion"] < before["dataVersion"]:
+        errors.append(f"dataVersion went back from {before['dataVersion']} to {after['dataVersion']}")
+    elif after["sha256"] != before.get("sha256") and after["dataVersion"] <= before["dataVersion"]:
+        errors.append(f"the data changed, but dataVersion stayed {after['dataVersion']}")
+    return errors
+
+
+def compile_data(
+    data: Path = DATA, resources: Path = RESOURCES, today: date | None = None
+) -> tuple[dict[str, str], list[str], str]:
+    """The resources by file name, `manifest.json` last, the warnings, and
+    `released-ids.txt`. `today` is when a changed set is stamped; UTC now
+    unless a test says otherwise."""
     dataset = load_dataset(data, resources)
     check(dataset)
-    return {
+    outputs = {
         "kitchen_words.json": dump_json(kitchen_words(dataset)),
         "curation.json": dump_json(curation(dataset)),
         "measures.json": dump_json(measures(dataset)),
@@ -720,7 +809,16 @@ def compile_data(data: Path = DATA, resources: Path = RESOURCES) -> tuple[dict[s
         "community.json": dump_json(community(dataset)),
         "sources.json": dump_json(sources(dataset)),
         "ids.json": dump_json(ids(dataset)),
-    }, dataset.warnings, released_ids(dataset)
+    }
+    set_bytes = {
+        name: outputs[name].encode("utf-8") if name in outputs else (resources / name).read_bytes()
+        for name in SET_FILES
+    }
+    previous_path = resources / MANIFEST
+    previous = read_manifest(previous_path.read_text(encoding="utf-8") if previous_path.exists() else None)
+    today = today or datetime.now(timezone.utc).date()
+    outputs[MANIFEST] = dump_json(manifest(set_bytes, previous, today))
+    return outputs, dataset.warnings, released_ids(dataset)
 
 
 def main() -> int:
@@ -763,6 +861,13 @@ def main() -> int:
                       f"The list only grows: put the ids back, and rename or retire them "
                       f"in Data/ instead.", file=sys.stderr)
                 return 1
+            before = read_manifest(released_at(args.since, args.resources / MANIFEST))
+            errors = version_errors(before, json.loads(outputs[MANIFEST]))
+            if errors:
+                print(f"manifest.json since {args.since}: {'; '.join(errors)}. "
+                      f"Compile again on top of {args.since}: python3 Scripts/data/compile.py",
+                      file=sys.stderr)
+                return 1
         print(f"Resources match compile(Data/): {', '.join(outputs)}")
         return 0
 
@@ -775,8 +880,9 @@ def main() -> int:
 
 
 def released_at(ref: str, path: Path) -> str:
-    """The released-ids list as it was at a git revision; empty before it
-    existed. An unknown revision is an error, not an empty list."""
+    """A file as it was at a git revision — the released-ids list, the
+    manifest; empty before it existed. An unknown revision is an error, not
+    an empty file."""
     known = subprocess.run(["git", "cat-file", "-e", f"{ref}^{{commit}}"],
                            cwd=REPO_ROOT, capture_output=True)
     if known.returncode != 0:

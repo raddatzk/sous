@@ -17,7 +17,7 @@ public enum ShoppingListBuilder {
     ///   the subrecipe's title stays on them as the origin they read as.
     public static func build(
         from planned: [(recipe: Recipe, servings: Int)],
-        catalog: IngredientCatalog = .bundled,
+        catalog: IngredientCatalog = .current,
         resolve: (UUID) -> Recipe?
     ) -> ShoppingCapture {
         var capture = ShoppingCapture()
@@ -54,7 +54,7 @@ public enum ShoppingListBuilder {
         from recipe: Recipe,
         servings: Int,
         selecting selected: Set<UUID>?,
-        catalog: IngredientCatalog = .bundled,
+        catalog: IngredientCatalog = .current,
         resolve: (UUID) -> Recipe?
     ) -> ShoppingCapture {
         var capture = ShoppingCapture()

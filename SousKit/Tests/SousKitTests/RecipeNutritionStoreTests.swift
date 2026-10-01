@@ -150,7 +150,7 @@ struct RecipeNutritionStoreTests {
 struct RecipeContentHashTests {
     @Test("The bundled data is fingerprinted, so shipping new data invalidates every cached figure")
     func bundledDataEntersTheHash() {
-        #expect(!RecipeContentHash.bundledDataFingerprint.isEmpty)
+        #expect(!RecipeContentHash.dataFingerprint.isEmpty)
 
         // The same recipe against other bundled data must hash differently —
         // that is the whole point of folding the fingerprint in.

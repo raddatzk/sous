@@ -170,7 +170,7 @@ public final class ShoppingLibrary {
     public var pantryKeys: Set<String> { catalogLibrary?.pantryKeys ?? [] }
 
     private var catalog: IngredientCatalog {
-        catalogLibrary?.catalog ?? .bundled
+        catalogLibrary?.catalog ?? .current
     }
 
     public func reload() async {

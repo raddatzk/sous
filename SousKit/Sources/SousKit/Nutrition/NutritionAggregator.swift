@@ -18,8 +18,8 @@ public enum NutritionAggregator {
     public static func aggregate(
         recipe: Recipe,
         servings: Int,
-        catalog: IngredientCatalog = .bundled,
-        nutritionCatalog: NutritionCatalog = .bundled,
+        catalog: IngredientCatalog = .current,
+        nutritionCatalog: NutritionCatalog = .current,
         resolve: (UUID) -> Recipe?
     ) -> NutritionReport {
         var lines: [NutritionLineReport] = []

@@ -49,7 +49,7 @@ final class CDRecipe: CDHouseholdMember {
     /// finds the members. Only the store can look it up.
     func apply(
         _ recipe: Recipe,
-        catalog: IngredientCatalog = .bundled,
+        catalog: IngredientCatalog = IngredientLineReader.catalog,
         variantGroupTitle: String? = nil
     ) {
         id = recipe.id

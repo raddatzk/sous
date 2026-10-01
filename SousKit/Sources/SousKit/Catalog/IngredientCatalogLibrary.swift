@@ -18,7 +18,7 @@ public final class IngredientCatalogLibrary {
     private let nutritionCache: (any RecipeNutritionStore)?
 
     /// Everything the app knows, ready to look up.
-    public private(set) var catalog: IngredientCatalog = .bundled {
+    public private(set) var catalog: IngredientCatalog = .current {
         didSet {
             if readsRecipes { IngredientLineReader.catalog = catalog }
         }
@@ -42,7 +42,7 @@ public final class IngredientCatalogLibrary {
     }
 
     /// Whether the cook's own data has been read at least once. Until it
-    /// has, `catalog` is the bundled list alone — which is not what anything
+    /// has, `catalog` is the data set's list alone — which is not what anything
     /// asking a question about a recipe should be answered from.
     private var hasLoaded = false
 
@@ -70,7 +70,7 @@ public final class IngredientCatalogLibrary {
 
     /// Two passes, because an entry that only *adds* to a shipped word has to
     /// find out which word wins its name first: merge the cook's own
-    /// ingredients in front of the bundled ones, then patch the survivors
+    /// ingredients in front of the data set's, then patch the survivors
     /// with the spellings, aisles and variety relations the vocabulary holds
     /// for them, then index the result.
     private func rebuild() {
@@ -79,8 +79,8 @@ public final class IngredientCatalogLibrary {
             .map { $0.catalogIngredient(fallback: nil) }
             .sorted { $0.name < $1.name }
         let merged = IngredientCatalog(
-            ingredients: own + IngredientCatalog.bundled.ingredients,
-            renames: IngredientCatalog.bundled.renames
+            ingredients: own + IngredientCatalog.current.ingredients,
+            renames: IngredientCatalog.current.renames
         )
 
         guard vocabulary.values.contains(where: { !$0.isOwnIngredient }) else {

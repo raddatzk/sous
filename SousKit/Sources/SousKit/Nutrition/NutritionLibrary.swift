@@ -24,7 +24,7 @@ public final class NutritionLibrary {
         store: any RecipeNutritionStore,
         recipeStore: any RecipeStore,
         catalogLibrary: IngredientCatalogLibrary,
-        bls: BLSCatalog = .bundled
+        bls: BLSCatalog = .current
     ) {
         self.store = store
         self.recipeStore = recipeStore
@@ -41,12 +41,12 @@ public final class NutritionLibrary {
         bls.source.datasetVersion.isEmpty ? CatalogNutrition.blsSource : bls.source.datasetVersion
     }
 
-    /// The bundled table with the cook's vocabulary laid over it.
+    /// The data set's table with the cook's vocabulary laid over it.
     ///
     /// Recomputed whenever the vocabulary changes rather than on demand:
     /// merging re-indexes every bundled entry, and the catalog browser asks
     /// for this once per visible row.
-    public private(set) var nutritionCatalog: NutritionCatalog = .bundled
+    public private(set) var nutritionCatalog: NutritionCatalog = .current
 
     /// Rebuilds the table and drops every cached recipe total.
     ///
@@ -78,7 +78,7 @@ public final class NutritionLibrary {
         let overrides = catalogLibrary.entries.compactMap {
             $0.nutritionOverride(bls: bls, source: datasetVersion)
         }
-        nutritionCatalog = overrides.isEmpty ? .bundled : NutritionCatalog.bundled.merging(overrides)
+        nutritionCatalog = overrides.isEmpty ? .current : NutritionCatalog.current.merging(overrides)
     }
 
     /// Reads the cook's own decisions, and the catalog they are keyed by, if

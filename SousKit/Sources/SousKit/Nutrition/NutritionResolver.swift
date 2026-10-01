@@ -29,7 +29,7 @@ public enum NutritionResolver {
     /// These used to be six literals here. They are the same six numbers, read
     /// from `measures.json` now: a value a cook is meant to be able to correct
     /// has no business being a compiled constant.
-    static let measures: MeasureTable = .bundled
+    static let measures: MeasureTable = .current
 
     /// Water's density, used as the fallback for a volume amount whose
     /// ingredient has no density on record. Most kitchen liquids — stock,
@@ -45,8 +45,8 @@ public enum NutritionResolver {
     /// a counted unit with no per-ingredient weight on record.
     public static func resolvedGrams(
         for ingredient: RecipeIngredient,
-        catalog: IngredientCatalog = .bundled,
-        nutritionCatalog: NutritionCatalog = .bundled
+        catalog: IngredientCatalog = .current,
+        nutritionCatalog: NutritionCatalog = .current
     ) -> Double? {
         resolve(for: ingredient, catalog: catalog, nutritionCatalog: nutritionCatalog)?.grams
     }
@@ -61,8 +61,8 @@ public enum NutritionResolver {
     /// perfectly right about a litre of it.
     public static func resolve(
         for ingredient: RecipeIngredient,
-        catalog: IngredientCatalog = .bundled,
-        nutritionCatalog: NutritionCatalog = .bundled
+        catalog: IngredientCatalog = .current,
+        nutritionCatalog: NutritionCatalog = .current
     ) -> ResolvedAmount? {
         guard let written = ingredient.quantity else { return nil }
         let quantity = catalog.reading(written, for: ingredient.name)

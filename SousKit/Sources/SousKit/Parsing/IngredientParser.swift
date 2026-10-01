@@ -22,7 +22,7 @@ public enum IngredientParser {
     ///
     /// `catalog` is consulted only to tell a name that happens to contain a
     /// comma from a name followed by a preparation — see `parseLine`.
-    public static func parse(_ text: String, catalog: IngredientCatalog = .bundled) -> [RecipeIngredient] {
+    public static func parse(_ text: String, catalog: IngredientCatalog = .current) -> [RecipeIngredient] {
         var result: [RecipeIngredient] = []
         for written in writtenLines(in: text) {
             var ingredient = parseLine(written.text, catalog: catalog)
@@ -73,7 +73,7 @@ public enum IngredientParser {
     /// them. Nothing in the line itself tells the two apart, so the only
     /// honest answer is to ask what is a known ingredient. A name the
     /// catalog knows whole is left whole; everything else splits as before.
-    public static func parseLine(_ line: String, catalog: IngredientCatalog = .bundled) -> RecipeIngredient {
+    public static func parseLine(_ line: String, catalog: IngredientCatalog = .current) -> RecipeIngredient {
         var rest = Substring(line.trimmingCharacters(in: .whitespaces))
 
         var quantity: Quantity?
@@ -313,7 +313,7 @@ public enum IngredientParser {
     /// being typed, without waiting for it to parse into a full ingredient.
     /// `nil` if the line does not start with an amount at all.
     public static func leadingAmountAndUnitLength(
-        in line: String, catalog: IngredientCatalog = .bundled
+        in line: String, catalog: IngredientCatalog = .current
     ) -> Int? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard let (_, afterAmount) = leadingAmount(in: trimmed) else { return nil }

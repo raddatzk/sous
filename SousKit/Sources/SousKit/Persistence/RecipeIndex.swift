@@ -48,7 +48,7 @@ public enum RecipeIndex {
     public static func searchText(
         for recipe: Recipe,
         variantGroupTitle: String? = nil,
-        catalog: IngredientCatalog = .bundled
+        catalog: IngredientCatalog = IngredientLineReader.catalog
     ) -> String {
         var parts = [recipe.title]
         if let variantGroupTitle, !variantGroupTitle.isEmpty {

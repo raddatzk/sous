@@ -78,7 +78,7 @@ public struct VocabularyOrphanReconciliation: Sendable {
     /// Idempotent: an entry already carrying the review flag is counted as
     /// orphaned but not written again, so a second run changes nothing.
     @discardableResult
-    public func run(bls: BLSCatalog = .bundled) async throws -> OrphanReconciliation.Report {
+    public func run(bls: BLSCatalog = .current) async throws -> OrphanReconciliation.Report {
         var report = OrphanReconciliation.Report()
 
         for entry in try await store.entries() {

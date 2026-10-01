@@ -8,9 +8,10 @@ import Foundation
 /// lifetime of the process — a fingerprint nobody could read back and compare
 /// against the last launch. This is that missing memory, and nothing more.
 public struct BundledDataStamp: Equatable, Hashable, Sendable {
-    /// The hash over the shipped catalog files — the thing that actually
-    /// changes when a release swaps the bundle, whether or not the version
-    /// string moved with it.
+    /// `r<readingVersion>-<dataVersion>` of the data set — the thing that
+    /// actually changes when an app update swaps the bundle or a fetched set
+    /// becomes current, whether or not the BLS version string moved with it.
+    /// The name stays from when only the bundle could change.
     public var fingerprint: String
     /// What that data calls itself: "BLS 4.0". Kept beside the hash because
     /// it is the half a person can read, and the sources screen prints it.
@@ -57,11 +58,12 @@ public struct BundledDataMarker: Sendable {
         self.defaults = defaults
     }
 
-    /// What the app is shipping right now, stamped as of `date`.
+    /// What the app runs on right now — the data set chosen at launch,
+    /// bundled or fetched — stamped as of `date`.
     public static func current(at date: Date = .nowInSyncPrecision) -> BundledDataStamp {
         BundledDataStamp(
-            fingerprint: RecipeContentHash.bundledDataFingerprint,
-            datasetVersion: BLSCatalog.bundled.source.datasetVersion,
+            fingerprint: RecipeContentHash.dataFingerprint,
+            datasetVersion: BLSCatalog.current.source.datasetVersion,
             seenAt: date
         )
     }

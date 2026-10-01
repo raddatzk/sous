@@ -146,7 +146,7 @@ public struct IngredientVocabularyEntry: Identifiable, Hashable, Sendable {
     /// references the shipped world by key, so that a release can be swapped
     /// in wholesale and the values follow silently (decision D).
     public func nutritionOverride(
-        bls: BLSCatalog, source: String, measures: MeasureTable = .bundled
+        bls: BLSCatalog, source: String, measures: MeasureTable = .current
     ) -> CatalogNutrition? {
         var resolved: [String: NutritionBasis] = [:]
         var group: String?

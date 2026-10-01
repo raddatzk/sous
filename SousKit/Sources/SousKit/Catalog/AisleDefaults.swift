@@ -38,15 +38,14 @@ public struct AisleDefaults: Sendable {
 
     public func category(forGroup group: String) -> IngredientCategory? { byGroup[group] }
 
+    /// `aisles.json`.
+    init(json: Data) throws {
+        self.init(groups: try JSONDecoder().decode(File.self, from: json).groups)
+    }
+
+    /// The table of the data set this process runs on.
+    public static var current: AisleDefaults { DataSet.current.aisles }
+
     /// The table shipped with the app.
-    public static let bundled: AisleDefaults = {
-        guard let url = Bundle.module.url(forResource: "aisles", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else {
-            assertionFailure("The bundled aisle defaults are missing or unreadable")
-            return AisleDefaults(groups: [])
-        }
-        return AisleDefaults(groups: file.groups)
-    }()
+    public static var bundled: AisleDefaults { DataSet.bundled.aisles }
 }

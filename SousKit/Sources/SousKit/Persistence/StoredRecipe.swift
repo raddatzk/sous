@@ -61,7 +61,7 @@ public final class StoredRecipe {
 
     public init(
         _ recipe: Recipe,
-        catalog: IngredientCatalog = .bundled,
+        catalog: IngredientCatalog = IngredientLineReader.catalog,
         variantGroupTitle: String? = nil
     ) {
         id = recipe.id
@@ -77,7 +77,7 @@ public final class StoredRecipe {
     /// can.
     public func apply(
         _ recipe: Recipe,
-        catalog: IngredientCatalog = .bundled,
+        catalog: IngredientCatalog = IngredientLineReader.catalog,
         variantGroupTitle: String? = nil
     ) {
         title = recipe.title

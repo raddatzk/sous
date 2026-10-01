@@ -651,7 +651,7 @@ public enum StepReferencesPrompt {
     /// An amount as written, read the way an ingredient line would be —
     /// "150 g", "½ TL", "1 kleine".
     static func quantity(in amount: String) -> (quantity: Quantity, size: IngredientSize?)? {
-        if let measure = IngredientLineReader.measure(in: "\(amount) x", catalog: .bundled) {
+        if let measure = IngredientLineReader.measure(in: "\(amount) x", catalog: .current) {
             return (measure.quantity, measure.size)
         }
         // What a sentence writes where a list would write a digit: "etwa
@@ -661,7 +661,7 @@ public enum StepReferencesPrompt {
         if let first = words.first, let number = numberWords[first.lowercased()] { words[0] = number }
         let rewritten = words.joined(separator: " ")
         guard rewritten != amount else { return nil }
-        return IngredientLineReader.measure(in: "\(rewritten) x", catalog: .bundled)
+        return IngredientLineReader.measure(in: "\(rewritten) x", catalog: .current)
             .map { ($0.quantity, $0.size) }
     }
 

@@ -189,7 +189,7 @@ public final class CoreDataRecipeStore: RecipeStore, @unchecked Sendable {
         }
     }
 
-    public func reindexSearch(catalog: IngredientCatalog = .bundled) async throws {
+    public func reindexSearch(catalog: IngredientCatalog = IngredientLineReader.catalog) async throws {
         try await context.perform {
             // Every row, tombstoned ones included: a recipe restored from the
             // trash must come back searchable by today's reading, not by the
