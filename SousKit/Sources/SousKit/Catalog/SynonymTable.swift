@@ -95,11 +95,14 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
 
     /// Every code this word could mean, best first: what phase 4's picker
     /// lists, and what phase 3 already carries through the result without
-    /// showing it.
+    /// showing it. Equal weights keep the targets' order, which the table
+    /// fixes state by state.
     public var candidateCodes: [String] {
         var seen = Set<String>()
-        return (targets.sorted { $0.weight > $1.weight }.map(\.code) + candidates)
-            .filter { seen.insert($0).inserted }
+        let ranked = targets.enumerated()
+            .sorted { ($0.element.weight, $1.offset) > ($1.element.weight, $0.offset) }
+            .map(\.element.code)
+        return (ranked + candidates).filter { seen.insert($0).inserted }
     }
 }
 
@@ -151,20 +154,22 @@ public struct SynonymTable: Sendable {
     /// The table of the data set this process runs on.
     public static var current: SynonymTable { DataSet.current.synonyms }
 
+    /// The order a word's states are read in, the compiler's (`STATES` in
+    /// `Scripts/data/compile.py`).
+    private static let stateOrder: [IngredientState] = [.raw, .cooked, .unspecified]
+
     /// Joins the kitchen's list to the mapping. Weights are positional: the
     /// first code a state names is its basis, the rest are alternatives, and
     /// that is the whole of the ranking the curation needs to express.
     public init(kitchen: KitchenWords, curation: IngredientCuration) {
         self.init(entries: kitchen.words.map { word in
             let entry = curation.entry(for: word.name)
-            let targets = (entry?.targets ?? [:]).flatMap { state, codes in
-                codes.enumerated().compactMap { index, code in
-                    IngredientState(rawValue: state).map {
-                        SynonymTarget(
-                            code: code, state: $0,
-                            weight: index == 0 ? 1 : 0.8
-                        )
-                    }
+            // State by state in a fixed order, not the dictionary's: Swift
+            // orders a dictionary differently in every process, and the
+            // candidates came out shuffled on every launch.
+            let targets = Self.stateOrder.flatMap { state in
+                (entry?.targets[state.rawValue] ?? []).enumerated().map { index, code in
+                    SynonymTarget(code: code, state: state, weight: index == 0 ? 1 : 0.8)
                 }
             }
             return SynonymEntry(
