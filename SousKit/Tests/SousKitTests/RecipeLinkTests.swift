@@ -60,7 +60,7 @@ struct RecipeLinkTests {
     @Test("A linked ingredient keeps its amount and reads as its title")
     func linkedIngredientParses() {
         let id = UUID()
-        let ingredient = IngredientParser.parseLine("1 Portion \(RecipeLink.markdown(title: "Pizzateig", id: id))")
+        let ingredient = IngredientLineReader.readLine("1 Portion \(RecipeLink.markdown(title: "Pizzateig", id: id))")
 
         #expect(ingredient.quantity == Quantity(1, .portion))
         #expect(ingredient.name.contains("Pizzateig"))

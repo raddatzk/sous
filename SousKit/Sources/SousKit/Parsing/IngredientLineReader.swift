@@ -23,9 +23,6 @@ import Synchronization
 /// words as written, its amount is still read so the line scales with the
 /// recipe, and ``RecipeIngredient/isOutsideForm`` marks it for the
 /// optimization. It gets no nutrition.
-///
-/// The fixed form is a subset of what ``IngredientParser`` reads, so a
-/// household member on an older app reads a migrated line the same way.
 public enum IngredientLineReader {
     // MARK: - The household's catalog
 

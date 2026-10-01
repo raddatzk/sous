@@ -96,26 +96,6 @@ public enum IngredientStateVocabulary {
         return qualifier(forWord: first)
     }
 
-    /// A name's trailing vocabulary word split off: "Kartoffeln gegart" →
-    /// ("Kartoffeln", "gegart"). `nil` when the last word says nothing, or
-    /// when nothing usable would be left of the name.
-    ///
-    /// The caller decides whether the split is allowed at all — see
-    /// ``IngredientParser/parseLine(_:catalog:)``, which asks the catalog
-    /// first so that a name the catalog knows whole ("Kartoffel geschält,
-    /// gekocht") is never taken apart.
-    static func trailingWord(in name: String) -> (stem: String, word: String)? {
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
-        guard let spaceIndex = trimmed.lastIndex(of: " ") else { return nil }
-        let word = String(trimmed[trimmed.index(after: spaceIndex)...])
-        guard isVocabulary(word) else { return nil }
-        let stem = String(trimmed[..<spaceIndex]).trimmingCharacters(in: .whitespaces)
-        // Not a name any more, so not a split: "roh" on its own is a line
-        // that says nothing, and "TK" alone is a shopping note.
-        guard stem.count >= 3 else { return nil }
-        return (stem, word)
-    }
-
     private static func firstWord(of text: String?) -> String? {
         text?.split(separator: " ").first.map(String.init)
     }
