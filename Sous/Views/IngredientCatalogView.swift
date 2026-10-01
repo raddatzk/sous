@@ -197,6 +197,8 @@ struct IngredientFormView: View {
     @State private var storedNote = ""
     /// Set once the cook asks to enter their own numbers over shipped ones.
     @State private var isEnteringOwnValues = false
+    /// Set while the local-answer form is open over this one.
+    @State private var isEditingLocalAnswer = false
     /// The ingredient this one is filed as a variety of — proposed for a new
     /// name by the word-ending heuristic, and editable afterwards.
     @State private var parentName: String?
@@ -338,6 +340,7 @@ struct IngredientFormView: View {
                     bundledAliasSection
                 }
                 variantSection
+                localAnswerSection
                 pantrySection
                 shoppingSection
                 basisSection
@@ -352,6 +355,9 @@ struct IngredientFormView: View {
                 }
             }
             .formStyle(.grouped)
+            .sheet(isPresented: $isEditingLocalAnswer) {
+                LocalAnswerForm(name: original.name, existing: catalog.localAnswer(for: original.name))
+            }
             // Pushed rather than presented: the two buttons that lead here
             // sit inside a form row, where a `NavigationLink` of their own
             // would take the whole row.
@@ -505,6 +511,26 @@ struct IngredientFormView: View {
 
     private var pantryKey: String {
         IngredientCatalog.normalize(pantryName)
+    }
+
+    /// The household's local answer for this word, if one speaks — "lokal",
+    /// with what it says, and quietly whether the catalog has since taken it
+    /// over (INGREDIENTS-DATA §3 B, R3). Not for a name still being typed.
+    @ViewBuilder
+    private var localAnswerSection: some View {
+        if !trimmedName.isEmpty {
+            Section {
+                if let trace = catalog.localTrace(for: original.name) {
+                    Text(trace.label)
+                        .foregroundStyle(.secondary)
+                    Button("Lokale Angabe bearbeiten …") { isEditingLocalAnswer = true }
+                } else {
+                    Button("Lokale Angabe …") { isEditingLocalAnswer = true }
+                }
+            } header: {
+                Text("Lokal")
+            }
+        }
     }
 
     private var pantrySection: some View {

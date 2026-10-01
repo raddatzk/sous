@@ -56,6 +56,7 @@ struct RecipeListView: View {
                 case .categories: CategoryManagerView()
                 case .trash: TrashView()
                 case .migration: LibraryMigrationSheet()
+                case .harvest: VocabularyHarvestSheet()
                 }
             }
             #if os(iOS)
@@ -836,6 +837,9 @@ struct RecipeListView: View {
                     }
                     Button("Bibliothek umstellen", systemImage: "text.line.first.and.arrowtriangle.forward") {
                         commands.panel = .migration
+                    }
+                    Button("Vokabular exportieren", systemImage: "square.and.arrow.up") {
+                        commands.panel = .harvest
                     }
                     // No Settings entry on the Mac either — it has the Settings
                     // scene behind Cmd-, — but this whole menu is gone there.

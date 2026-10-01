@@ -341,7 +341,10 @@ struct RecipeDetailView: View {
         }
         // Keyed on servings too: nutrition is per portion, so scaling the
         // recipe has to recompute it, not just re-scale what is on screen.
-        .task(id: "\(recipe.id)-\(servings)") {
+        // The catalog's revision too: a local answer written here or synced
+        // in changes what the lines are worth. The lookup misses the cache
+        // only when the answers actually changed (its key carries them).
+        .task(id: "\(recipe.id)-\(servings)-\(catalog.revision)") {
             nutrition = await nutritionLibrary.nutrition(for: recipe, servings: servings)
             await refreshNutritionTagSuggestions()
         }
@@ -1344,6 +1347,17 @@ struct RecipeDetailView: View {
                                 // with no way back.
                                 canRevisit: true
                             )
+                        } else if let trace = catalog.localTrace(for: line.ingredientName) {
+                            // Own values name no catalog row; the local
+                            // answer is what the figure rests on.
+                            coverageRow(
+                                name: line.ingredientName,
+                                state: line.state,
+                                source: line.sourceRecipeTitle,
+                                detail: trace.label,
+                                isOpen: false,
+                                canRevisit: true
+                            )
                         }
                         gramBridgeRow(for: line)
                     }
@@ -1365,10 +1379,23 @@ struct RecipeDetailView: View {
     /// itself the moment the mapping is repaired, and a coverage cached
     /// before the update cannot serve a stale one.
     private func gapDetail(for gap: NutritionCoverage.Gap) -> String {
-        guard gap.reason == .orphanedBasis,
-              let was = nutritionLibrary.orphanedCatalogNames(forName: gap.ingredientName).first
-        else { return gap.reason.label }
-        return "\(gap.reason.label) — beruhte auf: \(was)"
+        let detail: String
+        if gap.reason == .orphanedBasis,
+           let was = nutritionLibrary.orphanedCatalogNames(forName: gap.ingredientName).first {
+            detail = "\(gap.reason.label) — beruhte auf: \(was)"
+        } else {
+            detail = gap.reason.label
+        }
+        return withLocalTrace(detail, for: gap.ingredientName)
+    }
+
+    /// The quiet line a local answer leaves (INGREDIENTS-DATA §3 B, R3):
+    /// "lokal: zählt wie Tofu", or, once the catalog has taken the name
+    /// over, "… · jetzt vom Katalog beantwortet". Read live, like the orphan
+    /// note above, so it follows the answer rather than a cached coverage.
+    private func withLocalTrace(_ detail: String, for name: String) -> String {
+        guard let trace = catalog.localTrace(for: name) else { return detail }
+        return "\(detail) · \(trace.label)"
     }
 
     /// What a counting line rests on, and — where the two differ — the state
@@ -1388,9 +1415,9 @@ struct RecipeDetailView: View {
         let lead = line.inheritedFrom.map { "geerbt von \($0)" }
             ?? (line.isProvisional ? "vorgeschlagen" : "beruht auf")
         guard !line.matchesState, let state = line.state.shoppingAnnotation else {
-            return "\(lead): \(basis)"
+            return withLocalTrace("\(lead): \(basis)", for: line.ingredientName)
         }
-        return "\(state) — \(lead): \(basis)"
+        return withLocalTrace("\(state) — \(lead): \(basis)", for: line.ingredientName)
     }
 
     /// "2 EL ≈ 28 g (Annahme)" — the gram bridge, said out loud for the line

@@ -10,11 +10,21 @@ public protocol RecipeNutritionStore: Sendable {
     /// different content than `recipe` (or one of its links) currently has.
     /// Servings are part of the key: per-portion figures are not invariant
     /// under scaling, since not every amount scales.
-    func nutrition(for recipe: Recipe, servings: Int, resolve: @Sendable (UUID) -> Recipe?) async throws -> RecipeNutrition?
+    ///
+    /// `context` is what besides the text the figure was computed against —
+    /// the household, and a fingerprint of what it has said about its
+    /// ingredients (INGREDIENTS-DATA §3 B). A figure computed with one
+    /// household's answers is never one for another's.
+    func nutrition(
+        for recipe: Recipe, servings: Int, context: String, resolve: @Sendable (UUID) -> Recipe?
+    ) async throws -> RecipeNutrition?
     /// Replaces whatever was cached for this recipe at `nutrition.servings`
     /// with `nutrition`, stamped against `recipe`'s and its links' current
-    /// content.
-    func save(_ nutrition: RecipeNutrition, for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?) async throws
+    /// content and `context`.
+    func save(
+        _ nutrition: RecipeNutrition, for recipe: Recipe, context: String,
+        resolve: @Sendable (UUID) -> Recipe?
+    ) async throws
     func delete(recipeID: UUID) async throws
     /// Drops every cached figure.
     ///
@@ -23,4 +33,19 @@ public protocol RecipeNutritionStore: Sendable {
     /// alias or a new nutrition entry would otherwise leave every recipe
     /// already looked at showing the old, partial total forever.
     func invalidateAll() async throws
+}
+
+extension RecipeNutritionStore {
+    /// Without a household context — what a test of the text key alone asks.
+    public func nutrition(
+        for recipe: Recipe, servings: Int, resolve: @Sendable (UUID) -> Recipe?
+    ) async throws -> RecipeNutrition? {
+        try await nutrition(for: recipe, servings: servings, context: "", resolve: resolve)
+    }
+
+    public func save(
+        _ nutrition: RecipeNutrition, for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?
+    ) async throws {
+        try await save(nutrition, for: recipe, context: "", resolve: resolve)
+    }
 }

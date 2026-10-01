@@ -5,17 +5,20 @@ import SwiftData
 @ModelActor
 public actor SwiftDataRecipeNutritionStore: RecipeNutritionStore {
     public func nutrition(
-        for recipe: Recipe, servings: Int, resolve: @Sendable (UUID) -> Recipe?
+        for recipe: Recipe, servings: Int, context: String, resolve: @Sendable (UUID) -> Recipe?
     ) async throws -> RecipeNutrition? {
-        let hash = RecipeContentHash.hash(for: recipe, resolve: resolve)
+        let hash = Self.key(for: recipe, context: context, resolve: resolve)
         guard let stored = try allStored(recipeID: recipe.id)
             .first(where: { $0.servings == servings && $0.contentHash == hash })
         else { return nil }
         return stored.nutrition
     }
 
-    public func save(_ nutrition: RecipeNutrition, for recipe: Recipe, resolve: @Sendable (UUID) -> Recipe?) async throws {
-        let hash = RecipeContentHash.hash(for: recipe, resolve: resolve)
+    public func save(
+        _ nutrition: RecipeNutrition, for recipe: Recipe, context: String,
+        resolve: @Sendable (UUID) -> Recipe?
+    ) async throws {
+        let hash = Self.key(for: recipe, context: context, resolve: resolve)
         var rows = try allStored(recipeID: recipe.id)
         // A row computed against other content is stale at every serving
         // count — pruned here so the rows per recipe stay bounded by the
@@ -45,6 +48,16 @@ public actor SwiftDataRecipeNutritionStore: RecipeNutritionStore {
     public func invalidateAll() async throws {
         try modelContext.delete(model: StoredRecipeNutrition.self)
         try modelContext.save()
+    }
+
+    /// The text's hash, with the household context folded in where there is
+    /// one — so a row computed for another household or before an answer
+    /// changed is a different key, and pruned like any stale one.
+    private static func key(
+        for recipe: Recipe, context: String, resolve: @Sendable (UUID) -> Recipe?
+    ) -> String {
+        let hash = RecipeContentHash.hash(for: recipe, resolve: resolve)
+        return context.isEmpty ? hash : "\(hash)|\(context)"
     }
 
     private func allStored(recipeID: UUID) throws -> [StoredRecipeNutrition] {

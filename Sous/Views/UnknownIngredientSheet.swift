@@ -33,6 +33,9 @@ struct UnknownIngredientSheet: View {
     /// Set once an answer is being written. A second tap during the write
     /// should not write again.
     @State private var isWriting = false
+    /// Set once the cook chose to give a local answer by hand — own values,
+    /// own weights, a product (INGREDIENTS-DATA §3 B).
+    @State private var isAnswering = false
 
     init(name: String) {
         self.name = name
@@ -40,7 +43,9 @@ struct UnknownIngredientSheet: View {
     }
 
     var body: some View {
-        if isCreating {
+        if isAnswering {
+            LocalAnswerForm(name: name, existing: catalog.localAnswer(for: name))
+        } else if isCreating {
             // The form cannot ask "Als Sorte von X führen?" here. Those
             // candidates were just on screen, and the cook turned them down.
             IngredientFormView(
@@ -70,6 +75,13 @@ struct UnknownIngredientSheet: View {
                     if !results.isEmpty {
                         Text("Tippe auf einen Treffer, wenn „\(name)“ dasselbe ist oder eine Sorte davon.")
                     }
+                }
+                Section {
+                    Button("Lokale Angabe …", systemImage: "house") {
+                        isAnswering = true
+                    }
+                } footer: {
+                    Text("Eigene Werte von der Packung, eigene Gewichte oder ein Produkt – nur für diesen Haushalt.")
                 }
                 Section {
                     Button("„\(name)“ neu anlegen", systemImage: "plus.circle") {
@@ -118,6 +130,11 @@ struct UnknownIngredientSheet: View {
             isPresented: isAsking(about: match),
             titleVisibility: .visible
         ) {
+            if match.catalogID != nil {
+                Button("Zählt wie \(match.name)") {
+                    write { _ = await catalog.count(name, as: match) }
+                }
+            }
             Button("Dasselbe, nur anders geschrieben") {
                 write { await catalog.addAlias(name, to: match) }
             }
@@ -129,6 +146,7 @@ struct UnknownIngredientSheet: View {
             Button("Abbrechen", role: .cancel) {}
         } message: {
             Text("""
+            Zählt wie: rechnet mit Nährwerten und Gewichten von „\(match.name)“, nur in diesem Haushalt; auf der Einkaufsliste bleibt „\(name)“ eine eigene Zeile.
             Anders geschrieben: wird als „\(match.name)“ gezählt, mit denselben Nährwerten und einer gemeinsamen Zeile auf der Einkaufsliste.
             Sorte: eine eigene Zutat unter „\(match.name)“, mit eigener Zeile auf der Einkaufsliste. Die Nährwerte von „\(match.name)“ gelten als Vorschlag.
             """)

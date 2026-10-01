@@ -30,6 +30,8 @@ struct RecipeOptimizationSheet: View {
     @State private var selection = RecipeOptimization.Selection()
     @State private var reported: Set<Int> = []
     @State private var didCopyReport = false
+    /// The proposals stored as local answers in this sheet, by line.
+    @State private var storedLocally: Set<Int> = []
     @State private var failure: String?
     @State private var createdVariant: String?
 
@@ -337,13 +339,24 @@ struct RecipeOptimizationSheet: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         if let countsAs = item.countsAs {
-                            Text("zählt wie \(countsAs)")
-                                .font(.caption)
-                                .foregroundStyle(Color.sousAccent)
+                            if storedLocally.contains(item.id) || catalogLibrary.localTrace(for: item.name) != nil {
+                                Label("lokal gespeichert: \(item.kind == .product ? "Produkt" : "zählt wie") \(countsAs)", systemImage: "checkmark")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("\(item.kind == .product ? "Produkt" : "zählt wie") \(countsAs)")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.sousAccent)
+                            }
                         }
                     }
                 }
             }
+            let storable = storableProposals(optimization)
+            Button("Lokal speichern", systemImage: "house") {
+                Task { await storeLocally(storable) }
+            }
+            .disabled(storable.isEmpty)
             Button(didCopyReport ? "Meldung kopiert" : "Meldung kopieren", systemImage: didCopyReport ? "checkmark" : "paperplane") {
                 SousPasteboard.copy(optimization.report(optimization.classifications.filter { reported.contains($0.id) }))
                 didCopyReport = true
@@ -352,8 +365,30 @@ struct RecipeOptimizationSheet: View {
         } header: {
             Text("Für den Katalog")
         } footer: {
-            Text("Sous kennt diese Namen noch nicht. Speichern lässt sich „zählt wie“ erst mit einem späteren Update; bis dahin kann die Meldung kopiert und geschickt werden.")
+            Text("Sous kennt diese Namen noch nicht. „Lokal speichern“ legt die angehakten „zählt wie“- und Produktvorschläge für diesen Haushalt an: Nährwerte und Gewichte kommen vom Ziel, die Einkaufsliste zeigt weiter den geschriebenen Namen. Die Meldung geht an den Katalog.")
         }
+    }
+
+    /// The ticked proposals that name a catalog word to count as, and are
+    /// not stored yet.
+    private func storableProposals(_ optimization: RecipeOptimization) -> [RecipeOptimization.Classification] {
+        optimization.classifications.filter { item in
+            reported.contains(item.id) && item.countsAs != nil
+                && !storedLocally.contains(item.id)
+                && catalogLibrary.localTrace(for: item.name) == nil
+        }
+    }
+
+    /// Writes the proposals as local answers (INGREDIENTS-DATA §3 B): a
+    /// product as a purchase choice, everything else as "zählt wie".
+    private func storeLocally(_ proposals: [RecipeOptimization.Classification]) async {
+        for item in proposals {
+            guard let name = item.countsAs, let target = catalog.ingredient(for: name) else { continue }
+            if await catalogLibrary.count(item.name, as: target, kind: item.kind == .product ? .product : .countsAs) {
+                storedLocally.insert(item.id)
+            }
+        }
+        if let message = catalogLibrary.errorMessage { failure = message }
     }
 
     // MARK: - Bindings and texts

@@ -178,4 +178,15 @@ public struct NutritionCatalog: Sendable {
         }
         return merged
     }
+
+    /// This catalog with `entries` in place of whatever it held under their
+    /// names — not merged: a local answer that lends a target's entry says
+    /// the whole of what the name is worth (``LocalAnswerSet``).
+    public func replacing(_ entries: [CatalogNutrition]) -> NutritionCatalog {
+        var replaced = self
+        for entry in entries {
+            replaced.byName[IngredientCatalog.normalize(entry.name)] = entry
+        }
+        return replaced
+    }
 }

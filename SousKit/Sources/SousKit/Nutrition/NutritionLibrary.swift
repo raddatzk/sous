@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import Observation
 
@@ -17,6 +18,10 @@ public final class NutritionLibrary {
     private let catalogLibrary: IngredientCatalogLibrary
     /// The shipped rows, injectable so a test can compute against fixtures.
     private let bls: BLSCatalog
+    /// The household the figures are computed for — part of the cache key.
+    /// Injectable because ``ActiveHousehold/id`` is process-wide, and tests
+    /// run side by side.
+    private let household: @MainActor () -> UUID?
 
     public var errorMessage: String?
 
@@ -24,12 +29,14 @@ public final class NutritionLibrary {
         store: any RecipeNutritionStore,
         recipeStore: any RecipeStore,
         catalogLibrary: IngredientCatalogLibrary,
-        bls: BLSCatalog = .current
+        bls: BLSCatalog = .current,
+        household: @escaping @MainActor () -> UUID? = { ActiveHousehold.id }
     ) {
         self.store = store
         self.recipeStore = recipeStore
         self.catalogLibrary = catalogLibrary
         self.bls = bls
+        self.household = household
     }
 
     private var catalog: IngredientCatalog { catalogLibrary.catalog }
@@ -74,11 +81,55 @@ public final class NutritionLibrary {
         rebuild()
     }
 
+    /// The vocabulary laid over the data set, then the local answers over
+    /// that — a household's answer is the last word (INGREDIENTS-DATA §3 B).
+    ///
+    /// Skipped while the catalog library has not rebuilt since: this runs at
+    /// the start of every recipe's lookup, and merging re-indexes the table.
     private func rebuild() {
+        guard builtFromRevision != catalogLibrary.revision else { return }
+        builtFromRevision = catalogLibrary.revision
         let overrides = catalogLibrary.entries.compactMap {
             $0.nutritionOverride(bls: bls, source: datasetVersion)
         }
-        nutritionCatalog = overrides.isEmpty ? .current : NutritionCatalog.current.merging(overrides)
+        let base = overrides.isEmpty ? NutritionCatalog.current : NutritionCatalog.current.merging(overrides)
+        nutritionCatalog = catalogLibrary.appliedAnswers.nutrition(over: base)
+        answersFingerprint = "\(Self.fingerprint(of: overrides))-\(catalogLibrary.localAnswers.fingerprint)"
+    }
+
+    private var builtFromRevision = -1
+    /// What the household has said about its ingredients, digested — the
+    /// vocabulary's numbers and the local answers.
+    private var answersFingerprint = ""
+
+    /// The cache key's second half: which household, and what it has said.
+    /// A household switch, an answer written here, or one synced in from
+    /// another device each make a different key — so a cached figure is
+    /// never one computed against other answers.
+    public var cacheContext: String {
+        "\(household()?.uuidString ?? "none")|\(answersFingerprint)"
+    }
+
+    private static func fingerprint(of overrides: [CatalogNutrition]) -> String {
+        guard !overrides.isEmpty else { return "none" }
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = (try? encoder.encode(overrides.sorted { $0.name < $1.name })) ?? Data()
+        return SHA256.hash(data: data).prefix(12).map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Rebuilds everything a household's figures rest on, and drops the
+    /// cached ones — what a household switch calls. The cache key alone
+    /// would already miss; clearing as well keeps another household's
+    /// figures from lingering in the store.
+    public func householdDidChange() async {
+        await catalogLibrary.reload()
+        rebuild()
+        do {
+            try await store.invalidateAll()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     /// Reads the cook's own decisions, and the catalog they are keyed by, if
@@ -406,7 +457,10 @@ public final class NutritionLibrary {
         let resolved = known
         let resolve: @Sendable (UUID) -> Recipe? = { resolved[$0] }
 
-        if let cached = try? await store.nutrition(for: recipe, servings: servings, resolve: resolve) {
+        let context = cacheContext
+        if let cached = try? await store.nutrition(
+            for: recipe, servings: servings, context: context, resolve: resolve
+        ) {
             return cached
         }
 
@@ -420,7 +474,7 @@ public final class NutritionLibrary {
             nrf93Score: NRF93Score.score(for: perPortion), coverage: report.coverage
         )
         do {
-            try await store.save(result, for: recipe, resolve: resolve)
+            try await store.save(result, for: recipe, context: context, resolve: resolve)
         } catch {
             errorMessage = error.localizedDescription
         }

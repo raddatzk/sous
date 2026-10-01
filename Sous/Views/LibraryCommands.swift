@@ -24,6 +24,9 @@ final class LibraryCommands {
         case trash
         /// "Bibliothek umstellen", the preview of the move into the fixed form.
         case migration
+        /// "Vokabular exportieren", the household's curation as proposals
+        /// for the catalog.
+        case harvest
 
         var id: String { rawValue }
     }

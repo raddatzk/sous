@@ -87,6 +87,7 @@ struct SousApp: App {
             let recipes = CoreDataRecipeStore(container: coreData)
             let images = CoreDataRecipeImageStore(container: coreData)
             let vocabulary = CoreDataVocabularyStore(container: coreData)
+            let localAnswers = CoreDataLocalAnswerStore(container: coreData)
             let plan = CoreDataMealPlanStore(container: coreData)
             let shoppingStore = CoreDataShoppingListStore(container: coreData)
             let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
@@ -120,6 +121,7 @@ struct SousApp: App {
             let enrichmentStore = SwiftDataRecipeEnrichmentStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
                 store: vocabulary,
+                localAnswers: localAnswers,
                 // Teaching the app a spelling, or confirming what a word
                 // means, can change what a recipe's nutrition adds up to —
                 // and that is cached per recipe text, which never notices.
@@ -172,11 +174,16 @@ struct SousApp: App {
             // The switch reloads what the screens hold, because the stores
             // now answer for a different household than the one the
             // libraries cached.
+            //
+            // The household catalog first: its local answers decide which
+            // lines the shopping list reads as known. And the nutrition table
+            // and cache with it — figures are a household's, not a recipe's
+            // (INGREDIENTS-DATA §3 B).
             let madeSwitcher = HouseholdSwitcher(households: households) {
+                await nutritionLibrary.householdDidChange()
                 await recipeLibrary.reload()
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
-                await catalogLibrary.reload()
                 // Search and Siri answer for the household showing, like
                 // every screen does. Not awaited: the index is the system's,
                 // and the switch — a new household's sheet closing, a link
@@ -290,10 +297,14 @@ struct SousApp: App {
             // and then there are two. Same rule as at launch, same reason.
             await joinTheHousehold()
             await switcher.refresh()
+            // The catalog first, for the same reason as at a switch: a local
+            // answer synced in changes what the other screens read. The
+            // nutrition cache needs no call — its key carries a fingerprint
+            // of the answers, so the next lookup misses by itself.
+            await catalog.reload()
             await library.reload()
             await mealPlan.reload()
             await shopping.reload()
-            await catalog.reload()
             // The same conflated signal drives the calendar: a plan changed
             // here, on another device, or in a joined household all lands as
             // the same store change, and one pass mirrors it.
@@ -746,6 +757,7 @@ struct SousApp: App {
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
                 Button("Bibliothek umstellen…") { commands.panel = .migration }
+                Button("Vokabular exportieren…") { commands.panel = .harvest }
             }
             // The Mac's way to switch: its window draws no title for the menu
             // the phone hangs there. The iPad gets both.

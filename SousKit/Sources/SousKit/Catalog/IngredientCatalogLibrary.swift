@@ -12,6 +12,7 @@ import Observation
 @Observable
 public final class IngredientCatalogLibrary {
     private let store: any VocabularyStore
+    private let localAnswerStore: any LocalAnswerStore
     /// Every change here can change what a recipe's ingredients resolve to,
     /// and with that its nutrition — which is cached against the recipe's
     /// text alone and would otherwise never notice.
@@ -29,14 +30,25 @@ public final class IngredientCatalogLibrary {
     private let readsRecipes: Bool
     /// Everything the cook has said about an ingredient, by normalized name.
     public private(set) var vocabulary: [String: IngredientVocabularyEntry] = [:]
+    /// The household's local answers (INGREDIENTS-DATA §3 B), twins folded.
+    public private(set) var localAnswers: LocalAnswerSet = .empty
+    /// The answers as laid over the catalog: what each did, and what the
+    /// nutrition table takes over from them.
+    public private(set) var appliedAnswers: LocalAnswerSet.Applied = .none
+    /// The catalog before the local answers — the data set with the
+    /// vocabulary patched in. What "does the catalog know this name" is asked
+    /// of, since a name only a local answer taught is not one it knows.
+    public private(set) var catalogWithoutLocalAnswers: IngredientCatalog = .current
     public var errorMessage: String?
 
     public init(
         store: any VocabularyStore,
+        localAnswers: any LocalAnswerStore = InMemoryLocalAnswerStore(),
         nutritionCache: (any RecipeNutritionStore)? = nil,
         readsRecipes: Bool = false
     ) {
         self.store = store
+        self.localAnswerStore = localAnswers
         self.nutritionCache = nutritionCache
         self.readsRecipes = readsRecipes
     }
@@ -50,6 +62,7 @@ public final class IngredientCatalogLibrary {
         do {
             let entries = try await store.entries()
             vocabulary = Dictionary(entries.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+            localAnswers = LocalAnswerSet(try await localAnswerStore.answers())
             rebuild()
             hasLoaded = true
         } catch {
@@ -72,7 +85,9 @@ public final class IngredientCatalogLibrary {
     /// find out which word wins its name first: merge the cook's own
     /// ingredients in front of the data set's, then patch the survivors
     /// with the spellings, aisles and variety relations the vocabulary holds
-    /// for them, then index the result.
+    /// for them, then index the result. The local answers go on top, last,
+    /// since whether a "zählt wie" still speaks depends on everything below
+    /// it (``LocalAnswerSet``).
     private func rebuild() {
         let own = vocabulary.values
             .filter(\.isOwnIngredient)
@@ -83,16 +98,23 @@ public final class IngredientCatalogLibrary {
             renames: IngredientCatalog.current.renames
         )
 
-        guard vocabulary.values.contains(where: { !$0.isOwnIngredient }) else {
-            catalog = merged
-            return
+        var base = merged
+        if vocabulary.values.contains(where: { !$0.isOwnIngredient }) {
+            let patched = merged.ingredients.map { ingredient -> CatalogIngredient in
+                guard let entry = vocabulary[ingredient.key], !entry.isOwnIngredient else { return ingredient }
+                return entry.catalogIngredient(fallback: ingredient)
+            }
+            base = IngredientCatalog(ingredients: patched, renames: merged.renames)
         }
-        let patched = merged.ingredients.map { ingredient -> CatalogIngredient in
-            guard let entry = vocabulary[ingredient.key], !entry.isOwnIngredient else { return ingredient }
-            return entry.catalogIngredient(fallback: ingredient)
-        }
-        catalog = IngredientCatalog(ingredients: patched, renames: merged.renames)
+        catalogWithoutLocalAnswers = base
+        appliedAnswers = localAnswers.applied(to: base)
+        catalog = appliedAnswers.catalog
+        revision += 1
     }
+
+    /// Counts the rebuilds, so what is derived from this library — the
+    /// nutrition table — knows when it has to be derived again.
+    public private(set) var revision = 0
 
     // MARK: - Reading
 
@@ -131,6 +153,27 @@ public final class IngredientCatalogLibrary {
         vocabulary.values.reduce(into: [:]) { result, entry in
             if let store = entry.preferredStore { result[entry.key] = store }
         }
+    }
+
+    /// What a local answer says about `name` — applied, or fallen silent
+    /// since the catalog learned the name (R3). `nil` where none speaks.
+    public func localTrace(for name: String) -> LocalAnswerTrace? {
+        appliedAnswers.trace(for: name)
+    }
+
+    /// The household's answer about `name`, by its written form or the
+    /// catalog word it resolves to.
+    public func localAnswer(for name: String) -> LocalAnswer? {
+        if let trace = localTrace(for: name) { return trace.answer }
+        let written = IngredientCatalog.normalize(name)
+        return localAnswers.answers.first { $0.writtenKey == written }
+    }
+
+    /// Whether the catalog itself — data set and vocabulary, without the
+    /// local answers — knows `name` as written. A "zählt wie" is only
+    /// offered for a name it does not (§3 B).
+    public func catalogKnows(_ name: String) -> Bool {
+        catalogWithoutLocalAnswers.ingredient(writtenAs: name) != nil
     }
 
     /// The ingredients named in a recipe's text that the catalog does not
@@ -321,6 +364,73 @@ public final class IngredientCatalogLibrary {
             // answered — that is what makes "bewusst ohne" an answer.
             if assignment != nil { entry.needsBasisReview = false }
         }
+    }
+
+    // MARK: - Local answers
+
+    /// Writes one local answer, keyed the way ``LocalAnswer/key`` says: by
+    /// the catalog id where the catalog knows the name and the answer is not
+    /// a "zählt wie" (which is only ever about a name it does not know), by
+    /// the written name otherwise.
+    ///
+    /// Ids are written as the current data set names them: a target renamed
+    /// since the answer was first saved is resolved on read and rewritten
+    /// here, on the save the answer sees anyway — never in bulk.
+    @discardableResult
+    public func saveLocalAnswer(_ answer: LocalAnswer) async -> Bool {
+        var answer = answer
+        answer.name = answer.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !answer.name.isEmpty else { return false }
+        if answer.catalogID == nil, answer.kind != .countsAs,
+           let known = catalogWithoutLocalAnswers.ingredient(writtenAs: answer.name) {
+            answer.catalogID = known.catalogID
+        }
+        answer.catalogID = answer.catalogID.map(catalog.currentID(for:))
+        answer.targetID = answer.targetID.map(catalog.currentID(for:))
+        answer.brand = answer.brand.flatMap(Self.nonEmpty)
+        answer.ean = answer.ean.flatMap(Self.nonEmpty)
+        answer.valuesSource = answer.valuesSource.flatMap(Self.nonEmpty)
+        do {
+            // An answer re-keyed by this save leaves its old row behind
+            // otherwise: delete under the key it was read with, then write.
+            if let held = localAnswers.answers.first(where: { $0.id == answer.id }), held.key != answer.key {
+                try await localAnswerStore.delete(held)
+            }
+            _ = try await localAnswerStore.save(answer)
+            await reload()
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    /// Takes a local answer back — "Lokale Angabe entfernen".
+    public func deleteLocalAnswer(_ answer: LocalAnswer) async {
+        do {
+            try await localAnswerStore.delete(answer)
+            await reload()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    /// "`name` zählt wie `target`" — the one-tap answer for a name the
+    /// catalog does not know. Keeps whatever else the household already
+    /// said about the name.
+    @discardableResult
+    public func count(_ name: String, as target: CatalogIngredient, kind: LocalAnswer.Kind = .countsAs) async -> Bool {
+        guard let targetID = target.catalogID else { return false }
+        let written = IngredientCatalog.normalize(name)
+        var answer = localAnswers.answers.first { $0.writtenKey == written } ?? LocalAnswer(name: name)
+        answer.kind = kind
+        answer.targetID = targetID
+        return await saveLocalAnswer(answer)
+    }
+
+    private static func nonEmpty(_ text: String) -> String? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// What one piece of an ingredient weighs, as the cook corrected it.

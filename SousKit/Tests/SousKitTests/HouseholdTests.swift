@@ -33,8 +33,8 @@ struct HouseholdTests {
         }
     }
 
-    /// Recipe, plan entry, shopping line and taught ingredient — one row of
-    /// every kind a person writes by hand.
+    /// Recipe, plan entry, shopping line, taught ingredient and local answer
+    /// — one row of every kind a person writes by hand.
     private func writeOneOfEverything(into container: NSPersistentContainer) async throws {
         let recipe = try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
         try await CoreDataMealPlanStore(container: container)
@@ -43,6 +43,8 @@ struct HouseholdTests {
             .addManual(key: "mehl", name: "Mehl", category: .grains, quantities: [])
         _ = try await CoreDataVocabularyStore(container: container)
             .save(IngredientVocabularyEntry(name: "Ajvar", isOwnIngredient: true))
+        try await CoreDataLocalAnswerStore(container: container)
+            .save(LocalAnswer(name: "Rauchtofu", kind: .countsAs, targetID: "tofu"))
     }
 
     /// Long enough for the next household's millisecond timestamp to differ,

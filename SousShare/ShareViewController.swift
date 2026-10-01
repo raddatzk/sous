@@ -215,6 +215,7 @@ final class Libraries {
         // doubling it.
         catalog = IngredientCatalogLibrary(
             store: CoreDataVocabularyStore(container: coreData),
+            localAnswers: CoreDataLocalAnswerStore(container: coreData),
             nutritionCache: nutritionStore,
             readsRecipes: true
         )
