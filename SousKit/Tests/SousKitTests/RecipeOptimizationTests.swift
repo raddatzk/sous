@@ -38,7 +38,7 @@ struct RecipeOptimizationTests {
     /// Each line as written, one new line each, numbered in order.
     private func unchanged(_ recipe: Recipe, except overrides: [Int: String] = [:]) -> [String] {
         var number = 0
-        return IngredientParser.writtenLines(in: recipe.ingredientsText).enumerated().map { index, line in
+        return IngredientLineReader.writtenLines(in: recipe.ingredientsText).enumerated().map { index, line in
             if let override = overrides[index + 1] {
                 number += override.components(separatedBy: "\"nr\"").count - 1
                 return override
@@ -295,7 +295,7 @@ struct RecipeOptimizationTests {
         let ginger = optimization.lines[4]
         #expect(ginger.changes == [.preparation])
         let grams = try #require(RecipeOptimizationPrompt.weighedGrams(
-            IngredientParser.parseLine("1 TL Ingwer"), catalog: .bundled, nutritionCatalog: .bundled
+            IngredientLineReader.readLine("1 TL Ingwer", catalog: .bundled), catalog: .bundled, nutritionCatalog: .bundled
         ))
         #expect(ginger.weighing == .init(from: Quantity(1, .teaspoon), grams: RecipeOptimization.roundedGrams(grams)))
         let expected = QuantityFormatter(locale: Locale(identifier: "de_DE"))

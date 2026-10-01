@@ -84,7 +84,7 @@ struct IngredientCompletionTests {
         // … has to read back as that same ingredient, not as a truncated
         // name plus a "preparation", or it re-reports as unknown and drops
         // out of the recipe's nutrition.
-        let parsed = IngredientParser.parseLine(completed, catalog: catalog)
+        let parsed = IngredientLineReader.readLine(completed, catalog: catalog)
         #expect(parsed.name == "Sauerrahm, mind. 20 % Fett")
         #expect(parsed.preparation == nil)
         #expect(catalog.unknownIngredients(in: completed).isEmpty)

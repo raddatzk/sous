@@ -172,26 +172,32 @@ struct IngredientLineReaderTests {
 
     // MARK: - Lists
 
-    @Test("Headings group lines as before, and the old parser numbers alike")
+    @Test("Headings open a group, in either syntax, for the lines that follow")
     func headings() {
         let text = "# Für den Teig\n200 g Mehl\n\nFür die Soße:\n1 Zwiebel\n300 g Tomaten:"
         let lines = IngredientLineReader.read(text, catalog: catalog)
         #expect(lines.map(\.group) == ["Für den Teig", "Für die Soße", "Für die Soße"])
-        #expect(IngredientParser.writtenLines(in: text).map(\.text)
-            == IngredientLineReader.writtenLines(in: text).map(\.text))
     }
 
-    @Test("Every line in the fixed form reads the same in the old parser")
-    func oldAppsReadTheFixedForm() {
-        for line in ["½ Limette, Saft davon, optional", "2 rote Zwiebeln", "250 g rote Linsen, getrocknet",
-                     "1 Dose Kidneybohnen, Abtropfgewicht 500 g", "200 g schwarze Bohnen, gekocht",
-                     "Salz, nach Geschmack", "400 g Tomaten, TK"] {
-            let strict = read(line)
-            let old = IngredientParser.parseLine(line, catalog: catalog)
-            #expect(catalog.ingredient(for: strict.name)?.name == catalog.ingredient(for: old.name)?.name, "\(line)")
-            #expect(strict.quantity == old.quantity, "\(line)")
-            #expect(strict.state == old.state, "\(line)")
-            #expect(catalog.nutritionName(for: strict) == catalog.nutritionName(for: old), "\(line)")
-        }
+    @Test("A blank line closes a group only once it has lines")
+    func blankLineClosesAGroup() {
+        let text = "# Teig\n\n200 g Mehl\n\n1 Zwiebel"
+        let lines = IngredientLineReader.read(text, catalog: catalog)
+        #expect(lines.map(\.group) == ["Teig", nil])
+    }
+
+    @Test("A line with an amount is not mistaken for a heading")
+    func amountIsNotAHeading() {
+        #expect(!IngredientLineReader.isGroupHeading("300 g Tomaten:"))
+        #expect(IngredientLineReader.isGroupHeading("Für die Soße:"))
+        #expect(IngredientLineReader.isGroupHeading("# Teig"))
+    }
+
+    @Test("Reading the same text twice yields equal lines, each with its own identity")
+    func identityFollowsTheLine() {
+        let text = "200 g Mehl\n1 Zwiebel"
+        let first = IngredientLineReader.read(text, catalog: catalog)
+        #expect(first == IngredientLineReader.read(text, catalog: catalog))
+        #expect(Set(first.map(\.id)).count == 2)
     }
 }

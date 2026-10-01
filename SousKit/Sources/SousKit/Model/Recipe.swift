@@ -19,7 +19,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public var summary: String?
     /// How many servings the amounts in `ingredients` refer to.
     public var servings: Int
-    /// Ingredients as written, one per line. See ``IngredientParser``.
+    /// Ingredients as written, one per line. See ``IngredientLineReader``.
     public var ingredientsText: String
     /// Instructions as written, one step per line. See ``StepParser``.
     public var instructionsText: String

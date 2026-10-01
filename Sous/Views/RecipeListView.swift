@@ -55,7 +55,6 @@ struct RecipeListView: View {
                 case .catalog: IngredientCatalogView()
                 case .categories: CategoryManagerView()
                 case .trash: TrashView()
-                case .migration: LibraryMigrationSheet()
                 case .harvest: VocabularyHarvestSheet()
                 }
             }
@@ -834,9 +833,6 @@ struct RecipeListView: View {
                     }
                     Button("Papierkorb", systemImage: "trash") {
                         commands.panel = .trash
-                    }
-                    Button("Bibliothek umstellen", systemImage: "text.line.first.and.arrowtriangle.forward") {
-                        commands.panel = .migration
                     }
                     Button("Vokabular exportieren", systemImage: "square.and.arrow.up") {
                         commands.panel = .harvest

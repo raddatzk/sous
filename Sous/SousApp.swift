@@ -756,7 +756,6 @@ struct SousApp: App {
                     .keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
-                Button("Bibliothek umstellen…") { commands.panel = .migration }
                 Button("Vokabular exportieren…") { commands.panel = .harvest }
             }
             // The Mac's way to switch: its window draws no title for the menu
