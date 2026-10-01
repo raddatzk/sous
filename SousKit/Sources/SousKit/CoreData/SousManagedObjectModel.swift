@@ -33,7 +33,13 @@ enum SousManagedObjectModel {
     /// had reviewed a recipe's amount suggestions — the review no longer
     /// exists. The record type stays in the CloudKit schema, which is
     /// additive by design; nothing reads or writes it any more.
-    static func makeModel(includingRetiredEntities: Bool) -> NSManagedObjectModel {
+    ///
+    /// `includingLocalAnswers: false` is the model as it was before phase 6a
+    /// added `CDLocalAnswer` — what a store written by an earlier build holds,
+    /// for the migration test that opens one with the current model.
+    static func makeModel(
+        includingRetiredEntities: Bool, includingLocalAnswers: Bool = true
+    ) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
         var members = [
@@ -42,6 +48,9 @@ enum SousManagedObjectModel {
             vocabularyEntryEntity(),
             shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
         ]
+        if includingLocalAnswers {
+            members.append(localAnswerEntity())
+        }
         if includingRetiredEntities {
             members.append(reviewMarkEntity(named: amountReviewEntityName))
         }
@@ -61,6 +70,7 @@ enum SousManagedObjectModel {
         mealPlanEntryEntityName, ingredientReviewEntityName,
         vocabularyEntryEntityName, shoppingEntryEntityName,
         shoppingPlanEntryEntityName, shoppingDemandEntityName,
+        localAnswerEntityName,
     ]
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
@@ -73,6 +83,7 @@ enum SousManagedObjectModel {
     static let shoppingEntryEntityName = "CDShoppingEntry"
     static let shoppingPlanEntryEntityName = "CDShoppingPlanEntry"
     static let shoppingDemandEntityName = "CDShoppingDemand"
+    static let localAnswerEntityName = "CDLocalAnswer"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -260,6 +271,32 @@ enum SousManagedObjectModel {
             index(named: "byKey", on: entity, properties: ["key"]),
             index(named: "byParentID", on: entity, properties: ["parentID"]),
         ]
+        return entity
+    }
+
+    /// A household's local answer (INGREDIENTS-DATA §3 B), added in phase 6a.
+    /// Every field optional or defaulted, as CloudKit requires.
+    private static func localAnswerEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = localAnswerEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDLocalAnswer.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("key", .stringAttributeType, default: ""),
+            attribute("catalogID", .stringAttributeType, optional: true),
+            attribute("name", .stringAttributeType, default: ""),
+            attribute("kindRaw", .stringAttributeType, optional: true),
+            attribute("targetID", .stringAttributeType, optional: true),
+            attribute("valuesData", .binaryDataAttributeType, optional: true),
+            attribute("valuesSource", .stringAttributeType, optional: true),
+            attribute("weightsData", .binaryDataAttributeType, optional: true),
+            attribute("brand", .stringAttributeType, optional: true),
+            attribute("ean", .stringAttributeType, optional: true),
+            attribute("sharedAt", .dateAttributeType, optional: true),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byKey", on: entity, properties: ["key"])]
         return entity
     }
 
