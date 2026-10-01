@@ -17,15 +17,16 @@ public struct NutritionCatalog: Sendable {
     /// synonym table says which codes a kitchen word means, the BLS table
     /// holds the values, and the measure table holds what a piece of it
     /// weighs. Three files that each say one thing, joined by value.
-    public static let bundled: NutritionCatalog = {
-        make(synonyms: .bundled, bls: .bundled, measures: .bundled)
-    }()
+    public static var bundled: NutritionCatalog { DataSet.bundled.nutrition }
+
+    /// The catalog of the data set this process runs on.
+    public static var current: NutritionCatalog { DataSet.current.nutrition }
 
     /// Injectable so a test can assemble the same thing from fixture data.
     ///
     /// **Where the status comes from.** The synonym table and the BLS catalog
-    /// are read here and nowhere else: `bundled` is a `static let`, built once
-    /// per process, and asking the synonym table again on every lookup would
+    /// are read here and nowhere else: a data set builds this once, and the
+    /// process keeps its set, and asking the synonym table again on every lookup would
     /// be a second path deciding what a written word means — the one thing
     /// this type's contract forbids. So the two things a status needs, the
     /// target's weight and how the word reached its row, are carried *through*

@@ -86,9 +86,11 @@ public struct IngredientCatalog: Sendable {
     /// The catalog shipped with the app — the identity half of the synonym
     /// table, which is where the names and their spellings now live. One file
     /// for one thing: a word, what it answers to, what it means.
-    public static let bundled: IngredientCatalog = {
-        IngredientCatalog(ingredients: SynonymTable.bundled.catalogIngredients, renames: .bundled)
-    }()
+    public static var bundled: IngredientCatalog { DataSet.bundled.catalog }
+
+    /// The catalog of the data set this process runs on: what the app
+    /// shipped, or a newer set it fetched since (INGREDIENTS-DATA §5).
+    public static var current: IngredientCatalog { DataSet.current.catalog }
 
     /// The ingredient a stored catalog id reaches: its own entry, or the one
     /// that absorbed it. `nil` for a retired id and for one from a newer

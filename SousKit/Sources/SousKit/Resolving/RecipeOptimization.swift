@@ -16,8 +16,8 @@ public enum RecipeOptimizer {
     /// Asks `backend` about `recipe` and checks what comes back.
     public static func optimize(
         _ recipe: Recipe,
-        catalog: IngredientCatalog = .bundled,
-        nutritionCatalog: NutritionCatalog = .bundled,
+        catalog: IngredientCatalog = .current,
+        nutritionCatalog: NutritionCatalog = .current,
         backend: some RecipeOptimizationBackend
     ) async throws -> Result<RecipeOptimization, RecipeOptimizationPrompt.Failure> {
         let prompt = RecipeOptimizationPrompt.prompt(for: recipe, catalog: catalog)
@@ -637,7 +637,7 @@ public enum RecipeOptimizationPrompt {
 
     /// The whole text to copy: rules, answer format, the catalog, and the
     /// recipe with its lines as written and its steps numbered.
-    public static func prompt(for recipe: Recipe, catalog: IngredientCatalog = .bundled) -> String {
+    public static func prompt(for recipe: Recipe, catalog: IngredientCatalog = .current) -> String {
         "\(rules)\n\n\(catalogList(catalog))\n\nRezept: \(recipe.title)\n\(body(for: recipe))"
     }
 
@@ -775,8 +775,8 @@ public enum RecipeOptimizationPrompt {
     public static func read(
         _ pasted: String,
         for recipe: Recipe,
-        catalog: IngredientCatalog = .bundled,
-        nutritionCatalog: NutritionCatalog = .bundled
+        catalog: IngredientCatalog = .current,
+        nutritionCatalog: NutritionCatalog = .current
     ) -> Result<RecipeOptimization, Failure> {
         guard let open = pasted.firstIndex(of: "{"), let close = pasted.lastIndex(of: "}"), open < close else {
             return .failure(.noAnswer)

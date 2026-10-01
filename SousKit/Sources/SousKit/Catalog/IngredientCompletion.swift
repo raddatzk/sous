@@ -20,7 +20,7 @@ public enum IngredientCompletion {
     ///
     /// `nil` when there is nothing worth suggesting on: a heading, a line
     /// already carrying a recipe link, or fewer than two letters.
-    public static func partialName(in line: String, catalog: IngredientCatalog = .bundled) -> String? {
+    public static func partialName(in line: String, catalog: IngredientCatalog = .current) -> String? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !trimmed.hasPrefix("#"), !trimmed.hasSuffix(":") else { return nil }
         guard RecipeLink.referencedIDs(in: line).isEmpty else { return nil }

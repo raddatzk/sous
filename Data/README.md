@@ -39,6 +39,25 @@ Data/
 `Scripts/nutrition/build_data.py` (see its README) and nobody edits it; this
 catalog refers to its rows by code.
 
+## The data set and its version
+
+The compiled files, `bls.json` included, are one **data set**, and
+`compile.py` writes its `manifest.json` last: the format (`schema`), the
+release (`dataVersion`), and the SHA-256 of every file. The app reads a set
+only through its manifest, the one it ships and, from phase 9, the ones it
+fetches.
+
+`dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this content,
+and a counter within the day. Nobody sets it. `compile.py` raises it whenever
+any file's bytes change and leaves it alone otherwise, so compile again after
+`build_data.py` too. Bundled and published data are one series, so an app
+update with newer data always wins over an older fetched set.
+
+Two data pull requests open at once both raise the version; their manifests
+conflict, and the second one compiles again on top of the first.
+`--check --since <base>` fails when the data changed and the version did not
+grow.
+
 ## An ingredient
 
 ```yaml

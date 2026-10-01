@@ -33,10 +33,13 @@ jobs:
       - name: Install the compiler's dependencies
         run: pip install -r Scripts/data/requirements.txt
 
-      # `--since` compares Data/released-ids.txt with the base: the list only
-      # grows, and a line deleted together with its entry would otherwise
-      # let an id vanish, or come back one day meaning something else.
-      - name: Resources equal compile(Data/), and no released id went missing
+      # `--check` compares every resource and manifest.json, whose hashes
+      # name the data set's files. `--since` compares Data/released-ids.txt
+      # with the base: the list only grows, and a line deleted together with
+      # its entry would otherwise let an id vanish, or come back one day
+      # meaning something else. It also wants a higher dataVersion whenever
+      # the data changed since the base.
+      - name: Resources and manifest equal compile(Data/), and no released id went missing
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |

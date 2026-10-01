@@ -332,30 +332,35 @@ struct BundledDataFingerprintTests {
         #expect(before != after)
     }
 
-    @Test("The fingerprint is actually read from the shipped files")
-    func fingerprintIsNotConstant() {
-        // The failure this guards against is silent: the fingerprint used to
-        // skip over a file it could not find, so renaming the data collapsed
-        // it to the SHA of nothing at all — after which no data change would
-        // ever invalidate a cached figure again.
-        let sizes = RecipeContentHash.bundledDataSizes
-        // Spelled out rather than read off `bundledDataResources`: comparing
-        // the list against itself would pass however short it got.
-        #expect(sizes.count == 7)
-        for file in sizes {
-            #expect(file.bytes > 0, "\(file.name).json contributed nothing to the fingerprint")
+    @Test("The bundled manifest names the shipped files, byte for byte")
+    func manifestDescribesTheBundle() throws {
+        // The fingerprint is `r<readingVersion>-<dataVersion>` now, so what
+        // keeps it honest is the manifest: every file of the set listed, each
+        // with the hash of the bytes actually shipped. `compile.py --check`
+        // says the same in CI; this says it about the bundle a build carries.
+        let manifest = DataSetManifest.bundled
+        #expect(manifest.schema == DataSetManifest.supportedSchema)
+        // Spelled out rather than read off `DataSet.File`: comparing the list
+        // against itself would pass however short it got.
+        #expect(Set(manifest.files.keys) == [
+            "aisles.json", "bls.json", "community.json", "curation.json",
+            "ids.json", "kitchen_words.json", "measures.json", "sources.json",
+        ])
+        #expect(Set(DataSet.File.allCases.map(\.fileName)) == Set(manifest.files.keys))
+        for (name, hash) in manifest.files {
+            let url = try #require(DataSet.bundledURL(of: name), "\(name) is not in the bundle")
+            #expect(DataSetManifest.sha256(of: try Data(contentsOf: url)) == hash, "\(name) is not what the manifest names")
         }
-        #expect(sizes.reduce(0) { $0 + $1.bytes } > 1_000_000)
-        // The empty-input SHA-256, which is exactly what the old loop produced
-        // once every file had been renamed out from under it.
-        let sha256OfNothing = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-        #expect(RecipeContentHash.bundledDataFingerprint != sha256OfNothing)
+        #expect(DataSetManifest.digest(of: manifest.files) == manifest.sha256)
+        // YYYYMMDDnn, and no earlier than the day the series began.
+        #expect(manifest.dataVersion >= 2026_09_30_00)
+        #expect(RecipeContentHash.dataFingerprint == "r\(RecipeContentHash.readingVersion)-\(manifest.dataVersion)")
     }
 
-    @Test("Every file in the fingerprint list is one the app really reads")
+    @Test("Every file of the set is one the app really reads")
     func fingerprintCoversWhatIsRead() {
         // The other half of the trap: a file the catalogs read but the
-        // fingerprint does not list would change without invalidating a thing.
+        // manifest does not list would change without moving the version.
         #expect(!BLSCatalog.bundled.entries.isEmpty)
         #expect(!SynonymTable.bundled.entries.isEmpty)
         #expect(!MeasureTable.bundled.units.isEmpty)
@@ -364,8 +369,8 @@ struct BundledDataFingerprintTests {
         // above would pass on an app that never opened it. Its own source
         // block is the thing only that file can produce.
         #expect(BLSCatalog.bundled.supplementSource != nil)
-        // `ids.json` may well be empty; that it decodes is what `bundled`
-        // asserts, and this is what makes it load.
+        // `ids.json` may well be empty; that it decodes is what loading the
+        // set checks, and this is what makes it load.
         _ = CatalogRenames.bundled
     }
 

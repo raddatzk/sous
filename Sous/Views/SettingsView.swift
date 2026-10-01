@@ -5,11 +5,12 @@ import SwiftUI
 struct SettingsForm: View {
     @AppStorage(SousSetting.appearance, store: .sous)
     private var appearance: SousAppearance = .system
-    /// The shipped data speaking for itself: the BLS first, then the rows
-    /// it does not have. Reachable without any environment — which this form
-    /// does not get on the Mac, where it is the `Settings` scene's root and
-    /// nothing injects anything into it.
-    private let sources = DataSources.bundled
+    /// The data set the app runs on speaking for itself: the BLS first, then
+    /// the rows it does not have. The active set's, not the bundle's — a set
+    /// fetched since names its own sources. Reachable without any
+    /// environment — which this form does not get on the Mac, where it is
+    /// the `Settings` scene's root and nothing injects anything into it.
+    private let sources = DataSources.current
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen

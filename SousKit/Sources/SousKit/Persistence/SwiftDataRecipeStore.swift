@@ -268,7 +268,7 @@ public actor SwiftDataRecipeStore: RecipeStore {
         )
     }
 
-    public func reindexSearch(catalog: IngredientCatalog = .bundled) async throws {
+    public func reindexSearch(catalog: IngredientCatalog = IngredientLineReader.catalog) async throws {
         // Every row, tombstoned ones included: a recipe restored from the
         // trash must come back searchable by today's reading, not by the
         // one it happened to be deleted under.

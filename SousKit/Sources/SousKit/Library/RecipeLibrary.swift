@@ -90,7 +90,7 @@ public final class RecipeLibrary {
     }
 
     private var catalog: IngredientCatalog {
-        catalogLibrary?.catalog ?? .bundled
+        catalogLibrary?.catalog ?? .current
     }
 
     // MARK: - Images
@@ -165,8 +165,8 @@ public final class RecipeLibrary {
 
         let pool = await findRecipes(matching: "", filters: applied)
         // The same reading the store filters by — its keys are written with
-        // the bundled catalog too — worked out once per recipe, and only if
-        // an ingredient is actually on offer.
+        // the household's catalog too — worked out once per recipe, and only
+        // if an ingredient is actually on offer.
         var ingredientKeys: [Set<String>]?
         var offers: [FilterSuggestion] = []
         for filter in ranked {
@@ -175,7 +175,7 @@ public final class RecipeLibrary {
             switch filter.kind {
             case .ingredient:
                 let keys = ingredientKeys ?? pool.map {
-                    Set(RecipeIndex.ingredientKeys(for: $0, catalog: .bundled))
+                    Set(RecipeIndex.ingredientKeys(for: $0, catalog: self.catalog))
                 }
                 ingredientKeys = keys
                 count = keys.count(where: { $0.contains(filter.key) })
@@ -396,13 +396,19 @@ public final class RecipeLibrary {
         }
     }
 
-    /// Rebuilds the store's denormalized search index against the current
-    /// catalog — run when the shipped data changes, so "Kürbis" keeps
-    /// finding the recipe that says "Hokkaido" even though that relation
-    /// arrived after the recipe was last saved.
+    /// Rebuilds the store's denormalized search index against the
+    /// household's catalog — run when the data set changes, so "Kürbis"
+    /// keeps finding the recipe that says "Hokkaido" even though that
+    /// relation arrived after the recipe was last saved.
+    ///
+    /// The household's, not the data set's alone: that is what every line is
+    /// read with, and a word only the household knows is otherwise a line
+    /// outside the form, with no key at all. So the cook's own words are read
+    /// first, if nobody has yet.
     public func reindexSearch() async {
+        await catalogLibrary?.ensureLoaded()
         do {
-            try await store.reindexSearch(catalog: .bundled)
+            try await store.reindexSearch(catalog: catalog)
             await reload()
         } catch {
             report(error)

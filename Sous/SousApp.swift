@@ -73,6 +73,9 @@ struct SousApp: App {
     private let marker = BundledDataMarker()
 
     init() {
+        // First, before anything reads the catalog: which data set this
+        // process runs on is chosen once, here, by the app alone.
+        DataSet.launch(.activates, store: .shared)
         do {
             let container = try ModelContainer.sousContainer()
             // Recipes and their pictures live in Core Data because they are
@@ -371,8 +374,15 @@ struct SousApp: App {
 
     /// Phase 6's reconciliation, and only when there is something to
     /// reconcile: the marker says which data this device last ran against,
-    /// and an unchanged bundle means no mapping can have been orphaned since
-    /// the last launch.
+    /// and an unchanged data set means no mapping can have been orphaned
+    /// since the last launch. The set changes with an app update that ships
+    /// newer data and with a fetched set this launch activated
+    /// (`DataSet.launch`); both change the fingerprint the same way.
+    ///
+    /// Renamed ids are not rewritten here. A household row holding an old id
+    /// is read through the set's rename map, and rewritten only when it is
+    /// saved anyway: every device activates on a different day, and a
+    /// member may not be allowed to write the owner's rows.
     ///
     /// Everything else concept §7 asks for needs no run at all. Changed
     /// values reach the cook because a basis stores a code and reads its

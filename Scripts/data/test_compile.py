@@ -9,6 +9,7 @@ import json
 import shutil
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 import compile as data_compiler
@@ -70,7 +71,7 @@ class BrokenData(unittest.TestCase):
         outputs, _, released = data_compiler.compile_data(self.data)
         self.assertEqual(set(outputs), {
             "kitchen_words.json", "curation.json", "measures.json",
-            "aisles.json", "community.json", "sources.json", "ids.json",
+            "aisles.json", "community.json", "sources.json", "ids.json", "manifest.json",
         })
         self.assertEqual(released, (self.data / "released-ids.txt").read_text(encoding="utf-8"))
 
@@ -228,6 +229,92 @@ class BrokenData(unittest.TestCase):
             "the product row Z-acme-muesli has no 'checked'",
             "the product row Z-acme-muesli has no 'per'",
         )
+
+
+class Manifest(unittest.TestCase):
+    """manifest.json: the set's hashes, and a dataVersion that moves only
+    when the content does, as `YYYYMMDDnn`."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.resources = self.tmp / "Resources"
+        shutil.copytree(data_compiler.RESOURCES, self.resources)
+        self.data = self.tmp / "Data"
+        shutil.copytree(data_compiler.DATA, self.data)
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp)
+
+    def compile(self, today: date) -> dict:
+        outputs, _, _ = data_compiler.compile_data(self.data, self.resources, today=today)
+        for name, text in outputs.items():
+            (self.resources / name).write_text(text, encoding="utf-8")
+        return json.loads(outputs[data_compiler.MANIFEST])
+
+    def change_the_data(self):
+        path = self.data / "ingredients/zwiebel.yaml"
+        path.write_text(path.read_text(encoding="utf-8").replace(
+            "    - Speisezwiebel\n", "    - Speisezwiebel\n    - Testzwiebel\n", 1), encoding="utf-8")
+
+    def test_the_checked_in_manifest_names_the_resources(self):
+        manifest = json.loads((data_compiler.RESOURCES / data_compiler.MANIFEST).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["schema"], data_compiler.SCHEMA)
+        self.assertEqual(sorted(manifest["files"]), sorted(data_compiler.SET_FILES))
+        for name, digest in manifest["files"].items():
+            with self.subTest(file=name):
+                self.assertEqual(
+                    data_compiler.sha256_hex((data_compiler.RESOURCES / name).read_bytes()), digest)
+        self.assertEqual(data_compiler.set_digest(manifest["files"]), manifest["sha256"])
+
+    def test_unchanged_data_keeps_its_version(self):
+        before = self.compile(date(2026, 9, 30))
+        after = self.compile(date(2027, 1, 1))
+        self.assertEqual(after, before)
+
+    def test_changed_data_takes_the_day(self):
+        before = self.compile(date(2026, 9, 30))
+        self.change_the_data()
+        after = self.compile(date(2026, 12, 24))
+        self.assertEqual(after["dataVersion"], 2026122400)
+        self.assertNotEqual(after["sha256"], before["sha256"])
+        self.assertNotEqual(after["files"]["kitchen_words.json"], before["files"]["kitchen_words.json"])
+        self.assertEqual(after["files"]["bls.json"], before["files"]["bls.json"])
+
+    def test_a_second_release_the_same_day_counts_up(self):
+        self.assertEqual(data_compiler.next_version(2026122400, date(2026, 12, 24)), 2026122401)
+        self.assertEqual(data_compiler.next_version(None, date(2026, 12, 24)), 2026122400)
+
+    def test_the_series_never_goes_back(self):
+        # A hundredth release in a day spills into the next number, and a
+        # clock set back cannot lower it.
+        self.assertEqual(data_compiler.next_version(2026122499, date(2026, 12, 24)), 2026122500)
+        self.assertEqual(data_compiler.next_version(2026122405, date(2026, 1, 1)), 2026122406)
+
+    def test_bls_json_is_part_of_the_set(self):
+        before = self.compile(date(2026, 9, 30))
+        bls = self.resources / "bls.json"
+        bls.write_bytes(bls.read_bytes() + b" ")
+        after = self.compile(date(2026, 10, 1))
+        self.assertEqual(after["dataVersion"], 2026100100)
+        self.assertNotEqual(after["files"]["bls.json"], before["files"]["bls.json"])
+
+    def test_a_stale_manifest_is_caught(self):
+        self.compile(date(2026, 9, 30))
+        self.change_the_data()
+        outputs, _, _ = data_compiler.compile_data(self.data, self.resources, today=date(2026, 10, 1))
+        on_disk = (self.resources / data_compiler.MANIFEST).read_text(encoding="utf-8")
+        self.assertNotEqual(outputs[data_compiler.MANIFEST], on_disk)
+
+    def test_since_wants_a_higher_version_for_new_data(self):
+        before = {"schema": 1, "dataVersion": 2026093000, "sha256": "a"}
+        self.assertEqual(data_compiler.version_errors(before, {**before}), [])
+        self.assertEqual(data_compiler.version_errors(before, {**before, "sha256": "b"}),
+                         ["the data changed, but dataVersion stayed 2026093000"])
+        self.assertEqual(
+            data_compiler.version_errors(before, {**before, "sha256": "b", "dataVersion": 2026093001}), [])
+        self.assertEqual(data_compiler.version_errors(before, {**before, "dataVersion": 2026092900}),
+                         ["dataVersion went back from 2026093000 to 2026092900"])
+        self.assertEqual(data_compiler.version_errors(None, before), [])
 
 
 if __name__ == "__main__":

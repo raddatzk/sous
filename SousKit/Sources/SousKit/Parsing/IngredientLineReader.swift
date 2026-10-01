@@ -29,7 +29,7 @@ import Synchronization
 public enum IngredientLineReader {
     // MARK: - The household's catalog
 
-    private static let household = Mutex<IngredientCatalog>(.bundled)
+    private static let household = Mutex<IngredientCatalog>(.current)
 
     /// The catalog a recipe's lines are read against when nobody passes one:
     /// the bundled words plus the household's own, as

@@ -127,7 +127,7 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
     /// The key an ingredient name reduces to: stripped of markdown link
     /// syntax and resolved through the catalog, so "Tomaten", "tomate" and
     /// "Cocktailtomaten" are one line on the list.
-    public static func key(for name: String, catalog: IngredientCatalog = .bundled) -> String {
+    public static func key(for name: String, catalog: IngredientCatalog = .current) -> String {
         IngredientCatalog.storageKey(catalog.canonicalName(for: displayName(for: name)))
     }
 

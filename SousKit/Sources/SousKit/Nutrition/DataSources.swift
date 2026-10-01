@@ -26,16 +26,15 @@ public enum DataSources {
         var sources: [DataSource]
     }
 
-    /// The sources of the data shipped with the app, in the order the
-    /// screen shows them: the BLS first.
-    public static let bundled: [DataSource] = {
-        guard let url = Bundle.module.url(forResource: "sources", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else {
-            assertionFailure("The bundled sources are missing or unreadable")
-            return []
-        }
-        return file.sources
-    }()
+    /// `sources.json`, in the order the screen shows them: the BLS first.
+    static func decode(_ json: Data) throws -> [DataSource] {
+        try JSONDecoder().decode(File.self, from: json).sources
+    }
+
+    /// The sources of the data set this process runs on — the one the
+    /// sources screen names, which is not always the one the app shipped.
+    public static var current: [DataSource] { DataSet.current.sources }
+
+    /// The sources of the data shipped with the app.
+    public static var bundled: [DataSource] { DataSet.bundled.sources }
 }

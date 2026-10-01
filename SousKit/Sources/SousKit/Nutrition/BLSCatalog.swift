@@ -181,37 +181,24 @@ public struct BLSCatalog: Sendable {
         return nil
     }
 
-    /// The tables shipped with the app.
-    ///
-    /// `bls.json` is required; `community.json` is not. A missing supplements
-    /// file leaves an app that works exactly as it did before there was one,
-    /// which is what makes the file safe to be empty, hand-edited, or absent
-    /// from a build.
-    public static let bundled: BLSCatalog = {
-        guard let file = load("bls") else {
-            assertionFailure("The bundled BLS table is missing or unreadable")
-            return BLSCatalog(
-                source: Source(
-                    datasetVersion: "", release: "", license: "", attribution: "", changeNote: ""
-                ),
-                entries: []
-            )
-        }
-        let supplements = load("community")
-        return BLSCatalog(
+    /// `bls.json` and `community.json`, the supplements. Both are part of
+    /// every data set, so a set missing either one is not a set.
+    init(bls: Data, supplements: Data) throws {
+        let decoder = JSONDecoder()
+        let file = try decoder.decode(File.self, from: bls)
+        let supplements = try decoder.decode(File.self, from: supplements)
+        self.init(
             // BLS rows first, so a supplement can never take a code the
             // catalog already uses — `byCode` keeps the first of a pair.
             source: file.sourceValue,
-            entries: file.entries + (supplements?.entries ?? []),
-            supplementSource: supplements.map(\.sourceValue)
+            entries: file.entries + supplements.entries,
+            supplementSource: supplements.sourceValue
         )
-    }()
-
-    private static func load(_ resource: String) -> File? {
-        guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else { return nil }
-        return file
     }
+
+    /// The tables of the data set this process runs on.
+    public static var current: BLSCatalog { DataSet.current.bls }
+
+    /// The tables shipped with the app.
+    public static var bundled: BLSCatalog { DataSet.bundled.bls }
 }

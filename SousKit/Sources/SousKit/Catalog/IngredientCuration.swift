@@ -82,15 +82,14 @@ public struct IngredientCuration: Sendable {
         words[word]
     }
 
-    /// The mapping shipped with the app — `curation.json`, verbatim.
-    public static let bundled: IngredientCuration = {
-        guard let url = Bundle.module.url(forResource: "curation", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else {
-            assertionFailure("The bundled curation is missing or unreadable")
-            return IngredientCuration(words: [:])
-        }
-        return IngredientCuration(words: file.words)
-    }()
+    /// `curation.json`, verbatim.
+    init(json: Data) throws {
+        self.init(words: try JSONDecoder().decode(File.self, from: json).words)
+    }
+
+    /// The mapping of the data set this process runs on.
+    public static var current: IngredientCuration { DataSet.current.curation }
+
+    /// The mapping shipped with the app.
+    public static var bundled: IngredientCuration { DataSet.bundled.curation }
 }

@@ -172,18 +172,18 @@ public struct MeasureTable: Sendable {
         densityByGroup[group]
     }
 
-    /// The table shipped with the app.
-    public static let bundled: MeasureTable = {
-        guard let url = Bundle.module.url(forResource: "measures", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data)
-        else {
-            assertionFailure("The bundled measure table is missing or unreadable")
-            return MeasureTable()
-        }
-        return MeasureTable(
+    /// `measures.json`.
+    init(json: Data) throws {
+        let file = try JSONDecoder().decode(File.self, from: json)
+        self.init(
             units: file.units, byGroup: file.byGroup,
             byIngredient: file.byIngredient, densities: file.densities
         )
-    }()
+    }
+
+    /// The table of the data set this process runs on.
+    public static var current: MeasureTable { DataSet.current.measures }
+
+    /// The table shipped with the app.
+    public static var bundled: MeasureTable { DataSet.bundled.measures }
 }

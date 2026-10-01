@@ -74,15 +74,14 @@ public struct KitchenWords: Sendable {
         self.words = words
     }
 
-    /// The list shipped with the app — `kitchen_words.json`, verbatim.
-    public static let bundled: KitchenWords = {
-        guard let url = Bundle.module.url(forResource: "kitchen_words", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let words = try? JSONDecoder().decode([Word].self, from: data)
-        else {
-            assertionFailure("The bundled kitchen words are missing or unreadable")
-            return KitchenWords(words: [])
-        }
-        return KitchenWords(words: words)
-    }()
+    /// `kitchen_words.json`, verbatim.
+    init(json: Data) throws {
+        self.init(words: try JSONDecoder().decode([Word].self, from: json))
+    }
+
+    /// The list of the data set this process runs on.
+    public static var current: KitchenWords { DataSet.current.kitchenWords }
+
+    /// The list shipped with the app.
+    public static var bundled: KitchenWords { DataSet.bundled.kitchenWords }
 }

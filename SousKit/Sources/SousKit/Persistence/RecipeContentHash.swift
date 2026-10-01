@@ -39,70 +39,37 @@ enum RecipeContentHash {
     /// Raised to 10 when `IngredientLineReader` replaced the tolerant parser:
     /// a line outside the fixed form ("Salz nach Geschmack", "1 Chili (rot)")
     /// no longer reaches a name, and "1 1/2 TL" is one and a half.
-    private static let readingVersion = 10
+    static let readingVersion = 10
 
-    /// The bundled data files. Everything the catalogs and the resolver read
-    /// belongs in this list.
+    /// What the data a recipe was read against is: the reading version and
+    /// the data set's release, `r<readingVersion>-<dataVersion>`.
     ///
-    /// `community` earns its place for the same reason `bls` does, and the
-    /// day it is added is the day every cached figure has to be recomputed:
-    /// a word that resolved to nothing yesterday may have a basis today.
-    static let bundledDataResources = [
-        "bls", "community", "kitchen_words", "curation", "measures", "aisles", "ids",
-    ]
-
-    /// How many bytes each listed file contributed — internal so a test can
-    /// tell "hashed four files" from "found none and hashed the void", which
-    /// produce a perfectly ordinary-looking hash either way.
-    static var bundledDataSizes: [(name: String, bytes: Int)] {
-        bundledDataResources.map { resource in
-            guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
-                  let data = try? Data(contentsOf: url)
-            else { return (resource, 0) }
-            return (resource, data.count)
-        }
+    /// It used to be a hash over the bundled files. With data that can
+    /// change without an app release (INGREDIENTS-DATA §5), the set names
+    /// itself instead: its `dataVersion` is raised by the compiler whenever
+    /// any file's bytes change, bundled and fetched sets are one series, and
+    /// a process keeps its set for life — so the number says everything the
+    /// hash did, and a switch of the set changes it the same way an app
+    /// update with new data does.
+    ///
+    /// The reading version rides along: the fingerprint answers "would the
+    /// app derive something different from the same stored text?", and a
+    /// reader that reads differently is exactly such a change —
+    /// `BundledDataMarker` compares this string, so a code-only bump re-runs
+    /// the reconciliation and the search reindex the same way new data does.
+    static func fingerprint(dataVersion: Int) -> String {
+        "r\(readingVersion)-\(dataVersion)"
     }
 
-    /// What the bundled catalog data currently is, hashed from the shipped
-    /// files themselves — an app update that ships new data has to invalidate
-    /// every cached figure on its own, not wait for someone to remember a
-    /// `readingVersion` bump.
-    ///
-    /// A file that cannot be read trips an assertion instead of being skipped
-    /// over. Skipping was the quiet failure: rename the files and the loop
-    /// finds nothing, the fingerprint collapses to the constant hash of no
-    /// input, and from then on no data change ever invalidates a cached
-    /// figure again — with nothing anywhere saying so.
-    static let bundledDataFingerprint: String = {
-        var hasher = SHA256()
-        var found = 0
-        for resource in bundledDataResources {
-            guard let url = Bundle.module.url(forResource: resource, withExtension: "json"),
-                  let data = try? Data(contentsOf: url)
-            else { continue }
-            found += 1
-            hasher.update(data: data)
-        }
-        assert(
-            found == bundledDataResources.count,
-            "Only \(found) of \(bundledDataResources.count) bundled data files "
-                + "(\(bundledDataResources)) could be read for the fingerprint"
-        )
-        // The reading version rides along: the fingerprint answers "would
-        // the app derive something different from the same stored text?",
-        // and a parser that reads differently is exactly such a change —
-        // `BundledDataMarker` compares this string, so a code-only bump
-        // re-runs the reconciliation and the search reindex the same way
-        // new data does.
-        return "r\(readingVersion)-" + hasher.finalize().map { String(format: "%02x", $0) }.joined()
-    }()
+    /// The fingerprint of the data set this process runs on.
+    static var dataFingerprint: String { DataSet.current.fingerprint }
 
     static func hash(for recipe: Recipe) -> String {
-        hash(for: recipe, dataFingerprint: bundledDataFingerprint)
+        hash(for: recipe, dataFingerprint: dataFingerprint)
     }
 
-    /// The fingerprint is injectable only so a test can prove new bundled
-    /// data changes the hash without re-bundling the app.
+    /// The fingerprint is injectable only so a test can prove a new data set
+    /// changes the hash without activating one.
     static func hash(for recipe: Recipe, dataFingerprint: String) -> String {
         let digest = SHA256.hash(
             data: Data("v\(readingVersion)|\(dataFingerprint)\n\(recipe.ingredientsText)\n\(recipe.instructionsText)".utf8)

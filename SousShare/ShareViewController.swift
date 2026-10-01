@@ -17,6 +17,9 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+        // Before anything reads the catalog: the extension runs on the data
+        // set the app last chose, and never chooses one itself.
+        DataSet.launch(.follows, store: .shared)
         view.backgroundColor = .clear
 
         let root = ShareRootView(

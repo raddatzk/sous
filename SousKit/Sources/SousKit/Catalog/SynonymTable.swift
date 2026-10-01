@@ -146,9 +146,10 @@ public struct SynonymTable: Sendable {
     /// with the table's own name attached to it — which is a question the app
     /// already knows how to ask, the same one it asks about any ingredient
     /// whose nutrition is unconfirmed.
-    public static let bundled: SynonymTable = {
-        SynonymTable(kitchen: .bundled, curation: .bundled)
-    }()
+    public static var bundled: SynonymTable { DataSet.bundled.synonyms }
+
+    /// The table of the data set this process runs on.
+    public static var current: SynonymTable { DataSet.current.synonyms }
 
     /// Joins the kitchen's list to the mapping. Weights are positional: the
     /// first code a state names is its basis, the rest are alternatives, and

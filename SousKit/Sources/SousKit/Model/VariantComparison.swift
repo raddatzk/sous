@@ -64,7 +64,7 @@ public struct VariantComparison: Hashable, Sendable {
     /// already makes when it puts two spellings on one line.
     public static func make(
         of members: [Recipe],
-        catalog: IngredientCatalog = .bundled
+        catalog: IngredientCatalog = .current
     ) -> VariantComparison {
         var order: [String] = []
         var titles: [String: String] = [:]
