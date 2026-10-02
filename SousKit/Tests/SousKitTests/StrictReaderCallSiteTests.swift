@@ -51,7 +51,7 @@ struct StrictReaderCallSiteTests {
         let shopping = ShoppingLibrary(
             store: stores.shopping,
             recipeStore: stores.recipes,
-            catalogLibrary: IngredientCatalogLibrary(store: stores.vocabulary)
+            catalogLibrary: IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
         )
         return (shopping, stores.recipes)
     }

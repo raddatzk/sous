@@ -6,27 +6,27 @@ import SwiftUI
 ///
 /// The recipe is where a cook actually thinks about an ingredient — "das steht
 /// doch immer da, das muss ich nie kaufen", "die Nährwerte können nicht
-/// stimmen", "das schreibe ich sonst anders". Sending them to the catalog to
-/// search for the very word they are looking at is a detour past the thought,
-/// and the thought is what gets lost on the way. So the line opens the same
-/// sheet the catalog opens: Vorrat, Kategorie, Schreibweisen, Nährwerte and
-/// die Maßangabe are corrected where the doubt came up.
+/// stimmen". So the line opens the same detail the catalog opens: what the
+/// catalog says, the household's local answer, and Vorrat, Supermarkt and
+/// Notiz.
 ///
 /// Three shapes, because a line can mean three different things:
 ///
 /// - a name the catalog knows opens its entry;
-/// - a name it does not know offers the two ways to teach it — the same menu
-///   the editor and the review sheet already put on an unknown word, so the
-///   cook meets one answer to "unbekannt", not two;
+/// - a name it does not know offers a local answer and a report — the same
+///   menu the editor puts on an unknown word, so the cook meets one answer to
+///   "unbekannt", not two;
 /// - a line that links to another recipe stays a link. "1 Portion Naan" is a
 ///   recipe, not a food with values of its own, and the tap it already has
 ///   belongs to that.
 struct IngredientLineButton: View {
     let ingredient: RecipeIngredient
     var formatter = QuantityFormatter(locale: .sous)
-    /// Run once the sheet is gone: what was corrected in it — a basis, a
-    /// gram weight, own values — changes this recipe's figures, and nothing
-    /// else on the page would notice.
+    /// Named in a report about an unknown name.
+    var recipeTitle: String?
+    /// Run once the sheet is gone: a local answer given in it — own values,
+    /// a weight — changes this recipe's figures, and nothing else on the
+    /// page would notice.
     var onClose: () async -> Void = {}
 
     @Environment(IngredientCatalogLibrary.self) private var catalog
@@ -41,10 +41,10 @@ struct IngredientLineButton: View {
                 .buttonStyle(IngredientLineButtonStyle())
                 .accessibilityHint("Öffnet die Zutat")
                 .sheet(item: $editing, onDismiss: { Task { await onClose() } }) { entry in
-                    IngredientFormView(ingredient: entry)
+                    IngredientDetailView(ingredient: entry)
                 }
         } else if name.count >= 2 {
-            UnknownIngredientButton(name: name, onClose: { Task { await onClose() } }) {
+            UnknownIngredientButton(name: name, recipeTitle: recipeTitle, onClose: { Task { await onClose() } }) {
                 line
             }
         } else {

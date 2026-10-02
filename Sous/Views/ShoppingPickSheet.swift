@@ -33,7 +33,7 @@ struct ShoppingPickSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var picked: Set<UUID> = []
-    /// Set once the pantry vocabulary has been read, so the first pass at
+    /// Set once the household's pantry flags have been read, so the first pass at
     /// the pre-selection is not made against an empty cupboard.
     @State private var hasSeeded = false
     /// The pre-selection as it was made, so a swipe can tell whether the

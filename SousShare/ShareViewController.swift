@@ -209,14 +209,13 @@ final class Libraries {
             enrichmentStore: SwiftDataRecipeEnrichmentStore(modelContainer: container)
         )
         // The extension never runs the migrations — it may well be the first
-        // thing to open the store after an update. Writing a vocabulary entry
-        // it has never seen is fine: the fold merges by key rather than
+        // thing to open the store after an update. Writing a local answer it
+        // has never seen is fine: the stores upsert by key rather than
         // inserting, so whatever the app finds later joins this row instead of
         // doubling it.
         catalog = IngredientCatalogLibrary(
-            store: CoreDataVocabularyStore(container: coreData),
             localAnswers: CoreDataLocalAnswerStore(container: coreData),
-            nutritionCache: nutritionStore,
+            household: CoreDataHouseholdIngredientStore(container: coreData),
             readsRecipes: true
         )
         nutrition = NutritionLibrary(

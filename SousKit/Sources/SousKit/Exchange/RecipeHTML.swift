@@ -135,7 +135,6 @@ public enum RecipeHTML {
     private static func nutrition(_ nutrition: RecipeDocument.Nutrition?) -> String {
         guard let nutrition else { return "" }
         var html = "<div class=\"nutrition\">\n<p class=\"label\">Nährwerte"
-        if nutrition.isProvisional { html += " <span class=\"provisional\">vorläufig</span>" }
         html += "</p>\n"
         for row in nutrition.rows {
             html += "<div class=\"row\(row.isIndented ? " indented" : "")\">"
@@ -344,7 +343,6 @@ public enum RecipeHTML {
     .nutrition .row.indented { padding-left: 3mm; color: var(--muted); }
     .nutrition .row span:last-child { font-variant-numeric: tabular-nums; white-space: nowrap; }
     .nutrition .caption { margin-top: 1mm; font-size: 7pt; color: var(--muted); }
-    .provisional { font-weight: 400; color: var(--accent); }
 
     footer {
       display: flex;

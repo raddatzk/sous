@@ -13,9 +13,9 @@ struct ShoppingLibraryTests {
         let shopping = ShoppingLibrary(
             store: stores.shopping,
             recipeStore: stores.recipes,
-            // The pantry flag lives on the vocabulary entry now, so the
-            // catalog library is what the list asks about it.
-            catalogLibrary: IngredientCatalogLibrary(store: stores.vocabulary)
+            // Pantry, store and note are the household's fields in the
+            // catalog library, so that is what the list asks about them.
+            catalogLibrary: IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
         )
 
         return (shopping, stores.recipes, stores)
@@ -30,9 +30,7 @@ struct ShoppingLibraryTests {
         let shopping = ShoppingLibrary(
             store: SwiftDataShoppingListStore(modelContainer: container),
             recipeStore: SwiftDataRecipeStore(modelContainer: container),
-            catalogLibrary: IngredientCatalogLibrary(
-                store: SwiftDataVocabularyStore(modelContainer: container)
-            )
+            catalogLibrary: IngredientCatalogLibrary()
         )
         return (shopping, container)
     }
@@ -111,7 +109,7 @@ struct ShoppingLibraryTests {
         let reread = ShoppingLibrary(
             store: stores.shopping,
             recipeStore: stores.recipes,
-            catalogLibrary: IngredientCatalogLibrary(store: stores.vocabulary)
+            catalogLibrary: IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
         )
         await reread.reload()
 
@@ -650,7 +648,7 @@ extension ShoppingLibraryTests {
         // their aisle as though nobody had said anything. Category and
         // nutrition walk the whole chain; so does this now.
         let stores = try backend.makeStores()
-        let catalog = IngredientCatalogLibrary(store: stores.vocabulary)
+        let catalog = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
         let shopping = ShoppingLibrary(
             store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog
         )
@@ -675,12 +673,34 @@ extension ShoppingLibraryTests {
         #expect(shopping.bySection.map(\.section) == [.pantry])
     }
 
+    @Test("A name counted as Tofu keeps its own row, pantry and store (R2)", arguments: StoreBackend.allCases)
+    func countedNameKeepsItsOwnFields(_ backend: StoreBackend) async throws {
+        let stores = try backend.makeStores()
+        let catalog = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
+        let shopping = ShoppingLibrary(
+            store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog
+        )
+        await catalog.reload()
+        let tofu = try #require(catalog.catalog.ingredient(for: "Tofu"))
+        await catalog.count("Rauchtofu", as: tofu)
+        await shopping.add(Recipe(title: "Pfanne", servings: 2, ingredientsText: "200 g Rauchtofu\n200 g Tofu"))
+
+        let smoked = try #require(shopping.items.first { $0.name == "Rauchtofu" })
+        let plain = try #require(shopping.items.first { $0.name == "Tofu" })
+        // Recognition, never identity: Tofu's aisle, its own row.
+        #expect(smoked.category == plain.category)
+
+        await shopping.setPantry(true, name: "Tofu")
+        await catalog.setShoppingPreferences(store: "Bioladen", note: nil, name: "Tofu")
+        #expect(shopping.isPantry(plain))
+        #expect(!shopping.isPantry(smoked))
+        #expect(shopping.preferredStore(of: smoked) == nil)
+    }
+
     @Test("A named store pulls its errands out of the aisle walk")
     func preferredStoreSection() async throws {
         let container = try ModelContainer.sousContainer(inMemory: true)
-        let catalog = IngredientCatalogLibrary(
-            store: SwiftDataVocabularyStore(modelContainer: container)
-        )
+        let catalog = IngredientCatalogLibrary()
         let shopping = ShoppingLibrary(
             store: SwiftDataShoppingListStore(modelContainer: container),
             recipeStore: SwiftDataRecipeStore(modelContainer: container),

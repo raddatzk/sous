@@ -230,10 +230,7 @@ struct LocalAnswerLibraryTests {
     ) throws -> (NutritionLibrary, IngredientCatalogLibrary, SwiftDataRecipeNutritionStore) {
         let container = try ModelContainer.sousContainer(inMemory: true)
         let cache = SwiftDataRecipeNutritionStore(modelContainer: container)
-        let catalog = IngredientCatalogLibrary(
-            store: SwiftDataVocabularyStore(modelContainer: container), localAnswers: answers,
-            nutritionCache: cache
-        )
+        let catalog = IngredientCatalogLibrary(localAnswers: answers)
         let nutrition = NutritionLibrary(
             store: cache, recipeStore: SwiftDataRecipeStore(modelContainer: container),
             catalogLibrary: catalog, household: household
@@ -339,47 +336,4 @@ struct LocalAnswerLibraryTests {
 private final class ActiveBox {
     var id: UUID?
     init(id: UUID?) { self.id = id }
-}
-
-/// The vocabulary written out as proposals for `Data/` (INGREDIENTS-DATA §6),
-/// measured against the bundled data set.
-@Suite("Vocabulary harvest")
-struct VocabularyHarvestTests {
-    @Test("Only what the data set does not already say is proposed")
-    func proposesOnlyWhatIsNew() throws {
-        let entries = [
-            IngredientVocabularyEntry(
-                name: "Tofu", aliases: ["Tofu Natur", "Bio-Tofu"], isPantry: true,
-                unitWeightsGrams: ["Stk.": 200, "Dose": 300], preferredStore: "Markt"
-            ),
-            IngredientVocabularyEntry(name: "Rauchtempeh", category: .legumes, parentName: "Tofu", isOwnIngredient: true),
-            // A household fact only: nothing for the catalog.
-            IngredientVocabularyEntry(name: "Mehl", isPantry: true, shoppingNote: "Type 550"),
-        ]
-
-        let proposals = VocabularyHarvest.proposals(from: entries)
-
-        #expect(proposals.map(\.name) == ["Rauchtempeh", "Tofu"])
-        let tofu = try #require(proposals.first { $0.name == "Tofu" })
-        #expect(tofu.catalogID == "tofu")
-        #expect(tofu.aliases == ["Bio-Tofu"])
-        #expect(tofu.weights == ["Dose": 300])
-        let tempeh = try #require(proposals.first { $0.name == "Rauchtempeh" })
-        #expect(tempeh.catalogID == nil)
-        #expect(tempeh.parent == "tofu")
-        #expect(tempeh.category == .legumes)
-    }
-
-    @Test("The YAML names each word by id, or marks it new")
-    func yamlShape() {
-        let proposals = VocabularyHarvest.proposals(from: [
-            IngredientVocabularyEntry(name: "Tofu", aliases: ["Bio-Tofu"]),
-            IngredientVocabularyEntry(name: "Rauchtempeh", parentName: "Tofu", isOwnIngredient: true),
-        ])
-
-        let yaml = VocabularyHarvest.yaml(proposals, household: "Zuhause", date: Date(timeIntervalSince1970: 0))
-
-        #expect(yaml.contains("- id: \"tofu\"\n  name: \"Tofu\"\n  aliases:\n    - \"Bio-Tofu\"\n"))
-        #expect(yaml.contains("- new: true\n  name: \"Rauchtempeh\"\n  parent: \"tofu\"\n"))
-    }
 }

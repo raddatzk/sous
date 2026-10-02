@@ -33,16 +33,16 @@ struct HouseholdTests {
         }
     }
 
-    /// Recipe, plan entry, shopping line, taught ingredient and local answer
-    /// — one row of every kind a person writes by hand.
+    /// Recipe, plan entry, shopping line, household ingredient row and local
+    /// answer — one row of every kind a person writes by hand.
     private func writeOneOfEverything(into container: NSPersistentContainer) async throws {
         let recipe = try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
         try await CoreDataMealPlanStore(container: container)
             .save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
         try await CoreDataShoppingListStore(container: container)
             .addManual(key: "mehl", name: "Mehl", category: .grains, quantities: [])
-        _ = try await CoreDataVocabularyStore(container: container)
-            .save(IngredientVocabularyEntry(name: "Ajvar", isOwnIngredient: true))
+        try await CoreDataHouseholdIngredientStore(container: container)
+            .save(HouseholdIngredient(name: "Ajvar", isPantry: true))
         try await CoreDataLocalAnswerStore(container: container)
             .save(LocalAnswer(name: "Rauchtofu", kind: .countsAs, targetID: "tofu"))
     }
@@ -384,22 +384,22 @@ struct HouseholdSwitchingTests {
         let recipes: CoreDataRecipeStore
         let plan: CoreDataMealPlanStore
         let shopping: CoreDataShoppingListStore
-        let vocabulary: CoreDataVocabularyStore
+        let household: CoreDataHouseholdIngredientStore
 
         init(_ container: NSPersistentContainer) {
             recipes = CoreDataRecipeStore(container: container)
             plan = CoreDataMealPlanStore(container: container)
             shopping = CoreDataShoppingListStore(container: container)
-            vocabulary = CoreDataVocabularyStore(container: container)
+            household = CoreDataHouseholdIngredientStore(container: container)
         }
 
-        /// A recipe, its plan entry, a shopping line and a taught ingredient,
-        /// all carrying `name`.
+        /// A recipe, its plan entry, a shopping line and a pantry flag, all
+        /// carrying `name`.
         func write(_ name: String) async throws {
             let recipe = try await recipes.save(Recipe(title: name))
             try await plan.save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
             try await shopping.addManual(key: name.lowercased(), name: name, category: nil, quantities: [])
-            _ = try await vocabulary.save(IngredientVocabularyEntry(name: name, isOwnIngredient: true))
+            try await household.save(HouseholdIngredient(name: name, isPantry: true))
         }
 
         /// What the four stores show, one list per kind.
@@ -407,7 +407,7 @@ struct HouseholdSwitchingTests {
             let titles = try await recipes.recipes(matching: .all).map(\.title).sorted()
             let planned = try await plan.poolEntries().count
             let lines = try await shopping.snapshot().items.map(\.name).sorted()
-            let taught = try await vocabulary.entries().map(\.name).sorted()
+            let taught = try await household.entries().map(\.name).sorted()
             return [titles, ["\(planned)"], lines, taught]
         }
     }

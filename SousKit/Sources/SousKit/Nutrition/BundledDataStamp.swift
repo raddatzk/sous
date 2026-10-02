@@ -2,8 +2,9 @@ import Foundation
 
 /// Which shipped data this device last ran against.
 ///
-/// The concept's §7 asks the app to reconcile "after an update". Nothing in
-/// the app could tell that an update had happened: the bundled files are
+/// What the launch compares to decide whether the stored search index has to
+/// be rebuilt after a data update. Nothing in the app could tell that an
+/// update had happened: the bundled files are
 /// hashed into every cached figure, but only as a `static let` with the
 /// lifetime of the process — a fingerprint nobody could read back and compare
 /// against the last launch. This is that missing memory, and nothing more.
@@ -39,8 +40,8 @@ public struct BundledDataStamp: Equatable, Hashable, Sendable {
 /// content and does sync; which release each of them has read is not.
 ///
 /// The suite is the app group's, so the share extension sees the same marker
-/// — it runs no reconciliation itself, but it must not be able to write a
-/// second, disagreeing one.
+/// — it rebuilds no index itself, but it must not be able to write a
+/// second, disagreeing marker.
 public struct BundledDataMarker: Sendable {
     private enum Key {
         static let fingerprint = "bundledData.fingerprint"

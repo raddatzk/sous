@@ -3,84 +3,37 @@ import SwiftData
 import Testing
 @testable import SousKit
 
+/// The nutrition library since phase 6b: the data set's table with the
+/// household's local answers laid over it (INGREDIENTS-DATA §3 B). Nothing is
+/// confirmed, picked or orphaned any more; own values and weights are a local
+/// answer's.
 @MainActor
 @Suite("Nutrition library")
 struct NutritionLibraryTests {
     private func makeLibrary() throws -> (NutritionLibrary, SwiftDataRecipeStore) {
-        let container = try ModelContainer.sousContainer(inMemory: true)
-        let recipes = SwiftDataRecipeStore(modelContainer: container)
-        let nutrition = NutritionLibrary(
-            store: SwiftDataRecipeNutritionStore(modelContainer: container),
-            recipeStore: recipes,
-            catalogLibrary: IngredientCatalogLibrary(
-                store: SwiftDataVocabularyStore(modelContainer: container)
-            )
-        )
+        let (nutrition, recipes, _) = try makeLibraries()
         return (nutrition, recipes)
     }
 
-    /// One hand-entered entry, in the shape the ingredient form produces:
-    /// one unspecified variant, everything not asked for left at zero.
-    private func ownEntry(_ name: String, kcal: Double, gramsPerPiece: Double? = nil) -> CatalogNutrition {
-        CatalogNutrition(
-            name: name,
-            perHundredGrams: [IngredientState.unspecified.rawValue: NutritionInfo(
-                kcal: kcal, proteinG: 0, fatG: 0, saturatedFatG: 0,
-                carbsG: 0, sugarG: 0, fiberG: 0, sodiumMg: 0,
-                vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0, vitaminEMg: 0,
-                calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
-            )],
-            unitWeightsGrams: gramsPerPiece.map { [IngredientUnit.piece.symbol: $0] } ?? [:],
-            source: CatalogNutrition.ownSource
+    private func makeLibraries() throws -> (NutritionLibrary, SwiftDataRecipeStore, IngredientCatalogLibrary) {
+        let container = try ModelContainer.sousContainer(inMemory: true)
+        let recipes = SwiftDataRecipeStore(modelContainer: container)
+        let catalog = IngredientCatalogLibrary()
+        let nutrition = NutritionLibrary(
+            store: SwiftDataRecipeNutritionStore(modelContainer: container),
+            recipeStore: recipes,
+            catalogLibrary: catalog
         )
+        return (nutrition, recipes, catalog)
     }
 
-    @Test("A basis filed under one state is re-pointed without touching the others")
-    func rePointingOneStateLeavesTheOthersAlone() async throws {
-        let (nutrition, _) = try makeLibrary()
-        await nutrition.ensureLoaded()
-
-        // Kartoffel ships raw and cooked as separate rows. Confirm the cooked
-        // one first, so there is a settled answer to change - the case the
-        // form could not reach at all before the Grundlage row, because it
-        // hid the picker for anything that already had values and wrote only
-        // to unspecified when it did show.
-        await nutrition.confirmBasis(code: "K110132", state: .cooked, forName: "Kartoffeln")
-        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.code == "K110132")
-        #expect(nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .cooked)?.status == .confirmed)
-
-        // Point cooked at a different row. Raw must not move.
-        let rawBefore = nutrition.nutrition(forName: "Kartoffeln")?.basis(for: .raw)
-        await nutrition.confirmBasis(code: "K110182", state: .cooked, forName: "Kartoffeln")
-
-        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
-        #expect(entry.basis(for: .cooked)?.code == "K110182")
-        #expect(entry.basis(for: .raw)?.code == rawBefore?.code)
-        #expect(entry.basis(for: .raw)?.status == rawBefore?.status)
-    }
-
-    @Test("Deliberately without for one state leaves another state's row standing")
-    func optingOutIsPerState() async throws {
-        let (nutrition, _) = try makeLibrary()
-        await nutrition.ensureLoaded()
-
-        await nutrition.confirmBasis(code: "K110100", state: .raw, forName: "Kartoffeln")
-        await nutrition.setDeliberatelyWithoutBasis(forName: "Kartoffeln", state: .cooked)
-
-        let entry = try #require(nutrition.nutrition(forName: "Kartoffeln"))
-        #expect(entry.basis(for: .cooked)?.status == .deliberatelyWithout)
-        #expect(entry.basis(for: .raw)?.code == "K110100")
-        #expect(entry.basis(for: .raw)?.status == .confirmed)
-
-        // The picker follows suit: the opt-out is cooked's answer, so cooked
-        // has nothing to propose and raw still has its rows. Read through
-        // the fallback, the cooked opt-out used to silence every state.
-        #expect(nutrition.candidates(forName: "Kartoffeln", state: .cooked).isEmpty)
-        #expect(!nutrition.candidates(forName: "Kartoffeln", state: .raw).isEmpty)
-        // A general answer, filed under unspecified, does cover every state:
-        // Zimt ships that way, and no state of it should be offered cereal.
-        #expect(nutrition.candidates(forName: "Zimt", state: .raw).isEmpty)
-        #expect(nutrition.candidates(forName: "Zimt").isEmpty)
+    private func info(kcal: Double) -> NutritionInfo {
+        NutritionInfo(
+            kcal: kcal, proteinG: 0, fatG: 0, saturatedFatG: 0,
+            carbsG: 0, sugarG: 0, fiberG: 0, sodiumMg: 0,
+            vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0, vitaminEMg: 0,
+            calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
+        )
     }
 
     @Test("A recipe with no ingredient the catalog recognizes comes back as zero, not a crash")
@@ -118,50 +71,46 @@ struct NutritionLibraryTests {
         #expect(before?.perPortion.kcal != after?.perPortion.kcal)
     }
 
-    @Test("Own nutrition fills a gap the bundled table has")
-    func ownNutritionFillsAGap() async throws {
-        let (nutrition, _) = try makeLibrary()
+    @Test("A local answer's own values fill a gap the catalog has")
+    func ownValuesFillAGap() async throws {
+        let (nutrition, _, catalog) = try makeLibraries()
         let recipe = Recipe(title: "Bratlinge", servings: 2, ingredientsText: "200 g veganes Hackfleisch")
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 0)
 
-        await nutrition.saveIngredientNutrition(ownEntry("veganes Hackfleisch", kcal: 150))
+        await catalog.saveLocalAnswer(LocalAnswer(
+            name: "veganes Hackfleisch", values: info(kcal: 150), valuesSource: "Packung"
+        ))
 
-        // 200 g at 150 kcal/100 g, over two portions.
+        // 200 g at 150 kcal/100 g, over two portions — and the cache missed,
+        // since its key carries the answers.
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 150)
     }
 
-    @Test("Own nutrition overrides the bundled entry of the same name")
-    func ownNutritionWins() async throws {
-        let (nutrition, _) = try makeLibrary()
+    @Test("Own values beat the catalog's basis, and taking them back restores it")
+    func ownValuesWinAndGo() async throws {
+        let (nutrition, _, catalog) = try makeLibraries()
         let recipe = Recipe(title: "Zuckerguss", servings: 2, ingredientsText: "200 g Zucker")
         let bundled = try #require(await nutrition.nutrition(for: recipe)?.perPortion.kcal)
         #expect(bundled > 0)
 
-        await nutrition.saveIngredientNutrition(ownEntry("Zucker", kcal: 1))
-
+        await catalog.saveLocalAnswer(LocalAnswer(name: "Zucker", values: info(kcal: 1)))
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 1)
-        #expect(nutrition.ownNutrition(forCanonicalName: "zucker")?.source == CatalogNutrition.ownSource)
-    }
 
-    @Test("Taking own nutrition back restores the bundled figure")
-    func deletingOwnNutritionRestoresBundled() async throws {
-        let (nutrition, _) = try makeLibrary()
-        let recipe = Recipe(title: "Zuckerguss", servings: 2, ingredientsText: "200 g Zucker")
-        let bundled = try #require(await nutrition.nutrition(for: recipe)?.perPortion.kcal)
-
-        await nutrition.saveIngredientNutrition(ownEntry("Zucker", kcal: 1))
-        await nutrition.deleteIngredientNutrition(name: "Zucker")
-
+        let answer = try #require(catalog.localAnswer(for: "Zucker"))
+        await catalog.deleteLocalAnswer(answer)
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == bundled)
     }
 
-    @Test("A hand-entered piece weight makes a counted line count")
+    @Test("An own piece weight makes a counted line count")
     func ownPieceWeightResolves() async throws {
-        let (nutrition, _) = try makeLibrary()
+        let (nutrition, _, catalog) = try makeLibraries()
         let recipe = Recipe(title: "Bratlinge", servings: 1, ingredientsText: "2 Sojaküchlein")
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 0)
 
-        await nutrition.saveIngredientNutrition(ownEntry("Sojaküchlein", kcal: 200, gramsPerPiece: 50))
+        await catalog.saveLocalAnswer(LocalAnswer(
+            name: "Sojaküchlein", values: info(kcal: 200),
+            weights: [IngredientUnit.piece.symbol: LocalAnswer.Weight(grams: 50)]
+        ))
 
         // Two pieces of 50 g, at 200 kcal/100 g.
         #expect(await nutrition.nutrition(for: recipe)?.perPortion.kcal == 200)
@@ -210,136 +159,37 @@ struct NutritionLibraryTests {
         #expect(!nutrition.hasOwnUnitWeight(.piece, forName: "Zwiebel"))
     }
 
-    @Test("Withdrawing own values leaves the measure the cook corrected")
-    func deletingNutritionKeepsMeasures() async throws {
-        // These used to go together, which made no sense in either
-        // direction: what an onion weighs is not a claim about its calories.
-        let (nutrition, _) = try makeLibrary()
-        await nutrition.saveIngredientNutrition(ownEntry("Sojaküchlein", kcal: 200))
-        await nutrition.setUnitWeight(50, unit: .piece, forName: "Sojaküchlein")
-
-        await nutrition.deleteIngredientNutrition(name: "Sojaküchlein")
-
-        #expect(nutrition.unitWeight(.piece, forName: "Sojaküchlein") == 50)
-    }
-
-    @Test("A shipped mapping counts, provisionally, until the cook confirms it")
-    func confirmingSettlesTheFigure() async throws {
+    @Test("A shipped mapping simply counts, and the figure is complete")
+    func aShippedMappingCounts() async throws {
         let (nutrition, _) = try makeLibrary()
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten")
 
-        let proposed = try #require(await nutrition.nutrition(for: recipe))
-        // Decision A: the figure is there from the first look, and says of
-        // itself that it rests on a guess.
-        #expect(proposed.perPortion.kcal > 0)
-        #expect(proposed.coverage.unconfirmedCount == 1)
-        #expect(!proposed.coverage.isComplete)
-        // Named as the recipe wrote it — the question belongs to the line
-        // the cook is looking at, even though the answer holds for the word.
-        #expect(proposed.coverage.openIngredientNames == ["Tomaten"])
-
-        await nutrition.confirmProposedBasis(forName: "Tomate")
-
-        let confirmed = try #require(await nutrition.nutrition(for: recipe))
-        // Same number, and now a solid one — the badge's gate opens.
-        #expect(confirmed.perPortion.kcal == proposed.perPortion.kcal)
-        #expect(confirmed.coverage.unconfirmedCount == 0)
-        #expect(confirmed.coverage.isComplete)
-        #expect(confirmed.coverage.openIngredientNames.isEmpty)
+        let figure = try #require(await nutrition.nutrition(for: recipe))
+        // The catalog answers (§3 A): no "unbestätigt", nothing to confirm.
+        #expect(figure.perPortion.kcal > 0)
+        #expect(figure.coverage.gaps.isEmpty)
+        #expect(figure.coverage.isComplete)
     }
 
-    @Test("Picking another row changes what the figure is based on")
-    func pickingAnotherRow() async throws {
+    @Test("A word the catalog settles as without values is no defect")
+    func catalogsWithoutIsAnAnswer() async throws {
         let (nutrition, _) = try makeLibrary()
-        let recipe = Recipe(title: "Toast", servings: 1, ingredientsText: "100 g Schmelzkäse")
-        let before = try #require(await nutrition.nutrition(for: recipe))
-        let candidates = nutrition.candidates(forName: "Schmelzkäse")
-        // The eleven Schmelzkäse rows the source ships, not the one averaged
-        // row the old pipeline made of them. The synonym table knows five of
-        // them; the other six come from searching the catalog's own names,
-        // which is what makes the picker usable for a word curation never
-        // reached.
-        #expect(candidates.count == 11)
-        let other = try #require(candidates.first {
-            $0.code != before.coverage.contributions.first?.basisCode
-        })
+        let recipe = Recipe(title: "Milchreis", servings: 2, ingredientsText: "1 TL Zimt\n200 g Zucker")
 
-        await nutrition.confirmBasis(code: other.code, forName: "Schmelzkäse")
-
-        let after = try #require(await nutrition.nutrition(for: recipe))
-        #expect(after.coverage.contributions.first?.basisCode == other.code)
-        #expect(after.coverage.contributions.first?.isProvisional == false)
-        #expect(after.coverage.isComplete)
+        let figure = try #require(await nutrition.nutrition(for: recipe))
+        #expect(figure.coverage.gaps.first { $0.ingredientName == "Zimt" }?.reason == .deliberatelyWithout)
+        #expect(figure.coverage.defects.isEmpty)
+        #expect(figure.coverage.isComplete)
     }
 
-    @Test("Naming the row a cook's own numbers stand in for keeps the numbers")
-    func linkingARowAfterTypingValuesKeepsThem() async throws {
-        // The two directions used to disagree. Typing values *after* picking
-        // a row carried the code across; picking a row *after* typing values
-        // built a fresh assignment with no values and replaced the whole
-        // slot, so the numbers went silently. Whichever way round the cook
-        // does it, they end up with both.
-        let (nutrition, _) = try makeLibrary()
-        let recipe = Recipe(title: "Toast", servings: 1, ingredientsText: "100 g Schmelzkäse")
-        await nutrition.saveIngredientNutrition(ownEntry("Schmelzkäse", kcal: 111))
-        let row = try #require(nutrition.candidates(forName: "Schmelzkäse").first)
-
-        await nutrition.confirmBasis(code: row.code, forName: "Schmelzkäse")
-
-        let after = try #require(await nutrition.nutrition(for: recipe))
-        // The cook's number, not the row's — the row is the note beside it.
-        #expect(after.perPortion.kcal == 111)
-        #expect(after.coverage.contributions.first?.basisCode == row.code)
-        #expect(nutrition.ownNutrition(forCanonicalName: "Schmelzkäse") != nil)
-    }
-
-    @Test("Deliberately without stops the asking for good")
-    func deliberatelyWithoutIsRemembered() async throws {
-        let (nutrition, _) = try makeLibrary()
-        let recipe = Recipe(title: "Bratlinge", servings: 2, ingredientsText: "200 g veganes Hackfleisch")
-        let asking = try #require(await nutrition.nutrition(for: recipe))
-        #expect(asking.coverage.defects.count == 1)
-
-        await nutrition.setDeliberatelyWithoutBasis(forName: "veganes Hackfleisch")
-
-        let settled = try #require(await nutrition.nutrition(for: recipe))
-        #expect(settled.coverage.gaps.first?.reason == .deliberatelyWithout)
-        #expect(settled.coverage.defects.isEmpty)
-        #expect(settled.coverage.openIngredientNames.isEmpty)
-        // Not a badge, though: nothing contributed, so there is no sum to
-        // pass a verdict on.
-        #expect(!settled.coverage.isComplete)
-    }
-
-    @Test("Confirming the parent does not confirm the variety; the variety is asked once, itself")
-    func varietiesInheritAProposalNotAConfirmation() async throws {
-        // This test used to assert the opposite - that confirming Tomate
-        // settled Cocktailtomaten with it. Decision B of the catalog target
-        // reverses that on purpose: whether a variety *is* its parent for the
-        // purposes of nutrition is a separate question (Räucherlachs is a
-        // variety of Lachs and inherits its sodium wrong by a factor of 37),
-        // so an inherited basis arrives as a proposal, named as inherited.
+    @Test("A variety computes with its parent's basis, names it, and is complete")
+    func varietiesInheritTheBasis() async throws {
         let (nutrition, _) = try makeLibrary()
         let recipe = Recipe(title: "Pastasalat", servings: 2, ingredientsText: "200 g Cocktailtomaten")
 
-        let proposed = try #require(await nutrition.nutrition(for: recipe))
-        #expect(proposed.coverage.unconfirmedCount == 1)
-        #expect(proposed.coverage.contributions.first?.inheritedFrom == "Tomate")
-
-        // The parent's confirmation is about the parent.
-        await nutrition.confirmProposedBasis(forName: "Tomate")
-        let stillOpen = try #require(await nutrition.nutrition(for: recipe))
-        #expect(stillOpen.coverage.unconfirmedCount == 1)
-        #expect(stillOpen.coverage.contributions.first?.inheritedFrom == "Tomate")
-
-        // One tap on the variety settles it - and the row it settles on is
-        // the inherited one, written onto the variety as its own decision.
-        await nutrition.confirmProposedBasis(forName: "Cocktailtomaten", state: .raw)
-        let confirmed = try #require(await nutrition.nutrition(for: recipe))
-        #expect(confirmed.coverage.unconfirmedCount == 0)
-        #expect(confirmed.coverage.isComplete)
-        #expect(confirmed.coverage.contributions.first?.inheritedFrom == nil)
-        #expect(nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw)?.code == "G561100")
+        let figure = try #require(await nutrition.nutrition(for: recipe))
+        #expect(figure.coverage.contributions.first?.inheritedFrom == "Tomate")
+        #expect(figure.coverage.isComplete)
     }
 
     @Test("An invalid serving count is refused rather than dividing by zero")

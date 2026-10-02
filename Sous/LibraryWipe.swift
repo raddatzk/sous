@@ -45,7 +45,7 @@ struct LibraryWipe {
             recipes: await library.allRecipesIncludingTrash().count,
             meals: await plan.plannedCount(),
             shopping: shopping.planEntries.count + shopping.items.count,
-            ingredients: catalog.ownIngredients.count
+            ingredients: catalog.householdRowCount
         )
     }
 
@@ -56,7 +56,7 @@ struct LibraryWipe {
         await library.eraseEverything(onProgress: onProgress)
         await plan.removeEverything()
         await shopping.removeEverything()
-        await catalog.removeOwnEntries()
+        await catalog.removeHouseholdAnswers()
         await forgetWhatOutlivesTheRows()
     }
 

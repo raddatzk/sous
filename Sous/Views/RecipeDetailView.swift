@@ -88,18 +88,9 @@ struct RecipeDetailView: View {
     /// not carry and that nobody has turned down. Derived from `nutrition`,
     /// so it is refreshed wherever that is.
     @State private var nutritionTagSuggestions: [NutritionTag] = []
-    /// Which coverage line has the basis picker unfolded under it. One at a
+    /// Which line's derived gram amount is open for correction. One at a
     /// time: the drill-down is a list to read, not a form.
-    @State private var clarifying: String?
-    /// Which line's derived gram amount is open for correction — the gram
-    /// bridge's counterpart to `clarifying`, kept apart so answering the one
-    /// question does not fold the other away.
     @State private var correcting: String?
-    @State private var isClarifyingAll = false
-    @State private var needsIngredientReview = false
-    @State private var isReviewingIngredients = false
-    /// The stage "So funktioniert’s" opens at, for whichever banner asked.
-    @State private var explaining: IngredientJourneyStage?
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -219,14 +210,6 @@ struct RecipeDetailView: View {
         }
     }
 
-    private var unknownIngredientCount: Int { library.unknownIngredients(in: recipe).count }
-
-    /// The catalog banner, only while it has something to count. The review
-    /// state is settled asynchronously and can still say "ask" after the
-    /// catalog has since learned every word — a banner reading "0 Zutaten
-    /// fehlen" asks about nothing.
-    private var showsIngredientReview: Bool { needsIngredientReview && unknownIngredientCount > 0 }
-
     var body: some View {
         // The bar's own edge is what the title has to pass, and only a
         // geometry reader knows where that is on this device.
@@ -328,10 +311,6 @@ struct RecipeDetailView: View {
             // as the plan hands it one planned recipe after another, and
             // `plannedServings` carries whatever the new one was scaled for.
             servingsOverride = plannedServings
-            needsIngredientReview = false
-        }
-        .task(id: recipe.id) {
-            needsIngredientReview = await library.needsIngredientReview(recipe)
         }
         // Every save reloads the list, so a changed list is the moment to
         // look again — for a recipe the list holds, `recipe` has it already.
@@ -403,22 +382,6 @@ struct RecipeDetailView: View {
                 was beim Hinzufügen abgewählt war.
                 """
             )
-        }
-        .sheet(isPresented: $isReviewingIngredients) {
-            IngredientReviewSheet(ingredientsText: recipe.ingredientsText) {
-                Task {
-                    await library.markIngredientsReviewed(recipe)
-                    needsIngredientReview = await library.needsIngredientReview(recipe)
-                }
-            }
-        }
-        .sheet(item: $explaining) { stage in
-            IngredientJourneySheet(start: stage)
-        }
-        .sheet(isPresented: $isClarifyingAll) {
-            IngredientClarificationSheet(open: openIngredients) {
-                await recomputeNutrition()
-            }
         }
         // Shown as a sheet rather than pushed: looking up how the dough is
         // made is a detour, and a swipe returns to exactly where the cook was.
@@ -752,119 +715,17 @@ struct RecipeDetailView: View {
         } else {
             actionBar(isWide: isWide)
             // Beside each other while the page has room for it, and the same
-            // width once they are there. Each banner used to keep the width
-            // its own sentence needed, which stacked two questions about the
-            // same recipe into two boxes of two different lengths — a ragged
-            // left-hand column with half the page empty beside it. They are
-            // one group asking one thing, so they are laid out as a row that
-            // wraps rather than as a pile.
-            if hasReviewBanners {
+            // width once they are there: one group, laid out as a row that
+            // wraps rather than as a pile. Only the category suggestions are
+            // left here — the catalog answers, and nothing about ingredients
+            // asks (INGREDIENTS-DATA §3 A).
+            if !nutritionTagSuggestions.isEmpty {
                 FlowLayout(spacing: 16, lineSpacing: 16, stretch: true) {
-                    if showsIngredientReview {
-                        ingredientReviewBanner(unknownIngredientCount)
-                    }
-                    if !openIngredients.isEmpty {
-                        basisReviewBanner(openIngredients.count)
-                    }
                     ForEach(nutritionTagSuggestions, id: \.kind) { tag in
                         nutritionTagBanner(tag)
                     }
                 }
             }
-        }
-    }
-
-    /// Whether anything down there is asking. Checked before the row is
-    /// built rather than inside it: an empty layout is still a view, and the
-    /// stack would keep its 28 points of air for a group with nothing in it.
-    private var hasReviewBanners: Bool {
-        if showsIngredientReview { return true }
-        if !openIngredients.isEmpty { return true }
-        return !nutritionTagSuggestions.isEmpty
-    }
-
-    /// Offers to add whatever the catalog does not recognize yet — the same
-    /// check `RecipeEditorView`'s "Noch unbekannt" row runs while typing,
-    /// asked again here so a recipe that skipped the editor (a bulk import)
-    /// still gets noticed. Stays up until answered, same as the amount
-    /// review below it: opening the sheet and tapping "Fertig" without
-    /// adding anything still settles it for the text as it stands.
-    @ViewBuilder
-    private func ingredientReviewBanner(_ count: Int) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Label(
-                    count == 1 ? "1 Zutat fehlt im Katalog" : "\(count) Zutaten fehlen im Katalog",
-                    systemImage: "text.book.closed"
-                )
-                .font(.subheadline.weight(.medium))
-                explainButton(.teaching, under: "text.book.closed")
-            }
-            Spacer()
-            Button("Anlegen") {
-                isReviewingIngredients = true
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-    }
-
-    /// The ingredients whose numbers rest on a guess or on nothing — what
-    /// the collected "Nährwerte zuordnen" view walks through, each with the
-    /// preparation state its answer has to be filed under.
-    ///
-    /// Names the catalog does not know are left out while the banner above
-    /// is still asking about them: they were being counted in both numbers
-    /// at once, which read as two rival questions about the same word rather
-    /// than as the two steps it actually is. They come back the moment that
-    /// banner is settled — see `openIngredientsWithKnownName`.
-    private var openIngredients: [NutritionCoverage.OpenIngredient] {
-        guard let coverage = nutrition?.coverage else { return [] }
-        return needsIngredientReview ? coverage.openIngredientsWithKnownName : coverage.openIngredients
-    }
-
-    /// The batch flow of decision A: one place that names how much of this
-    /// recipe's figure is still conjecture, and one tap per ingredient to
-    /// settle it. Unlike the two banners above it, this one has nothing to
-    /// "not now" — it disappears when the questions are answered, and
-    /// "bewusst ohne" is one of the answers.
-    @ViewBuilder
-    private func basisReviewBanner(_ count: Int) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Label(
-                    count == 1
-                        ? "1 Zutat ohne bestätigte Nährwerte"
-                        : "\(count) Zutaten ohne bestätigte Nährwerte",
-                    systemImage: "questionmark.text.page"
-                )
-                .font(.subheadline.weight(.medium))
-                explainButton(.nutrition, under: "questionmark.text.page")
-            }
-            Spacer()
-            Button("Zuordnen") { isClarifyingAll = true }
-                .buttonStyle(.borderedProminent)
-        }
-        .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
-    }
-
-    /// What the two ingredient banners have under their line: the way from
-    /// "something is missing" to why it matters, opened at the stage the
-    /// banner is about. Indented to the label's text, so it reads as that
-    /// line's footnote rather than as a third button — by a hidden copy of
-    /// the label's own symbol, which keeps the indent right at every type
-    /// size where a fixed number would not.
-    private func explainButton(_ stage: IngredientJourneyStage, under symbol: String) -> some View {
-        Label {
-            Button("So funktioniert’s") { explaining = stage }
-                .buttonStyle(.borderless)
-                .font(.footnote)
-        } icon: {
-            Image(systemName: symbol)
-                .font(.subheadline.weight(.medium))
-                .hidden()
         }
     }
 
@@ -1129,7 +990,7 @@ struct RecipeDetailView: View {
                             // that word — see `IngredientLineButton`. Salz auf
                             // Vorrat setzen is then a tap on "Salz", not a trip
                             // through the catalog to look the word up again.
-                            IngredientLineButton(ingredient: ingredient, formatter: formatter) {
+                            IngredientLineButton(ingredient: ingredient, formatter: formatter, recipeTitle: recipe.title) {
                                 await recomputeNutrition()
                             }
                         }
@@ -1240,39 +1101,25 @@ struct RecipeDetailView: View {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text("Nährwerte")
                         .font(SousStyle.sectionHeading)
-                    if nutrition.coverage.isProvisional {
-                        // Decision A's marker, and it is meant to be the
-                        // loudest thing in this block: numbers computed from
-                        // unchecked conjecture are in the room, and a marker
-                        // that dulls with habit is the price the decision
-                        // names. So: a word, not a shade of grey.
-                        Text("vorläufig")
-                            .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(Color.sousCaution.opacity(SousStyle.chipTint), in: .capsule)
-                            .foregroundStyle(Color.sousCaution)
-                    }
                 }
                 coverageLine(for: nutrition)
-                let provisional = nutrition.coverage.isProvisional
                 VStack(alignment: .leading, spacing: 5) {
                     nutrientRow(
                         "Energie", Self.nutrients.string(kilocalories: nutrition.perPortion.kcal),
-                        emphasized: true, provisional: provisional
+                        emphasized: true
                     )
-                    nutrientRow("Fett", mass(nutrition.perPortion.fatG), provisional: provisional)
+                    nutrientRow("Fett", mass(nutrition.perPortion.fatG))
                     nutrientRow(
                         "davon gesättigte Fettsäuren", mass(nutrition.perPortion.saturatedFatG),
-                        indented: true, provisional: provisional
+                        indented: true
                     )
-                    nutrientRow("Kohlenhydrate", mass(nutrition.perPortion.carbsG), provisional: provisional)
-                    nutrientRow("davon Zucker", mass(nutrition.perPortion.sugarG), indented: true, provisional: provisional)
-                    nutrientRow("Ballaststoffe", mass(nutrition.perPortion.fiberG), provisional: provisional)
-                    nutrientRow("Eiweiß", mass(nutrition.perPortion.proteinG), provisional: provisional)
+                    nutrientRow("Kohlenhydrate", mass(nutrition.perPortion.carbsG))
+                    nutrientRow("davon Zucker", mass(nutrition.perPortion.sugarG), indented: true)
+                    nutrientRow("Ballaststoffe", mass(nutrition.perPortion.fiberG))
+                    nutrientRow("Eiweiß", mass(nutrition.perPortion.proteinG))
                     // BLS reports sodium; the standard EU label shows salt, in
                     // grams — dropped to milligrams where a portion has traces.
-                    nutrientRow("Salz", mass(nutrition.perPortion.sodiumMg * 2.5 / 1000), provisional: provisional)
+                    nutrientRow("Salz", mass(nutrition.perPortion.sodiumMg * 2.5 / 1000))
                 }
                 let micronutrients = micronutrientRows(nutrition.perPortion)
                 if !micronutrients.isEmpty {
@@ -1281,13 +1128,11 @@ struct RecipeDetailView: View {
                         .padding(.top, 4)
                     VStack(alignment: .leading, spacing: 5) {
                         ForEach(micronutrients, id: \.label) { row in
-                            nutrientRow(row.label, row.value, provisional: provisional)
+                            nutrientRow(row.label, row.value)
                         }
                     }
                 }
-                Text(provisional
-                     ? "Pro Portion, geschätzt aus den Zutaten — mit noch unbestätigten Zuordnungen."
-                     : "Pro Portion, geschätzt aus den Zutaten.")
+                Text("Pro Portion, geschätzt aus den Zutaten.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
@@ -1300,14 +1145,10 @@ struct RecipeDetailView: View {
     /// have contributed; unquantified lines ("Salz nach Geschmack") stand
     /// outside the count and only appear in the drill-down, neutrally.
     ///
-    /// "davon 4 unbestätigt" is decision A's other half: those four lines are
-    /// *in* the sum — that is the whole point of computing with proposals —
-    /// and the line says so rather than letting the total look settled.
-    ///
-    /// Every line that a basis would settle is a button here. This is the
-    /// casual entry: the recipe is the earliest place a gap becomes visible,
-    /// long before a sum or a list would be wrong, and answering it unfolds
-    /// in place rather than opening anything.
+    /// Honesty lives here, in the visible coverage and in naming where every
+    /// number comes from — not in asking (INGREDIENTS-DATA §3 A). Nothing in
+    /// the drill-down is a question; only an assumed gram weight can be
+    /// corrected, as a local answer.
     @ViewBuilder
     private func coverageLine(for nutrition: RecipeNutrition) -> some View {
         let coverage = nutrition.coverage
@@ -1322,41 +1163,28 @@ struct RecipeDetailView: View {
                     ForEach(coverage.gaps, id: \.self) { gap in
                         coverageRow(
                             name: gap.ingredientName,
-                            state: gap.state,
                             source: gap.sourceRecipeTitle,
-                            detail: gapDetail(for: gap),
-                            isOpen: gap.reason.wantsBasis
+                            detail: withLocalTrace(gap.reason.label, for: gap.ingredientName)
                         )
                     }
                     // The lines that *did* count, each naming the catalog row
-                    // it was read from. The drill-down used to explain only
-                    // the failures; a figure that worked out is just as much
-                    // an interpretation, and this is where it says which one.
+                    // it was read from: a figure that worked out is just as
+                    // much an interpretation, and this is where it says which
+                    // one.
                     ForEach(coverage.contributions, id: \.self) { line in
                         if let basis = line.basisName {
                             coverageRow(
                                 name: line.ingredientName,
-                                state: line.state,
                                 source: line.sourceRecipeTitle,
-                                detail: basisDetail(for: line, basis: basis),
-                                isOpen: line.isProvisional,
-                                // A line that counted can still rest on the
-                                // wrong row. Until now the drill-down let it
-                                // be read and not corrected, which made a
-                                // confirmed mapping the one thing in the app
-                                // with no way back.
-                                canRevisit: true
+                                detail: basisDetail(for: line, basis: basis)
                             )
                         } else if let trace = catalog.localTrace(for: line.ingredientName) {
                             // Own values name no catalog row; the local
                             // answer is what the figure rests on.
                             coverageRow(
                                 name: line.ingredientName,
-                                state: line.state,
                                 source: line.sourceRecipeTitle,
-                                detail: trace.label,
-                                isOpen: false,
-                                canRevisit: true
+                                detail: trace.label
                             )
                         }
                         gramBridgeRow(for: line)
@@ -1371,28 +1199,10 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Why a line contributed nothing — and, where the answer is "the row it
-    /// was mapped to is gone", which row that was.
-    ///
-    /// Read live off the vocabulary rather than out of the cached coverage:
-    /// the remembered name is what the *mapping* carries, so it corrects
-    /// itself the moment the mapping is repaired, and a coverage cached
-    /// before the update cannot serve a stale one.
-    private func gapDetail(for gap: NutritionCoverage.Gap) -> String {
-        let detail: String
-        if gap.reason == .orphanedBasis,
-           let was = nutritionLibrary.orphanedCatalogNames(forName: gap.ingredientName).first {
-            detail = "\(gap.reason.label) — beruhte auf: \(was)"
-        } else {
-            detail = gap.reason.label
-        }
-        return withLocalTrace(detail, for: gap.ingredientName)
-    }
-
     /// The quiet line a local answer leaves (INGREDIENTS-DATA §3 B, R3):
     /// "lokal: zählt wie Tofu", or, once the catalog has taken the name
-    /// over, "… · jetzt vom Katalog beantwortet". Read live, like the orphan
-    /// note above, so it follows the answer rather than a cached coverage.
+    /// over, "… · jetzt vom Katalog beantwortet". Read live, so it follows the
+    /// answer rather than a cached coverage.
     private func withLocalTrace(_ detail: String, for name: String) -> String {
         guard let trace = catalog.localTrace(for: name) else { return detail }
         return "\(detail) · \(trace.label)"
@@ -1408,12 +1218,9 @@ struct RecipeDetailView: View {
     private func basisDetail(
         for line: NutritionCoverage.Contribution, basis: String
     ) -> String {
-        // "geerbt von Lachs" over a bare "vorgeschlagen": the number is a
-        // guess either way, but this says which guess — and it is the guess
-        // that put raw salmon's sodium under Räucherlachs for as long as
-        // nothing on screen mentioned where the figure came from.
-        let lead = line.inheritedFrom.map { "geerbt von \($0)" }
-            ?? (line.isProvisional ? "vorgeschlagen" : "beruht auf")
+        // "geerbt von Lachs" where the figure came down the variety chain:
+        // the reader most needs that named.
+        let lead = line.inheritedFrom.map { "geerbt von \($0)" } ?? "beruht auf"
         guard !line.matchesState, let state = line.state.shoppingAnnotation else {
             return withLocalTrace("\(lead): \(basis)", for: line.ingredientName)
         }
@@ -1466,80 +1273,30 @@ struct RecipeDetailView: View {
         "\(line.ingredientName)|\(unit.symbol)"
     }
 
-    /// "≈ 640 kcal pro Portion — 9 von 12 Zutaten, davon 4 unbestätigt".
+    /// "≈ 640 kcal pro Portion — 9 von 12 Zutaten".
     private func coverageSummary(for nutrition: RecipeNutrition) -> String {
         let coverage = nutrition.coverage
         let energy = Self.nutrients.string(kilocalories: nutrition.perPortion.kcal)
-        var summary = "≈ \(energy) pro Portion"
+        return "≈ \(energy) pro Portion"
             + " — \(coverage.includedCount) von \(coverage.accountableCount) Zutaten"
-        if coverage.unconfirmedCount > 0 {
-            summary += ", davon \(coverage.unconfirmedCount) unbestätigt"
-        }
-        return summary
     }
 
-    /// One line of the drill-down.
-    ///
-    /// Two different things used to be decided by one flag. `isOpen` says the
-    /// line is still a *question* — that is what earns the dotted underline,
-    /// and it is what the reader scans for. Whether the picker can be opened
-    /// is a different matter: a settled line may rest on the wrong row, and
-    /// wanting to change it is not the same as never having answered. Only
-    /// gaps that no basis would repair — a missing gram equivalent, an amount
-    /// nobody quantified — stay plain text, because for those this picker is
-    /// the wrong tool rather than a locked one.
-    @ViewBuilder
-    private func coverageRow(
-        name: String, state: IngredientState, source: String?, detail: String,
-        isOpen: Bool, canRevisit: Bool = false
-    ) -> some View {
+    /// One line of the drill-down: the name, and what its figure rests on
+    /// or why it has none.
+    private func coverageRow(name: String, source: String?, detail: String) -> some View {
         let title = source.map { "aus \($0): \(name)" } ?? name
-        // Keyed by name *and* state: one word can appear twice in a recipe,
-        // raw once and cooked once, and those are two separate questions with
-        // two separate answers.
-        let key = NutritionCoverage.OpenIngredient(name: name, state: state).id
-        VStack(alignment: .leading, spacing: 0) {
-            if isOpen || canRevisit {
-                Button {
-                    withAnimation { clarifying = clarifying == key ? nil : key }
-                } label: {
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(title)
-                            .underline(isOpen, pattern: .dot)
-                        Spacer()
-                        Text(detail)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    .font(.footnote)
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                if clarifying == key {
-                    IngredientBasisPicker(name: name, state: state) {
-                        await recomputeNutrition()
-                    }
-                    .padding(.leading, 12)
-                }
-            } else {
-                HStack(alignment: .firstTextBaseline) {
-                    Text(title)
-                    Spacer()
-                    Text(detail)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.trailing)
-                }
-                .font(.footnote)
-            }
+        return HStack(alignment: .firstTextBaseline) {
+            Text(title)
+            Spacer()
+            Text(detail)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
         }
+        .font(.footnote)
     }
 
-    /// A provisional figure wears a dotted underline — the same "something
-    /// is open here" mark the concept puts on an ingredient line, so the two
-    /// read as one language rather than two warnings.
     private func nutrientRow(
-        _ label: String, _ value: String, indented: Bool = false,
-        emphasized: Bool = false, provisional: Bool = false
+        _ label: String, _ value: String, indented: Bool = false, emphasized: Bool = false
     ) -> some View {
         HStack {
             Text(label)
@@ -1548,7 +1305,6 @@ struct RecipeDetailView: View {
             Spacer()
             Text(value)
                 .fontWeight(emphasized ? .semibold : .regular)
-                .underline(provisional, pattern: .dot)
         }
         .font(.subheadline)
     }
@@ -1636,18 +1392,6 @@ struct RecipeDetailView: View {
                 if !recipe.ingredients.isEmpty, stepReferencesChat != .off, !recipe.isDeleted {
                     Button("Für Sous optimieren", systemImage: "wand.and.stars") {
                         isOptimizing = true
-                    }
-                }
-                // The banner below settles for good once it has been
-                // answered — "jetzt nicht" has to mean something, or it
-                // would ask again every time the recipe is opened. But the
-                // sheet behind it is a tool, not only a question, and a tool
-                // that can be reached exactly once is a tool that is gone.
-                // So it keeps a door here for as long as anything is
-                // actually missing.
-                if unknownIngredientCount > 0 {
-                    Button("Zutaten anlegen", systemImage: "text.book.closed") {
-                        isReviewingIngredients = true
                     }
                 }
                 if !recipe.isDeleted {

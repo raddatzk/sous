@@ -22,9 +22,6 @@ final class LibraryCommands {
         case catalog
         case categories
         case trash
-        /// "Vokabular exportieren", the household's curation as proposals
-        /// for the catalog.
-        case harvest
 
         var id: String { rawValue }
     }

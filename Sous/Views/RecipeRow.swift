@@ -38,7 +38,6 @@ struct RecipeRow: View {
     /// `backgroundProminence`, which that sidebar never raises.
     var isHighlighted = false
 
-    @Environment(RecipeLibrary.self) private var library
     @Environment(NutritionLibrary.self) private var nutritionLibrary
     /// A cache read — cheap once nutrition has been computed for this
     /// recipe once.
@@ -46,9 +45,6 @@ struct RecipeRow: View {
     /// Whether that figure covers every accountable ingredient — an
     /// incomplete one is still shown, but never naked.
     @State private var kcalIsComplete = false
-    /// Whether the catalog is missing any of this recipe's ingredients —
-    /// the list-wide view of the same check the detail page's banner runs.
-    @State private var needsIngredientReview = false
     /// How much work the dish is: the cook's word where they gave one, and
     /// otherwise what its structure implies. `nil` where the recipe has too
     /// little structure to judge, and then the row says nothing rather than
@@ -87,10 +83,6 @@ struct RecipeRow: View {
             } else {
                 kcalPerPortion = nil
             }
-        }
-        .task(id: recipe.id) {
-            guard unsavedPictures == nil else { return }
-            needsIngredientReview = await library.needsIngredientReview(recipe)
         }
     }
 
@@ -209,12 +201,6 @@ struct RecipeRow: View {
                 .foregroundStyle(.tint)
                 .imageScale(.small)
                 .accessibilityLabel("Will ich kochen")
-        }
-        if needsIngredientReview {
-            Image(systemName: "text.book.closed")
-                .foregroundStyle(.secondary)
-                .imageScale(.small)
-                .accessibilityLabel("Unbekannte Zutaten")
         }
     }
 

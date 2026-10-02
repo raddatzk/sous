@@ -1,22 +1,20 @@
 import Foundation
 import Observation
 
-/// The catalog as the app uses it: what ships with the app, plus everything
-/// the cook has decided, with the cook's word winning where both know a name.
+/// The catalog as the app uses it: the data set's catalog with the
+/// household's local answers laid over it (INGREDIENTS-DATA §3 B), and the
+/// household's own fields per ingredient (§3 C: pantry, store, note).
 ///
-/// Since phase 4 this is also where the vocabulary lives — the one table that
-/// used to be four. Two libraries read it (nutrition and shopping), but only
-/// this one writes it, so there is a single place that knows what an
-/// ingredient is and a single place that has to remember to drop the caches.
+/// The catalog answers; the cook does not maintain it. Spellings, varieties,
+/// aisles and bases come from the data set alone — what the household says
+/// is either a local answer, for a name the catalog cannot answer yet, or a
+/// fact about the household. This is the one place that writes either, so
+/// there is a single place that knows what an ingredient is.
 @MainActor
 @Observable
 public final class IngredientCatalogLibrary {
-    private let store: any VocabularyStore
     private let localAnswerStore: any LocalAnswerStore
-    /// Every change here can change what a recipe's ingredients resolve to,
-    /// and with that its nutrition — which is cached against the recipe's
-    /// text alone and would otherwise never notice.
-    private let nutritionCache: (any RecipeNutritionStore)?
+    private let householdStore: any HouseholdIngredientStore
 
     /// Everything the app knows, ready to look up.
     public private(set) var catalog: IngredientCatalog = .current {
@@ -28,49 +26,52 @@ public final class IngredientCatalogLibrary {
     /// read against (``IngredientLineReader/catalog``). Off for the many
     /// libraries tests build side by side.
     private let readsRecipes: Bool
-    /// Everything the cook has said about an ingredient, by normalized name.
-    public private(set) var vocabulary: [String: IngredientVocabularyEntry] = [:]
     /// The household's local answers (INGREDIENTS-DATA §3 B), twins folded.
     public private(set) var localAnswers: LocalAnswerSet = .empty
     /// The answers as laid over the catalog: what each did, and what the
     /// nutrition table takes over from them.
     public private(set) var appliedAnswers: LocalAnswerSet.Applied = .none
-    /// The catalog before the local answers — the data set with the
-    /// vocabulary patched in. What "does the catalog know this name" is asked
-    /// of, since a name only a local answer taught is not one it knows.
-    public private(set) var catalogWithoutLocalAnswers: IngredientCatalog = .current
+    /// The household's ingredient fields, by ``HouseholdIngredient/key`` —
+    /// ids as the current data set names them, twins folded, newest first.
+    public private(set) var householdIngredients: [String: HouseholdIngredient] = [:]
     public var errorMessage: String?
+    /// Called after a rebuild changed which words the catalog knows — a local
+    /// answer that adds a name, one taken back, or a household switch. The
+    /// stored search index was read against the catalog before, so whoever
+    /// holds it reindexes (the app wires ``RecipeLibrary/reindexSearch()``).
+    /// Not called for the first load, nor for an answer that only changes
+    /// numbers.
+    public var wordsDidChange: (@MainActor () async -> Void)?
 
     public init(
-        store: any VocabularyStore,
         localAnswers: any LocalAnswerStore = InMemoryLocalAnswerStore(),
-        nutritionCache: (any RecipeNutritionStore)? = nil,
+        household: any HouseholdIngredientStore = InMemoryHouseholdIngredientStore(),
         readsRecipes: Bool = false
     ) {
-        self.store = store
         self.localAnswerStore = localAnswers
-        self.nutritionCache = nutritionCache
+        self.householdStore = household
         self.readsRecipes = readsRecipes
     }
 
-    /// Whether the cook's own data has been read at least once. Until it
+    /// Whether the household's data has been read at least once. Until it
     /// has, `catalog` is the data set's list alone — which is not what anything
     /// asking a question about a recipe should be answered from.
     private var hasLoaded = false
 
     public func reload() async {
         do {
-            let entries = try await store.entries()
-            vocabulary = Dictionary(entries.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
             localAnswers = LocalAnswerSet(try await localAnswerStore.answers())
-            rebuild()
+            let entries = try await householdStore.entries()
+            let wordsChanged = rebuild()
+            householdIngredients = fold(entries)
             hasLoaded = true
+            if wordsChanged { await wordsDidChange?() }
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    /// Reads the cook's data if nobody has yet.
+    /// Reads the household's data if nobody has yet.
     ///
     /// Everything that resolves an ingredient — the shopping list, the
     /// unknown-ingredient badge, nutrition — needs the full catalog, not only
@@ -81,79 +82,29 @@ public final class IngredientCatalogLibrary {
         await reload()
     }
 
-    /// Two passes, because an entry that only *adds* to a shipped word has to
-    /// find out which word wins its name first: merge the cook's own
-    /// ingredients in front of the data set's, then patch the survivors
-    /// with the spellings, aisles and variety relations the vocabulary holds
-    /// for them, then index the result. The local answers go on top, last,
-    /// since whether a "zählt wie" still speaks depends on everything below
-    /// it (``LocalAnswerSet``).
-    private func rebuild() {
-        let own = vocabulary.values
-            .filter(\.isOwnIngredient)
-            .map { $0.catalogIngredient(fallback: nil) }
-            .sorted { $0.name < $1.name }
-        let merged = IngredientCatalog(
-            ingredients: own + IngredientCatalog.current.ingredients,
-            renames: IngredientCatalog.current.renames
-        )
-
-        var base = merged
-        if vocabulary.values.contains(where: { !$0.isOwnIngredient }) {
-            let patched = merged.ingredients.map { ingredient -> CatalogIngredient in
-                guard let entry = vocabulary[ingredient.key], !entry.isOwnIngredient else { return ingredient }
-                return entry.catalogIngredient(fallback: ingredient)
-            }
-            base = IngredientCatalog(ingredients: patched, renames: merged.renames)
-        }
-        catalogWithoutLocalAnswers = base
-        appliedAnswers = localAnswers.applied(to: base)
+    /// The local answers laid over the data set's catalog. Whether a
+    /// "zählt wie" still speaks depends on what the catalog knows
+    /// (``LocalAnswerSet``). Says whether the words the answers add changed
+    /// since an earlier load.
+    private func rebuild() -> Bool {
+        let addedBefore = appliedAnswers.addedNames
+        appliedAnswers = localAnswers.applied(to: catalogWithoutLocalAnswers)
         catalog = appliedAnswers.catalog
         revision += 1
+        return hasLoaded && appliedAnswers.addedNames != addedBefore
     }
 
     /// Counts the rebuilds, so what is derived from this library — the
-    /// nutrition table — knows when it has to be derived again.
+    /// nutrition table, the search index — knows when it has to be derived
+    /// again.
     public private(set) var revision = 0
 
     // MARK: - Reading
 
-    public var entries: [IngredientVocabularyEntry] {
-        vocabulary.values.sorted { $0.name < $1.name }
-    }
-
-    /// What the cook has said about `name`, if anything.
-    public func entry(for name: String) -> IngredientVocabularyEntry? {
-        vocabulary[IngredientCatalog.normalize(catalog.canonicalName(for: name))]
-    }
-
-    /// Only the entries the cook added, which are the editable ones.
-    public var ownIngredients: [CatalogIngredient] {
-        entries.filter(\.isOwnIngredient).map { $0.catalogIngredient(fallback: nil) }
-    }
-
-    public func isOwn(_ ingredient: CatalogIngredient) -> Bool {
-        vocabulary[ingredient.key]?.isOwnIngredient == true
-    }
-
-    /// The spellings of `ingredient` the cook taught it, as opposed to the
-    /// ones it ships with.
-    public func ownAliases(of ingredient: CatalogIngredient) -> [String] {
-        guard let entry = vocabulary[ingredient.key], !entry.isOwnIngredient else { return [] }
-        return entry.aliases
-    }
-
-    public var pantryKeys: Set<String> {
-        Set(vocabulary.values.filter(\.isPantry).map(\.key))
-    }
-
-    /// Where each ingredient is bought, keyed like `pantryKeys` — only the
-    /// entries where the cook named a store.
-    public var preferredStores: [String: String] {
-        vocabulary.values.reduce(into: [:]) { result, entry in
-            if let store = entry.preferredStore { result[entry.key] = store }
-        }
-    }
+    /// The catalog before the local answers: the data set's. What "does the
+    /// catalog know this name" is asked of, since a name only a local answer
+    /// taught is not one it knows.
+    public var catalogWithoutLocalAnswers: IngredientCatalog { .current }
 
     /// What a local answer says about `name` — applied, or fallen silent
     /// since the catalog learned the name (R3). `nil` where none speaks.
@@ -169,200 +120,115 @@ public final class IngredientCatalogLibrary {
         return localAnswers.answers.first { $0.writtenKey == written }
     }
 
-    /// Whether the catalog itself — data set and vocabulary, without the
-    /// local answers — knows `name` as written. A "zählt wie" is only
-    /// offered for a name it does not (§3 B).
+    /// Whether the data set's catalog, without the local answers, knows
+    /// `name` as written. A "zählt wie" is only offered for a name it does
+    /// not (§3 B).
     public func catalogKnows(_ name: String) -> Bool {
         catalogWithoutLocalAnswers.ingredient(writtenAs: name) != nil
     }
 
     /// The ingredients named in a recipe's text that the catalog does not
-    /// know — what the editor offers to add.
+    /// know — what the editor marks.
     public func unknownIngredients(in text: String) -> [String] {
         catalog.unknownIngredients(in: text)
     }
 
+    // MARK: - Household fields
+
+    /// The household's fields for `name` as the catalog reads it — the word
+    /// it resolves to, or the name itself where nothing knows it. Only the
+    /// word's own row; what a variety takes over from its ancestors is the
+    /// shopping list's walk (``householdIngredient(of:)``).
+    public func householdIngredient(for name: String) -> HouseholdIngredient? {
+        householdIngredients[householdKey(for: name).key]
+    }
+
+    /// The household's fields for one catalog word.
+    public func householdIngredient(of ingredient: CatalogIngredient) -> HouseholdIngredient? {
+        householdIngredients[householdKey(of: ingredient).key]
+    }
+
+    /// Where `name`'s fields are filed: the catalog id of the word it
+    /// resolves to, or its normalized name. A word a local answer added has
+    /// no id, so it is filed by its written name and keeps its own fields.
+    private func householdKey(for name: String) -> HouseholdIngredient {
+        if let ingredient = catalog.ingredient(for: name) { return householdKey(of: ingredient) }
+        return HouseholdIngredient(name: name.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    private func householdKey(of ingredient: CatalogIngredient) -> HouseholdIngredient {
+        HouseholdIngredient(catalogID: ingredient.catalogID.map(catalog.currentID(for:)), name: ingredient.name)
+    }
+
+    /// The rows by key, ids followed through renames and twins folded —
+    /// per key the newest row wins, as two devices may write one at once.
+    private func fold(_ entries: [HouseholdIngredient]) -> [String: HouseholdIngredient] {
+        var newest: [String: HouseholdIngredient] = [:]
+        for var entry in entries where !entry.isEmpty {
+            entry.catalogID = entry.catalogID.map(catalog.currentID(for:))
+            if let held = newest[entry.key], held.updatedAt >= entry.updatedAt { continue }
+            newest[entry.key] = entry
+        }
+        return newest
+    }
+
     // MARK: - Writing
 
-    /// Reads, changes and writes one entry, then rebuilds and — unless the
-    /// change was one no sum can see — drops the cached recipe figures.
-    ///
-    /// Every write goes through here, which is what keeps the invalidation
-    /// from being something each new mutation has to remember. A pantry flag
-    /// is the one exception that skips it: which shelf an ingredient is
-    /// hunted on has never moved a calorie.
-    ///
-    /// Says whether the write landed. A store that refuses — a loop in the
-    /// variety chain, a failed save — puts its reason in `errorMessage`, and
-    /// the caller that was about to write more on the strength of this one
-    /// gets to stop.
-    @discardableResult
-    private func mutate(
-        _ name: String,
-        affectsNutrition: Bool = true,
-        _ change: (inout IngredientVocabularyEntry) -> Void
-    ) async -> Bool {
-        let key = IngredientCatalog.normalize(name)
-        guard !key.isEmpty else { return false }
-        var entry = vocabulary[key] ?? IngredientVocabularyEntry(name: name)
-        change(&entry)
-        do {
-            _ = try await store.save(entry)
-            await reload()
-            if affectsNutrition { try await nutritionCache?.invalidateAll() }
-            return true
-        } catch {
-            errorMessage = error.localizedDescription
-            return false
-        }
-    }
-
-    /// Whether filing `child` under `parent` would run the chain in a circle.
-    ///
-    /// The stores refuse a loop among the rows they hold, and cannot see the
-    /// rest: a shipped variety is not a row anywhere, so "Tomate under
-    /// Cocktailtomate" passes both stores and writes Tomate → Cocktailtomate →
-    /// Tomate into the merged catalog. Every walk still terminates on a
-    /// repeated name, but the search index would file every tomato recipe
-    /// under Cocktailtomate. This is the check that knows the whole picture,
-    /// so it runs here, before the store is asked.
-    ///
-    /// Both names are taken as the catalog reads them, not as written: the
-    /// entry for "Tomaten" folds onto Tomate when the catalog is rebuilt, so
-    /// a child passed by one of its spellings would slip past a comparison of
-    /// raw keys and come back as exactly the loop this is here to refuse.
-    public func wouldCycle(child: String, parent: String) -> Bool {
-        let childKey = IngredientCatalog.normalize(catalog.canonicalName(for: child))
-        guard !childKey.isEmpty else { return false }
-        if IngredientCatalog.normalize(catalog.canonicalName(for: parent)) == childKey { return true }
-        return catalog.ancestors(of: parent).contains { $0.key == childKey }
-    }
-
-    /// Refuses a cyclic parent out loud — the same error the stores throw,
-    /// surfaced the same way — and says whether the write may go ahead.
-    private func admitsParent(_ parentName: String?, of name: String) -> Bool {
-        guard let parentName, wouldCycle(child: name, parent: parentName) else { return true }
-        errorMessage = VocabularyStoreError.wouldCycle(child: name, parent: parentName).localizedDescription
-        return false
-    }
-
-    /// Writes the cook's own ingredient — name, spellings, aisle, parent —
-    /// and says whether it landed. `false` means nothing was written and
-    /// `errorMessage` says why; a form that was about to save the numbers and
-    /// measures on top should stop there and show it.
-    @discardableResult
-    public func save(_ ingredient: CatalogIngredient) async -> Bool {
-        guard admitsParent(ingredient.parentName, of: ingredient.name) else { return false }
-        return await mutate(ingredient.name) { entry in
-            entry.name = ingredient.name
-            entry.isOwnIngredient = true
-            entry.aliases = ingredient.aliases
-            // As written, so that a variety saved without one keeps
-            // inheriting rather than freezing today's resolved aisle.
-            entry.category = ingredient.ownCategory
-            entry.parentName = ingredient.parentName
-        }
-    }
-
-    /// Takes back an ingredient the cook added. What else the entry held —
-    /// a spelling taught to it, its pantry flag — goes with it: the entry
-    /// *was* the ingredient.
-    public func delete(_ ingredient: CatalogIngredient) async {
-        do {
-            try await store.delete(key: storageKey(of: ingredient))
-            await reload()
-            try await nutritionCache?.invalidateAll()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// The key the store holds `ingredient`'s entry under — the entry's own
-    /// when there is one, since a row is stored under its name as written.
-    private func storageKey(of ingredient: CatalogIngredient) -> String {
-        vocabulary[ingredient.key]?.storageKey ?? IngredientCatalog.storageKey(ingredient.name)
-    }
-
-    /// Takes back every ingredient the cook added — part of erasing a
-    /// household. What the app ships stays: it is not the cook's to delete,
-    /// and it comes back with the next update anyway.
-    @discardableResult
-    public func removeOwnEntries() async -> Int {
-        let own = ownIngredients
-        guard !own.isEmpty else { return 0 }
-        do {
-            for ingredient in own {
-                try await store.delete(key: storageKey(of: ingredient))
-            }
-            await reload()
-            try await nutritionCache?.invalidateAll()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-        return own.count
-    }
-
-    /// Teaches `ingredient` one more spelling. For a bundled entry this is
-    /// the only way to widen it, since the app replaces it on every update.
-    public func addAlias(_ alias: String, to ingredient: CatalogIngredient) async {
-        let alias = alias.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !alias.isEmpty else { return }
-        await mutate(ingredient.name) { entry in
-            if entry.name.isEmpty { entry.name = ingredient.name }
-            let known = Set(entry.aliases.map(IngredientCatalog.normalize))
-            guard !known.contains(IngredientCatalog.normalize(alias)) else { return }
-            entry.aliases.append(alias)
-        }
-    }
-
-    public func removeAlias(_ alias: String, from ingredient: CatalogIngredient) async {
-        let normalized = IngredientCatalog.normalize(alias)
-        await mutate(ingredient.name) { entry in
-            entry.aliases.removeAll { IngredientCatalog.normalize($0) == normalized }
-        }
-    }
-
-    /// The cook's call that an ingredient is a shelf staple.
+    /// The household's call that an ingredient is a shelf staple.
     public func setPantry(_ flagged: Bool, name: String) async {
-        await mutate(name, affectsNutrition: false) { entry in
-            entry.isPantry = flagged
-        }
+        await updateHousehold(name) { $0.isPantry = flagged }
     }
 
     /// Where an ingredient is bought and what to know at the shelf. Empty
-    /// strings clear — a store preference taken back is an entry with
-    /// nothing to say, and the store sweeps it like any other.
+    /// strings clear — and a row with nothing left to say is deleted.
     public func setShoppingPreferences(store: String?, note: String?, name: String) async {
-        let trimmedStore = store?.trimmingCharacters(in: .whitespaces)
-        let trimmedNote = note?.trimmingCharacters(in: .whitespaces)
-        await mutate(name, affectsNutrition: false) { entry in
-            entry.preferredStore = trimmedStore?.isEmpty == false ? trimmedStore : nil
-            entry.shoppingNote = trimmedNote?.isEmpty == false ? trimmedNote : nil
+        let store = store.flatMap(Self.nonEmpty)
+        let note = note.flatMap(Self.nonEmpty)
+        await updateHousehold(name) { entry in
+            entry.preferredStore = store
+            entry.shoppingNote = note
         }
     }
 
-    /// Files an ingredient as a variety of another — or takes the relation
-    /// back with `nil`. Any depth (catalog target, decision A); the one thing
-    /// refused is a loop, and that out loud: `false`, with the reason in
-    /// `errorMessage`.
-    @discardableResult
-    public func setParent(_ parentName: String?, of name: String) async -> Bool {
-        guard admitsParent(parentName, of: name) else { return false }
-        return await mutate(name) { entry in
-            if entry.name.isEmpty { entry.name = name }
-            entry.parentName = parentName
-        }
+    /// How many things the household has said about ingredients: local
+    /// answers and rows of pantry, store and note — what emptying a
+    /// household takes along.
+    public var householdRowCount: Int {
+        localAnswers.answers.count + householdIngredients.count
     }
 
-    /// Writes one basis decision. The nutrition library calls this rather
-    /// than reaching for the store: one writer, one invalidation.
-    public func setBasis(_ assignment: BasisAssignment?, state: IngredientState, of name: String) async {
-        await mutate(name) { entry in
-            if entry.name.isEmpty { entry.name = name }
-            entry.bases[state.rawValue] = assignment
-            // Answering the question retires it, whichever way it is
-            // answered — that is what makes "bewusst ohne" an answer.
-            if assignment != nil { entry.needsBasisReview = false }
+    /// Takes back everything the household said about ingredients — part of
+    /// emptying it. The catalog itself is not the household's to delete.
+    public func removeHouseholdAnswers() async {
+        do {
+            for answer in localAnswers.answers {
+                try await localAnswerStore.delete(answer)
+            }
+            for var entry in householdIngredients.values {
+                entry.isPantry = false
+                entry.preferredStore = nil
+                entry.shoppingNote = nil
+                try await householdStore.save(entry)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        await reload()
+    }
+
+    /// Reads, changes and writes one household row. None of it moves a
+    /// number, so nothing derived is rebuilt.
+    private func updateHousehold(_ name: String, _ change: (inout HouseholdIngredient) -> Void) async {
+        let keyed = householdKey(for: name)
+        guard !IngredientCatalog.normalize(keyed.name).isEmpty else { return }
+        var entry = householdIngredients[keyed.key] ?? keyed
+        entry.catalogID = keyed.catalogID
+        change(&entry)
+        do {
+            let saved = try await householdStore.save(entry)
+            householdIngredients[keyed.key] = saved
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -397,7 +263,7 @@ public final class IngredientCatalogLibrary {
                 try await localAnswerStore.delete(held)
             }
             _ = try await localAnswerStore.save(answer)
-            await reload()
+            await reloadAnswers()
             return true
         } catch {
             errorMessage = error.localizedDescription
@@ -409,7 +275,7 @@ public final class IngredientCatalogLibrary {
     public func deleteLocalAnswer(_ answer: LocalAnswer) async {
         do {
             try await localAnswerStore.delete(answer)
-            await reload()
+            await reloadAnswers()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -428,16 +294,37 @@ public final class IngredientCatalogLibrary {
         return await saveLocalAnswer(answer)
     }
 
+    /// Re-reads only the answers — the household rows are keyed by ids,
+    /// which an answer does not change.
+    private func reloadAnswers() async {
+        do {
+            localAnswers = LocalAnswerSet(try await localAnswerStore.answers())
+            if rebuild() { await wordsDidChange?() }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private static func nonEmpty(_ text: String) -> String? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// What one piece of an ingredient weighs, as the cook corrected it.
-    public func setUnitWeight(_ grams: Double?, unit: IngredientUnit, of name: String) async {
-        await mutate(name) { entry in
-            if entry.name.isEmpty { entry.name = name }
-            entry.unitWeightsGrams[unit.symbol] = grams
+    /// What one of `unit` weighs for `name`, as the household weighed it —
+    /// an own weight of its local answer (§3 B), which beats the catalog's for
+    /// that unit and only that unit. `nil` takes it back.
+    @discardableResult
+    public func setLocalWeight(_ grams: Double?, unit: IngredientUnit, of name: String) async -> Bool {
+        var answer = localAnswer(for: name) ?? LocalAnswer(name: catalog.canonicalName(for: name))
+        if let grams {
+            answer.weights[unit.symbol] = LocalAnswer.Weight(grams: grams, state: answer.weights[unit.symbol]?.state)
+        } else {
+            answer.weights[unit.symbol] = nil
         }
+        if answer.isEmpty {
+            await deleteLocalAnswer(answer)
+            return true
+        }
+        return await saveLocalAnswer(answer)
     }
 }

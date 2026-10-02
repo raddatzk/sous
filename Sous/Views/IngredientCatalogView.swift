@@ -1,20 +1,18 @@
 import SousKit
 import SwiftUI
 
-/// The ingredient catalog: what the app knows, and what you taught it.
+/// The ingredient catalog: what the app knows.
+///
+/// To read, not to maintain (INGREDIENTS-DATA §3 A). The catalog comes with
+/// the data set; what the household says lives beside it — a local answer
+/// for a name the catalog cannot answer yet, and pantry, store and note.
 struct IngredientCatalogView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(NutritionLibrary.self) private var nutrition
     @Environment(\.dismiss) private var dismiss
 
     @State private var searchText = ""
-    @State private var editing: CatalogIngredient?
-    @State private var isAdding = false
-    /// The own ingredient a swipe asked to remove, until the question is
-    /// answered. Removing one is final — everything the cook taught it goes
-    /// with it — so it asks, like every other thing here that cannot be
-    /// taken back.
-    @State private var deletionCandidate: CatalogIngredient?
+    @State private var showing: CatalogIngredient?
 
     var body: some View {
         NavigationStack {
@@ -42,9 +40,6 @@ struct IngredientCatalogView: View {
             .searchable(text: $searchText, prompt: "Zutat suchen")
             #endif
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Zutat hinzufügen", systemImage: "plus") { isAdding = true }
-                }
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .close) { dismiss() }
                 }
@@ -56,33 +51,17 @@ struct IngredientCatalogView: View {
             }
         }
         .task {
-            await catalog.reload()
-            await nutrition.reload()
+            await nutrition.ensureLoaded()
         }
-        .sheet(item: $editing) { ingredient in
-            IngredientFormView(ingredient: ingredient)
-        }
-        .sheet(isPresented: $isAdding) {
-            IngredientFormView(ingredient: CatalogIngredient(name: "", category: .other))
+        .sheet(item: $showing) { ingredient in
+            IngredientDetailView(ingredient: ingredient)
         }
         .sousErrorAlert(catalog)
-        .sousConfirmation(
-            "„\(deletionCandidate?.name ?? "")“ entfernen?",
-            isPresented: Binding(presence: $deletionCandidate),
-            message: "Die Zutat und alles, was du ihr beigebracht hast, sind danach weg. Rezepte, die sie nennen, kennen das Wort dann nicht mehr."
-        ) {
-            if let ingredient = deletionCandidate {
-                Button("Entfernen", role: .destructive) {
-                    Task { await catalog.delete(ingredient) }
-                }
-            }
-        }
         .sousSheetSizing(.page)
     }
 
     @ViewBuilder
     private func row(_ ingredient: CatalogIngredient) -> some View {
-        let isOwn = catalog.isOwn(ingredient)
         let kcal = nutrition.nutritionCatalog
             .nutrition(forCanonicalName: ingredient.name)?
             .nutrition(for: .unspecified)?
@@ -90,10 +69,8 @@ struct IngredientCatalogView: View {
 
         // A button rather than a tap gesture: the pointer changes over it,
         // the keyboard reaches it, and the Mac gets the click it expects.
-        // Bundled entries open too — their name and category are read-only
-        // there, but their spellings and nutrition can still be added to.
         Button {
-            editing = ingredient
+            showing = ingredient
         } label: {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -105,38 +82,24 @@ struct IngredientCatalogView: View {
                     }
                 }
                 Spacer(minLength: 8)
-                // The gap this whole screen exists to close is a silent one:
-                // no number here is what "contributes nothing" looks like.
                 if let kcal {
                     Text("\(Int(kcal.rounded())) kcal")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                if isOwn {
-                    // Says which entries the cook owns outright, as opposed
-                    // to the bundled ones they can only add to.
-                    Image(systemName: "pencil")
+                if catalog.localTrace(for: ingredient.name)?.status == .applied {
+                    // Where the household's own word stands over the
+                    // catalog's.
+                    Image(systemName: "house")
                         .font(.caption)
                         .foregroundStyle(.tint)
+                        .accessibilityLabel("lokal")
                 }
             }
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .swipeActions { deleteAction(ingredient, isOwn: isOwn) }
-        // The same action again, because a swipe needs a trackpad to exist
-        // at all and gives no sign that it is there.
-        .contextMenu { deleteAction(ingredient, isOwn: isOwn) }
-    }
-
-    @ViewBuilder
-    private func deleteAction(_ ingredient: CatalogIngredient, isOwn: Bool) -> some View {
-        if isOwn {
-            Button("Entfernen", systemImage: "trash", role: .destructive) {
-                deletionCandidate = ingredient
-            }
-        }
     }
 
     /// Matching ingredients, grouped by category in aisle order.
@@ -151,563 +114,215 @@ struct IngredientCatalogView: View {
     }
 }
 
-/// Adds or edits one catalog entry.
+/// One catalog word, read-only, with what the household says about it.
 ///
-/// Two shapes in one sheet, because what a cook may change depends on where
-/// the entry came from. Their own entries are theirs outright. A bundled one
-/// is replaced whenever the app updates, so its name, category and shipped
-/// spellings are shown read-only and everything they add to it — further
-/// spellings, nutrition — is stored beside it as an override instead.
-struct IngredientFormView: View {
+/// What the catalog says — name, spellings, what it is a variety of, the
+/// basis and its source, the weights — is shown, not edited: a wrong answer
+/// is a data fix for the curator, not a question for the cook (§3 A). What
+/// the household says sits beside it:
+/// - the local answer, marked "lokal", with "Lokale Angabe entfernen" (§3 B);
+/// - pantry, preferred store and note, which are facts about the household,
+///   not about the ingredient (§3 C).
+struct IngredientDetailView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(NutritionLibrary.self) private var nutrition
-    @Environment(ShoppingLibrary.self) private var shopping
     @Environment(\.dismiss) private var dismiss
 
-    private let original: CatalogIngredient
-    /// Opened straight from the basis picker's "Eigene Werte": the cook has
-    /// already said they want to type numbers, so the bundled read-only view
-    /// would be one tap in the way.
-    private let startsOnOwnValues: Bool
-    /// Whether a new name may be offered as a variety by its word ending.
-    /// This is off when the cook arrives from the unknown-name sheet, which
-    /// has already shown every related entry. Choosing "Neu anlegen" there
-    /// turned those entries down, so the form should not ask again.
-    private let proposesVariety: Bool
+    let ingredient: CatalogIngredient
 
-    @State private var name: String
-    @State private var aliasText: String
-    /// The category as *written* — `nil` means "wie die Stamm-Zutat", and
-    /// is only offered while there is one.
-    @State private var category: IngredientCategory?
-    /// The one further spelling being typed for a bundled entry.
-    @State private var newAlias = ""
-    @State private var nutritionDraft: NutritionDraft
-    /// The numbers as loaded, so a swipe can tell whether any were typed.
-    @State private var loadedNutritionDraft = NutritionDraft()
-    /// The pantry flag as shown, and as it was when the form opened — only
-    /// a change is written back.
+    /// The household fields as shown, and as they were loaded — only a change
+    /// is written.
     @State private var isPantry = false
-    @State private var storedPantry = false
-    /// Where this ingredient is bought and what to know at the shelf, as
-    /// shown and as loaded — like the pantry flag, only a change writes.
     @State private var storeDraft = ""
     @State private var noteDraft = ""
     @State private var storedStore = ""
     @State private var storedNote = ""
-    /// Set once the cook asks to enter their own numbers over shipped ones.
-    @State private var isEnteringOwnValues = false
+    @State private var hasLoaded = false
     /// Set while the local-answer form is open over this one.
     @State private var isEditingLocalAnswer = false
-    /// The ingredient this one is filed as a variety of — proposed for a new
-    /// name by the word-ending heuristic, and editable afterwards.
-    @State private var parentName: String?
-    /// The proposal, kept apart from `parentName` so that dismissing it is
-    /// remembered for as long as the form is open. Decision B: asked once,
-    /// in passing, at the moment the ingredient comes into being.
-    @State private var variantProposal: CatalogIngredient?
-    /// Whether the parent picker is up — the way to the relation that does
-    /// not depend on the heuristic having guessed right at creation time.
-    @State private var isPickingParent = false
-    /// The measure fields the cook has touched, by unit symbol. Only what is
-    /// in here is written back on save — an untouched field shows what the
-    /// app currently believes and must not turn that into a correction just
-    /// because the form was opened.
-    @State private var measureDraft: [String: String] = [:]
-    /// The measures taken back while the form is open, by unit symbol.
-    ///
-    /// Kept apart from the draft, which can only say "this field is empty".
-    /// An emptied field is what `save()` writes as "no longer known", but the
-    /// row has to go the moment it is swiped — and a weight that came from a
-    /// parent is in `unitWeightsGrams` no matter what this ingredient's own
-    /// entry says, so nothing in the draft alone could make it disappear.
-    @State private var removedMeasures: Set<String> = []
-    /// The answer this form will write for the state on screen, and the one
-    /// it found there.
-    ///
-    /// Part of the draft rather than written on the tap, because a new
-    /// ingredient has no entry to write a basis onto until it is saved —
-    /// which is the whole reason this used to be a second trip through a
-    /// recipe. Only a *change* is written: opening a form must never turn a
-    /// proposal the app made into a confirmation the cook did not.
-    @State private var basisChoice: BasisChoice = .unset
-    @State private var storedBasisChoice: BasisChoice = .unset
-    /// Whether the filed answer is only a proposal — inherited from a parent,
-    /// or the curation's guess. Then the row on screen is not a decision yet,
-    /// and tapping it *confirms* rather than un-picks.
-    @State private var storedBasisIsProposed = false
-    /// The cook tapped the proposed row to keep it. Same choice as stored, so
-    /// `basis != storedBasis` would never write it; this is the intent that
-    /// makes the save happen — and it is set only by a tap, never by opening.
-    @State private var confirmsStoredRow = false
-    /// Whether the row page is up. Kept apart from the choice itself:
-    /// tapping "Zeile im Lebensmittelkatalog" with nothing picked yet has to
-    /// open the page, not answer the question with a row nobody chose.
-    @State private var isChoosingRow = false
-    /// Whether the question below is up — asked before the delete goes
-    /// through, since it cannot be undone.
-    @State private var isConfirmingDelete = false
-
-    init(ingredient: CatalogIngredient, startsOnOwnValues: Bool = false, proposesVariety: Bool = true) {
-        original = ingredient
-        self.startsOnOwnValues = startsOnOwnValues
-        self.proposesVariety = proposesVariety
-        _name = State(initialValue: ingredient.name)
-        _aliasText = State(initialValue: ingredient.aliases.joined(separator: ", "))
-        _category = State(initialValue: ingredient.ownCategory)
-        _nutritionDraft = State(initialValue: NutritionDraft())
-        _parentName = State(initialValue: ingredient.parentName)
-        _isEnteringOwnValues = State(initialValue: startsOnOwnValues)
-    }
-
-    /// Whether this entry is coming into being — the empty form, or a name
-    /// the catalog does not know yet.
-    ///
-    /// The second case is what "Neue Zutat" hands in for an unknown
-    /// ingredient: the name as the cook wrote it in a recipe, wrapped in a
-    /// `CatalogIngredient` that exists nowhere else. Counting only the empty
-    /// name as new made the form tell them that word belonged to the app's
-    /// own stock, and locked the two fields they had opened it to fill in.
-    private var isNew: Bool {
-        original.name.isEmpty || catalog.catalog.ingredient(for: original.name) == nil
-    }
-
-    /// Whether this entry is the cook's own — a new one counts, since saving
-    /// it is what makes it theirs.
-    private var isOwnEntry: Bool {
-        isNew || catalog.isOwn(original)
-    }
-
-    /// What the app currently knows about this ingredient's nutrition, if
-    /// anything — bundled or overridden, whichever wins.
-    private var resolvedNutrition: CatalogNutrition? {
-        guard !trimmedName.isEmpty else { return nil }
-        return nutrition.nutritionCatalog.nutrition(forCanonicalName: trimmedName)
-    }
-
-    /// What a mapping of this ingredient used to rest on, where a data update
-    /// has taken that row away — the name the mapping remembered, which is
-    /// the only thing left to identify what has to be decided again.
-    private var orphanedBasisName: String? {
-        guard !trimmedName.isEmpty else { return nil }
-        return nutrition.orphanedCatalogNames(forName: trimmedName).first
-    }
-
-    /// The cook's own numbers for it, which are the editable ones.
-    private var ownNutrition: CatalogNutrition? {
-        guard !trimmedName.isEmpty else { return nil }
-        return nutrition.ownNutrition(forCanonicalName: trimmedName)
-    }
-
-    /// Bundled values are shown rather than offered for editing: correcting
-    /// BLS belongs in a pull request against the data, not in one cook's
-    /// device. But own values are one of the three answers to "what is this
-    /// based on", so the read-only view is a default, not a wall — asking to
-    /// type numbers over shipped ones opens the form.
-    private var isNutritionEditable: Bool {
-        isEnteringOwnValues || resolvedNutrition?.hasBases != true || ownNutrition != nil
-    }
-
-    private var trimmedName: String {
-        name.trimmingCharacters(in: .whitespaces)
-    }
-
-    /// Whether closing without "Sichern" would lose anything typed or picked.
-    private var hasChanges: Bool {
-        name != original.name
-            || aliasText != original.aliases.joined(separator: ", ")
-            || !newAlias.isEmpty
-            || category != original.ownCategory
-            || parentName != original.parentName
-            || nutritionDraft != loadedNutritionDraft
-            || isPantry != storedPantry
-            || storeDraft != storedStore
-            || noteDraft != storedNote
-            || !measureDraft.isEmpty
-            || !removedMeasures.isEmpty
-            || basisChoice != storedBasisChoice
-            || confirmsStoredRow
-    }
+    @State private var isConfirmingRemoval = false
+    /// Which of the entry's state variants is on screen — BLS lists many
+    /// foods raw and cooked separately, and a figure must say which it is.
+    @State private var shownState: IngredientState?
 
     var body: some View {
         NavigationStack {
             Form {
-                if isOwnEntry {
-                    ownIdentitySection
-                    ownAliasSection
-                } else {
-                    bundledIdentitySection
-                    bundledAliasSection
-                }
-                variantSection
+                identitySection
+                varietySection
                 localAnswerSection
-                pantrySection
-                shoppingSection
-                basisSection
-                nutritionSection
+                householdSection
+                nutritionSections
                 measuresSection
-                // Only for an entry that already exists: the swipe on the
-                // list row this mirrors never showed on a bundled one
-                // either, and a form still filling in a new name has
-                // nothing yet to take back.
-                if catalog.isOwn(original) {
-                    deleteSection
-                }
             }
             .formStyle(.grouped)
-            .sheet(isPresented: $isEditingLocalAnswer) {
-                LocalAnswerForm(name: original.name, existing: catalog.localAnswer(for: original.name))
-            }
-            // Pushed rather than presented: the two buttons that lead here
-            // sit inside a form row, where a `NavigationLink` of their own
-            // would take the whole row.
-            .navigationDestination(isPresented: $isChoosingRow) {
-                // Into the draft, like every other answer here: the form
-                // writes on save, and a row chosen for a name that does not
-                // exist yet has no entry to be written onto until then.
-                BasisRowPickerView(
-                    ingredientName: trimmedName,
-                    state: selectedState.wrappedValue,
-                    chosen: chosenRowCode,
-                    onConfirm: pickRow
-                )
-            }
-            .sheet(isPresented: $isPickingParent) {
-                // Into the draft, not the store: the form writes on save, and
-                // a parent chosen for a name that does not exist yet has no
-                // entry to be written onto until then.
-                IngredientParentPickerView(ingredientName: trimmedName) { parent in
-                    parentName = parent.name
-                    variantProposal = nil
-                    // A category nobody chose yields to the parent's: "Sonstiges"
-                    // was the form's default, not a decision.
-                    if category == .other { category = nil }
-                }
-            }
-            .navigationTitle(isNew ? "Neue Zutat" : name)
+            .navigationTitle(ingredient.name)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .close) { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(role: .confirm) { save() }
-                        .disabled(trimmedName.isEmpty)
+                    Button(role: .close) {
+                        Task {
+                            await writeShopping()
+                            dismiss()
+                        }
+                    }
                 }
             }
-            // The draft is filled after the load, not on appear: what the
-            // cook already entered is not known until the store has answered.
+            .sheet(isPresented: $isEditingLocalAnswer) {
+                LocalAnswerForm(name: ingredient.name, existing: localAnswer)
+            }
+            .sousConfirmation(
+                "Lokale Angabe entfernen?",
+                isPresented: $isConfirmingRemoval,
+                message: "Danach rechnet Sous für „\(ingredient.name)“ wieder mit dem, was der Katalog sagt."
+            ) {
+                if let localAnswer {
+                    Button("Entfernen", role: .destructive) {
+                        Task { await catalog.deleteLocalAnswer(localAnswer) }
+                    }
+                }
+            }
             .task {
-                // Before anything reads the catalog: which shape this form
-                // takes depends on whether it knows the name.
-                await catalog.ensureLoaded()
-                await nutrition.reload()
-                nutritionDraft = NutritionDraft(ownNutrition)
-                loadedNutritionDraft = nutritionDraft
-                loadBasisChoice()
-                // Opened from the picker's "Eigene Werte": the answer was
-                // given on the way in, and the form should show it as given
-                // rather than make the cook say it a second time.
-                if startsOnOwnValues { basisChoice = .ownValues }
-                await shopping.ensurePantryLoaded()
-                storedPantry = shopping.pantryKeys.contains(pantryKey)
-                isPantry = storedPantry
-                let entry = catalog.entry(for: pantryName)
+                await nutrition.ensureLoaded()
+                let entry = catalog.householdIngredient(for: ingredient.name)
+                isPantry = entry?.isPantry ?? false
                 storedStore = entry?.preferredStore ?? ""
                 storedNote = entry?.shoppingNote ?? ""
                 storeDraft = storedStore
                 noteDraft = storedNote
-                proposeVariantIfNew()
+                hasLoaded = true
             }
-            // Retyping the name is still "coming into being": the proposal
-            // follows what is being written until the entry is saved.
-            .onChange(of: trimmedName) { proposeVariantIfNew() }
-            // Each state carries its own answer, so switching which one is on
-            // screen switches the question too.
-            .onChange(of: shownState) { loadBasisChoice() }
-            // Where the library refuses — a parent that would run the chain in
-            // a circle — the form stays open and says so. Before this the
-            // message was set and nobody showed it, which is the silent drop
-            // the store's error exists to end.
             .sousErrorAlert(catalog)
-            // Same question, same wording as the swipe on the list row —
-            // this is the same action reached from the entry itself instead
-            // of from a gesture over it.
-            .sousConfirmation(
-                "„\(original.name)“ entfernen?",
-                isPresented: $isConfirmingDelete,
-                message: "Die Zutat und alles, was du ihr beigebracht hast, sind danach weg. Rezepte, die sie nennen, kennen das Wort dann nicht mehr."
-            ) {
-                Button("Entfernen", role: .destructive) {
-                    Task {
-                        await catalog.delete(original)
-                        dismiss()
-                    }
-                }
-            }
         }
-        // Swiping away would drop the draft without a word; once there is
-        // something to lose, only the two buttons close it.
-        .interactiveDismissDisabled(hasChanges)
         .sousSheetSizing(.page)
     }
 
-    // MARK: - The cook's own entries
+    // MARK: - What the catalog says
 
-    private var ownIdentitySection: some View {
+    private var identitySection: some View {
         Section {
-            TextField("Name", text: $name)
-            Picker("Kategorie", selection: $category) {
-                // The inherited choice leads, and only exists while there is
-                // something to inherit from. Set means overridden, empty means
-                // inherited — the same rule as for every other field a variety
-                // takes from its parent.
-                if let inherited = inheritedCategory {
-                    Text("Wie \(inherited.parent) (\(inherited.category.title))")
-                        .tag(IngredientCategory?.none)
-                }
-                ForEach(IngredientCategory.allCases, id: \.self) { option in
-                    Text(option.title).tag(Optional(option))
+            LabeledContent("Name", value: ingredient.name)
+            LabeledContent("Kategorie", value: categoryText)
+            if !ingredient.aliases.isEmpty {
+                LabeledContent("Schreibweisen") {
+                    Text(ingredient.aliases.joined(separator: ", "))
+                        .multilineTextAlignment(.trailing)
                 }
             }
         } footer: {
-            Text("Die Kategorie bestimmt, in welcher Abteilung die Zutat auf der Einkaufsliste steht. Eine Sorte erbt sie von der Stamm-Zutat, solange du keine eigene wählst.")
+            Text("So steht die Zutat im Katalog. Fehlt eine Schreibweise oder stimmt etwas nicht, ist das eine Meldung an den Katalog wert.")
         }
     }
 
-    /// What the variety would take if it wrote nothing: the nearest
-    /// ancestor's category, with the ancestor named — read from the catalog's
-    /// own resolution, so the form and the list can never disagree about it.
-    /// A parent whose whole chain writes nothing still shows as "wie
-    /// <Parent> (Sonstiges)": that is what the variety would resolve to.
-    private var inheritedCategory: (parent: String, category: IngredientCategory)? {
-        guard let parentName else { return nil }
-        if let source = catalog.catalog.categorySource(for: parentName) {
-            return (source.name, source.category)
-        }
-        return catalog.catalog.category(for: parentName).map { (parentName, $0) }
+    /// "Gemüse — von Tomate" for a variety that takes its parent's aisle.
+    private var categoryText: String {
+        guard ingredient.ownCategory == nil, let parent = ingredient.parentName,
+              let source = catalog.catalog.categorySource(for: parent)
+        else { return ingredient.category.title }
+        return "\(source.category.title) — von \(source.name)"
     }
 
-    private var ownAliasSection: some View {
-        Section {
-            TextField("Tomaten, Cocktailtomaten", text: $aliasText, axis: .vertical)
-                .lineLimit(1...3)
-        } header: {
-            Text("Andere Schreibweisen")
-        } footer: {
-            Text("Mit Komma getrennt. Rezepte, die eine davon nennen, zählen zur selben Zutat.")
-        }
-    }
-
-    // MARK: - Pantry
-
-    /// The name the pantry flag is filed under — the catalog's, so the flag
-    /// and the list agree about which ingredient is meant.
-    private var pantryName: String {
-        catalog.catalog.canonicalName(for: trimmedName)
-    }
-
-    private var pantryKey: String {
-        IngredientCatalog.normalize(pantryName)
-    }
-
-    /// The household's local answer for this word, if one speaks — "lokal",
-    /// with what it says, and quietly whether the catalog has since taken it
-    /// over (INGREDIENTS-DATA §3 B, R3). Not for a name still being typed.
     @ViewBuilder
-    private var localAnswerSection: some View {
-        if !trimmedName.isEmpty {
+    private var varietySection: some View {
+        let ancestors = catalog.catalog.ancestors(of: ingredient.name)
+        let children = catalog.catalog.ingredients
+            .filter { $0.parentName.map(IngredientCatalog.normalize) == ingredient.key }
+            .sorted { $0.name < $1.name }
+        if !ancestors.isEmpty || !children.isEmpty {
             Section {
-                if let trace = catalog.localTrace(for: original.name) {
-                    Text(trace.label)
-                        .foregroundStyle(.secondary)
-                    Button("Lokale Angabe bearbeiten …") { isEditingLocalAnswer = true }
-                } else {
-                    Button("Lokale Angabe …") { isEditingLocalAnswer = true }
+                if !ancestors.isEmpty {
+                    LabeledContent("Sorte von", value: ancestors.map(\.name).joined(separator: " → "))
                 }
-            } header: {
-                Text("Lokal")
-            }
-        }
-    }
-
-    private var pantrySection: some View {
-        Section {
-            Toggle("Vorrat", isOn: $isPantry)
-        } footer: {
-            Text("Vorräte stehen auf der Einkaufsliste eingeklappt am Ende — zum Durchsehen am Regal statt zwischen den Besorgungen.")
-        }
-    }
-
-    private var shoppingSection: some View {
-        Section {
-            TextField("Supermarkt, z. B. Lidl", text: $storeDraft)
-            TextField("Notiz, z. B. die feste Sorte", text: $noteDraft)
-        } header: {
-            Text("Einkauf")
-        } footer: {
-            Text("Mit Supermarkt steht die Zutat auf der Einkaufsliste als eigene Besorgung. Auf der Stamm-Zutat gesetzt gilt beides auch für ihre Sorten.")
-        }
-    }
-
-    // MARK: - Varieties
-
-    /// What this ingredient is a variety of, and what is a variety of it.
-    ///
-    /// The proposal at the top appears only while the ingredient is coming
-    /// into being, and only when the word ends in another one — decision B's
-    /// single, casual moment. The button under it is what used to be missing:
-    /// the relation was acceptable and releasable, never *choosable*, so a
-    /// declined proposal was the end of the matter. Now the section is always
-    /// here, and a parent can be set or changed whenever the ingredient is
-    /// open (catalog target, decision A and §1).
-    @ViewBuilder
-    private var variantSection: some View {
-        let children = trimmedName.isEmpty ? [] : catalog.catalog.variants(of: pantryName)
-        if !trimmedName.isEmpty {
-            Section {
-                if let proposal = variantProposal, parentName == nil {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("Als Sorte von \(proposal.name) führen?")
-                        Spacer(minLength: 8)
-                        Button("Ja") {
-                            parentName = proposal.name
-                            variantProposal = nil
-                            if category == .other { category = nil }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        Button("Nein") { variantProposal = nil }
+                if !children.isEmpty {
+                    LabeledContent("Sorten") {
+                        Text(children.map(\.name).joined(separator: ", "))
+                            .multilineTextAlignment(.trailing)
                     }
-                    .controlSize(.small)
-                }
-                if let parentName {
-                    HStack {
-                        LabeledContent("Sorte von", value: parentLineage(from: parentName))
-                        Spacer(minLength: 8)
-                        Button("Lösen", systemImage: "minus.circle", role: .destructive) {
-                            // An inherited category has nothing to inherit
-                            // from once the parent is gone. Keep the aisle the
-                            // ingredient was in rather than let it fall to
-                            // Sonstiges behind a picker with no valid choice.
-                            if category == nil {
-                                category = inheritedCategory?.category ?? original.category
-                            }
-                            self.parentName = nil
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .help("Sorten-Zuordnung lösen")
-                    }
-                }
-                Button(
-                    parentName == nil ? "Als Sorte einordnen" : "Andere Stamm-Zutat wählen",
-                    systemImage: "arrow.triangle.branch"
-                ) {
-                    isPickingParent = true
-                }
-                ForEach(children) { child in
-                    LabeledContent("Sorte", value: child.name)
                 }
             } header: {
                 Text("Sorten")
             } footer: {
-                Text("Eine Sorte erbt Nährwerte und Maße ihrer Stamm-Zutat, solange sie keine eigenen hat — als Vorschlag, den du einmal bestätigst. Auf der Einkaufsliste steht sie als eigene Zeile. Rezepte mit einer Sorte finden sich auch unter der Stamm-Zutat.")
+                Text("Eine Sorte rechnet mit Nährwerten und Maßen ihrer Stamm-Zutat, solange der Katalog ihr keine eigenen gibt. Auf der Einkaufsliste steht sie als eigene Zeile.")
             }
         }
     }
 
-    /// "Champignon → Pilz" where the chosen parent is itself a variety: the
-    /// chain may be any depth, and the row should say where it leads.
-    private func parentLineage(from parentName: String) -> String {
-        ([parentName] + catalog.catalog.ancestors(of: parentName).map(\.name))
-            .joined(separator: " → ")
+    // MARK: - What the household says
+
+    private var localAnswer: LocalAnswer? {
+        catalog.localAnswer(for: ingredient.name)
     }
 
-    // MARK: - Bundled entries
-
-    private var bundledIdentitySection: some View {
+    /// The household's local answer for this word, if one speaks — "lokal",
+    /// with what it says, and quietly whether the catalog has since taken it
+    /// over (§3 B, R3).
+    private var localAnswerSection: some View {
         Section {
-            LabeledContent("Name", value: original.name)
-            // "Gemüse — von Tomate" for a shipped variety that inherits: the
-            // aisle is right, and it is somebody else's decision.
-            LabeledContent(
-                "Kategorie",
-                value: original.ownCategory == nil
-                    ? (inheritedCategory.map { "\($0.category.title) — von \($0.parent)" }
-                        ?? original.category.title)
-                    : original.category.title
-            )
-        } footer: {
-            Text("Diese Zutat gehört zum Bestand der App. Name und Kategorie werden bei jedem Update erneuert — Schreibweisen und Nährwerte, die du ergänzt, bleiben erhalten.")
-        }
-    }
-
-    /// The shipped spellings, then the cook's own ones, then a field to add
-    /// another. Additive rather than one comma-separated field: replacing the
-    /// whole list is fine for an entry the cook owns and wrong for one that
-    /// arrives with the app.
-    private var bundledAliasSection: some View {
-        let own = catalog.ownAliases(of: original)
-        let shipped = original.aliases.filter { alias in
-            !own.contains { IngredientCatalog.normalize($0) == IngredientCatalog.normalize(alias) }
-        }
-
-        return Section {
-            if !shipped.isEmpty {
-                Text(shipped.joined(separator: ", "))
+            if let trace = catalog.localTrace(for: ingredient.name) {
+                Text(trace.label)
                     .foregroundStyle(.secondary)
-            }
-            ForEach(own, id: \.self) { alias in
-                HStack {
-                    Text(alias)
-                    Spacer()
-                    Button("Entfernen", systemImage: "minus.circle", role: .destructive) {
-                        Task { await catalog.removeAlias(alias, from: original) }
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .help("Schreibweise entfernen")
-                }
-            }
-            HStack {
-                TextField("Weitere Schreibweise hinzufügen", text: $newAlias)
-                    .onSubmit { addAlias() }
-                Button("Hinzufügen", systemImage: "plus.circle.fill", action: addAlias)
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .disabled(newAlias.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .help("Schreibweise hinzufügen")
+                Button("Lokale Angabe bearbeiten …") { isEditingLocalAnswer = true }
+                Button("Lokale Angabe entfernen", role: .destructive) { isConfirmingRemoval = true }
+            } else {
+                Button("Lokale Angabe …") { isEditingLocalAnswer = true }
             }
         } header: {
-            Text("Andere Schreibweisen")
+            Text("Lokal")
         } footer: {
-            Text("Rezepte, die eine davon nennen, zählen zu dieser Zutat — und übernehmen damit auch ihre Nährwerte.")
+            Text("Eigene Werte von der Packung, eigene Gewichte oder ein Produkt – nur für diesen Haushalt, und sie gehen dem Katalog vor.")
         }
     }
 
-    private func addAlias() {
-        let alias = newAlias.trimmingCharacters(in: .whitespaces)
-        guard !alias.isEmpty else { return }
-        newAlias = ""
-        Task { await catalog.addAlias(alias, to: original) }
+    private var householdSection: some View {
+        Section {
+            Toggle("Vorrat", isOn: $isPantry)
+                .onChange(of: isPantry) { _, flagged in
+                    guard hasLoaded else { return }
+                    Task { await catalog.setPantry(flagged, name: ingredient.name) }
+                }
+            TextField("Supermarkt, z. B. Lidl", text: $storeDraft)
+                .onSubmit { Task { await writeShopping() } }
+            TextField("Notiz, z. B. die feste Sorte", text: $noteDraft)
+                .onSubmit { Task { await writeShopping() } }
+        } header: {
+            Text("Im Haushalt")
+        } footer: {
+            Text("Vorräte stehen auf der Einkaufsliste eingeklappt am Ende. Mit Supermarkt steht die Zutat als eigene Besorgung. Auf der Stamm-Zutat gesetzt gilt das auch für ihre Sorten.")
+        }
+    }
+
+    /// Writes store and note if either changed — on return in a field and
+    /// when the detail closes, so nothing typed is lost without a "Sichern".
+    private func writeShopping() async {
+        guard hasLoaded, storeDraft != storedStore || noteDraft != storedNote else { return }
+        await catalog.setShoppingPreferences(store: storeDraft, note: noteDraft, name: ingredient.name)
+        storedStore = storeDraft
+        storedNote = noteDraft
     }
 
     // MARK: - Nutrition
 
-    /// Which of an entry's state variants is on screen. BLS lists many foods
-    /// raw and cooked separately — very different water content, so very
-    /// different numbers — and showing one of them silently would put a
-    /// figure on screen without saying what it is a figure for.
-    ///
-    /// Read through a binding rather than initialized on appear: what is
-    /// available only becomes known once the nutrition data is loaded, which
-    /// happens after the view is first built.
-    @State private var shownState: IngredientState?
+    /// What the app computes with: the catalog's entry, with a local answer
+    /// laid over it where one speaks.
+    private var resolved: CatalogNutrition? {
+        nutrition.nutrition(forName: ingredient.name)
+    }
+
+    /// The catalog's own entry, without the local answer — shown beside a
+    /// local one (§3 B).
+    private var catalogsOwn: CatalogNutrition? {
+        NutritionCatalog.current.nutrition(forCanonicalName: ingredient.name)
+    }
+
+    private var localValuesApply: Bool {
+        guard let trace = catalog.localTrace(for: ingredient.name), trace.status == .applied else { return false }
+        return trace.answer.values != nil
+    }
 
     private var availableStates: [IngredientState] {
-        guard let resolved = resolvedNutrition else { return [] }
+        guard let resolved else { return [] }
         return IngredientState.displayOrder.filter { resolved.perHundredGrams[$0.rawValue] != nil }
     }
 
@@ -718,97 +333,45 @@ struct IngredientFormView: View {
         )
     }
 
-    private func values(of entry: CatalogNutrition) -> NutritionInfo {
-        entry.perHundredGrams[selectedState.wrappedValue.rawValue]
-            ?? entry.nutrition(for: .unspecified)
-            ?? .zero
-    }
-
-    /// The values themselves, as a continuation of the Grundlage section
-    /// rather than a heading of their own: which numbers stand here is
-    /// entirely the answer given above, and two headings at the same level
-    /// read as two questions.
-    ///
-    /// Nothing at all once that answer is "bewusst ohne": a block of figures
-    /// under a question just answered with "keine" would be values for
-    /// something that has none.
     @ViewBuilder
-    private var nutritionSection: some View {
-        if basisChoice != .deliberatelyWithout {
-            if let resolved = resolvedNutrition, !isNutritionEditable {
-                bundledNutritionSection(resolved)
-                micronutrientSection(resolved)
-            } else {
-                editableNutritionSection
-            }
-        }
-    }
-
-    // MARK: - Measures
-
-    /// One line for what a piece, a spoon or a cup of this ingredient weighs,
-    /// and the way into the page that holds them.
-    ///
-    /// The fields themselves used to stand open here, one row per unit, in
-    /// the middle of a form that already asks about names, aisles, varieties,
-    /// shopping and nutrition. The gram bridge is its own subject and belongs
-    /// with the units it is about — see ``IngredientMeasuresView``. What the
-    /// ingredient sheet needs to say is only whether there are any.
-    @ViewBuilder
-    private var measuresSection: some View {
-        if !trimmedName.isEmpty {
-            Section {
-                NavigationLink {
-                    // Bound to the same draft the form saves, so the page
-                    // edits the ingredient being edited rather than a copy of
-                    // it: there is one "Sichern", and it is the form's.
-                    IngredientMeasuresView(
-                        ingredientName: trimmedName,
-                        draft: $measureDraft,
-                        removed: $removedMeasures
-                    )
-                } label: {
-                    LabeledContent("Maße", value: measuresSummary)
+    private var nutritionSections: some View {
+        if let resolved, let basis = resolved.basis(for: selectedState.wrappedValue) {
+            if basis.status == .deliberatelyWithout {
+                Section {
+                    Text(NutritionCoverage.GapReason.deliberatelyWithout.label)
+                        .foregroundStyle(.secondary)
+                } header: {
+                    Text("Nährwerte")
+                } footer: {
+                    Text("Der Katalog führt diese Zutat bewusst ohne Werte – sie fehlt in keiner Summe.")
                 }
-            } footer: {
-                Text("Was ein Stück, ein Löffel oder eine Tasse dieser Zutat wiegt — die Brücke zu Gramm, für jedes Rezept mit dieser Zutat.")
+            } else {
+                valuesSection(resolved, basis: basis)
+                micronutrientSection(basis.values)
+            }
+        } else {
+            Section {
+                Text(NutritionCoverage.GapReason.noNutritionValues.label)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Nährwerte")
             }
         }
     }
 
-    /// The units there is a weight for, in the order the page lists them —
-    /// enough to see at a glance whether the question has been answered,
-    /// without repeating the numbers the page is for.
-    private var measuresSummary: String {
-        let units = IngredientMeasuresView.shownUnits(
-            known: resolvedNutrition?.unitWeightsGrams ?? [:],
-            draft: measureDraft,
-            removed: removedMeasures
-        )
-        return units.isEmpty ? "keine" : units.map(\.symbol).joined(separator: ", ")
-    }
-
-    /// Takes the entry back — a plain button rather than a swipe, since
-    /// this is the one place the form itself, not the row behind it, is
-    /// what the cook has open.
-    private var deleteSection: some View {
-        Section {
-            Button("Zutat entfernen", systemImage: "trash", role: .destructive) {
-                isConfirmingDelete = true
+    /// The label a packet would carry, in the order it carries it. A
+    /// secondary figure only when it is above zero: an unmeasured nutrient
+    /// and a measured zero are stored the same way.
+    private func valuesSection(_ entry: CatalogNutrition, basis: NutritionBasis) -> some View {
+        let values = basis.values
+        return Section {
+            if availableStates.count > 1 {
+                Picker("Zustand", selection: selectedState) {
+                    ForEach(availableStates, id: \.self) { state in
+                        Text(state.title).tag(state)
+                    }
+                }
             }
-        }
-    }
-
-    /// The label a packet would carry, in the order it carries it.
-    ///
-    /// Every secondary figure is shown only when it is above zero: in a table
-    /// this size an unmeasured nutrient and a measured zero are stored the
-    /// same way, and "davon Zucker: 0 g" next to real numbers would claim a
-    /// precision the data does not have.
-    @ViewBuilder
-    private func bundledNutritionSection(_ entry: CatalogNutrition) -> some View {
-        let values = values(of: entry)
-        Section {
             nutrientRow("Energie", Self.nutrients.string(kilocalories: values.kcal), emphasized: true)
             nutrientRow("Fett", mass(values.fatG))
             measuredRow("davon gesättigte Fettsäuren", values.saturatedFatG, indented: true)
@@ -816,37 +379,34 @@ struct IngredientFormView: View {
             measuredRow("davon Zucker", values.sugarG, indented: true)
             measuredRow("Ballaststoffe", values.fiberG)
             nutrientRow("Eiweiß", mass(values.proteinG))
-            // BLS reports sodium; the standard EU label shows salt, in grams
-            // — which the formatter drops to milligrams where it has to.
+            // BLS reports sodium; the EU label shows salt.
             measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
+        } header: {
+            Text("Nährwerte")
         } footer: {
-            // What the numbers rest on, in two lines that answer different
-            // questions: which row of the catalog these values are, and whose
-            // catalog it is. The kitchen word is almost never the source's
-            // word — "Kartoffel" is "Kartoffel geschält, gekocht" there — and
-            // until now the app showed the values without ever saying so.
             VStack(alignment: .leading, spacing: 2) {
-                // What the header used to say, now that there is none: the
-                // reference amount belongs to the figures either way.
                 Text("Alle Werte je 100 g.")
-                if let basis = entry.basis(for: selectedState.wrappedValue) {
-                    if let catalogName = basis.catalogName {
-                        Text("beruht auf: \(catalogName) — \(basis.status.label)")
-                    } else {
-                        Text(basis.status.label)
+                if localValuesApply {
+                    Text("lokal: eigene Werte · Quelle: \(basis.source)")
+                    if let own = catalogsOwn?.basis(for: selectedState.wrappedValue), own.status == .computed {
+                        Text("Katalog: \(own.provenance ?? "\(Int(own.values.kcal.rounded())) kcal")")
                     }
+                } else {
+                    if let inherited = basis.inheritedFrom {
+                        Text("geerbt von \(inherited)")
+                    }
+                    if let catalogName = basis.catalogName {
+                        Text("beruht auf: \(catalogName)")
+                    }
+                    Text("Quelle: \(basis.source)")
                 }
-                // The entry's own string, never a label hardcoded here — the
-                // day a second source joins BLS, this line has to keep
-                // telling the truth without anyone remembering to come back.
-                Text("Quelle: \(entry.source)")
             }
         }
     }
 
     @ViewBuilder
-    private func micronutrientSection(_ entry: CatalogNutrition) -> some View {
-        let rows = micronutrientRows(values(of: entry))
+    private func micronutrientSection(_ info: NutritionInfo) -> some View {
+        let rows = micronutrientRows(info)
         if !rows.isEmpty {
             Section("Vitamine & Mineralstoffe") {
                 ForEach(rows, id: \.label) { row in
@@ -856,11 +416,8 @@ struct IngredientFormView: View {
         }
     }
 
-    /// Only what the source actually had a value for. A stored zero and
-    /// "was never measured" are the same thing in a table this size, so a
-    /// zero is left off rather than claiming a precision the data lacks —
-    /// but anything above zero is shown, however small, because the
-    /// formatter can always find a unit that fits it.
+    /// Only what the source had a value for — anything above zero, however
+    /// small, since the formatter can always find a unit that fits it.
     private func micronutrientRows(_ info: NutritionInfo) -> [(label: String, value: String)] {
         let candidates: [(String, Double, NutrientFormatter.MassUnit)] = [
             ("Vitamin A", info.vitaminAMcg, .micrograms),
@@ -877,11 +434,55 @@ struct IngredientFormView: View {
             .map { (label: $0.0, value: Self.nutrients.string($0.1, in: $0.2)) }
     }
 
-    /// A row for a figure the source has a value for — see the note above.
+    // MARK: - Measures
+
+    /// What a piece, a spoon or a cup of this ingredient weighs — the bridge
+    /// to grams. A weight the household gave is marked "lokal".
     @ViewBuilder
+    private var measuresSection: some View {
+        let weights = resolved?.unitWeightsGrams ?? [:]
+        let units = LocalAnswerForm.units.filter { weights[$0.symbol] != nil }
+        let local = catalog.localTrace(for: ingredient.name)
+            .flatMap { $0.status == .applied ? $0.answer.weights : nil } ?? [:]
+        if !units.isEmpty || resolved?.densityGramsPerMl != nil {
+            Section {
+                ForEach(units, id: \.symbol) { unit in
+                    LabeledContent {
+                        Text(mass(weights[unit.symbol] ?? 0))
+                            .monospacedDigit()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("1 \(unit.symbol)")
+                            if let state = resolved?.unitStates[unit.symbol], state != .unspecified {
+                                Text(state.title)
+                                    .foregroundStyle(.secondary)
+                            }
+                            if local[unit.symbol] != nil {
+                                Text("lokal")
+                                    .font(.caption)
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                }
+                if let density = resolved?.densityGramsPerMl {
+                    LabeledContent("1 ml wiegt", value: mass(density))
+                }
+            } header: {
+                Text("Maße")
+            } footer: {
+                Text("Angenommene Werte, keine gemessenen. Eigene Gewichte gibst du als lokale Angabe.")
+            }
+        }
+    }
+
+    // MARK: - Rows
+
     private func measuredRow(_ label: String, _ grams: Double, indented: Bool = false) -> some View {
-        if grams > 0 {
-            nutrientRow(label, mass(grams), indented: indented)
+        Group {
+            if grams > 0 {
+                nutrientRow(label, mass(grams), indented: indented)
+            }
         }
     }
 
@@ -904,825 +505,4 @@ struct IngredientFormView: View {
     private func mass(_ grams: Double) -> String {
         Self.nutrients.string(grams, in: .grams)
     }
-
-    /// The same figures the read-only view shows, as far as a person can
-    /// reasonably be asked to type them: everything a packet prints, and
-    /// nothing below it. Vitamins and minerals stay out — sixteen fields
-    /// would get one filled in.
-    private var editableNutritionSection: some View {
-        Section {
-            numberField("Energie (kcal)", text: $nutritionDraft.kcal)
-            numberField("Fett (g)", text: $nutritionDraft.fat)
-            numberField("davon gesättigte Fettsäuren (g)", text: $nutritionDraft.saturatedFat, indented: true)
-            numberField("Kohlenhydrate (g)", text: $nutritionDraft.carbs)
-            numberField("davon Zucker (g)", text: $nutritionDraft.sugar, indented: true)
-            numberField("Ballaststoffe (g)", text: $nutritionDraft.fiber)
-            numberField("Eiweiß (g)", text: $nutritionDraft.protein)
-            numberField("Salz (g)", text: $nutritionDraft.salt)
-
-            HStack {
-                Text("Quelle")
-                Spacer(minLength: 8)
-                // Labelled like the rows above it: prefilled with "Eigene
-                // Angabe", the placeholder never shows, so without a label
-                // the field reads as a stray value.
-                TextField("Eigene Angabe", text: $nutritionDraft.source)
-                    .multilineTextAlignment(.trailing)
-                    .foregroundStyle(.secondary)
-            }
-
-            if ownNutrition != nil {
-                Button("Nährwerte entfernen", role: .destructive) {
-                    Task {
-                        await nutrition.deleteIngredientNutrition(name: trimmedName)
-                        nutritionDraft = NutritionDraft()
-                    }
-                }
-            }
-        } footer: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Alle Angaben je 100 g.")
-                Text("Ohne Nährwerte zählt diese Zutat in keinem Rezept mit. Energie und die vier Hauptwerte reichen — alles Weitere ist freiwillig. Oder mach die Zutat zur Schreibweise einer Zutat, die die App schon kennt.")
-                // Two questions wear the same stamp, and they are not the
-                // same question. The re-key's: these numbers hang on a name
-                // that matches no row, so a data update cannot follow them.
-                // Phase 6's: the row they *did* hang on is gone from the
-                // shipped data. Only the second one can name what was lost,
-                // and telling a cook their word "was never in the catalog"
-                // when it was there until the last update would be false.
-                if let was = orphanedBasisName {
-                    Text("Die zugeordnete Zeile „\(was)“ ist in den aktuellen Daten nicht mehr enthalten. Bitte unten neu zuordnen.")
-                }
-            }
-        }
-    }
-
-    // MARK: - The basis
-
-    /// The one question the numbers hang on: what do they rest on.
-    ///
-    /// Three answers that exclude one another — a row of the food table, the
-    /// cook's own numbers, or the decision to have neither. The model has
-    /// said so since phase 4; the form used to lay two of them out as
-    /// separate sections with the exclusivity hidden in a footnote, and keep
-    /// the third only in the recipe. Worse, the row picker appeared only
-    /// while `isNutritionEditable` — that is, only for ingredients that had
-    /// no values yet — so an ingredient whose numbers were fine and whose row
-    /// was wrong could not be corrected here at all.
-    ///
-    /// Asked for the state on screen, because that is what a row answers:
-    /// picking one says what a *cooked* potato is. Own values stay a
-    /// statement about the ingredient — see `save()` — and that asymmetry is
-    /// deliberate, not an oversight.
-    ///
-    /// Written on save, not on the tap, because a new ingredient has no entry
-    /// to carry a basis until it has one.
-    ///
-    /// Exclusive on purpose, and decided so on review: a catalog row is *not*
-    /// kept beside own values as a note of what they stand for, although
-    /// `BasisAssignment` could hold both. A subordinate choice under one of
-    /// three answers turns them back into the two questions this section
-    /// exists to replace — and the doubt it answers was the cook's own, about
-    /// having values *and* a reference at once.
-    ///
-    /// Headed "Nährwerte", because that is what the whole group is about:
-    /// the question and the figures it decides are one thing, and the values
-    /// below carry no heading of their own — see `nutritionSection`.
-    @ViewBuilder
-    private var basisSection: some View {
-        if !trimmedName.isEmpty {
-            Section {
-                // At the top, not above the figures it switches: with one
-                // heading over question and answer, the state qualifies both
-                // — and where the values are hidden, this would be the only
-                // way to reach the other state's question at all.
-                if availableStates.count > 1 {
-                    Picker("Zustand", selection: selectedState) {
-                        ForEach(availableStates, id: \.self) { state in
-                            Text(state.title).tag(state)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .labelsHidden()
-                }
-                basisAnswer(
-                    title: "Zeile im Lebensmittelkatalog",
-                    detail: nil,
-                    isChosen: chosenRowCode != nil
-                ) { chooseCatalogRow() }
-                chosenRowLine
-                basisAnswer(
-                    title: "Eigene Werte",
-                    detail: nil,
-                    isChosen: basisChoice == .ownValues,
-                    action: chooseOwnValues
-                )
-                basisAnswer(
-                    title: "Bewusst ohne Nährwerte",
-                    detail: nil,
-                    isChosen: basisChoice == .deliberatelyWithout
-                ) { choose(.deliberatelyWithout) }
-            } header: {
-                Text(availableStates.count > 1
-                    ? "Nährwerte (\(selectedState.wrappedValue.title.lowercased()))"
-                    : "Nährwerte")
-            } footer: {
-                Text(basisFooter)
-            }
-        }
-    }
-
-    /// What the catalog-row answer currently holds, under the answer itself:
-    /// the row that is chosen and the two things that can be done to it, or
-    /// — with nothing chosen yet — the way to choose one.
-    ///
-    /// One line either way. The rows themselves are a page now
-    /// (``BasisRowPickerView``); what belongs in the form is the answer, not
-    /// the choosing.
-    @ViewBuilder
-    private var chosenRowLine: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let name = chosenRowLabel {
-                Text(name)
-                    .font(.subheadline)
-                if let note = chosenRowNote {
-                    Text(note)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            HStack(spacing: 8) {
-                if chosenRowLabel == nil {
-                    Button("Zeile wählen", systemImage: "magnifyingglass") {
-                        isChoosingRow = true
-                    }
-                } else {
-                    Button("Ändern", systemImage: "pencil") { isChoosingRow = true }
-                    Button("Entfernen", systemImage: "trash", role: .destructive) {
-                        clearRow()
-                    }
-                }
-            }
-            // The shape this form's other pair of inline actions already has
-            // — "Ja"/"Nein" on the variety proposal, and the picker under a
-            // recipe line. Bordered, and sized under the row they act on:
-            // a control style alone still labels itself at body size, which
-            // left two capsules towering over the line they belong to.
-            .font(.footnote)
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-        // Under the answer's title, clear of the circle that marks it.
-        .padding(.leading, 30)
-        .padding(.vertical, 2)
-    }
-
-    /// One of the three answers, as a row that can also be tapped a second
-    /// time to take it back. With no other way to unpick one, a mis-tap would
-    /// otherwise be permanent.
-    private func basisAnswer(
-        title: String, detail: String?, isChosen: Bool, action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Image(systemName: isChosen ? "largecircle.fill.circle" : "circle")
-                    .foregroundStyle(.tint)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .foregroundStyle(.primary)
-                    if let detail {
-                        Text(detail)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Spacer(minLength: 8)
-            }
-            .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var basisFooter: String {
-        switch basisChoice {
-        case .catalogRow:
-            "Die Werte dieser Zeile zählen für jedes Rezept mit dieser Zutat."
-        case .ownValues:
-            "Deine Zahlen zählen — in jedem Rezept mit dieser Zutat und in jedem Zustand."
-        case .deliberatelyWithout:
-            "Diese Zutat zählt bewusst in keiner Summe mit und fragt nicht mehr nach."
-        case .unset:
-            "Ohne Angabe lässt jede Summe diese Zutat aus und nennt sie als Lücke."
-        }
-    }
-
-    // MARK: - The basis, answered
-
-    private var chosenRowCode: String? {
-        if case .catalogRow(let code) = basisChoice { return code }
-        return nil
-    }
-
-    /// The chosen row's name, as the catalog writes it.
-    private var chosenRowLabel: String? {
-        chosenRowCode.flatMap { nutrition.row(forCode: $0)?.name }
-    }
-
-    /// Where the row on screen is still the one that came down the chain
-    /// unchanged: whose it is, and that it is only proposed. A variety shows
-    /// its parent's row here until the cook picks; showing it without saying
-    /// so is exactly how inherited numbers used to pass for the variety's
-    /// own.
-    private var chosenRowNote: String? {
-        guard chosenRowCode != nil, basisChoice == storedBasisChoice, storedBasisIsProposed
-        else { return nil }
-        if confirmsStoredRow { return "wird beim Sichern bestätigt" }
-        let origin = resolvedNutrition?.inheritedFrom.map { "geerbt von \($0), " } ?? ""
-        return "\(origin)vorgeschlagen — „Ändern“ bestätigt sie oder wählt eine andere."
-    }
-
-    /// Reads the answer currently filed for the state on screen. Called again
-    /// when that state changes, because each one carries its own answer.
-    private func loadBasisChoice() {
-        let filed = filedBasis()
-        storedBasisChoice = choice(for: filed)
-        storedBasisIsProposed = filed?.status == .proposed
-        basisChoice = storedBasisChoice
-        confirmsStoredRow = false
-        isChoosingRow = false
-    }
-
-    private func filedBasis() -> NutritionBasis? {
-        guard !trimmedName.isEmpty else { return nil }
-        return nutrition.nutrition(forName: trimmedName)?.basis(for: selectedState.wrappedValue)
-    }
-
-    private func choice(for basis: NutritionBasis?) -> BasisChoice {
-        guard let basis else { return .unset }
-        if basis.status == .deliberatelyWithout { return .deliberatelyWithout }
-        if ownNutrition != nil { return .ownValues }
-        return basis.code.map(BasisChoice.catalogRow) ?? .unset
-    }
-
-    /// Picking an answer, or taking it back by picking it again.
-    private func choose(_ choice: BasisChoice) {
-        basisChoice = basisChoice == choice ? .unset : choice
-        if basisChoice != .ownValues, !startsOnOwnValues {
-            isEnteringOwnValues = false
-        }
-    }
-
-    /// The catalog-row answer has no value until a row is picked, so tapping
-    /// it with nothing chosen opens the page rather than answering. With a
-    /// row chosen it takes the answer back, like the other two.
-    private func chooseCatalogRow() {
-        if chosenRowCode != nil {
-            clearRow()
-        } else {
-            isChoosingRow = true
-        }
-    }
-
-    /// The row the page came back with.
-    ///
-    /// Confirming the one that was already filed is not a no-op: a proposal —
-    /// inherited, or the curation's guess — is a row nobody has said yes to
-    /// yet, and saying yes is exactly what this is. Anything else is a change
-    /// and stands on its own.
-    private func pickRow(_ code: String) {
-        confirmsStoredRow = storedBasisIsProposed && storedBasisChoice == .catalogRow(code)
-        basisChoice = .catalogRow(code)
-        if !startsOnOwnValues { isEnteringOwnValues = false }
-    }
-
-    private func clearRow() {
-        basisChoice = .unset
-        confirmsStoredRow = false
-        isChoosingRow = false
-    }
-
-    /// Own values are chosen by saying so, and the fields appear at once —
-    /// the answer and the place to type it are one thought.
-    private func chooseOwnValues() {
-        choose(.ownValues)
-        if basisChoice == .ownValues { isEnteringOwnValues = true }
-    }
-
-    private func numberField(_ label: String, text: Binding<String>, indented: Bool = false) -> some View {
-        HStack {
-            Text(label)
-                .padding(.leading, indented ? 14 : 0)
-                .foregroundStyle(indented ? .secondary : .primary)
-            Spacer(minLength: 8)
-            TextField("—", text: text)
-                .multilineTextAlignment(.trailing)
-                .monospacedDigit()
-                #if os(iOS)
-                .keyboardType(.decimalPad)
-                #endif
-                .frame(maxWidth: 90)
-        }
-    }
-
-    // MARK: - Saving
-
-    /// Decision B's one moment: only for a name that is coming into being,
-    /// only once per spelling, and only ever as a question.
-    private func proposeVariantIfNew() {
-        guard proposesVariety, isNew, parentName == nil else { return }
-        variantProposal = VariantHeuristic.parent(for: trimmedName, in: catalog.catalog)
-    }
-
-    private func save() {
-        let ingredient = CatalogIngredient(
-            name: trimmedName,
-            aliases: aliasText
-                .split(separator: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty },
-            category: category,
-            parentName: parentName
-        )
-        let isOwn = isOwnEntry
-        let editable = isNutritionEditable
-        let draft = nutritionDraft
-        let entered = draft.catalogNutrition(named: trimmedName)
-        let measures = measureDraft.compactMapValues { text -> Double?? in
-            let trimmed = text.trimmingCharacters(in: .whitespaces)
-            // An emptied field takes the correction back; a field with
-            // something unreadable in it is left alone.
-            if trimmed.isEmpty { return .some(nil) }
-            return DecimalText.number(trimmed).map { .some($0) }
-        }
-        let basis = basisChoice
-        let storedBasis = storedBasisChoice
-        // A proposed row the cook tapped to keep is the same choice as stored
-        // and still has to be written - as a confirmation.
-        let basisChanged = basis != storedBasis || confirmsStoredRow
-        let hadOwnValues = ownNutrition != nil
-        let basisState = selectedState.wrappedValue
-        let measureTarget = pantryName
-        let pantryChanged = isPantry != storedPantry
-        let pantryFlagged = isPantry
-        let pantryTarget = pantryName
-        let shoppingChanged = storeDraft != storedStore || noteDraft != storedNote
-        let storeEntered = storeDraft
-        let noteEntered = noteDraft
-
-        let parent = parentName
-        let wasParented = original.parentName
-        Task {
-            // The identity first, and nothing else if it was refused: a
-            // parent that would run the chain in a circle is reported by the
-            // library, and the form stays open showing it rather than saving
-            // the numbers and measures around a relation that did not land.
-            if isOwn {
-                guard await catalog.save(ingredient) else { return }
-            } else if parent != wasParented {
-                // A shipped ingredient the cook filed under another one:
-                // everything else about it stays the app's.
-                guard await catalog.setParent(parent, of: trimmedName) else { return }
-            }
-            if basis == .ownValues, editable {
-                if let entered {
-                    await nutrition.saveIngredientNutrition(entered)
-                } else if hadOwnValues {
-                    // Everything cleared out reads as taking the entry back.
-                    await nutrition.deleteIngredientNutrition(name: trimmedName)
-                }
-            } else if storedBasis == .ownValues, hadOwnValues {
-                // Moving off own values takes the numbers with it. They win
-                // over a code at read time, so leaving them behind would mean
-                // picking a row and watching nothing change.
-                await nutrition.deleteIngredientNutrition(name: trimmedName)
-            }
-            // After the numbers, never before: `confirmBasis` carries own
-            // values across, so it has to see the ones just entered.
-            if basisChanged {
-                switch basis {
-                case .catalogRow(let code):
-                    await nutrition.confirmBasis(
-                        code: code, state: basisState, forName: trimmedName
-                    )
-                case .deliberatelyWithout:
-                    await nutrition.setDeliberatelyWithoutBasis(
-                        forName: trimmedName, state: basisState
-                    )
-                case .unset:
-                    await nutrition.clearBasis(forName: trimmedName, state: basisState)
-                case .ownValues:
-                    // The numbers written above are the answer; there is no
-                    // second thing to record.
-                    break
-                }
-            }
-            for (symbol, grams) in measures {
-                await nutrition.setUnitWeight(
-                    grams, unit: IngredientUnit(symbol: symbol), forName: measureTarget
-                )
-            }
-            if pantryChanged {
-                await shopping.setPantry(pantryFlagged, name: pantryTarget)
-            }
-            if shoppingChanged {
-                // Through the catalog library, not the shopping one: the
-                // share extension shows this form without a ShoppingLibrary
-                // in its environment.
-                await catalog.setShoppingPreferences(
-                    store: storeEntered, note: noteEntered, name: pantryTarget
-                )
-            }
-            dismiss()
-        }
-    }
-}
-
-/// What a piece, a spoon or a cup of one ingredient weighs — the gram
-/// bridge, on a page of its own.
-///
-/// The weights are editable no matter where the nutrition numbers come from.
-/// They used to sit inside the own-values form, which meant a bundled
-/// ingredient had no piece weight to correct until the cook typed a whole
-/// nutrition label over it: two unrelated decisions welded together, since
-/// what an onion weighs is not a claim about its calories. Then they stood
-/// open in the ingredient form, which was honest but long — a row per unit in
-/// a sheet that already asks about six other things.
-///
-/// Nothing is written here either. The fields edit the form's draft through a
-/// binding, and the form writes it on "Sichern"; going back changes nothing.
-private struct IngredientMeasuresView: View {
-    @Environment(NutritionLibrary.self) private var nutrition
-
-    let ingredientName: String
-    /// The fields the cook has touched, by unit symbol — see the form's own
-    /// note: only what is in here is written back, so an untouched field
-    /// showing what the app believes never turns into a correction.
-    @Binding var draft: [String: String]
-    /// The measures taken back while the form is open.
-    @Binding var removed: Set<String>
-
-    /// Any unit, not only `Stk.`: the storage was always keyed by unit
-    /// symbol. Mass and the litre stay out — a gram weighs a gram, and a
-    /// millilitre is what the density answers.
-    static let measurableUnits: [IngredientUnit] = [
-        .piece, .clove, .bunch, .leaf, .package, .pinch, .knifeTip, .cup, .teaspoon, .tablespoon,
-        .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful, .splash, .head,
-    ]
-
-    /// The units worth showing: everything anybody has a weight for, plus
-    /// whatever the cook is in the middle of typing one for, less whatever
-    /// they have just taken back.
-    ///
-    /// Static because the ingredient form asks the same question to say, in
-    /// one line, whether there is anything in here at all.
-    static func shownUnits(
-        known: [String: Double], draft: [String: String], removed: Set<String>
-    ) -> [IngredientUnit] {
-        measurableUnits.filter {
-            !removed.contains($0.symbol)
-                && (known[$0.symbol] != nil || draft[$0.symbol] != nil)
-        }
-    }
-
-    var body: some View {
-        Form {
-            Section {
-                ForEach(shownUnits, id: \.symbol) { unit in
-                    field(for: unit)
-                        // The same way out as the list behind the form, and
-                        // offered twice, since a swipe needs a trackpad to
-                        // exist and says nothing about being there.
-                        .swipeActions { removeAction(unit) }
-                        .contextMenu { removeAction(unit) }
-                }
-                if !addableUnits.isEmpty {
-                    Menu("Maß hinzufügen") {
-                        ForEach(addableUnits, id: \.symbol) { unit in
-                            Button(unit.symbol) { add(unit) }
-                        }
-                    }
-                }
-                if let density = resolved?.densityGramsPerMl {
-                    LabeledContent("1 ml wiegt", value: mass(density))
-                }
-            } footer: {
-                Text("Angenommene Werte, keine gemessenen. Was du hier änderst, gilt für jedes Rezept mit dieser Zutat — und schlägt für diese Einheit auch die Dichte. Eigene Maße lassen sich nach links wegwischen.")
-            }
-        }
-        .formStyle(.grouped)
-        .navigationTitle("Maße")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-    }
-
-    private func field(for unit: IngredientUnit) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("1 \(unit.symbol) wiegt")
-                if let parent = inheritedSource(for: unit) {
-                    Text("von \(parent)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            TextField(
-                "g",
-                text: Binding(
-                    get: { draft[unit.symbol] ?? initialText(for: unit) },
-                    set: { draft[unit.symbol] = $0 }
-                )
-            )
-            .frame(maxWidth: 70)
-            .multilineTextAlignment(.trailing)
-            #if os(iOS)
-            .keyboardType(.decimalPad)
-            #endif
-            Text("g").foregroundStyle(.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private func removeAction(_ unit: IngredientUnit) -> some View {
-        if isRemovable(unit) {
-            Button("Entfernen", systemImage: "trash", role: .destructive) {
-                remove(unit)
-            }
-        }
-    }
-
-    /// Puts a measure back on screen — including one taken back a moment ago,
-    /// which is what the menu offers it again for.
-    private func add(_ unit: IngredientUnit) {
-        removed.remove(unit.symbol)
-        draft[unit.symbol] = ""
-    }
-
-    /// Takes a measure back. A row that was only ever typed into this page
-    /// has nothing written down behind it and simply goes. One with a stored
-    /// weight is emptied as well, which is how the form's `save()` writes "no
-    /// longer known" — and if the app or a parent has a weight of its own for
-    /// that unit, that one is what the ingredient falls back to and the row
-    /// returns with it the next time this page is opened.
-    private func remove(_ unit: IngredientUnit) {
-        if ownWeight(for: unit) == nil {
-            draft[unit.symbol] = nil
-        } else {
-            draft[unit.symbol] = ""
-            removed.insert(unit.symbol)
-        }
-    }
-
-    /// Only what the cook put there can be taken back — the row just added,
-    /// or a weight they wrote down before. A weight the app ships or a parent
-    /// lends is the app's knowledge, like the shipped nutrition values:
-    /// nothing here can say "this ingredient has no piece weight" over one,
-    /// only write a different number.
-    private func isRemovable(_ unit: IngredientUnit) -> Bool {
-        draft[unit.symbol] != nil || ownWeight(for: unit) != nil
-    }
-
-    /// This ingredient's own weight for a unit, as opposed to one the app
-    /// ships or a parent lends it.
-    private func ownWeight(for unit: IngredientUnit) -> Double? {
-        nutrition.nutritionCatalog
-            .ownEntry(forCanonicalName: ingredientName)?
-            .unitWeightsGrams[unit.symbol]
-    }
-
-    /// Whether a measure on screen came down the chain rather than being this
-    /// ingredient's own — the same honesty for grams that the basis row has
-    /// for numbers. Compared against the entry as written, since the resolved
-    /// one has already merged its ancestor's weights in.
-    private func inheritedSource(for unit: IngredientUnit) -> String? {
-        guard let parent = resolved?.inheritedFrom,
-              draft[unit.symbol] == nil,
-              ownWeight(for: unit) == nil
-        else { return nil }
-        return parent
-    }
-
-    private func initialText(for unit: IngredientUnit) -> String {
-        guard let grams = resolved?.unitWeightsGrams[unit.symbol] else { return "" }
-        return DecimalText.text(grams)
-    }
-
-    private var resolved: CatalogNutrition? {
-        guard !ingredientName.isEmpty else { return nil }
-        return nutrition.nutritionCatalog.nutrition(forCanonicalName: ingredientName)
-    }
-
-    private var shownUnits: [IngredientUnit] {
-        Self.shownUnits(
-            known: resolved?.unitWeightsGrams ?? [:], draft: draft, removed: removed
-        )
-    }
-
-    private var addableUnits: [IngredientUnit] {
-        let shown = Set(shownUnits.map(\.symbol))
-        return Self.measurableUnits.filter { !shown.contains($0.symbol) }
-    }
-
-    private static let nutrients = NutrientFormatter(locale: .sous)
-
-    private func mass(_ grams: Double) -> String {
-        Self.nutrients.string(grams, in: .grams)
-    }
-}
-
-/// The food catalog's rows, on a page of their own.
-///
-/// They used to unfold inside the form, indented under the answer they
-/// belong to. That put a list as long as the catalog between two of the three
-/// answers: everything below it — the values, the measures — moved out of
-/// reach, and "which row is this ingredient on" was something the cook had to
-/// scroll the list to find out. The form now keeps one line saying what is
-/// chosen, and the choosing gets the room it needs.
-///
-/// A tap selects, the header confirms. The second step is what makes this a
-/// page rather than a menu — and it is also where a *proposed* row is finally
-/// said yes to. That used to be a second tap on a row that already looked
-/// chosen, which is as good as no way to do it at all. Going back instead
-/// leaves the form exactly as it was.
-///
-/// Nothing is written here. The chosen code goes back into the form's draft,
-/// like every other answer, and the form writes it on save.
-private struct BasisRowPickerView: View {
-    @Environment(NutritionLibrary.self) private var nutrition
-    @Environment(\.dismiss) private var dismiss
-
-    /// The ingredient the proposals are for, and the state they answer —
-    /// picking a row says what a *cooked* potato is, not what a potato is.
-    let ingredientName: String
-    let state: IngredientState
-    let onConfirm: (String) -> Void
-
-    @State private var selection: String?
-    @State private var query = ""
-
-    init(
-        ingredientName: String,
-        state: IngredientState,
-        chosen: String?,
-        onConfirm: @escaping (String) -> Void
-    ) {
-        self.ingredientName = ingredientName
-        self.state = state
-        self.onConfirm = onConfirm
-        _selection = State(initialValue: chosen)
-    }
-
-    var body: some View {
-        List {
-            Section {
-                ForEach(rows) { row in
-                    BLSRow(row: row, isSelected: selection == row.code) {
-                        selection = row.code
-                    }
-                }
-                if rows.isEmpty {
-                    Text(emptyNote)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-            } header: {
-                Text(trimmedQuery.isEmpty ? "Vorschläge" : "Treffer")
-                    .sousGroupHeader()
-            } footer: {
-                // Which ingredient this is for belongs here rather than in
-                // the title: an inline navigation title truncates a long name
-                // to nothing.
-                Text("Für „\(ingredientName)“. Küche und Katalog nennen dieselbe Sache selten gleich — such von Hand, wenn nichts davon passt.")
-            }
-        }
-        .navigationTitle("Zeile wählen")
-        #if os(iOS)
-        .navigationBarTitleDisplayMode(.inline)
-        #endif
-        .searchable(text: $query, prompt: "Im Lebensmittelkatalog suchen")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button(role: .confirm) {
-                    if let selection { onConfirm(selection) }
-                    dismiss()
-                }
-                .disabled(selection == nil)
-            }
-        }
-    }
-
-    /// What there is to choose between: the catalog's proposals for this
-    /// name, or what the cook is looking for by hand. Typing replaces the
-    /// proposals rather than adding a second list beneath them.
-    ///
-    /// The chosen row leads wherever it is not among them — a page that
-    /// cannot show what it was opened on is no place to confirm it.
-    private var rows: [BLSEntry] {
-        let found = trimmedQuery.isEmpty
-            ? nutrition.candidates(forName: ingredientName, state: state)
-            : nutrition.search(trimmedQuery)
-        guard let selection,
-              !found.contains(where: { $0.code == selection }),
-              let chosen = nutrition.row(forCode: selection)
-        else { return found }
-        return [chosen] + found
-    }
-
-    private var trimmedQuery: String {
-        query.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var emptyNote: String {
-        trimmedQuery.isEmpty
-            ? "Zu diesem Namen schlägt der Katalog nichts vor. Such von Hand — die Küche und der Katalog nennen dieselbe Sache selten gleich."
-            : BLSRow.emptySearchNote(query: trimmedQuery)
-    }
-}
-
-/// What an ingredient's numbers rest on, as one question with three answers.
-///
-/// The shape `BasisAssignment` has had since phase 4, in the form's own
-/// terms: a row of the food table, the cook's own numbers, or the decision to
-/// have neither — plus the state of never having said. They exclude one
-/// another, which is exactly what two stacked form sections could not show.
-private enum BasisChoice: Equatable {
-    /// Nothing said yet. A named gap in every sum that uses the ingredient.
-    case unset
-    case catalogRow(String)
-    case ownValues
-    case deliberatelyWithout
-}
-
-/// The nutrition form's fields as typed, before they mean anything.
-///
-/// Text rather than numbers so an empty field stays empty instead of showing
-/// a 0 nobody entered — "not filled in" and "measured as zero" are different
-/// things, and only the first should leave the ingredient uncounted.
-private struct NutritionDraft: Equatable {
-    var kcal = ""
-    var protein = ""
-    var fat = ""
-    var saturatedFat = ""
-    var carbs = ""
-    var sugar = ""
-    var fiber = ""
-    /// Salt, not sodium: it is what a packet prints, and what the read-only
-    /// view shows. Converted on the way in and out — BLS stores sodium.
-    var salt = ""
-    var source = CatalogNutrition.ownSource
-
-    /// Milligrams of sodium per gram of salt.
-    private static let sodiumMgPerSaltGram = 400.0
-
-    init() {}
-
-    init(_ existing: CatalogNutrition?) {
-        guard let existing else { return }
-        let values = existing.nutrition(for: .unspecified) ?? .zero
-        kcal = Self.text(values.kcal)
-        protein = Self.text(values.proteinG)
-        fat = Self.text(values.fatG)
-        carbs = Self.text(values.carbsG)
-        // Left blank rather than "0" when nothing was entered, so reopening
-        // the form does not turn "did not say" into "said zero".
-        saturatedFat = Self.optionalText(values.saturatedFatG)
-        sugar = Self.optionalText(values.sugarG)
-        fiber = Self.optionalText(values.fiberG)
-        salt = Self.optionalText(values.sodiumMg / Self.sodiumMgPerSaltGram)
-        source = existing.source
-    }
-
-    /// What was typed, as a catalog entry — or `nil` when the form is empty
-    /// enough that there is nothing to record.
-    func catalogNutrition(named name: String) -> CatalogNutrition? {
-        let name = name.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return nil }
-        let entered = [kcal, protein, fat, saturatedFat, carbs, sugar, fiber, salt].map(Self.number)
-        guard entered.contains(where: { $0 != nil }) else { return nil }
-
-        let trimmedSource = source.trimmingCharacters(in: .whitespacesAndNewlines)
-        return CatalogNutrition(
-            name: name,
-            perHundredGrams: [IngredientState.unspecified.rawValue: NutritionInfo(
-                kcal: Self.number(kcal) ?? 0,
-                proteinG: Self.number(protein) ?? 0,
-                fatG: Self.number(fat) ?? 0,
-                saturatedFatG: Self.number(saturatedFat) ?? 0,
-                carbsG: Self.number(carbs) ?? 0,
-                sugarG: Self.number(sugar) ?? 0,
-                fiberG: Self.number(fiber) ?? 0,
-                sodiumMg: (Self.number(salt) ?? 0) * Self.sodiumMgPerSaltGram,
-                vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0, vitaminEMg: 0,
-                calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
-            )],
-            densityGramsPerMl: nil,
-            source: trimmedSource.isEmpty ? CatalogNutrition.ownSource : trimmedSource
-        )
-    }
-
-    private static func number(_ text: String) -> Double? { DecimalText.number(text) }
-    private static func text(_ value: Double) -> String { DecimalText.text(value) }
-    /// Blank for zero — see the note in `init(_:)`.
-    private static func optionalText(_ value: Double) -> String { DecimalText.optionalText(value) }
 }

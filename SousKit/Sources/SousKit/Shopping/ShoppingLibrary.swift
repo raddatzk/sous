@@ -135,8 +135,9 @@ extension ShoppingItem {
 public final class ShoppingLibrary {
     private let store: any ShoppingListStore
     private let recipeStore: any RecipeStore
-    /// Kept so that ingredients the cook added resolve like the bundled ones
-    /// — and because the pantry flag lives on their vocabulary entry now.
+    /// Kept so that names a local answer added resolve like the catalog's
+    /// own — and because pantry, store and note are the household's fields
+    /// there.
     private let catalogLibrary: IngredientCatalogLibrary?
 
     /// Every line still on the list, swept rows already left out.
@@ -163,11 +164,6 @@ public final class ShoppingLibrary {
         self.recipeStore = recipeStore
         self.catalogLibrary = catalogLibrary
     }
-
-    /// Which ingredients are shelf staples — read straight off the
-    /// vocabulary, so the flag and everything else about an ingredient say
-    /// the same thing at the same moment.
-    public var pantryKeys: Set<String> { catalogLibrary?.pantryKeys ?? [] }
 
     private var catalog: IngredientCatalog {
         catalogLibrary?.catalog ?? .current
@@ -529,13 +525,11 @@ public final class ShoppingLibrary {
     // MARK: - Pantry
 
     public func isPantry(_ item: ShoppingItem) -> Bool {
-        let pantry = pantryKeys
-        return pantry.contains(IngredientCatalog.normalize(item.key))
-            || inherited(of: item).contains { pantry.contains($0.key) }
+        householdChain(of: item).contains { $0.isPantry }
     }
 
-    /// Loads the vocabulary without touching the list — for screens that
-    /// only ask about the flag.
+    /// Loads the household's fields without touching the list — for screens
+    /// that only ask about the flag.
     public func ensurePantryLoaded() async {
         await catalogLibrary?.ensureLoaded()
     }
@@ -553,22 +547,20 @@ public final class ShoppingLibrary {
     /// `isPantry` has: a store named on "Tofu" covers the Räuchertofu on the
     /// list.
     public func preferredStore(of item: ShoppingItem) -> String? {
-        let stores = catalogLibrary?.preferredStores ?? [:]
-        if let store = stores[IngredientCatalog.normalize(item.key)] { return store }
-        for ancestor in inherited(of: item) {
-            if let store = stores[ancestor.key] { return store }
-        }
-        return nil
+        householdChain(of: item).lazy.compactMap(\.preferredStore).first
     }
 
     /// What to know at the shelf for `item`, same lookup as its store.
     public func shoppingNote(of item: ShoppingItem) -> String? {
-        guard let vocabulary = catalogLibrary?.vocabulary else { return nil }
-        if let note = vocabulary[IngredientCatalog.normalize(item.key)]?.shoppingNote { return note }
-        for ancestor in inherited(of: item) {
-            if let note = vocabulary[ancestor.key]?.shoppingNote { return note }
-        }
-        return nil
+        householdChain(of: item).lazy.compactMap(\.shoppingNote).first
+    }
+
+    /// The household's fields for `item` and then for everything it is a
+    /// variety of, nearest first — only the rows there are.
+    private func householdChain(of item: ShoppingItem) -> [HouseholdIngredient] {
+        guard let catalogLibrary else { return [] }
+        let own = catalogLibrary.householdIngredient(for: item.name)
+        return [own].compactMap { $0 } + inherited(of: item).compactMap(catalogLibrary.householdIngredient(of:))
     }
 
     // MARK: - Varieties

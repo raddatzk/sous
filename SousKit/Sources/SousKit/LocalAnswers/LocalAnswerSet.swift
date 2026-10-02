@@ -77,7 +77,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
     /// The answers laid over `base`: the catalog the household reads its
     /// recipes with, and what each answer did.
     public func applied(to base: IngredientCatalog) -> Applied {
-        guard !answers.isEmpty else { return Applied(catalog: base, traces: [:], steps: []) }
+        guard !answers.isEmpty else { return Applied(catalog: base, traces: [:], steps: [], addedNames: []) }
 
         var additions: [CatalogIngredient] = []
         var addedKeys: Set<String> = []
@@ -128,7 +128,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
         let catalog = additions.isEmpty
             ? base
             : IngredientCatalog(ingredients: additions + base.ingredients, renames: base.renames)
-        return Applied(catalog: catalog, traces: traces, steps: steps)
+        return Applied(catalog: catalog, traces: traces, steps: steps, addedNames: additions.map(\.name))
     }
 
     /// The answers applied: the household catalog, the traces, and what the
@@ -138,6 +138,10 @@ public struct LocalAnswerSet: Sendable, Equatable {
         /// By normalized name — the written one and the one it resolves to.
         public let traces: [String: LocalAnswerTrace]
         let steps: [Step]
+        /// The names the answers added to the catalog as words of their own,
+        /// in the order the answers are kept — what decides whether the
+        /// search index reads a recipe differently.
+        public let addedNames: [String]
 
         struct Step: Sendable {
             /// The name the entry is filed under in the household catalog.
@@ -146,7 +150,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
             let answer: LocalAnswer
         }
 
-        public static let none = Applied(catalog: .current, traces: [:], steps: [])
+        public static let none = Applied(catalog: .current, traces: [:], steps: [], addedNames: [])
 
         /// What a local answer says about `name`, if one does — applied or
         /// fallen silent.
@@ -179,7 +183,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
                 if let values = answer.values {
                     let source = answer.valuesSource ?? CatalogNutrition.ownSource
                     entry.bases = [IngredientState.unspecified.rawValue: NutritionBasis(
-                        values: values, status: .confirmed, source: source
+                        values: values, source: source
                     )]
                     entry.source = source
                     entry.inheritedFrom = nil

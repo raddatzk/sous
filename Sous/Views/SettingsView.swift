@@ -308,7 +308,7 @@ struct HouseholdDataSection: View {
         }
         return """
         Leeren löscht Rezepte samt Bildern, den Papierkorb, den Essensplan, \
-        die Einkaufsliste und die eigenen Zutaten, der Haushalt selbst bleibt. \
+        die Einkaufsliste und die lokalen Angaben zu Zutaten, der Haushalt selbst bleibt. \
         Löschen nimmt auch den Haushalt mit. Beides gilt für dieses Gerät und \
         iCloud, also auch für deine anderen Geräte — und für alle, mit denen \
         du den Haushalt teilst.
@@ -389,7 +389,7 @@ struct HouseholdDataSection: View {
             parts.append(counts.shopping == 1 ? "1 Zeile der Einkaufsliste" : "\(counts.shopping) Zeilen der Einkaufsliste")
         }
         if counts.ingredients > 0 {
-            parts.append(counts.ingredients == 1 ? "1 eigene Zutat" : "\(counts.ingredients) eigene Zutaten")
+            parts.append(counts.ingredients == 1 ? "1 Angabe zu einer Zutat" : "\(counts.ingredients) Angaben zu Zutaten")
         }
         guard !parts.isEmpty else {
             return "Es ist nichts da, was gelöscht werden könnte."

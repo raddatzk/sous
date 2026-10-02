@@ -342,16 +342,14 @@ public struct IngredientCatalog: Sendable {
     /// word, but a name copied from a recipe carries qualifiers.
     /// "dünne Kokosmilch" appears in no key at all, yet the catalog knows
     /// Kokosmilch and Kokosmilch fettarm. Those two are what the cook needs to
-    /// see before deciding whether the name is a spelling of one, a variety of
-    /// one, or something new.
+    /// see before saying what the name counts as.
     ///
     /// A query word matches a word of a key in one of three ways:
     /// - exactly;
     /// - as the start of the key's word, or with a plural ending the key lacks
     ///   ("Tomaten" matches "Tomate");
-    /// - as a compound ending in the key's word, the way
-    ///   ``VariantHeuristic`` reads German head nouns ("Kokosmilch" matches
-    ///   "Milch").
+    /// - as a compound ending in the key's word, the way German head nouns
+    ///   read ("Kokosmilch" matches "Milch").
     ///
     /// Candidates are ranked in this order:
     /// 1. the whole query starts a key;
@@ -473,7 +471,7 @@ public struct IngredientCatalog: Sendable {
     /// separates, it does not join.
     private static let hyphens: Set<Character> = ["-", "\u{2010}", "\u{2011}"]
 
-    /// The key the vocabulary and shopping rows are stored under: trimmed
+    /// The key the shopping rows are stored under: trimmed
     /// and lowercased, nothing more — what ``normalize(_:)`` was before it
     /// learned to fold ß and hyphens.
     ///

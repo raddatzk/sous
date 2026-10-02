@@ -17,9 +17,7 @@ struct RecipeStoreMigrationTests {
             recipes: SwiftDataRecipeStore(modelContainer: container),
             images: SwiftDataRecipeImageStore(modelContainer: container),
             mealPlan: SwiftDataMealPlanStore(modelContainer: container),
-            vocabulary: SwiftDataVocabularyStore(modelContainer: container),
-            shopping: SwiftDataShoppingListStore(modelContainer: container),
-            ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
+            shopping: SwiftDataShoppingListStore(modelContainer: container)
         )
     }
 
@@ -29,9 +27,7 @@ struct RecipeStoreMigrationTests {
             recipes: CoreDataRecipeStore(container: container),
             images: CoreDataRecipeImageStore(container: container),
             mealPlan: CoreDataMealPlanStore(container: container),
-            vocabulary: CoreDataVocabularyStore(container: container),
-            shopping: CoreDataShoppingListStore(container: container),
-            ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container)
+            shopping: CoreDataShoppingListStore(container: container)
         )
     }
 
@@ -183,7 +179,7 @@ struct RecipeStoreMigrationTests {
         #expect(try await source.images.image(id: imageID) != nil)
     }
 
-    @Test("The plan, the vocabulary and the shopping list come across too")
+    @Test("The plan and the shopping list come across too")
     func copiesTheRestOfTheLibrary() async throws {
         let source = try makeSource()
         let destination = try makeDestination()
@@ -192,9 +188,6 @@ struct RecipeStoreMigrationTests {
         let plan = try #require(source.mealPlan)
         try await plan.save(MealPlanEntry(day: Date().startOfDay, slot: .dinner, recipeID: recipe.id))
         try await plan.save(MealPlanEntry(day: nil, slot: .dinner, recipeID: recipe.id))
-        _ = try await source.vocabulary?.save(IngredientVocabularyEntry(
-            name: "Ajvar", aliases: ["Aivar"], isOwnIngredient: true, isPantry: true
-        ))
         try await source.shopping?.addManual(
             key: "linsen", name: "Linsen", category: .legumes, quantities: [Quantity(500, .gram)]
         )
@@ -202,14 +195,10 @@ struct RecipeStoreMigrationTests {
         let report = try await RecipeStoreMigration.run(from: source, to: destination)
 
         #expect(report.planEntriesCopied == 2)
-        #expect(report.vocabularyCopied == 1)
         #expect(report.shoppingItemsCopied == 1)
 
         let migratedPool = try await destination.mealPlan?.poolEntries() ?? []
         #expect(migratedPool.count == 1)
-        let ajvar = try #require(try await destination.vocabulary?.entries().first { $0.key == "ajvar" })
-        #expect(ajvar.isPantry)
-        #expect(ajvar.aliases == ["Aivar"])
         let list = try #require(try await destination.shopping?.snapshot())
         #expect(list.items.map(\.name) == ["Linsen"])
     }
@@ -233,31 +222,6 @@ struct RecipeStoreMigrationTests {
         let migrated = try #require(try await destination.shopping?.snapshot().items.first)
         #expect(migrated.isChecked)
         #expect(migrated.itemID == item.itemID)
-    }
-
-    @Test("A settled review stays settled; one whose recipe changed does not")
-    func reviewMarksFollowTheirText() async throws {
-        let source = try makeSource()
-        let destination = try makeDestination()
-
-        var settled = try await source.recipes.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
-        try await source.ingredientReviews?.markReviewed(settled)
-
-        // Reviewed, then edited: the question reopened before the migration
-        // ever ran, and must not arrive answered.
-        var reopened = try await source.recipes.save(Recipe(title: "Suppe", ingredientsText: "1 Zwiebel"))
-        try await source.ingredientReviews?.markReviewed(reopened)
-        reopened.ingredientsText = "2 Zwiebeln"
-        reopened = try await source.recipes.save(reopened)
-
-        try await RecipeStoreMigration.run(from: source, to: destination)
-
-        settled = try #require(try await destination.recipes.recipe(id: settled.id))
-        #expect(try await destination.ingredientReviews?.reviewedHash(for: settled.id)
-            == RecipeContentHash.hash(for: settled))
-        let migratedReopened = try #require(try await destination.recipes.recipe(id: reopened.id))
-        #expect(try await destination.ingredientReviews?.reviewedHash(for: migratedReopened.id)
-            != RecipeContentHash.hash(for: migratedReopened))
     }
 }
 
