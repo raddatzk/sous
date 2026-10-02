@@ -555,6 +555,18 @@ public final class ShoppingLibrary {
         householdChain(of: item).lazy.compactMap(\.shoppingNote).first
     }
 
+    /// The brand the household buys `item` as, shown beside its name —
+    /// "vegane Butter (ja!)" — because the brand is what to look for on the
+    /// shelf. Read when the row is drawn, never stored on the list: change
+    /// the brand and the open list follows. Left out where the name already
+    /// says it.
+    public func brand(of item: ShoppingItem) -> String? {
+        guard let brand = catalogLibrary?.brand(for: item.name),
+              item.name.range(of: brand, options: [.caseInsensitive, .diacriticInsensitive]) == nil
+        else { return nil }
+        return brand
+    }
+
     /// The household's fields for `item` and then for everything it is a
     /// variety of, nearest first — only the rows there are.
     private func householdChain(of item: ShoppingItem) -> [HouseholdIngredient] {
