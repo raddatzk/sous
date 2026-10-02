@@ -697,6 +697,37 @@ extension ShoppingLibraryTests {
         #expect(shopping.preferredStore(of: smoked) == nil)
     }
 
+    @Test("A household's brand shows beside the name; a counted name has none", arguments: StoreBackend.allCases)
+    func brandRidesAlong(_ backend: StoreBackend) async throws {
+        let stores = try backend.makeStores()
+        let catalog = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
+        let shopping = ShoppingLibrary(
+            store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog
+        )
+        await catalog.reload()
+        await catalog.saveLocalAnswer(LocalAnswer(
+            name: "vegane Butter", kind: .product,
+            values: .zero, valuesSource: "Packung", brand: "ja!"
+        ))
+        let tofu = try #require(catalog.catalog.ingredient(for: "Tofu"))
+        await catalog.count("Rauchtofu", as: tofu)
+        await shopping.add(Recipe(
+            title: "Pfanne", servings: 2,
+            ingredientsText: "50 g vegane Butter\n200 g Rauchtofu"
+        ))
+
+        let butter = try #require(shopping.items.first { $0.name.localizedCaseInsensitiveContains("Butter") })
+        #expect(shopping.brand(of: butter) == "ja!")
+        let smoked = try #require(shopping.items.first { $0.name == "Rauchtofu" })
+        #expect(shopping.brand(of: smoked) == nil)
+
+        // A name that already carries the brand is not told it twice.
+        await catalog.saveLocalAnswer(LocalAnswer(name: "ja! Margarine", kind: .product, values: .zero, brand: "ja!"))
+        await shopping.add(Recipe(title: "Kuchen", servings: 1, ingredientsText: "100 g ja! Margarine"))
+        let margarine = try #require(shopping.items.first { $0.name.localizedCaseInsensitiveContains("Margarine") })
+        #expect(shopping.brand(of: margarine) == nil)
+    }
+
     @Test("A named store pulls its errands out of the aisle walk")
     func preferredStoreSection() async throws {
         let container = try ModelContainer.sousContainer(inMemory: true)

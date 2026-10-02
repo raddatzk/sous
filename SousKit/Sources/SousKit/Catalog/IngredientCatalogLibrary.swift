@@ -120,6 +120,26 @@ public final class IngredientCatalogLibrary {
         return localAnswers.answers.first { $0.writtenKey == written }
     }
 
+    /// The brand the household buys `name` as, for the shopping list: the
+    /// brand of its local product, or the product it chose for the name.
+    /// `nil` for a name it only counts as something else — a "zählt wie" is
+    /// recognition, not a purchase, and says nothing about a brand.
+    ///
+    /// Until catalog products carry a brand of their own (phase 7), a chosen
+    /// catalog product is named by its whole name.
+    public func brand(for name: String) -> String? {
+        let written = IngredientCatalog.normalize(name)
+        let id = catalogWithoutLocalAnswers.ingredient(for: name)?.catalogID
+        guard let answer = localAnswers.answers.first(where: {
+            $0.writtenKey == written || ($0.catalogID != nil && $0.catalogID == id)
+        }) else { return nil }
+        if let brand = answer.brand { return brand }
+        guard answer.kind == .product, let target = answer.targetID.flatMap(catalog.ingredient(forID:)) else {
+            return nil
+        }
+        return target.name
+    }
+
     /// Whether the data set's catalog, without the local answers, knows
     /// `name` as written. A "zählt wie" is only offered for a name it does
     /// not (§3 B).
