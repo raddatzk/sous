@@ -99,15 +99,18 @@ struct CatalogIDTests {
 @MainActor
 @Suite("Catalog ids in the household's catalog")
 struct CatalogIDLibraryTests {
-    @Test("A shipped word the household patched keeps its id", arguments: StoreBackend.allCases)
-    func patchedWordKeepsItsID(_ backend: StoreBackend) async throws {
-        let library = IngredientCatalogLibrary(store: try backend.makeVocabularyStore())
+    @Test("A household's pantry flag is filed under the word's id, by any spelling", arguments: StoreBackend.allCases)
+    func pantryFlagIsFiledByID(_ backend: StoreBackend) async throws {
+        let library = try backend.makeCatalogLibrary()
         await library.reload()
-        await library.setPantry(true, name: "Knoblauch")
+        await library.setPantry(true, name: "Knoblauchzehen")
 
-        let catalog = library.catalog
-        #expect(catalog.ingredient(forID: "knoblauch")?.name == "Knoblauch")
-        #expect(catalog.ingredient(for: "Knoblauchzehen")?.catalogID == "knoblauch")
-        #expect(catalog.renames == IngredientCatalog.bundled.renames)
+        let entry = try #require(library.householdIngredient(for: "Knoblauch"))
+        #expect(entry.catalogID == "knoblauch")
+        #expect(entry.key == "id:knoblauch")
+        #expect(entry.isPantry)
+        // The catalog itself is the data set's, untouched.
+        #expect(library.catalog.ingredient(for: "Knoblauchzehen")?.catalogID == "knoblauch")
+        #expect(library.catalog.renames == IngredientCatalog.bundled.renames)
     }
 }

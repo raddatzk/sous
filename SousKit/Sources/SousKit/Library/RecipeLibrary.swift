@@ -30,10 +30,6 @@ public final class RecipeLibrary {
     /// — only `erase(_:)` ever touches it, to clean up after a deleted
     /// recipe the way it already does for the enrichment cache.
     private let nutritionStore: (any RecipeNutritionStore)?
-    /// `nil` where nothing cares whether a recipe's ingredients have been
-    /// checked against the catalog — `needsIngredientReview` then always
-    /// reads as "not reviewed" rather than tracking a dismissal.
-    private let ingredientReviewStore: (any RecipeIngredientReviewStore)?
     /// `nil` falls back to the bundled catalog — matches how
     /// `ShoppingLibrary` and `NutritionLibrary` treat the same dependency.
     private let catalogLibrary: IngredientCatalogLibrary?
@@ -78,14 +74,12 @@ public final class RecipeLibrary {
         imageStore: any RecipeImageStore,
         enrichmentStore: any RecipeEnrichmentStore,
         nutritionStore: (any RecipeNutritionStore)? = nil,
-        ingredientReviewStore: (any RecipeIngredientReviewStore)? = nil,
         catalogLibrary: IngredientCatalogLibrary? = nil
     ) {
         self.store = store
         self.imageStore = imageStore
         self.enrichmentStore = enrichmentStore
         self.nutritionStore = nutritionStore
-        self.ingredientReviewStore = ingredientReviewStore
         self.catalogLibrary = catalogLibrary
     }
 
@@ -399,12 +393,13 @@ public final class RecipeLibrary {
     /// Rebuilds the store's denormalized search index against the
     /// household's catalog — run when the data set changes, so "Kürbis"
     /// keeps finding the recipe that says "Hokkaido" even though that
-    /// relation arrived after the recipe was last saved.
+    /// relation arrived after the recipe was last saved, and when a local
+    /// answer adds or takes back a word (``IngredientCatalogLibrary/wordsDidChange``).
     ///
     /// The household's, not the data set's alone: that is what every line is
-    /// read with, and a word only the household knows is otherwise a line
-    /// outside the form, with no key at all. So the cook's own words are read
-    /// first, if nobody has yet.
+    /// read with, and a word only a local answer taught is otherwise a line
+    /// outside the form, with no key at all. So the household's answers are
+    /// read first, if nobody has yet.
     public func reindexSearch() async {
         await catalogLibrary?.ensureLoaded()
         do {
@@ -427,32 +422,14 @@ public final class RecipeLibrary {
         }
     }
 
-    // MARK: - Ingredient review
+    // MARK: - Unknown ingredients
 
     /// The ingredients in `recipe` the catalog does not know — the same
-    /// question `RecipeEditorView`'s "Noch unbekannt" row asks while typing,
-    /// asked again here so a recipe that skipped the editor (a bulk import)
-    /// or was written before an ingredient existed in the catalog still gets
-    /// noticed.
+    /// question `RecipeEditorView`'s "Noch unbekannt" row asks while typing.
+    /// Nothing asks the cook about them: each line offers a local answer and
+    /// a report, quietly (INGREDIENTS-DATA §3 A).
     public func unknownIngredients(in recipe: Recipe) -> [String] {
         catalog.unknownIngredients(in: recipe.ingredientsText)
-    }
-
-    /// Whether `recipe` has unrecognized ingredients nobody has answered yet
-    /// for its current text — the recipe list's marker and the detail view's
-    /// banner both ask this.
-    public func needsIngredientReview(_ recipe: Recipe) async -> Bool {
-        guard !unknownIngredients(in: recipe).isEmpty else { return false }
-        let reviewed = try? await ingredientReviewStore?.reviewedHash(for: recipe.id)
-        return reviewed != RecipeContentHash.hash(for: recipe)
-    }
-
-    /// Marks `recipe` reviewed against its current text — called whether the
-    /// cook added every unknown ingredient to the catalog or left the sheet
-    /// without changing anything; either way, nothing about this exact text
-    /// should be asked about again.
-    public func markIngredientsReviewed(_ recipe: Recipe) async {
-        try? await ingredientReviewStore?.markReviewed(recipe)
     }
 
     // MARK: - Variant groups
@@ -873,7 +850,6 @@ public final class RecipeLibrary {
             try await imageStore.deleteImages(ofRecipe: recipe.id, notIn: [])
             try? await enrichmentStore.delete(recipeID: recipe.id)
             try? await nutritionStore?.delete(recipeID: recipe.id)
-            try? await ingredientReviewStore?.delete(recipeID: recipe.id)
             try await store.erase(id: recipe.id)
         } catch {
             report(error)

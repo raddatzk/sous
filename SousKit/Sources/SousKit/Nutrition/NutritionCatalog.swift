@@ -24,22 +24,11 @@ public struct NutritionCatalog: Sendable {
 
     /// Injectable so a test can assemble the same thing from fixture data.
     ///
-    /// **Where the status comes from.** The synonym table and the BLS catalog
-    /// are read here and nowhere else: a data set builds this once, and the
-    /// process keeps its set, and asking the synonym table again on every lookup would
-    /// be a second path deciding what a written word means — the one thing
-    /// this type's contract forbids. So the two things a status needs, the
-    /// target's weight and how the word reached its row, are carried *through*
-    /// this step and land on the basis. A basis therefore knows its own status
-    /// without anyone re-deriving it, and the cook's confirmations can be laid
-    /// over it later like any other override.
-    ///
-    /// The rule itself: a word the BLS coined (`origin == "bls"`) matching its
-    /// own row at full weight is not a guess and starts *confirmed* — the
-    /// recipe wrote the catalog's word for the catalog's row. Everything the
-    /// curated synonym table maps starts *proposed*, per the concept: kitchen
-    /// German and catalog German are different languages, and which row
-    /// "Schmelzkäse" means is exactly the question the cook answers.
+    /// The synonym table and the BLS catalog are read here and nowhere else:
+    /// a data set builds this once, and asking the synonym table again on
+    /// every lookup would be a second path deciding what a written word
+    /// means — the one thing this type's contract forbids. The target's
+    /// weight is carried through onto the basis.
     public static func make(
         synonyms: SynonymTable, bls: BLSCatalog, measures: MeasureTable
     ) -> NutritionCatalog {
@@ -59,7 +48,6 @@ public struct NutritionCatalog: Sendable {
                     values: row.perHundredGrams,
                     code: row.code,
                     catalogName: row.name,
-                    status: word.isCatalogsOwnName(for: target) ? .confirmed : .proposed,
                     weight: target.weight,
                     // The row's own source where it has one — a supplement
                     // names the body that measured it, and "BLS 4.0" under a
@@ -133,9 +121,9 @@ public struct NutritionCatalog: Sendable {
     /// decides what a written ingredient means.
     ///
     /// A variety with nothing of its own is answered with its parent's basis:
-    /// "Cocktailtomate" is a tomato until someone says otherwise, and the
-    /// inheritance happens here rather than at build time so that a cook's
-    /// confirmation on the parent reaches the variant the moment it is made.
+    /// "Cocktailtomate" is a tomato until the catalog says otherwise, and the
+    /// inheritance happens here rather than at build time so that a local
+    /// answer laid over the parent reaches the variant too.
     public func nutrition(forCanonicalName name: String) -> CatalogNutrition? {
         guard let entry = byName[IngredientCatalog.normalize(name)] else { return nil }
         guard !entry.hasBases else { return entry }
@@ -163,21 +151,6 @@ public struct NutritionCatalog: Sendable {
     }
 
     public var entries: [CatalogNutrition] { Array(byName.values) }
-
-    /// This catalog with the cook's own entries laid over it, state by state.
-    ///
-    /// A merge rather than a replacement: an own entry usually says one thing
-    /// (these numbers, or this variety relation) and must not silently take
-    /// away everything the shipped entry knew — which is how a hand-entered
-    /// ingredient used to end up with an empty candidate list.
-    public func merging(_ overrides: [CatalogNutrition]) -> NutritionCatalog {
-        var merged = self
-        for override in overrides {
-            let key = IngredientCatalog.normalize(override.name)
-            merged.byName[key] = merged.byName[key]?.overlaid(by: override) ?? override
-        }
-        return merged
-    }
 
     /// This catalog with `entries` in place of whatever it held under their
     /// names — not merged: a local answer that lends a target's entry says

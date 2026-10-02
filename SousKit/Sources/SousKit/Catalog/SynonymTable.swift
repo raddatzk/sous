@@ -75,18 +75,6 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         self.aliasUnits = aliasUnits
     }
 
-    /// Whether `target` is this word's own row rather than a mapping onto
-    /// someone else's — the word is a BLS name and the row is the one it
-    /// names, at full weight.
-    ///
-    /// This is the whole difference between "the recipe wrote the catalog's
-    /// word" (nothing to confirm) and "a kitchen word was mapped onto a
-    /// catalog row" (exactly what the cook confirms). See
-    /// `NutritionCatalog.make`.
-    public func isCatalogsOwnName(for target: SynonymTarget) -> Bool {
-        origin == "bls" && target.weight >= 1
-    }
-
     /// The row this word means in `state` — the heaviest target, ties going to
     /// the one listed first.
     public func target(for state: IngredientState) -> SynonymTarget? {

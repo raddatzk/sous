@@ -2,15 +2,15 @@ import SousKit
 import SwiftUI
 
 /// The stops one ingredient line makes on its way through the app: read,
-/// found in the catalog, bought, counted — and, where the catalog does not
-/// know it yet, taught once.
+/// found in the catalog, bought, counted — and what happens where the
+/// catalog does not know it yet.
 ///
 /// Told as stages of a single example rather than as a paragraph, because
 /// every stage is something the cook gets without doing anything, and a
-/// paragraph about a catalog reads like homework. The last stage is the one
-/// that does ask something of them, and it is there so that the banners
-/// asking it later ("fehlen im Katalog") read as the step they are rather
-/// than as a defect.
+/// paragraph about a catalog reads like homework. The last stage says what
+/// an unknown name offers: the optimization, a local answer, a report. None
+/// of them is maintenance — the catalog is the curator's, not the cook's
+/// (INGREDIENTS-DATA §3 A).
 enum IngredientJourneyStage: Int, CaseIterable, Identifiable {
     case reading
     case catalog
@@ -26,7 +26,7 @@ enum IngredientJourneyStage: Int, CaseIterable, Identifiable {
         case .catalog: "Katalog"
         case .shopping: "Einkauf"
         case .nutrition: "Nährwerte"
-        case .teaching: "Neu"
+        case .teaching: "Unbekannt"
         }
     }
 
@@ -36,7 +36,7 @@ enum IngredientJourneyStage: Int, CaseIterable, Identifiable {
         case .catalog: "text.book.closed"
         case .shopping: "cart"
         case .nutrition: "chart.bar"
-        case .teaching: "plus.circle"
+        case .teaching: "questionmark.circle"
         }
     }
 }
@@ -170,7 +170,7 @@ struct IngredientJourneyView: View {
         case .nutrition:
             "Zur Zutat gehören Nährwerte aus dem Bundeslebensmittelschlüssel. Aus Gramm und Nährwerten rechnet Sous jedes Rezept pro Portion aus."
         case .teaching:
-            "Kennt Sous eine Zutat noch nicht, bringst du sie ihm einmal bei — als andere Schreibweise oder als Sorte. Danach gilt sie in jedem Rezept."
+            "Kennt der Katalog eine Zutat noch nicht, bringt „Für Sous optimieren“ die Zeile in seine Form. Reicht das nicht, hilft eine lokale Angabe für deinen Haushalt — und eine Meldung, damit der Katalog es bald selbst weiß."
         }
     }
 
@@ -313,17 +313,19 @@ struct IngredientJourneyView: View {
                     .sousSuggestionChip()
                     .foregroundStyle(.secondary)
             }
-            if let match = example.match {
-                detail("im Katalog", match.name)
-                FlowLayout(spacing: 8, lineSpacing: 8) {
-                    Text("anders geschrieben")
-                        .font(.footnote.weight(.medium))
-                        .sousChip()
-                        .tint(Color.sousAccent)
-                    Text("eine Sorte davon")
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                Text("Für Sous optimieren")
+                    .font(.footnote.weight(.medium))
+                    .sousChip()
+                    .tint(Color.sousAccent)
+                if let match = example.match {
+                    Text("lokal: zählt wie \(match.name)")
                         .font(.footnote.weight(.medium))
                         .sousSuggestionChip()
                 }
+                Text("melden")
+                    .font(.footnote.weight(.medium))
+                    .sousSuggestionChip()
             }
         }
     }
@@ -377,37 +379,5 @@ struct IngredientJourneyView: View {
                 .accessibilityAddTraits(item == stage ? .isSelected : [])
             }
         }
-    }
-}
-
-/// The same stages on their own, for the "So funktioniert’s" beside a
-/// banner — opened at the stage that banner is about.
-struct IngredientJourneySheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @State private var stage: IngredientJourneyStage
-
-    init(start: IngredientJourneyStage) {
-        _stage = State(initialValue: start)
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                IngredientJourneyView(stage: $stage)
-                    .frame(maxWidth: 420)
-                    .padding(20)
-                    .frame(maxWidth: .infinity)
-            }
-            .navigationTitle("So funktioniert’s")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.inline)
-            #endif
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(role: .close) { dismiss() }
-                }
-            }
-        }
-        .sousSheetSizing(.form)
     }
 }

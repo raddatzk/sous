@@ -7,8 +7,8 @@ import Testing
 /// real libraries against the shipped data — the permanent scorecard
 /// `INGREDIENTS-MIGRATION.md` §6 asks for.
 ///
-/// Every one of these cases is already covered somewhere: the candidate list
-/// in `BasisStatusTests`, the states in `PreparationStateTests`, the grouped
+/// Every one of these cases is already covered somewhere: the basis in
+/// `BasisStatusTests`, the states in `PreparationStateTests`, the grouped
 /// line in `ShoppingLibraryTests`, and so on. What did not exist was a place
 /// where the eleven are named *as the eleven*, so that "11 pass" is something
 /// the suite says rather than something a person reconstructs by grepping —
@@ -20,11 +20,15 @@ import Testing
 /// a table written for it has not been played through. Where a case depends
 /// on a specific curated row, it says so, so that a data change breaks it
 /// with an explanation rather than with a number.
+///
+/// Since phase 6b the cases are played through the way the app answers them
+/// now (INGREDIENTS-DATA §3 A–C): the catalog answers, nothing is proposed
+/// or confirmed, and what the household adds is a local answer.
 @MainActor
 @Suite("The concept's eleven test cases")
 struct ConceptScorecardTests {
-    /// The whole app's data side, on one in-memory store: what a cook has
-    /// decided, what the numbers rest on, and what has to be bought.
+    /// The whole app's data side, on one in-memory store: what the household
+    /// answered, what the numbers rest on, and what has to be bought.
     private struct Stack {
         var catalog: IngredientCatalogLibrary
         var nutrition: NutritionLibrary
@@ -36,10 +40,7 @@ struct ConceptScorecardTests {
         let container = try ModelContainer.sousContainer(inMemory: true)
         let recipes = SwiftDataRecipeStore(modelContainer: container)
         let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
-        let catalog = IngredientCatalogLibrary(
-            store: SwiftDataVocabularyStore(modelContainer: container),
-            nutritionCache: nutritionStore
-        )
+        let catalog = IngredientCatalogLibrary()
         return Stack(
             catalog: catalog,
             nutrition: NutritionLibrary(
@@ -66,13 +67,9 @@ struct ConceptScorecardTests {
         )
     }
 
-    /// A hand-typed nutrition entry, in the shape the ingredient form makes.
-    private func ownValues(_ name: String, kcal: Double) -> CatalogNutrition {
-        CatalogNutrition(
-            name: name,
-            perHundredGrams: [IngredientState.unspecified.rawValue: info(kcal: kcal)],
-            source: CatalogNutrition.ownSource
-        )
+    /// Values off a packet, as the local-answer form writes them.
+    private func ownValues(_ name: String, kcal: Double) -> LocalAnswer {
+        LocalAnswer(name: name, values: info(kcal: kcal), valuesSource: "Packung")
     }
 
     // MARK: - 1 · "200 g Schmelzkäse"
@@ -81,33 +78,24 @@ struct ConceptScorecardTests {
     /// the best candidate from the synonym table; a tap shows all nine
     /// variants. List: "Schmelzkäse — 200 g"; catalog language never reaches
     /// the list. Nutrition: computed provisionally, visibly marked.*
-    @Test("200 g Schmelzkäse — counted provisionally, with every variant one tap away")
+    ///
+    /// **Changed in phase 6b:** the catalog answers (INGREDIENTS-DATA §3 A).
+    /// The synonym table's row is the basis, named in the drill-down; there
+    /// is no proposed marker and no picker. Which row is right is the
+    /// curator's question.
+    @Test("200 g Schmelzkäse — counted, the basis named, catalog language off the list")
     func schmelzkäse() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
         let recipe = self.recipe("Käsesuppe", "200 g Schmelzkäse")
 
-        // Proposed, not confirmed: the synonym table's guess at what a
-        // kitchen word means in catalog language is exactly what decision A
-        // computes with *and* marks.
-        #expect(stack.nutrition.basisStatus(forName: "Schmelzkäse") == .proposed)
-
-        // "A tap shows all nine variants." The shipped table has more than
-        // that since O2 dropped the averaging — what matters is that picking
-        // between them is a question the cook gets asked, not one a build
-        // step answered by taking a mean.
-        let candidates = stack.nutrition.candidates(forName: "Schmelzkäse")
-        #expect(candidates.count >= 9)
-        #expect(Set(candidates.map(\.code)).count == candidates.count)
-
         let computed = try #require(await stack.nutrition.nutrition(for: recipe))
         let line = try #require(computed.coverage.contributions.first)
         #expect(computed.perPortion.kcal > 0)
-        #expect(line.isProvisional)
-        // "beruht auf: Schmelzkäse, mind. 45 % Fett i. Tr. — unbestätigt"
+        #expect(computed.coverage.isComplete)
+        // "beruht auf: Schmelzkäse, mind. 45 % Fett i. Tr."
         let basisName = try #require(line.basisName)
         #expect(basisName.localizedCaseInsensitiveContains("schmelzkäse"))
-        #expect(computed.coverage.unconfirmedCount == 1)
 
         // The list speaks the kitchen's language, never the catalog's.
         await stack.shopping.add(recipe)
@@ -124,7 +112,11 @@ struct ConceptScorecardTests {
     /// mapping stays open, the sum reports the gap. The cook types the label
     /// values in, or confirms "deliberately without"; either ends the notice
     /// for good.*
-    @Test("500 g veganes Hackfleisch — on the list at once, an open question in the sum")
+    ///
+    /// **Changed in phase 6b:** the label values are a local answer (§3 B).
+    /// "Bewusst ohne" is the catalog's answer, not the cook's — see
+    /// ``zimtOhneWerte()``.
+    @Test("500 g veganes Hackfleisch — on the list at once, a named gap until the packet answers")
     func veganesHackfleisch() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
@@ -137,32 +129,26 @@ struct ConceptScorecardTests {
 
         let open = try #require(await stack.nutrition.nutrition(for: recipe))
         #expect(open.coverage.defects.count == 1)
-        #expect(open.coverage.openIngredientNames.count == 1)
 
-        // The cook types the packet's numbers in. That is a basis of equal
-        // standing, and the question is retired.
-        await stack.nutrition.saveIngredientNutrition(
-            ownValues(stack.catalog.catalog.canonicalName(for: "veganes Hackfleisch"), kcal: 180)
-        )
+        // The packet's numbers, as a local answer: they count from now on.
+        #expect(await stack.catalog.saveLocalAnswer(ownValues("veganes Hackfleisch", kcal: 180)))
         let answered = try #require(await stack.nutrition.nutrition(for: recipe))
         #expect(answered.coverage.defects.isEmpty)
         #expect(answered.perPortion.kcal > 0)
     }
 
-    /// The other half of the same case: "bewusst ohne" is an answer too, and
-    /// an answer must stop counting as a defect.
-    @Test("500 g veganes Hackfleisch — 'bewusst ohne' ends the asking just as well")
-    func veganesHackfleischDeliberatelyWithout() async throws {
+    /// The other half of the same case: "ohne Werte" is an answer, and an
+    /// answer must not count as a defect. Zimt ships that way — the BLS has
+    /// no cinnamon row, and the catalog says so (CATALOG D).
+    @Test("1 TL Zimt — the catalog's 'ohne Werte' is an answer, not a defect")
+    func zimtOhneWerte() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
-        let recipe = self.recipe("Bolognese", "500 g veganes Hackfleisch")
-
-        await stack.nutrition.setDeliberatelyWithoutBasis(forName: "veganes Hackfleisch")
+        let recipe = self.recipe("Milchreis", "1 TL Zimt")
 
         let settled = try #require(await stack.nutrition.nutrition(for: recipe))
         #expect(settled.coverage.defects.isEmpty)
         #expect(settled.coverage.gaps.first?.reason == .deliberatelyWithout)
-        #expect(settled.coverage.openIngredientNames.isEmpty)
     }
 
     // MARK: - 3 · Twelve ingredients, three without values
@@ -203,9 +189,9 @@ struct ConceptScorecardTests {
         #expect(coverage.accountableCount == 12)
         #expect(coverage.includedCount == 9)
         #expect(coverage.defects.count == 3)
-        // "with reason and jump-off to the fix": every gap names why, and
-        // every one of these three is a question a basis would settle.
-        #expect(coverage.defects.allSatisfy { $0.reason.wantsBasis })
+        // "with reason": every gap names why — here, that the catalog does
+        // not know the name.
+        #expect(coverage.defects.allSatisfy { $0.reason == .noCatalogMatch })
         #expect(coverage.defects.map(\.ingredientName).sorted()
             == ["Drachenblut", "Mondmilch", "Sternenstaub"])
         // Never naked: the figure exists *and* says what it leaves out.
@@ -218,29 +204,26 @@ struct ConceptScorecardTests {
     /// line. From then on it holds in every recipe that writes "Ajvar". The
     /// display name stays "Ajvar"; the catalog name appears only as the fine
     /// print of the foundation.*
-    @Test("Ajvar — confirmed once on the ingredient, settled in every recipe after")
-    func ajvarConfirmedOnce() async throws {
+    ///
+    /// **Changed in phase 6b:** nothing is confirmed; the catalog's basis
+    /// holds for the ingredient in every recipe from the start.
+    @Test("Ajvar — the catalog's basis, the same in every recipe, the kitchen's name shown")
+    func ajvarSettledOnTheIngredient() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
-        // The row is picked out of the shipped table the way the picker
-        // picks it: by what the catalog actually offers for the word.
-        let candidate = try #require(stack.nutrition.candidates(forName: "Ajvar").first)
 
-        await stack.nutrition.confirmBasis(code: candidate.code, forName: "Ajvar")
-
-        // A second, entirely unrelated recipe: the decision was about the
-        // ingredient, so nothing about this one had to be answered again.
+        let first = try #require(await stack.nutrition.nutrition(for: recipe("Dip", "50 g Ajvar")))
         let other = recipe("Ofengemüse", "100 g Ajvar\n200 g Zucchini")
         let computed = try #require(await stack.nutrition.nutrition(for: other))
         let line = try #require(
             computed.coverage.contributions.first { $0.ingredientName.localizedCaseInsensitiveContains("ajvar") }
         )
-        #expect(!line.isProvisional)
-        #expect(line.basisCode == candidate.code)
+        #expect(line.basisCode != nil)
+        #expect(line.basisCode == first.coverage.contributions.first?.basisCode)
 
         // The display name stays the kitchen's; the catalog's is fine print.
         #expect(line.ingredientName.localizedCaseInsensitiveContains("ajvar"))
-        #expect(line.provenance(source: stack.nutrition.datasetVersion) != nil)
+        #expect(line.provenance() != nil)
 
         await stack.shopping.add(other)
         let item = try #require(stack.shopping.items.first { $0.key.contains("ajvar") })
@@ -292,11 +275,11 @@ struct ConceptScorecardTests {
         #expect(variety.category == plain.category)
 
         // The relation's other job. Cocktailtomate has no row of its own and
-        // computes with Tomate's - as a proposal that says so, not as a
-        // confirmation nobody made (catalog target, decision B).
+        // computes with Tomate's, naming where it came from (§3 A: an
+        // inherited basis is simply the basis).
         await stack.nutrition.ensureLoaded()
         let inherited = try #require(stack.nutrition.nutrition(forName: "Cocktailtomaten")?.basis(for: .raw))
-        #expect(inherited.status == .proposed)
+        #expect(inherited.status == .computed)
         #expect(inherited.inheritedFrom == "Tomate")
     }
 
@@ -468,11 +451,13 @@ struct ConceptScorecardTests {
     /// under the Tomaten entry. The check mark on the already-bought tomatoes
     /// stays untouched — the group shows: done, but something arrived later.*
     ///
-    /// The grouped entry that last sentence names is withdrawn (decision E),
-    /// so "the group shows" is now the two rows showing it side by side. The
-    /// load-bearing half — a late arrival never un-checks what was bought —
-    /// is untouched and still asserted.
-    @Test("Ochsenherztomaten — never missing, and fixing it does not un-check the tomatoes")
+    /// The grouped entry that last sentence names is withdrawn (decision E).
+    /// **Changed in phase 6b:** the cook no longer creates a variety; a
+    /// variety is the curator's. What the household does is a local answer —
+    /// "zählt wie Tomate" — which gives the aisle and the numbers but never
+    /// the identity (R2). The load-bearing half — a late fix never un-checks
+    /// what was bought — is untouched and still asserted.
+    @Test("Ochsenherztomaten — never missing, and answering for it does not un-check the tomatoes")
     func ochsenherztomaten() async throws {
         let stack = try stack()
         await stack.catalog.reload()
@@ -484,38 +469,24 @@ struct ConceptScorecardTests {
         #expect(unknown.quantities == [Quantity(300, .gram)])
         #expect(stack.shopping.items.count == 2)
 
-        // The cook buys the tomatoes, and only then teaches the app what the
-        // other line was.
+        // The cook buys the tomatoes, and only then answers for the other
+        // line.
         let tomatoes = try #require(stack.shopping.items.first { $0.key == "tomate" })
         await stack.shopping.toggle(tomatoes)
 
-        // This is where the case's proposal mechanism actually lives: a name
-        // the app does not ship, offered its head noun the one moment it
-        // comes into being. Decision B — asked once, in passing, never
-        // applied silently.
-        let proposal = try #require(
-            VariantHeuristic.parent(for: "Ochsenherztomaten", in: stack.catalog.catalog)
-        )
-        #expect(proposal.name == "Tomate")
-        // "The cook *creates* Ochsenherztomaten as a variant of Tomaten": the
-        // word becomes an ingredient of its own, which is what a bare note on
-        // an unknown name could never be — a vocabulary row that is not an
-        // ingredient never enters the catalog, so nothing could group by it.
-        await stack.catalog.save(CatalogIngredient(
-            name: "Ochsenherztomaten", category: .vegetables, parentName: proposal.name
-        ))
+        let tomato = try #require(stack.catalog.catalog.ingredient(for: "Tomate"))
+        #expect(await stack.catalog.count("Ochsenherztomaten", as: tomato))
         await stack.shopping.reload()
 
-        // The relation now holds, and it is what carries the aisle and the
-        // nutrition across. What it no longer does is put the two lines under
-        // one heading — decision E — so the case's "the group shows: done,
-        // but something arrived later" is now read off the rows themselves.
-        #expect(stack.catalog.catalog.ingredient(for: "Ochsenherztomaten")?.parentName == "Tomate")
+        // The answer carries the aisle and the numbers across, not the
+        // identity: still two rows, the late one its own.
+        #expect(stack.catalog.catalog.ingredient(for: "Ochsenherztomaten")?.parentName == nil)
         #expect(stack.shopping.items.count == 2)
+        let computed = try #require(await stack.nutrition.nutrition(for: recipe("Salat", "300 g Ochsenherztomaten")))
+        #expect(computed.coverage.defects.isEmpty)
 
         // "Done, but something arrived later": the check mark that was earned
-        // stays earned, and the late line is open beside it. Re-adding must
-        // never un-check what was already bought.
+        // stays earned, and the late line is open beside it.
         let bought = try #require(stack.shopping.items.first { $0.key == "tomate" })
         #expect(bought.isChecked)
         let late = try #require(stack.shopping.items.first { $0.key.contains("ochsenherz") })
@@ -546,14 +517,13 @@ struct ConceptScorecardTests {
             #expect(before.coverage.defects.count == 1)
         }
 
-        // One entry, made once, on the ingredient.
-        await stack.nutrition.saveIngredientNutrition(ownValues("Sternenstaub", kcal: 120))
+        // One local answer, made once, on the name.
+        await stack.catalog.saveLocalAnswer(ownValues("Sternenstaub", kcal: 120))
 
         for recipe in recipes {
             let after = try #require(await stack.nutrition.nutrition(for: recipe))
-            // Not a stale cached figure: the cache is keyed on recipe text,
-            // which none of these changed, so a library that forgot to drop
-            // it would serve the old sum forever.
+            // Not a stale cached figure: none of these texts changed, and the
+            // cache's key carries the answers, so the old sum is missed.
             #expect(after.coverage.defects.isEmpty)
             #expect(after.coverage.includedCount == 2)
         }

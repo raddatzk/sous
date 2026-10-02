@@ -4,15 +4,16 @@ import SwiftUI
 /// What one spoon, piece or cup of an ingredient weighs — the other half of
 /// the concept's gram bridge, and the other thing a figure may be wrong about.
 ///
-/// Built the same way as ``IngredientBasisPicker`` and for the same reason:
-/// the question becomes visible inside the coverage drill-down, and answering
-/// it there unfolds in place rather than opening anything. The basis picker
-/// answers "which food is this"; this one answers "how much of it is that".
+/// It sits inside the coverage drill-down, where the doubt comes up, and
+/// unfolds in place rather than opening anything: "how much of it is that".
+/// A correction is an own weight of the household's local answer for the
+/// name (INGREDIENTS-DATA §3 B) — it beats the catalog's weight for that unit
+/// and only that unit, and shows as "lokal" in the ingredient's detail.
 ///
 /// Every number it offers is an assumption — the measure table says so per
 /// entry — so the field starts filled with what the app currently believes
-/// and the cook overwrites it. Taking the correction back leaves the shipped
-/// value standing, it does not leave the line without a weight.
+/// and the cook overwrites it. Taking the correction back leaves the
+/// catalog's value standing, it does not leave the line without a weight.
 struct IngredientMeasurePicker: View {
     @Environment(NutritionLibrary.self) private var nutrition
 
@@ -46,8 +47,8 @@ struct IngredientMeasurePicker: View {
                 Spacer(minLength: 0)
             }
             Text(isOwn
-                 ? "Deine Angabe — sie gilt für jedes Rezept mit dieser Zutat."
-                 : "Angenommen. Was du hier einträgst, gilt für jedes Rezept mit dieser Zutat.")
+                 ? "Lokale Angabe — sie gilt in diesem Haushalt für jedes Rezept mit dieser Zutat."
+                 : "Angenommen. Was du hier einträgst, wird eine lokale Angabe und gilt in diesem Haushalt für jedes Rezept mit dieser Zutat.")
                 .foregroundStyle(.secondary)
             HStack(spacing: 12) {
                 Button("Sichern", action: save)

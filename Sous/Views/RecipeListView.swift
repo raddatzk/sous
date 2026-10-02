@@ -55,7 +55,6 @@ struct RecipeListView: View {
                 case .catalog: IngredientCatalogView()
                 case .categories: CategoryManagerView()
                 case .trash: TrashView()
-                case .harvest: VocabularyHarvestSheet()
                 }
             }
             #if os(iOS)
@@ -825,7 +824,7 @@ struct RecipeListView: View {
                         }
                         Divider()
                     }
-                    Button("Zutaten verwalten", systemImage: "carrot") {
+                    Button("Zutatenkatalog", systemImage: "carrot") {
                         commands.panel = .catalog
                     }
                     Button("Kategorien verwalten", systemImage: "tag") {
@@ -833,9 +832,6 @@ struct RecipeListView: View {
                     }
                     Button("Papierkorb", systemImage: "trash") {
                         commands.panel = .trash
-                    }
-                    Button("Vokabular exportieren", systemImage: "square.and.arrow.up") {
-                        commands.panel = .harvest
                     }
                     // No Settings entry on the Mac either — it has the Settings
                     // scene behind Cmd-, — but this whole menu is gone there.

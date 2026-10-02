@@ -51,9 +51,7 @@ public enum RecipeMarkdown {
 
         if let nutrition = document.nutrition {
             blocks.append("## Nährwerte")
-            var caption = nutrition.caption
-            if nutrition.isProvisional { caption += ", vorläufig" }
-            blocks.append("*\(caption).*")
+            blocks.append("*\(nutrition.caption).*")
             blocks.append(nutrition.rows.map { row in
                 "\(row.isIndented ? "  " : "")- \(row.label): \(row.value)"
             }.joined(separator: "\n"))

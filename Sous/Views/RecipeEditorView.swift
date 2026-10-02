@@ -47,7 +47,7 @@ struct RecipeEditorView: View {
     /// writer can see what the app understood of a sentence. Display only:
     /// the text is never changed by the app.
     @State private var stepMarks: [RecipeStepMarkup.Mark] = []
-    /// The unknown ingredient the cook tapped, while its sheet is up.
+    /// The unknown ingredient the cook is answering for, while its form is up.
     ///
     /// Held by the editor rather than by the chip that was tapped: on iPhone
     /// that chip lives in the keyboard bar, and the bar goes the moment the
@@ -510,7 +510,7 @@ struct RecipeEditorView: View {
                 }
                 .font(.callout)
                 ForEach(unknown, id: \.self) { name in
-                    UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
+                    UnknownIngredientControl.chip(name: name, recipeTitle: draft.title) { ingredientTeaching = $0 }
                 }
             }
             // Keeps the capsules' own edges off the scroll view's bounds,
@@ -678,11 +678,12 @@ struct RecipeEditorView: View {
         ingredientsCursor = min(offset, draft.ingredientsText.count)
     }
 
-    /// Ingredients the catalog does not know yet, offered for adding.
+    /// Ingredients the catalog does not know yet, each with a local answer
+    /// and a report on offer.
     ///
     /// Nothing is wrong with an unknown ingredient — it just has no aisle on
-    /// the shopping list and does not merge with other spellings until the
-    /// app is told what it is.
+    /// the shopping list and no values until the catalog learns it, or the
+    /// household answers for it.
     @ViewBuilder
     private var unknownIngredients: some View {
         let unknown = catalog.unknownIngredients(in: draft.ingredientsText)
@@ -694,7 +695,7 @@ struct RecipeEditorView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(unknown, id: \.self) { name in
-                            UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
+                            UnknownIngredientControl.chip(name: name, recipeTitle: draft.title) { ingredientTeaching = $0 }
                         }
                     }
                     .padding(.vertical, 2)

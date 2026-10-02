@@ -29,30 +29,41 @@ enum SousManagedObjectModel {
     /// one with the current model and prove the lightweight migration Core
     /// Data infers for a dropped entity actually goes through.
     ///
-    /// Retired so far: `CDAmountReview` (2026-09-16), the mark that a person
-    /// had reviewed a recipe's amount suggestions — the review no longer
-    /// exists. The record type stays in the CloudKit schema, which is
-    /// additive by design; nothing reads or writes it any more.
+    /// Retired so far — each record type stays in the CloudKit schema, which
+    /// is additive by design; nothing reads or writes it any more:
+    /// - `CDAmountReview` (2026-09-16), the mark that a person had reviewed
+    ///   a recipe's amount suggestions — the review no longer exists.
+    /// - `CDIngredientReview` and `CDVocabularyEntry` (phase 6b, 2026-10-01):
+    ///   the catalog answers and the app no longer asks (INGREDIENTS-DATA
+    ///   §3 A). What the household still says lives in `CDLocalAnswer` and
+    ///   `CDHouseholdIngredient`.
     ///
     /// `includingLocalAnswers: false` is the model as it was before phase 6a
-    /// added `CDLocalAnswer` — what a store written by an earlier build holds,
-    /// for the migration test that opens one with the current model.
+    /// added `CDLocalAnswer`, and `includingHouseholdIngredients: false` the
+    /// one before 6b added `CDHouseholdIngredient` — what a store written by
+    /// an earlier build holds, for the migration tests that open one with the
+    /// current model.
     static func makeModel(
-        includingRetiredEntities: Bool, includingLocalAnswers: Bool = true
+        includingRetiredEntities: Bool,
+        includingLocalAnswers: Bool = true,
+        includingHouseholdIngredients: Bool = true
     ) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
         var members = [
             recipeEntity(), variantGroupEntity(), recipeImageEntity(), mealPlanEntryEntity(),
-            reviewMarkEntity(named: ingredientReviewEntityName),
-            vocabularyEntryEntity(),
             shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
         ]
         if includingLocalAnswers {
             members.append(localAnswerEntity())
         }
+        if includingHouseholdIngredients {
+            members.append(householdIngredientEntity())
+        }
         if includingRetiredEntities {
             members.append(reviewMarkEntity(named: amountReviewEntityName))
+            members.append(reviewMarkEntity(named: ingredientReviewEntityName))
+            members.append(vocabularyEntryEntity())
         }
         // Wired after the fact, because a relationship needs both entities to
         // exist before either can name the other.
@@ -67,10 +78,9 @@ enum SousManagedObjectModel {
     /// walk all of them.
     static let memberEntityNames = [
         recipeEntityName, variantGroupEntityName, recipeImageEntityName,
-        mealPlanEntryEntityName, ingredientReviewEntityName,
-        vocabularyEntryEntityName, shoppingEntryEntityName,
+        mealPlanEntryEntityName, shoppingEntryEntityName,
         shoppingPlanEntryEntityName, shoppingDemandEntityName,
-        localAnswerEntityName,
+        localAnswerEntityName, householdIngredientEntityName,
     ]
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
@@ -78,12 +88,15 @@ enum SousManagedObjectModel {
     static let mealPlanEntryEntityName = "CDMealPlanEntry"
     /// Retired — see `makeModel(includingRetiredEntities:)`.
     static let amountReviewEntityName = "CDAmountReview"
+    /// Retired — see `makeModel(includingRetiredEntities:)`.
     static let ingredientReviewEntityName = "CDIngredientReview"
+    /// Retired — see `makeModel(includingRetiredEntities:)`.
     static let vocabularyEntryEntityName = "CDVocabularyEntry"
     static let shoppingEntryEntityName = "CDShoppingEntry"
     static let shoppingPlanEntryEntityName = "CDShoppingPlanEntry"
     static let shoppingDemandEntityName = "CDShoppingDemand"
     static let localAnswerEntityName = "CDLocalAnswer"
+    static let householdIngredientEntityName = "CDHouseholdIngredient"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -221,13 +234,14 @@ enum SousManagedObjectModel {
     }
 
     /// A review mark: that a person looked at a recipe's open question and
-    /// settled it, against the text they settled it under. Described by name
-    /// because there were two of them once — the retired amount review and
-    /// the ingredient review still in use — and one shape serves both.
+    /// settled it, against the text they settled it under. Retired twice
+    /// over — the amount review and the ingredient review — and kept only so
+    /// a test can open a store written while they were in use. No class of
+    /// its own any more: nothing reads a row of it.
     private static func reviewMarkEntity(named name: String) -> NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = name
-        entity.managedObjectClassName = NSStringFromClass(CDReviewMark.self)
+        entity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
         entity.properties = [
             attribute("recipeID", .UUIDAttributeType),
             attribute("reviewedContentHash", .stringAttributeType, default: ""),
@@ -241,10 +255,14 @@ enum SousManagedObjectModel {
         return entity
     }
 
+    /// The cook's vocabulary as it was until phase 6b: own ingredients,
+    /// spellings, varieties, aisles, bases, weights, pantry and store. Retired
+    /// whole; kept only so a test can open a store written while it was in
+    /// use.
     private static func vocabularyEntryEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = vocabularyEntryEntityName
-        entity.managedObjectClassName = NSStringFromClass(CDVocabularyEntry.self)
+        entity.managedObjectClassName = NSStringFromClass(NSManagedObject.self)
         entity.properties = [
             attribute("id", .UUIDAttributeType),
             attribute("key", .stringAttributeType, default: ""),
@@ -293,6 +311,28 @@ enum SousManagedObjectModel {
             attribute("brand", .stringAttributeType, optional: true),
             attribute("ean", .stringAttributeType, optional: true),
             attribute("sharedAt", .dateAttributeType, optional: true),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
+        entity.indexes = [index(named: "byKey", on: entity, properties: ["key"])]
+        return entity
+    }
+
+    /// What a household says about an ingredient as a fact about itself, not
+    /// about the ingredient (INGREDIENTS-DATA §3 C): pantry, preferred store,
+    /// shopping note. Added in phase 6b; every field optional or defaulted.
+    private static func householdIngredientEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = householdIngredientEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDHouseholdIngredient.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("key", .stringAttributeType, default: ""),
+            attribute("catalogID", .stringAttributeType, optional: true),
+            attribute("name", .stringAttributeType, default: ""),
+            attribute("isPantry", .booleanAttributeType, default: false),
+            attribute("preferredStore", .stringAttributeType, optional: true),
+            attribute("shoppingNote", .stringAttributeType, optional: true),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
         ]

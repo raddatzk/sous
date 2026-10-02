@@ -4,8 +4,7 @@ import SwiftUI
 
 /// Whether this launch is somebody's first, and the welcome is owed.
 ///
-/// The same shape `DataUpdateNotice` uses, and for the same reason: the
-/// question is answered where the launch work happens — in the app, once the
+/// The question is answered where the launch work happens — in the app, once the
 /// migrations have run and the library has been read — and shown by the root,
 /// which is the only view that outlives every section. A screen asking it for
 /// itself would ask too early, find an empty library on a device that has one,

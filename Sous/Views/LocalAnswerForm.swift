@@ -31,7 +31,7 @@ struct LocalAnswerForm: View {
 
     /// The units a weight can be given for. Mass and the litre stay out — a
     /// gram weighs a gram, and a millilitre is what the density answers.
-    private static let units: [IngredientUnit] = [
+    static let units: [IngredientUnit] = [
         .piece, .clove, .bunch, .leaf, .package, .pinch, .knifeTip, .cup, .teaspoon, .tablespoon,
         .can, .jar, .stalk, .sprig, .stem, .centimeter, .handful, .splash, .head,
     ]

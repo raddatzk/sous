@@ -209,8 +209,8 @@ struct NutritionAggregatorTests {
         ])
     }
 
-    @Test("An unknown name is left to the catalog question, not asked twice")
-    func openIngredientsCanSkipUnknownNames() {
+    @Test("An unknown name and a known name without numbers are different gaps")
+    func unknownAndValuelessAreToldApart() {
         let recipe = Recipe(
             title: "Sternenpaste", servings: 2,
             ingredientsText: """
@@ -222,12 +222,12 @@ struct NutritionAggregatorTests {
 
         let coverage = aggregate(recipe).coverage
 
-        // Both want a basis, but only one of them can be answered with one:
-        // "Einhornstaub" has no catalog entry, and the detail view's catalog
-        // banner is already asking for that. "Safran" the catalog knows —
-        // it is missing nothing but numbers.
-        #expect(coverage.openIngredients.map(\.name) == ["Einhornstaub", "Safran"])
-        #expect(coverage.openIngredientsWithKnownName.map(\.name) == ["Safran"])
+        // "Einhornstaub" has no catalog entry; "Safran" the catalog knows —
+        // it is missing nothing but numbers. Two named gaps, two different
+        // remedies, and neither is a question to the cook.
+        let reasons = Dictionary(uniqueKeysWithValues: coverage.gaps.map { ($0.ingredientName, $0.reason) })
+        #expect(reasons["Einhornstaub"] == .noCatalogMatch)
+        #expect(reasons["Safran"] == .noNutritionValues)
     }
 
     @Test("A can is weighed drained and counted as cooked")

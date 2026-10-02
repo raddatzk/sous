@@ -32,8 +32,10 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
         let recipes: any RecipeStore
         let images: any RecipeImageStore
         let mealPlan: any MealPlanStore
-        let ingredientReviews: any RecipeIngredientReviewStore
-        let vocabulary: any VocabularyStore
+        /// The household's ingredient rows. SwiftData never held them, so
+        /// that backend keeps them in memory.
+        let household: any HouseholdIngredientStore
+        let localAnswers: any LocalAnswerStore
         let shopping: any ShoppingListStore
     }
 
@@ -45,8 +47,8 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
                 recipes: SwiftDataRecipeStore(modelContainer: container),
                 images: SwiftDataRecipeImageStore(modelContainer: container),
                 mealPlan: SwiftDataMealPlanStore(modelContainer: container),
-                ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container),
-                vocabulary: SwiftDataVocabularyStore(modelContainer: container),
+                household: InMemoryHouseholdIngredientStore(),
+                localAnswers: InMemoryLocalAnswerStore(),
                 shopping: SwiftDataShoppingListStore(modelContainer: container)
             )
         case .coreData:
@@ -55,8 +57,8 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
                 recipes: CoreDataRecipeStore(container: container),
                 images: CoreDataRecipeImageStore(container: container),
                 mealPlan: CoreDataMealPlanStore(container: container),
-                ingredientReviews: CoreDataRecipeIngredientReviewStore(container: container),
-                vocabulary: CoreDataVocabularyStore(container: container),
+                household: CoreDataHouseholdIngredientStore(container: container),
+                localAnswers: CoreDataLocalAnswerStore(container: container),
                 shopping: CoreDataShoppingListStore(container: container)
             )
         }
@@ -65,6 +67,9 @@ enum StoreBackend: CaseIterable, CustomStringConvertible {
     func makeStore() throws -> any RecipeStore { try makeStores().recipes }
     func makeImageStore() throws -> any RecipeImageStore { try makeStores().images }
     func makeMealPlanStore() throws -> any MealPlanStore { try makeStores().mealPlan }
-    func makeIngredientReviewStore() throws -> any RecipeIngredientReviewStore { try makeStores().ingredientReviews }
-    func makeVocabularyStore() throws -> any VocabularyStore { try makeStores().vocabulary }
+    @MainActor
+    func makeCatalogLibrary() throws -> IngredientCatalogLibrary {
+        let stores = try makeStores()
+        return IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
+    }
 }

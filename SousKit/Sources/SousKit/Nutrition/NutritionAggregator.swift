@@ -141,13 +141,9 @@ public enum NutritionAggregator {
             }
 
             // A basis that is a *decision* rather than numbers ends the line
-            // here. "Bewusst ohne" is an answer and stops counting as a
-            // defect; an orphaned mapping is a question and keeps counting.
+            // here: "bewusst ohne" is an answer, not a defect.
             guard basis.status.contributes else {
-                report(
-                    .gap(basis.status == .deliberatelyWithout ? .deliberatelyWithout : .orphanedBasis),
-                    basis: basis
-                )
+                report(.gap(.deliberatelyWithout), basis: basis)
                 continue
             }
 
@@ -159,17 +155,9 @@ public enum NutritionAggregator {
             }
 
             let contribution = basis.values.scaled(byGrams: amount.grams)
-            // The basis and the alternatives ride along with the number, so
-            // whatever shows it can say what it rests on — and so the picker
-            // has the candidate list without recomputing anything. The status
-            // decides which of the two counting outcomes this is: both land
-            // in the sum, only one of them without a caveat.
-            report(
-                basis.status == .confirmed
-                    ? .contributed(contribution) : .provisional(contribution),
-                basis: basis,
-                amount: amount
-            )
+            // The basis rides along with the number, so whatever shows it
+            // can say what it rests on.
+            report(.contributed(contribution), basis: basis, amount: amount)
             total = total + contribution
         }
         return total

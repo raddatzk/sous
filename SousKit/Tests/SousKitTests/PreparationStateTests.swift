@@ -17,7 +17,7 @@ struct PreparationStateTests {
     }
 
     private func basis(_ kcal: Double, _ name: String) -> NutritionBasis {
-        NutritionBasis(values: info(kcal: kcal), code: name, catalogName: name, status: .confirmed)
+        NutritionBasis(values: info(kcal: kcal), code: name, catalogName: name)
     }
 
     // MARK: - The fallback order

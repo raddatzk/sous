@@ -39,7 +39,10 @@ enum RecipeContentHash {
     /// Raised to 10 when `IngredientLineReader` replaced the tolerant parser:
     /// a line outside the fixed form ("Salz nach Geschmack", "1 Chili (rot)")
     /// no longer reaches a name, and "1 1/2 TL" is one and a half.
-    static let readingVersion = 10
+    /// Raised to 11 when the household vocabulary stopped taking part
+    /// (phase 6b): a spelling or variety the cook once taught no longer
+    /// reaches a name, and no basis is "proposed" or "orphaned" any more.
+    static let readingVersion = 11
 
     /// What the data a recipe was read against is: the reading version and
     /// the data set's release, `r<readingVersion>-<dataVersion>`.

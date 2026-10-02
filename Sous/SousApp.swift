@@ -60,14 +60,8 @@ struct SousApp: App {
     /// than in the recipe list, because a command in the scene cannot see a
     /// view's state.
     @State private var commands = LibraryCommands()
-    /// Whether the shipped data changed under the cook's vocabulary, and
-    /// something was orphaned by it.
-    @State private var dataUpdate = DataUpdateNotice()
     /// Whether this launch is somebody's first, and the welcome is owed.
     @State private var onboarding = OnboardingNotice()
-    /// Held so the once-per-launch reconciliation can reach the store
-    /// without opening a second container.
-    private let orphanReconciliation: VocabularyOrphanReconciliation
     /// What data this device last ran against. Device state, not user
     /// content — see `BundledDataMarker`.
     private let marker = BundledDataMarker()
@@ -86,33 +80,27 @@ struct SousApp: App {
 
             let recipes = CoreDataRecipeStore(container: coreData)
             let images = CoreDataRecipeImageStore(container: coreData)
-            let vocabulary = CoreDataVocabularyStore(container: coreData)
             let localAnswers = CoreDataLocalAnswerStore(container: coreData)
+            let householdIngredients = CoreDataHouseholdIngredientStore(container: coreData)
             let plan = CoreDataMealPlanStore(container: coreData)
             let shoppingStore = CoreDataShoppingListStore(container: coreData)
-            let ingredientReviews = CoreDataRecipeIngredientReviewStore(container: coreData)
 
             households = CoreDataHouseholds(container: coreData)
             // Right after the container, so it is listening before the first
             // import can begin.
             let madeImport = CloudKitInitialImport(container: coreData)
             _initialImport = State(initialValue: madeImport)
-            orphanReconciliation = VocabularyOrphanReconciliation(store: vocabulary)
             migrationSource = RecipeStoreMigration.Source(
                 recipes: SwiftDataRecipeStore(modelContainer: container),
                 images: SwiftDataRecipeImageStore(modelContainer: container),
                 mealPlan: SwiftDataMealPlanStore(modelContainer: container),
-                vocabulary: SwiftDataVocabularyStore(modelContainer: container),
-                shopping: SwiftDataShoppingListStore(modelContainer: container),
-                ingredientReviews: SwiftDataRecipeIngredientReviewStore(modelContainer: container)
+                shopping: SwiftDataShoppingListStore(modelContainer: container)
             )
             migrationDestination = RecipeStoreMigration.Destination(
                 recipes: recipes,
                 images: images,
                 mealPlan: plan,
-                vocabulary: vocabulary,
-                shopping: shoppingStore,
-                ingredientReviews: ingredientReviews
+                shopping: shoppingStore
             )
 
             // The caches stay in SwiftData: both are keyed to a content hash
@@ -120,13 +108,9 @@ struct SousApp: App {
             let nutritionStore = SwiftDataRecipeNutritionStore(modelContainer: container)
             let enrichmentStore = SwiftDataRecipeEnrichmentStore(modelContainer: container)
             let catalogLibrary = IngredientCatalogLibrary(
-                store: vocabulary,
                 localAnswers: localAnswers,
-                // Teaching the app a spelling, or confirming what a word
-                // means, can change what a recipe's nutrition adds up to —
-                // and that is cached per recipe text, which never notices.
-                nutritionCache: nutritionStore,
-                // And it decides which lines are in the fixed form at all.
+                household: householdIngredients,
+                // It decides which lines are in the fixed form at all.
                 readsRecipes: true
             )
             _catalog = State(initialValue: catalogLibrary)
@@ -135,10 +119,13 @@ struct SousApp: App {
                 imageStore: images,
                 enrichmentStore: enrichmentStore,
                 nutritionStore: nutritionStore,
-                ingredientReviewStore: ingredientReviews,
                 catalogLibrary: catalogLibrary
             )
             _library = State(initialValue: recipeLibrary)
+            // A local answer that adds a word, or takes one back, changes
+            // what the stored search index should have read; so does a
+            // household switch onto other answers.
+            catalogLibrary.wordsDidChange = { await recipeLibrary.reindexSearch() }
             let planLibrary = MealPlanLibrary(store: plan, recipeStore: recipes)
             _mealPlan = State(initialValue: planLibrary)
             let shoppingLibrary = ShoppingLibrary(
@@ -335,8 +322,7 @@ struct SousApp: App {
     }
 
     /// Moves the household's rows out of the SwiftData store, if any are
-    /// still there — recipes, pictures, plan, shopping list, vocabulary and
-    /// the review marks.
+    /// still there — recipes, pictures, plan and shopping list.
     ///
     /// No marker guarding it and no progress shown, because there is no
     /// installed base to migrate: on a fresh device the source is empty and
@@ -383,38 +369,25 @@ struct SousApp: App {
         await library.reload()
     }
 
-    /// Phase 6's reconciliation, and only when there is something to
-    /// reconcile: the marker says which data this device last ran against,
-    /// and an unchanged data set means no mapping can have been orphaned
-    /// since the last launch. The set changes with an app update that ships
-    /// newer data and with a fetched set this launch activated
+    /// Rebuilds the stored search index when the data set this device runs
+    /// on has changed since the last launch: new data can mean new
+    /// relations — a variety gaining its parent — and the denormalized index
+    /// only learns those on a save. The set changes with an app update that
+    /// ships newer data and with a fetched set this launch activated
     /// (`DataSet.launch`); both change the fingerprint the same way.
     ///
-    /// Renamed ids are not rewritten here. A household row holding an old id
-    /// is read through the set's rename map, and rewritten only when it is
-    /// saved anyway: every device activates on a different day, and a
-    /// member may not be allowed to write the owner's rows.
+    /// Nothing is reconciled any more: the catalog answers, and a vanished
+    /// row is a data fix, not a question for the cook (INGREDIENTS-DATA §3 A).
+    /// Renamed ids are not rewritten here either. A household row holding an
+    /// old id is read through the set's rename map.
     ///
-    /// Everything else concept §7 asks for needs no run at all. Changed
-    /// values reach the cook because a basis stores a code and reads its
-    /// numbers through the shipped table on every read — silently, per
-    /// decision D. A vanished code already reads as orphaned. What the pass
-    /// adds is the list, so the cook is told rather than left to find out one
-    /// recipe at a time.
-    ///
-    /// The marker is written only after the pass returns, so a crash in
-    /// between costs a repeated run rather than a skipped one — and the pass
-    /// is idempotent, which is what makes that the cheap failure.
-    private func reconcileBundledData() async {
+    /// The marker is written only after the reindex, so a crash in between
+    /// costs a repeated run rather than a skipped one.
+    private func reindexAfterDataChange() async {
         let stamp = BundledDataMarker.current()
         guard marker.hasChanged(from: stamp) else { return }
-        guard let report = try? await orphanReconciliation.run() else { return }
-        // New data can also mean new relations — a variety gaining its
-        // parent — and the denormalized search index only learns those on
-        // a save. Same trigger, same idempotence.
         await library.reindexSearch()
         marker.record(stamp)
-        dataUpdate.didFindOrphans = !report.orphanedNames.isEmpty
     }
 
     /// Opens a recipe handed over from another device, the way Spotlight's
@@ -552,7 +525,6 @@ struct SousApp: App {
                 .environment(cookHandoff)
                 .environment(selection)
                 .environment(commands)
-                .environment(dataUpdate)
                 .environment(onboarding)
                 .environment(navigation)
                 .environment(initialImport)
@@ -577,9 +549,9 @@ struct SousApp: App {
                 }
                 .task {
                     cloudKitLog.start()
-                    // The move first, then the reconciliation: the latter
-                    // reads the vocabulary, and the move is what puts it
-                    // where the reading side looks.
+                    // The move first, then the reindex: the latter reads
+                    // the recipes, and the move is what puts them where the
+                    // reading side looks.
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()
@@ -607,7 +579,7 @@ struct SousApp: App {
                     onboarding.decide(
                         hasRecipes: !library.recipes.isEmpty || library.importProgress != nil
                     )
-                    await reconcileBundledData()
+                    await reindexAfterDataChange()
                     // Before the shipped data can move under them: answers
                     // stamped over the parsed lines move to the raw text.
                     await library.restampStepReferences()
@@ -750,13 +722,12 @@ struct SousApp: App {
                 Button("Rezepte auswählen") { commands.picked = [] }
                     .disabled(commands.picked != nil || navigation.section != .recipes)
                 Divider()
-                Button("Zutaten verwalten…") { commands.panel = .catalog }
+                Button("Zutatenkatalog…") { commands.panel = .catalog }
                     .keyboardShortcut("l", modifiers: [.command, .shift])
                 Button("Kategorien verwalten…") { commands.panel = .categories }
                     .keyboardShortcut("k", modifiers: [.command, .shift])
                 Divider()
                 Button("Papierkorb…") { commands.panel = .trash }
-                Button("Vokabular exportieren…") { commands.panel = .harvest }
             }
             // The Mac's way to switch: its window draws no title for the menu
             // the phone hangs there. The iPad gets both.

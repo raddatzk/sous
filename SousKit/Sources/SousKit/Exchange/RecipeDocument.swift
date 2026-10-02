@@ -61,7 +61,6 @@ public struct RecipeDocument: Hashable, Sendable {
         /// What the figure rests on, in words — never left off: a sum
         /// without it would look more settled than it is.
         public var caption: String
-        public var isProvisional: Bool
     }
 
     public struct Source: Hashable, Sendable {
@@ -202,8 +201,7 @@ public struct RecipeDocument: Hashable, Sendable {
                 // BLS reports sodium; the label shows salt.
                 .init(label: "Salz", value: mass(info.sodiumMg * 2.5 / 1000), isIndented: false),
             ],
-            caption: caption,
-            isProvisional: coverage.isProvisional
+            caption: caption
         )
     }
 

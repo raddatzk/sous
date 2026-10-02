@@ -25,7 +25,7 @@ public struct PlannerCandidate: Identifiable, Hashable, Sendable {
     /// them; it merely contributes nothing to the mix.
     public var perPortion: NutritionInfo?
     /// Whether `perPortion` is a floor rather than the dish — ingredients
-    /// without figures left out, or resting on unconfirmed bases. Same
+    /// without figures left out. Same
     /// standing the list's "≈ 847 kcal" chip has: shown, never naked.
     public var isProvisional: Bool
     public var title: String

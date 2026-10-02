@@ -75,14 +75,13 @@ struct LocalAnswerStoreTests {
     }
 }
 
-/// A store written before phase 6a — without `CDLocalAnswer` — opens under
-/// the current model, keeps the vocabulary exactly as it was, and takes
-/// local answers. Run twice, the second opening changes nothing.
+/// A store written before phase 6a — without `CDLocalAnswer`, with the
+/// entities 6b retired — opens under the current model, keeps its recipes,
+/// and takes local answers. Run twice, the second opening changes nothing.
 ///
 /// No take-over of vocabulary rows runs (decided 2026-10-01: Sous is still in
-/// development, data can be reset; the catalog-worthy part leaves through the
-/// harvest export instead), so "the new entity fills" is a write through the
-/// store after the migration.
+/// development, data can be reset), so "the new entity fills" is a write
+/// through the store after the migration.
 @Suite("Local answers migrate in")
 struct LocalAnswerMigrationTests {
     private func temporaryStoreURL() throws -> URL {
@@ -112,30 +111,22 @@ struct LocalAnswerMigrationTests {
         }
     }
 
-    /// The vocabulary as plain values, every field compared.
-    private func vocabulary(in container: NSPersistentContainer) async throws -> [IngredientVocabularyEntry] {
-        try await CoreDataVocabularyStore(container: container).entries().sorted { $0.name < $1.name }
-    }
-
-    @Test("An old store opens, the vocabulary stays untouched, and local answers can be written")
+    @Test("An old store opens, keeps its recipes, and local answers can be written")
     func oldStoreOpensAndTakesLocalAnswers() async throws {
         let url = try temporaryStoreURL()
-        let old = SousManagedObjectModel.makeModel(includingRetiredEntities: false, includingLocalAnswers: false)
+        let old = SousManagedObjectModel.makeModel(
+            includingRetiredEntities: true, includingLocalAnswers: false, includingHouseholdIngredients: false
+        )
         #expect(old.entitiesByName[SousManagedObjectModel.localAnswerEntityName] == nil)
 
         let before = try open(url, with: old)
-        let vocabularyStore = CoreDataVocabularyStore(container: before)
-        try await vocabularyStore.save(IngredientVocabularyEntry(name: "Mehl", isPantry: true, preferredStore: "Markt"))
-        try await vocabularyStore.save(IngredientVocabularyEntry(
-            name: "Ajvar", aliases: ["Paprikamus"], category: .canned, isOwnIngredient: true,
-            unitWeightsGrams: ["EL": 15]
-        ))
-        let written = try await vocabulary(in: before)
+        let saved = try await CoreDataRecipeStore(container: before)
+            .save(Recipe(title: "Brot", servings: 4, ingredientsText: "500 g Mehl"))
         try close(before)
 
         for _ in 0..<2 {
             let after = try open(url, with: SousManagedObjectModel.shared)
-            #expect(try await vocabulary(in: after) == written)
+            #expect(try await CoreDataRecipeStore(container: after).recipe(id: saved.id)?.title == "Brot")
             try close(after)
         }
 
@@ -144,8 +135,6 @@ struct LocalAnswerMigrationTests {
         #expect(try await answers.answers().isEmpty)
         try await answers.save(LocalAnswer(name: "Rauchtofu", kind: .countsAs, targetID: "tofu"))
         #expect(try await answers.answers().map(\.name) == ["Rauchtofu"])
-        // Writing an answer leaves the frozen vocabulary as it was.
-        #expect(try await vocabulary(in: after) == written)
         try close(after)
     }
 }

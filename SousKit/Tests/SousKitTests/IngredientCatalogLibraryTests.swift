@@ -3,185 +3,14 @@ import SwiftData
 import Testing
 @testable import SousKit
 
+/// The household's catalog since phase 6b: the data set's words, the local
+/// answers over them, and pantry, store and note beside them. Nothing the
+/// household says changes what an ingredient *is* (INGREDIENTS-DATA §3 A–C).
 @MainActor
-@Suite("Own ingredients")
+@Suite("Household catalog")
 struct IngredientCatalogLibraryTests {
     private func makeLibrary(_ backend: StoreBackend) throws -> IngredientCatalogLibrary {
-        IngredientCatalogLibrary(store: try backend.makeVocabularyStore())
-    }
-
-    @Test("An added ingredient becomes part of the catalog", arguments: StoreBackend.allCases)
-    func addingAnIngredient(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.reload()
-        #expect(library.catalog.ingredient(for: "Gochujang") == nil)
-
-        await library.save(CatalogIngredient(
-            name: "Gochujang",
-            aliases: ["Gochu"],
-            category: .canned
-        ))
-
-        #expect(library.catalog.canonicalName(for: "gochu") == "Gochujang")
-        #expect(library.catalog.category(for: "Gochujang") == .canned)
-        #expect(library.ownIngredients.map(\.name) == ["Gochujang"])
-    }
-
-    @Test("An own entry overrides the bundled one of the same name", arguments: StoreBackend.allCases)
-    func ownEntryWins(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        // Bundled: Olive is a vegetable. Someone may disagree.
-        await library.save(CatalogIngredient(name: "Olive", aliases: ["Oliven"], category: .canned))
-
-        #expect(library.catalog.category(for: "Oliven") == .canned)
-    }
-
-    @Test("Only own entries can be edited or removed", arguments: StoreBackend.allCases)
-    func ownershipIsVisible(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.save(CatalogIngredient(name: "Gochujang", category: .canned))
-
-        let own = try #require(library.catalog.ingredient(for: "Gochujang"))
-        let bundled = try #require(library.catalog.ingredient(for: "Tomate"))
-        #expect(library.isOwn(own))
-        #expect(!library.isOwn(bundled))
-
-        await library.delete(own)
-        #expect(library.catalog.ingredient(for: "Gochujang") == nil)
-    }
-
-    @Test("A spelling taught to a bundled entry resolves to it", arguments: StoreBackend.allCases)
-    func aliasOverrideOnABundledEntry(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.reload()
-        let tomato = try #require(library.catalog.ingredient(for: "Tomate"))
-        #expect(library.catalog.ingredient(for: "Ochsenherz") == nil)
-
-        await library.addAlias("Ochsenherz", to: tomato)
-
-        #expect(library.catalog.canonicalName(for: "Ochsenherz") == "Tomate")
-        // The bundled entry itself is untouched — only the merged view of it
-        // carries the extra spelling.
-        #expect(IngredientCatalog.bundled.ingredient(for: "Ochsenherz") == nil)
-        #expect(library.ownAliases(of: tomato) == ["Ochsenherz"])
-    }
-
-    @Test("A spelling taught to an own entry resolves to it too", arguments: StoreBackend.allCases)
-    func aliasOverrideOnAnOwnEntry(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.save(CatalogIngredient(name: "Gochujang", category: .canned))
-        let own = try #require(library.catalog.ingredient(for: "Gochujang"))
-
-        await library.addAlias("Gochu-Paste", to: own)
-
-        #expect(library.catalog.canonicalName(for: "Gochu-Paste") == "Gochujang")
-    }
-
-    @Test("A taught spelling can be taken back", arguments: StoreBackend.allCases)
-    func aliasOverrideIsRemovable(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.reload()
-        let tomato = try #require(library.catalog.ingredient(for: "Tomate"))
-
-        await library.addAlias("Ochsenherz", to: tomato)
-        await library.removeAlias("Ochsenherz", from: tomato)
-
-        #expect(library.catalog.ingredient(for: "Ochsenherz") == nil)
-    }
-
-    @Test("Taking over a bundled entry keeps the spelling taught to it", arguments: StoreBackend.allCases)
-    func ownEntryShadowsAnOverriddenBundledOne(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.reload()
-        let bundled = try #require(library.catalog.ingredient(for: "Olive"))
-        await library.addAlias("Kalamata", to: bundled)
-
-        // Now the cook defines "Olive" themselves — from the entry as it
-        // stands, which is what the form hands back. Spelling and entry live
-        // in one vocabulary row now, so taking the entry over must not
-        // quietly drop what was taught to it.
-        let taught = try #require(library.catalog.ingredient(for: "Olive"))
-        #expect(taught.aliases.contains("Kalamata"))
-        var own = taught
-        // The *written* category is what a save stores; the resolved one is
-        // read-only and follows from it.
-        own.ownCategory = .canned
-        await library.save(own)
-
-        #expect(library.catalog.canonicalName(for: "Kalamata") == "Olive")
-        #expect(library.catalog.category(for: "Kalamata") == .canned)
-        #expect(library.catalog.ingredients.filter { $0.key == "olive" }.count == 1)
-    }
-
-    @Test("Filing a parent under its own variety is refused and reported", arguments: StoreBackend.allCases)
-    func cyclicParentIsRefused(_ backend: StoreBackend) async throws {
-        let library = try makeLibrary(backend)
-        await library.reload()
-        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
-        #expect(library.catalog.ingredient(for: "Kirschtomate")?.parentName == "Tomate")
-
-        let written = await library.setParent("Kirschtomate", of: "Tomate")
-
-        // Refused loudly - the library surfaces what the store threw and
-        // tells the caller, so a form does not go on saving around it - and
-        // refused whole: Tomate is not a variety of anything afterwards.
-        #expect(!written)
-        #expect(library.errorMessage?.isEmpty == false)
-        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
-        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
-    }
-
-    @Test("A loop through a shipped variety is refused where the store cannot see it", arguments: StoreBackend.allCases)
-    func cycleThroughShippedVarietyIsRefused(_ backend: StoreBackend) async throws {
-        // Cocktailtomate → Tomate ships in the data and is a row in no store.
-        // Filing Tomate under Cocktailtomate passes both stores' checks - they
-        // only walk rows - and would put every tomato recipe under
-        // "cocktailtomate" in the search index. The library knows the merged
-        // catalog, so the library refuses.
-        let library = try makeLibrary(backend)
-        await library.reload()
-        #expect(library.catalog.ingredient(for: "Cocktailtomate")?.parentName == "Tomate")
-
-        #expect(await library.setParent("Cocktailtomate", of: "Tomate") == false)
-
-        #expect(library.errorMessage?.isEmpty == false)
-        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
-        #expect(library.wouldCycle(child: "Tomate", parent: "Cocktailtomate"))
-        #expect(!library.wouldCycle(child: "Cocktailtomate", parent: "Tomate"))
-    }
-
-    @Test("A child named by one of its spellings is caught in the loop check too", arguments: StoreBackend.allCases)
-    func cycleThroughAnAliasIsRefused(_ backend: StoreBackend) async throws {
-        // "Tomaten" is a spelling of Tomate. Compared as raw keys, "tomaten"
-        // is no ancestor of Kirschtomate and the write went through; on
-        // reload the entry folded onto Tomate, and Tomate → Kirschtomate →
-        // Tomate was in the catalog with every tomato recipe indexed under
-        // Kirschtomate. The check reads both names the way the catalog does.
-        let library = try makeLibrary(backend)
-        await library.reload()
-        #expect(await library.save(CatalogIngredient(name: "Kirschtomate", category: .vegetables, parentName: "Tomate")))
-
-        #expect(await library.setParent("Kirschtomate", of: "Tomaten") == false)
-
-        #expect(library.errorMessage?.isEmpty == false)
-        #expect(library.wouldCycle(child: "Tomaten", parent: "Kirschtomate"))
-        #expect(library.catalog.ingredient(for: "Tomate")?.parentName == nil)
-        #expect(library.catalog.ancestors(of: "Kirschtomate").map(\.name) == ["Tomate"])
-    }
-
-    @Test("A brand-new ingredient cannot be its own parent, in either store", arguments: StoreBackend.allCases)
-    func newIngredientAsItsOwnParentIsRefused(_ backend: StoreBackend) async throws {
-        // The Core Data row used to get its key only after the cycle check,
-        // so a fresh entry naming itself passed the "same key" guard and came
-        // out as two rows keyed alike - one of them its own parent.
-        let library = try makeLibrary(backend)
-        await library.reload()
-
-        await library.save(CatalogIngredient(name: "Gochujang", category: .canned, parentName: "Gochujang"))
-
-        #expect(library.errorMessage?.isEmpty == false)
-        #expect(library.catalog.ingredients.filter { $0.key == "gochujang" }.count <= 1)
-        #expect(library.catalog.ingredient(for: "Gochujang")?.parentName == nil)
+        try backend.makeCatalogLibrary()
     }
 
     @Test("A recipe's unknown ingredients are found, links and knowns skipped", arguments: StoreBackend.allCases)
@@ -201,17 +30,113 @@ struct IngredientCatalogLibraryTests {
         #expect(unknown == ["Gochujang", "Sumach"])
     }
 
-    @Test("A shipped word the household patched keeps the unit its spellings imply",
+    @Test("Household fields leave the shipped word whole, alias units included",
           arguments: StoreBackend.allCases)
-    func patchedWordKeepsAliasUnits(_ backend: StoreBackend) async throws {
-        // A pantry flag makes a vocabulary row for Knoblauch, and the rebuild
-        // lays that row over the shipped word. The patch used to rebuild the
-        // word without its alias units, so "2 Knoblauchzehen" read as two
-        // bulbs in exactly the households that cared about garlic.
+    func householdFieldsLeaveTheWordWhole(_ backend: StoreBackend) async throws {
+        // Until 6b a pantry flag made a vocabulary row that was laid over the
+        // shipped word, and the patch once dropped its alias units: "2
+        // Knoblauchzehen" read as two bulbs in exactly the households that
+        // cared about garlic. Household fields are beside the word now.
         let library = try makeLibrary(backend)
         await library.reload()
         await library.setPantry(true, name: "Knoblauch")
+        await library.setShoppingPreferences(store: "Markt", note: "die violette", name: "Knoblauch")
 
         #expect(library.catalog.reading(Quantity(2, .piece), for: "Knoblauchzehen").unit == .clove)
+        #expect(library.catalog.ingredient(for: "Knoblauch") == IngredientCatalog.current.ingredient(for: "Knoblauch"))
+        let entry = try #require(library.householdIngredient(for: "Knoblauchzehen"))
+        #expect(entry.isPantry)
+        #expect(entry.preferredStore == "Markt")
+        #expect(entry.shoppingNote == "die violette")
+    }
+
+    @Test("A row with nothing left to say is deleted, and survives a reload otherwise",
+          arguments: StoreBackend.allCases)
+    func emptyRowsGo(_ backend: StoreBackend) async throws {
+        let stores = try backend.makeStores()
+        let library = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
+        await library.reload()
+        await library.setPantry(true, name: "Mehl")
+        await library.setShoppingPreferences(store: "  ", note: nil, name: "Mehl")
+
+        let reread = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
+        await reread.reload()
+        #expect(reread.householdIngredient(for: "Mehl")?.isPantry == true)
+        #expect(reread.householdIngredient(for: "Mehl")?.preferredStore == nil)
+
+        await reread.setPantry(false, name: "Mehl")
+        #expect(reread.householdIngredient(for: "Mehl") == nil)
+        #expect(try await stores.household.entries().isEmpty)
+    }
+
+    @Test("A name counted as Tofu keeps its own household row (R2)", arguments: StoreBackend.allCases)
+    func countedNameHasItsOwnRow(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        await library.reload()
+        let tofu = try #require(library.catalog.ingredient(for: "Tofu"))
+        #expect(await library.count("Rauchtofu", as: tofu))
+        await library.setPantry(true, name: "Tofu")
+        await library.setShoppingPreferences(store: "Bioladen", note: nil, name: "Tofu")
+
+        #expect(library.householdIngredient(for: "Rauchtofu") == nil)
+        await library.setPantry(true, name: "Rauchtofu")
+        #expect(library.householdIngredient(for: "Rauchtofu")?.key == "name:rauchtofu")
+        #expect(library.householdIngredient(for: "Rauchtofu")?.preferredStore == nil)
+    }
+
+    @Test("Only an answer that adds or takes back a word asks for a reindex", arguments: StoreBackend.allCases)
+    func wordsDidChangeOnlyForWords(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        var calls = 0
+        library.wordsDidChange = { calls += 1 }
+        await library.reload()
+        #expect(calls == 0)
+
+        // A weight for a word the catalog knows adds no word.
+        await library.setLocalWeight(180, unit: .piece, of: "Zwiebel")
+        #expect(calls == 0)
+
+        let tofu = try #require(library.catalog.ingredient(for: "Tofu"))
+        await library.count("Rauchtofu", as: tofu)
+        #expect(calls == 1)
+
+        // A pantry flag is no word either.
+        await library.setPantry(true, name: "Rauchtofu")
+        #expect(calls == 1)
+
+        let answer = try #require(library.localAnswer(for: "Rauchtofu"))
+        await library.deleteLocalAnswer(answer)
+        #expect(calls == 2)
+    }
+
+    @Test("Emptying a household takes its answers and rows, and leaves the catalog", arguments: StoreBackend.allCases)
+    func removeHouseholdAnswers(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        await library.reload()
+        let tofu = try #require(library.catalog.ingredient(for: "Tofu"))
+        await library.count("Rauchtofu", as: tofu)
+        await library.setPantry(true, name: "Mehl")
+        #expect(library.householdRowCount == 2)
+
+        await library.removeHouseholdAnswers()
+
+        #expect(library.householdRowCount == 0)
+        #expect(library.catalog.ingredient(for: "Rauchtofu") == nil)
+        #expect(library.catalog.ingredient(for: "Tofu") != nil)
+    }
+
+    @Test("A local weight is an own weight of the name's answer, and goes when taken back",
+          arguments: StoreBackend.allCases)
+    func localWeight(_ backend: StoreBackend) async throws {
+        let library = try makeLibrary(backend)
+        await library.reload()
+
+        await library.setLocalWeight(180, unit: .piece, of: "Zwiebeln")
+        let answer = try #require(library.localAnswer(for: "Zwiebel"))
+        #expect(answer.catalogID == library.catalog.ingredient(for: "Zwiebel")?.catalogID)
+        #expect(answer.weights["Stk."]?.grams == 180)
+
+        await library.setLocalWeight(nil, unit: .piece, of: "Zwiebel")
+        #expect(library.localAnswer(for: "Zwiebel") == nil)
     }
 }
