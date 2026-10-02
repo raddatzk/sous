@@ -42,7 +42,10 @@ enum RecipeContentHash {
     /// Raised to 11 when the household vocabulary stopped taking part
     /// (phase 6b): a spelling or variety the cook once taught no longer
     /// reaches a name, and no basis is "proposed" or "orphaned" any more.
-    static let readingVersion = 11
+    /// Raised to 12 when a value the source leaves out became absent rather
+    /// than zero (phase 7): a cached figure carries no per-nutrient coverage,
+    /// and the NRF badge and the fibre tag now ask for it.
+    static let readingVersion = 12
 
     /// What the data a recipe was read against is: the reading version and
     /// the data set's release, `r<readingVersion>-<dataVersion>`.

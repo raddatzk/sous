@@ -56,14 +56,17 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// The word's catalog id — ``KitchenWords/Word/id``. Optional for the
     /// same reason.
     public var id: String?
+    /// What makes the word a product — ``KitchenWords/Word/product``.
+    public var product: CatalogProduct?
 
     public init(
         word: String, aliases: [String] = [], category: IngredientCategory? = nil,
         targets: [SynonymTarget] = [], candidates: [String] = [],
         origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false,
-        aliasUnits: [String: String]? = nil, id: String? = nil
+        aliasUnits: [String: String]? = nil, id: String? = nil, product: CatalogProduct? = nil
     ) {
         self.id = id
+        self.product = product
         self.word = word
         self.aliases = aliases
         self.category = category
@@ -172,7 +175,8 @@ public struct SynonymTable: Sendable {
                 parent: word.parent,
                 hasNoValues: entry?.withoutValues ?? false,
                 aliasUnits: word.aliasUnits.isEmpty ? nil : word.aliasUnits,
-                id: word.id
+                id: word.id,
+                product: word.product
             )
         })
     }
@@ -186,6 +190,7 @@ public struct SynonymTable: Sendable {
             )
             ingredient.aliasUnits = $0.aliasUnits ?? [:]
             ingredient.catalogID = $0.id
+            ingredient.product = $0.product
             return ingredient
         }
     }

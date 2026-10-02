@@ -36,6 +36,10 @@ public struct NutritionCatalog: Sendable {
             ? CatalogNutrition.blsSource : bls.source.datasetVersion
         var entries: [CatalogNutrition] = []
         entries.reserveCapacity(synonyms.entries.count)
+        let nameByID = Dictionary(
+            synonyms.entries.compactMap { entry in entry.id.map { ($0, entry.word) } },
+            uniquingKeysWith: { first, _ in first }
+        )
         for word in synonyms.entries {
             var bases: [String: NutritionBasis] = [:]
             var group: String?
@@ -53,7 +57,7 @@ public struct NutritionCatalog: Sendable {
                     // names the body that measured it, and "BLS 4.0" under a
                     // figure the BLS never published would be a false claim,
                     // not a rounding of the truth.
-                    source: row.source ?? source
+                    source: row.labelledSource ?? source
                 )
             }
             // A word the source does not list at all arrives *answered*,
@@ -94,14 +98,14 @@ public struct NutritionCatalog: Sendable {
             // knows this and has no values", which is what the gap reason
             // reads off it.
             guard !bases.isEmpty || !unitWeights.isEmpty || !candidates.isEmpty
-                    || density != nil || word.parent != nil
+                    || density != nil || word.parent != nil || word.product?.like != nil
             else { continue }
             // The word's own line of attribution follows its basis: a word
             // resting on a supplement is shown as resting on that supplement,
             // not on the catalog it is not in.
             let wordSource = bases.values
                 .max { $0.weight < $1.weight }?.source ?? source
-            entries.append(CatalogNutrition(
+            var entry = CatalogNutrition(
                 name: word.word,
                 bases: bases,
                 unitWeightsGrams: unitWeights,
@@ -110,7 +114,9 @@ public struct NutritionCatalog: Sendable {
                 source: wordSource,
                 candidateCodes: candidates,
                 parentName: word.parent
-            ))
+            )
+            entry.likeName = word.product?.like.flatMap { nameByID[$0] }
+            entries.append(entry)
         }
         return NutritionCatalog(entries: entries)
     }
@@ -127,6 +133,14 @@ public struct NutritionCatalog: Sendable {
     public func nutrition(forCanonicalName name: String) -> CatalogNutrition? {
         guard let entry = byName[IngredientCatalog.normalize(name)] else { return nil }
         guard !entry.hasBases else { return entry }
+        // A product without a label counts like its generic word, which may
+        // itself be a variety. `like` never names a product (the compiler
+        // says so), so this does not chain.
+        if let likeName = entry.likeName,
+           IngredientCatalog.normalize(likeName) != IngredientCatalog.normalize(entry.name),
+           let generic = nutrition(forCanonicalName: likeName), generic.hasBases {
+            return entry.estimating(like: generic)
+        }
         // Up the chain to the nearest ancestor with a basis — any depth, since
         // the shipped data already held Pilz → Champignon → Brauner Champignon
         // and the store no longer refuses the shape. A seen-set rather than a

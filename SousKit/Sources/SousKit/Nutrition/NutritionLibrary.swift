@@ -58,7 +58,7 @@ public final class NutritionLibrary {
     private func rebuild() {
         guard builtFromRevision != catalogLibrary.revision else { return }
         builtFromRevision = catalogLibrary.revision
-        nutritionCatalog = catalogLibrary.appliedAnswers.nutrition(over: .current)
+        nutritionCatalog = catalogLibrary.appliedAnswers.nutrition(over: catalogLibrary.dataSet.nutrition)
         answersFingerprint = catalogLibrary.localAnswers.fingerprint
     }
 

@@ -43,11 +43,18 @@ public final class IngredientCatalogLibrary {
     /// numbers.
     public var wordsDidChange: (@MainActor () async -> Void)?
 
+    /// The data set the answers are laid over: the process's, unless a test
+    /// brings its own (two products that `Data/` does not hold).
+    public let dataSet: DataSet
+
     public init(
         localAnswers: any LocalAnswerStore = InMemoryLocalAnswerStore(),
         household: any HouseholdIngredientStore = InMemoryHouseholdIngredientStore(),
-        readsRecipes: Bool = false
+        readsRecipes: Bool = false,
+        dataSet: DataSet = .current
     ) {
+        self.dataSet = dataSet
+        self.catalog = dataSet.catalog
         self.localAnswerStore = localAnswers
         self.householdStore = household
         self.readsRecipes = readsRecipes
@@ -104,7 +111,7 @@ public final class IngredientCatalogLibrary {
     /// The catalog before the local answers: the data set's. What "does the
     /// catalog know this name" is asked of, since a name only a local answer
     /// taught is not one it knows.
-    public var catalogWithoutLocalAnswers: IngredientCatalog { .current }
+    public var catalogWithoutLocalAnswers: IngredientCatalog { dataSet.catalog }
 
     /// What a local answer says about `name` — applied, or fallen silent
     /// since the catalog learned the name (R3). `nil` where none speaks.
@@ -125,8 +132,8 @@ public final class IngredientCatalogLibrary {
     /// `nil` for a name it only counts as something else — a "zählt wie" is
     /// recognition, not a purchase, and says nothing about a brand.
     ///
-    /// Until catalog products carry a brand of their own (phase 7), a chosen
-    /// catalog product is named by its whole name.
+    /// A chosen catalog product is named by its brand ("ja!"); a target
+    /// without one, a plain word chosen as a purchase, by its whole name.
     public func brand(for name: String) -> String? {
         let written = IngredientCatalog.normalize(name)
         let id = catalogWithoutLocalAnswers.ingredient(for: name)?.catalogID
@@ -137,7 +144,7 @@ public final class IngredientCatalogLibrary {
         guard answer.kind == .product, let target = answer.targetID.flatMap(catalog.ingredient(forID:)) else {
             return nil
         }
-        return target.name
+        return target.product?.brand ?? target.name
     }
 
     /// Whether the data set's catalog, without the local answers, knows

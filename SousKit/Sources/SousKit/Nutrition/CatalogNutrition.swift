@@ -47,6 +47,10 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
     /// say "geerbt von Tomate" instead of presenting the parent's row as the
     /// variety's own. `nil` for a basis that is the ingredient's own.
     public var inheritedFrom: String?
+    /// The generic word a product without label values counts like — "wie
+    /// Margarine". An estimate, and said to be one wherever the figure is
+    /// explained, until the label's values replace it.
+    public var estimatedLike: String?
 
     public init(
         values: NutritionInfo,
@@ -55,7 +59,8 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         status: Status = .computed,
         weight: Double = 0,
         source: String = CatalogNutrition.blsSource,
-        inheritedFrom: String? = nil
+        inheritedFrom: String? = nil,
+        estimatedLike: String? = nil
     ) {
         self.values = values
         self.code = code
@@ -64,6 +69,7 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         self.weight = weight
         self.source = source
         self.inheritedFrom = inheritedFrom
+        self.estimatedLike = estimatedLike
     }
 
     /// This basis as a variety receives it from `parent`: the same basis,
@@ -95,7 +101,8 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
             weight: try container.decodeIfPresent(Double.self, forKey: .weight) ?? 0,
             source: try container.decodeIfPresent(String.self, forKey: .source)
                 ?? CatalogNutrition.blsSource,
-            inheritedFrom: try container.decodeIfPresent(String.self, forKey: .inheritedFrom)
+            inheritedFrom: try container.decodeIfPresent(String.self, forKey: .inheritedFrom),
+            estimatedLike: try container.decodeIfPresent(String.self, forKey: .estimatedLike)
         )
     }
 
@@ -152,6 +159,11 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// the ancestor whose bases these are. `nil` on an entry standing on its
     /// own numbers. What the form reads to label a figure as inherited.
     public var inheritedFrom: String?
+    /// For a product without label values: the generic word it counts like
+    /// (`like` in the data), resolved at lookup time like a parent, so a
+    /// local answer about that word reaches the product too. Never used once
+    /// the product has values of its own.
+    public var likeName: String?
 
     public init(
         name: String,
@@ -213,6 +225,7 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
             ) ?? [],
             parentName: try container.decodeIfPresent(String.self, forKey: .parentName)
         )
+        likeName = try container.decodeIfPresent(String.self, forKey: .likeName)
     }
 
     public var perHundredGrams: [String: NutritionInfo] { bases.mapValues(\.values) }
@@ -283,6 +296,21 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
         merged.densityGramsPerMl = densityGramsPerMl ?? parent.densityGramsPerMl
         merged.source = parent.source
         if merged.candidateCodes.isEmpty { merged.candidateCodes = parent.candidateCodes }
+        return merged
+    }
+
+    /// This product counted like `generic`: its values, weights and density,
+    /// every basis marked as an estimate (INGREDIENTS-DATA-PLAN phase 7, "a
+    /// product needs no values"). The same as a household's brand choice
+    /// lends its target, said out loud here because it is the catalog's.
+    public func estimating(like generic: CatalogNutrition) -> CatalogNutrition {
+        var merged = inheriting(from: generic)
+        merged.bases = generic.bases.mapValues {
+            var basis = $0
+            basis.estimatedLike = generic.name
+            return basis
+        }
+        merged.inheritedFrom = nil
         return merged
     }
 }

@@ -93,8 +93,10 @@ public enum NutritionTagging {
         if proteinShare >= proteinEnergyShare {
             tags.append(NutritionTag(kind: .proteinRich, value: proteinShare, completeness: completeness))
         }
+        // Fibre is voluntary on a label: a sum whose fibre rests on too
+        // little of the dish says nothing either way.
         let fiberDensity = nutrition.perPortion.fiberG / (energy / 100)
-        if fiberDensity >= fiberPer100kcal {
+        if fiberDensity >= fiberPer100kcal, coverage.covers(.fiberG) {
             tags.append(NutritionTag(kind: .fiberRich, value: fiberDensity, completeness: completeness))
         }
         return tags

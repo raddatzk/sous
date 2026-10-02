@@ -321,9 +321,12 @@ public struct IngredientCatalog: Sendable {
             return (3, name.count)
         }
 
+        // A discontinued product still reads and computes; it is only no
+        // longer offered.
         return ingredients
             .filter { ingredient in
-                ingredient.keys.contains { $0.contains(query) }
+                ingredient.product?.isDiscontinued != true
+                    && ingredient.keys.contains { $0.contains(query) }
             }
             .sorted { first, second in
                 rank(first) == rank(second)

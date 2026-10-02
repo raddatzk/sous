@@ -20,10 +20,4 @@ enum DecimalText {
     static func text(_ value: Double) -> String {
         value == value.rounded() ? String(Int(value)) : String(value)
     }
-
-    /// Blank for anything at or below zero: in a form, "did not say" and
-    /// "said zero" have to stay apart.
-    static func optionalText(_ value: Double) -> String {
-        value > 0 ? text(value) : ""
-    }
 }

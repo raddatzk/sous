@@ -571,14 +571,16 @@ struct RecipeDetailView: View {
             // it can differ from what the recipe is written for and a
             // second, unscaled number beside it would just read as a
             // mismatch.
-            if !timeItems.isEmpty || effort != nil || nutrition?.coverage.isComplete == true {
+            if !timeItems.isEmpty || effort != nil || nutrition?.coverage.nrfIsDeterminable == true {
                 HStack(spacing: 16) {
                     // Leads the row: the rating is the one fact here worth
                     // seeing before anything else, times included. Only with
                     // full coverage — an A computed from a half-empty sum
                     // would be doubly misleading, so an incomplete recipe
-                    // gets no letter at all rather than a wrong one.
-                    if let nutrition, nutrition.coverage.isComplete {
+                    // gets no letter at all rather than a wrong one. The
+                    // same for a sum whose vitamins rest on too little of
+                    // it: a product label states none.
+                    if let nutrition, nutrition.coverage.nrfIsDeterminable {
                         NRFBadge(level: nutrition.nrfLevel)
                     }
                     ForEach(timeItems, id: \.label) { item in
@@ -1136,8 +1138,32 @@ struct RecipeDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
+                if let note = nrfNote(for: nutrition.coverage) {
+                    Text(note)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
+    }
+
+    /// Why a sum that counted every line still shows no letter: some of the
+    /// score's nutrients are not stated for enough of it, and the lines that
+    /// leave them out are named — usually a product, whose label states no
+    /// vitamins (INGREDIENTS-DATA §3 I).
+    private func nrfNote(for coverage: NutritionCoverage) -> String? {
+        guard coverage.isComplete, !coverage.nrfIsDeterminable else { return nil }
+        let missing = coverage.nrfUncovered
+        var names: [String] = []
+        for nutrient in missing {
+            for line in coverage.lines(lacking: nutrient) where !names.contains(line.ingredientName) {
+                names.append(line.ingredientName)
+            }
+        }
+        let nutrients = missing.map(\.label).formatted(.list(type: .and))
+        return "NRF-Bewertung nicht bestimmbar: \(nutrients) nicht angegeben bei "
+            + names.prefix(3).formatted(.list(type: .and))
+            + (names.count > 3 ? " und \(names.count - 3) weitere" : "") + "."
     }
 
     /// The figure never appears naked: what the sum is based on, with the
@@ -1220,7 +1246,10 @@ struct RecipeDetailView: View {
     ) -> String {
         // "geerbt von Lachs" where the figure came down the variety chain:
         // the reader most needs that named.
-        let lead = line.inheritedFrom.map { "geerbt von \($0)" } ?? "beruht auf"
+        // A product without label values counts like its generic word; that
+        // is an estimate, and says so.
+        let lead = line.estimatedLike.map { "Schätzung wie \($0)" }
+            ?? line.inheritedFrom.map { "geerbt von \($0)" } ?? "beruht auf"
         guard !line.matchesState, let state = line.state.shoppingAnnotation else {
             return withLocalTrace("\(lead): \(basis)", for: line.ingredientName)
         }

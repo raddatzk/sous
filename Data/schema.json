@@ -33,6 +33,13 @@
             "sodiumMg", "vitaminAMcg", "vitaminCMg", "vitaminDMcg", "vitaminEMg",
             "calciumMg", "ironMg", "magnesiumMg", "potassiumMg"]
   },
+  "labelValues": {
+   "description": "A row's values: the app's nutrients, plus the two a label states differently. `kj` answers for `kcal` where a label gives only kJ (÷ 4.184); `saltG` is stored as sodium (÷ 2.5). A value the source leaves out is absent, not zero.",
+   "type": "object",
+   "minProperties": 1,
+   "propertyNames": {"anyOf": [{"$ref": "#/$defs/nutrient"}, {"enum": ["kj", "saltG"]}]},
+   "additionalProperties": {"$ref": "#/$defs/number"}
+  },
   "alias": {
    "oneOf": [
     {"$ref": "#/$defs/text"},
@@ -85,7 +92,8 @@
   "inlineRow": {
    "description": "Values the BLS does not have, written out with their source. Its code is a Z code.",
    "type": "object",
-   "required": ["code", "name", "source", "per100g"],
+   "required": ["code", "name", "source"],
+   "oneOf": [{"required": ["per100g"]}, {"required": ["per100ml"]}],
    "additionalProperties": false,
    "properties": {
     "code": {"$ref": "#/$defs/code"},
@@ -94,12 +102,14 @@
     "category": {"$ref": "#/$defs/category"},
     "source": {"$ref": "#/$defs/text"},
     "checked": {"$ref": "#/$defs/date"},
-    "per": {"enum": ["as-sold", "drained"]},
-    "per100g": {
-     "type": "object",
-     "minProperties": 1,
-     "propertyNames": {"$ref": "#/$defs/nutrient"},
-     "additionalProperties": {"$ref": "#/$defs/number"}
+    "per": {
+     "description": "What the label's values refer to: the food as sold, or drained (\"pro 100 g abgetropft\").",
+     "enum": ["as-sold", "drained"]
+    },
+    "per100g": {"$ref": "#/$defs/labelValues"},
+    "per100ml": {
+     "allOf": [{"$ref": "#/$defs/labelValues"}],
+     "description": "Values per 100 ml, as EU labels state liquids; compiled to per 100 g through the entry's `density`, which it then requires."
     }
    }
   },
@@ -150,7 +160,7 @@
   },
   "product": {
    "type": "object",
-   "required": ["id", "kind", "name", "brand", "category", "nutrition"],
+   "required": ["id", "kind", "name", "brand", "category"],
    "additionalProperties": false,
    "properties": {
     "id": {"$ref": "#/$defs/id"},
@@ -161,6 +171,10 @@
     "category": {"$ref": "#/$defs/category"},
     "ean": {"type": "array", "items": {"type": "string", "pattern": "^[0-9]{8,14}$"}},
     "discontinued": {"$ref": "#/$defs/boolean"},
+    "like": {
+     "$ref": "#/$defs/id",
+     "description": "Without label values: the generic word whose values and weights the product counts with, shown as an estimate. Label values replace it. Without either the product is simply not computed."
+    },
     "density": {"$ref": "#/$defs/density"},
     "measures": {"$ref": "#/$defs/measures"},
     "nutrition": {

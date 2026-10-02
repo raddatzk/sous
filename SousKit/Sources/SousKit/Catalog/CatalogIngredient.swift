@@ -45,6 +45,11 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// encoded form: only the shipped catalog writes it. See
     /// ``IngredientCatalog/ingredient(forID:)``.
     public var catalogID: String?
+    /// Set for a finished product off a label ("ja! Vegane Butter"): its
+    /// brand and EANs. A product stands beside the ingredients, never under
+    /// one, and inherits nothing. Like `catalogID`, only the shipped catalog
+    /// writes it, so it is not part of the encoded form.
+    public var product: CatalogProduct?
 
     /// Normalized name, used as the identity.
     public var key: String { IngredientCatalog.normalize(name) }
@@ -103,5 +108,39 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// Every spelling this ingredient answers to, normalized.
     var keys: [String] {
         ([name] + aliases).map(IngredientCatalog.normalize)
+    }
+}
+
+/// What a catalog product carries beside its name (INGREDIENTS-DATA §3 I).
+public struct CatalogProduct: Codable, Hashable, Sendable {
+    /// "ja!" — what the shopping list shows beside a household's generic word.
+    public var brand: String
+    /// As strings: an EAN's leading zeros are part of it.
+    public var eans: [String]
+    /// No longer sold. Keeps its values for old recipes; offered no more.
+    public var isDiscontinued: Bool
+    /// For a product without label values: the id of the generic word it
+    /// counts like, as an estimate. `nil` once the label is in, or where
+    /// nobody said — then the product is simply not computed.
+    public var like: String?
+
+    public init(brand: String, eans: [String] = [], isDiscontinued: Bool = false, like: String? = nil) {
+        self.brand = brand
+        self.eans = eans
+        self.isDiscontinued = isDiscontinued
+        self.like = like
+    }
+}
+
+extension CatalogProduct {
+    /// Whether `code` is an EAN-8, UPC-A, EAN-13 or GTIN-14 with a right
+    /// check digit — the compiler's `gtin_is_valid`. A household's EAN is
+    /// checked so a mistyped one shows before it is shared.
+    public static func isValidEAN(_ code: String) -> Bool {
+        let digits = code.compactMap(\.wholeNumberValue)
+        guard digits.count == code.count, [8, 12, 13, 14].contains(digits.count) else { return false }
+        let total = digits.dropLast().reversed().enumerated()
+            .reduce(0) { $0 + $1.element * ($1.offset.isMultiple(of: 2) ? 3 : 1) }
+        return (10 - total % 10) % 10 == digits.last
     }
 }

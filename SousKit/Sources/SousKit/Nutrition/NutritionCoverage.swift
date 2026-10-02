@@ -120,6 +120,9 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// The ancestor the basis was taken over from, where it was:
         /// "geerbt von Lachs".
         public var inheritedFrom: String?
+        /// The generic word a product without label values was counted like:
+        /// "Schätzung: wie Margarine".
+        public var estimatedLike: String?
         /// The amount as the line wrote it — "2 EL". Kept beside the grams
         /// because the two together are the whole statement the gram bridge
         /// makes, and because correcting it means saying what one EL of this
@@ -137,6 +140,12 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
         /// A line that says "gegart" and is counted with the raw row has to
         /// be able to say so.
         public var matchesState: Bool
+        /// The energy the line added: what its share of each nutrient's
+        /// coverage is weighed by.
+        public var energy: Double
+        /// The nutrients its basis does not state — a label's micronutrients,
+        /// a BLS row's gap. Counted as nothing, and not as zero.
+        public var absent: [Nutrient]
 
         public init(
             ingredientName: String, sourceRecipeTitle: String? = nil,
@@ -144,7 +153,8 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
             candidateCodes: [String] = [],
             inheritedFrom: String? = nil,
             quantity: Quantity? = nil, grams: Double? = nil, isAssumedGrams: Bool = false,
-            state: IngredientState = .unspecified, matchesState: Bool = true
+            state: IngredientState = .unspecified, matchesState: Bool = true,
+            energy: Double = 0, absent: [Nutrient] = [], estimatedLike: String? = nil
         ) {
             self.ingredientName = ingredientName
             self.sourceRecipeTitle = sourceRecipeTitle
@@ -157,6 +167,9 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
             self.isAssumedGrams = isAssumedGrams
             self.state = state
             self.matchesState = matchesState
+            self.energy = energy
+            self.absent = absent
+            self.estimatedLike = estimatedLike
         }
 
         /// Decoded leniently, for the same reason `Gap` is.
@@ -185,7 +198,10 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
                 // every figure cached before states were read is claiming.
                 matchesState: try container.decodeIfPresent(
                     Bool.self, forKey: .matchesState
-                ) ?? true
+                ) ?? true,
+                energy: try container.decodeIfPresent(Double.self, forKey: .energy) ?? 0,
+                absent: try container.decodeIfPresent([Nutrient].self, forKey: .absent) ?? [],
+                estimatedLike: try container.decodeIfPresent(String.self, forKey: .estimatedLike)
             )
         }
 
@@ -233,6 +249,49 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
     /// This gates the NRF badge (decision O1).
     public var isComplete: Bool {
         defects.isEmpty && includedCount > 0
+    }
+
+    // MARK: - Per nutrient
+
+    /// How much of a nutrient's sum must rest on stated values before a
+    /// claim may be made from it: the NRF badge for its twelve, the fibre
+    /// tag for fibre.
+    public static let minimumNutrientShare = 0.9
+
+    /// The share of the counted energy whose lines state `nutrient`. A
+    /// product that declares no vitamin C is a gap in the vitamin C sum, not
+    /// a zero in it; weighed by energy, because the scores read the sum per
+    /// 100 kcal, and a litre of stock without a vitamin row moves them by
+    /// nothing. A sum without energy is covered where no line lacks it.
+    public func share(of nutrient: Nutrient) -> Double {
+        let energy = contributions.reduce(0) { $0 + max(0, $1.energy) }
+        let lacking = contributions.filter { $0.absent.contains(nutrient) }
+        guard energy > 0 else { return lacking.isEmpty ? 1 : 0 }
+        return 1 - lacking.reduce(0) { $0 + max(0, $1.energy) } / energy
+    }
+
+    /// Whether the sum of `nutrient` may be claimed from.
+    public func covers(_ nutrient: Nutrient) -> Bool {
+        share(of: nutrient) >= Self.minimumNutrientShare
+    }
+
+    /// The lines that do not state `nutrient`, the heaviest first — what
+    /// "nicht bestimmbar" names.
+    public func lines(lacking nutrient: Nutrient) -> [Contribution] {
+        contributions.filter { $0.absent.contains(nutrient) }.sorted { $0.energy > $1.energy }
+    }
+
+    /// The NRF score's nutrients that fall short of the share.
+    public var nrfUncovered: [Nutrient] {
+        NutrientReference.all.map(\.nutrient).filter { !covers($0) }
+    }
+
+    /// Whether the NRF badge may be shown: every line counted, and every
+    /// one of its twelve nutrients stated for at least 90 % of the energy.
+    /// A sum that lacks vitamin C for half its energy would otherwise score
+    /// low for a reason the dish has nothing to do with.
+    public var nrfIsDeterminable: Bool {
+        isComplete && nrfUncovered.isEmpty
     }
 }
 
@@ -322,7 +381,10 @@ public struct NutritionReport: Hashable, Sendable {
                     grams: line.resolvedAmount?.grams,
                     isAssumedGrams: line.resolvedAmount?.isAssumption ?? false,
                     state: line.state,
-                    matchesState: line.matchesState
+                    matchesState: line.matchesState,
+                    energy: line.outcome.contribution.map { $0.states(.kcal) ? $0.kcal : 0 } ?? 0,
+                    absent: line.outcome.contribution?.absent.sorted() ?? [],
+                    estimatedLike: line.basis?.estimatedLike
                 ))
             case .gap(let reason):
                 gaps.append(NutritionCoverage.Gap(

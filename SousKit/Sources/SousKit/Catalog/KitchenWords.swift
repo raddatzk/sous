@@ -42,10 +42,25 @@ public struct KitchenWords: Sendable {
         /// Knoblauch. Each is also in `aliases`, so an app that predates
         /// this field still recognizes the spelling.
         public var aliasUnits: [String: String]
+        /// `product` for a finished product off a label; absent for a food.
+        public var kind: String?
+        /// A product's brand: "ja!". What the shopping list shows beside a
+        /// household's generic word when this is the product it buys.
+        public var brand: String?
+        /// A product's EANs, as strings: leading zeros are part of them.
+        public var ean: [String]
+        /// A product no longer sold. It keeps its id and values, so old
+        /// recipes still compute; it only leaves the suggestions.
+        public var discontinued: Bool
+        /// A product without label values: the id of the generic word it
+        /// counts like, as an estimate.
+        public var like: String?
 
         public init(
             name: String, aliases: [String] = [], category: IngredientCategory? = nil,
-            parent: String? = nil, aliasUnits: [String: String] = [:], id: String? = nil
+            parent: String? = nil, aliasUnits: [String: String] = [:], id: String? = nil,
+            kind: String? = nil, brand: String? = nil, ean: [String] = [], discontinued: Bool = false,
+            like: String? = nil
         ) {
             self.id = id
             self.name = name
@@ -53,6 +68,18 @@ public struct KitchenWords: Sendable {
             self.category = category
             self.parent = parent
             self.aliasUnits = aliasUnits
+            self.kind = kind
+            self.brand = brand
+            self.ean = ean
+            self.discontinued = discontinued
+            self.like = like
+        }
+
+        /// The product half of this word, `nil` for a food.
+        public var product: CatalogProduct? {
+            kind == "product"
+                ? CatalogProduct(brand: brand ?? name, eans: ean, isDiscontinued: discontinued, like: like)
+                : nil
         }
 
         public init(from decoder: any Decoder) throws {
@@ -63,7 +90,12 @@ public struct KitchenWords: Sendable {
                 category: try container.decodeIfPresent(IngredientCategory.self, forKey: .category),
                 parent: try container.decodeIfPresent(String.self, forKey: .parent),
                 aliasUnits: try container.decodeIfPresent([String: String].self, forKey: .aliasUnits) ?? [:],
-                id: try container.decodeIfPresent(String.self, forKey: .id)
+                id: try container.decodeIfPresent(String.self, forKey: .id),
+                kind: try container.decodeIfPresent(String.self, forKey: .kind),
+                brand: try container.decodeIfPresent(String.self, forKey: .brand),
+                ean: try container.decodeIfPresent([String].self, forKey: .ean) ?? [],
+                discontinued: try container.decodeIfPresent(Bool.self, forKey: .discontinued) ?? false,
+                like: try container.decodeIfPresent(String.self, forKey: .like)
             )
         }
     }

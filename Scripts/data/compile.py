@@ -360,6 +360,42 @@ def codes_of(word: Word):
                 yield state, item["code"] if isinstance(item, dict) else item
 
 
+KJ_PER_KCAL = 4.184
+SODIUM_MG_PER_SALT_G = 400      # salt = sodium × 2.5
+
+
+def per_hundred_grams(word: Word, row: dict) -> tuple[dict, list[str]]:
+    """A row's values as the app reads them, per 100 g in its nutrients, and
+    what had to be converted to get there. A label's kJ answers for kcal only
+    where kcal is missing; salt becomes sodium; per 100 ml goes through the
+    entry's density. A value the row leaves out stays out: absent, not zero."""
+    written = row.get("per100g") or row["per100ml"]
+    values = {k: number(v) for k, v in written.items() if k not in ("kj", "saltG")}
+    notes = []
+    if "kj" in written and "kcal" not in written:
+        values["kcal"] = number(written["kj"]) / KJ_PER_KCAL
+        notes.append("kcal from kJ (÷ 4.184)")
+    if "saltG" in written:
+        values["sodiumMg"] = number(written["saltG"]) * SODIUM_MG_PER_SALT_G
+    if "per100ml" in row:
+        density = number(word.density["gramsPerMl"])
+        values = {k: v / density for k, v in values.items()}
+        notes.append(f"per 100 ml through the density {word.density['gramsPerMl']}")
+    if notes:
+        values = {k: v if isinstance(v, int) else round(v, 3) for k, v in values.items()}
+    return values, notes
+
+
+def gtin_is_valid(code: str) -> bool:
+    """EAN-8, UPC-A, EAN-13 and GTIN-14 end in a check digit: the others,
+    weighted 3 and 1 alternately from the right, sum to a multiple of 10."""
+    if len(code) not in (8, 12, 13, 14):
+        return False
+    digits = [int(c) for c in code]
+    total = sum(d * (3 if i % 2 == 0 else 1) for i, d in enumerate(reversed(digits[:-1])))
+    return (10 - total % 10) % 10 == digits[-1]
+
+
 def id_errors(dataset: Dataset) -> list[str]:
     """INGREDIENTS-DATA §3 F. An id is fixed when its entry is created and is
     never reused. Once released, it stays an entry's id, moves under
@@ -472,12 +508,14 @@ def check(dataset: Dataset) -> None:
     # Structure: a root answers for its nutrition; nothing loops.
     by_name = {word.name: word for word in words}
     for word in words:
-        if word.parent is None and word.nutrition is None:
+        # A product needs no values: name and brand are enough, and without
+        # a label (or `like`) it is simply not computed.
+        if word.parent is None and word.nutrition is None and word.kind != "product":
             errors.append(f"{word.file}: {word.name} maps to no code and does not say "
                           f"`nutrition: without`; a root must do one or the other")
         if word.parent is None and word.category is None:
             errors.append(f"{word.file}: {word.name} is a root without a category")
-        if word.nutrition is None and (word.candidates or word.via):
+        if word.nutrition is None and "like" not in word.raw and (word.candidates or word.via):
             errors.append(f"{word.file}: {word.name} has candidates or a via but no nutrition")
         seen = set()
         current = word
@@ -504,6 +542,23 @@ def check(dataset: Dataset) -> None:
                 errors.append(f"{word.file}: {word.name}'s inline code {code} is not "
                               f"derived from its id; write {own}, or {own}-<state> where "
                               f"the entry has a row per state")
+            written = row.get("per100g") or row.get("per100ml") or {}
+            if "per100ml" in row and word.density is None:
+                errors.append(f"{word.file}: the row {code} is per 100 ml, but {word.name} "
+                              f"has no density to turn it into grams")
+            elif "saltG" in written and "sodiumMg" in written:
+                errors.append(f"{word.file}: the row {code} gives salt and sodium; "
+                              f"write the label's salt only")
+            else:
+                # Converted values are noted, so a curator sees where a
+                # number did not come off the label as written.
+                _, notes = per_hundred_grams(word, row)
+                warnings.extend(f"{word.file}: the row {code}: {note}" for note in notes)
+            if "kj" in written and "kcal" in written:
+                kcal = number(written["kj"]) / KJ_PER_KCAL
+                if abs(kcal - number(written["kcal"])) > max(2, 0.03 * kcal):
+                    warnings.append(f"{word.file}: the row {code} gives {written['kcal']} kcal "
+                                    f"but {written['kj']} kJ (≈ {kcal:.0f} kcal); check the label")
     known = dataset.bls_codes | set(inline)
     for word in words:
         for state, code in codes_of(word):
@@ -523,6 +578,8 @@ def check(dataset: Dataset) -> None:
                                 f"are not inherited")
 
     # Products: the brand in every writing; the label's provenance on every row.
+    eans: dict[str, Word] = {}
+    by_id = {word.id: word for word in words}
     for word in words:
         if word.kind != "product":
             continue
@@ -536,12 +593,41 @@ def check(dataset: Dataset) -> None:
                               f"the brand {word.brand!r}; a generic word must never lead to "
                               f"a product")
         rows = list(inline_rows(word))
-        if not rows:
-            errors.append(f"{word.file}: the product {word.name} has no label row")
+        like = word.raw.get("like")
+        if like is not None:
+            target = by_id.get(like)
+            if target is None:
+                errors.append(f"{word.file}: {word.name} is like {like!r}, which is no id "
+                              f"in the catalog")
+            elif target.kind == "product":
+                errors.append(f"{word.file}: {word.name} is like the product {target.name}; "
+                              f"an estimate rests on a generic word")
+            if rows:
+                warnings.append(f"{word.file}: {word.name} has label values; they replace "
+                                f"`like: {like}`, which can go")
         for row in rows:
             for key in ("source", "checked", "per"):
                 if key not in row:
                     errors.append(f"{word.file}: the product row {row['code']} has no {key!r}")
+            written = row.get("per100g") or row.get("per100ml") or {}
+            if "kcal" not in written and "kj" not in written:
+                errors.append(f"{word.file}: the product row {row['code']} has no energy; "
+                              f"a label always states it (kcal or kj)")
+            if "checked" in row:
+                try:
+                    date.fromisoformat(row["checked"])
+                except ValueError:
+                    errors.append(f"{word.file}: the product row {row['code']} was checked on "
+                                  f"{row['checked']!r}, which is no date")
+        for code in word.raw.get("ean", []):
+            if not gtin_is_valid(code):
+                errors.append(f"{word.file}: {word.name}'s EAN {code} has a wrong check digit "
+                              f"or length; copy it off the pack again")
+            elif code in eans:
+                errors.append(f"{word.file}: the EAN {code} of {word.name} is "
+                              f"{eans[code].name}'s already")
+            else:
+                eans[code] = word
 
     if errors:
         raise DataError("\n".join(errors))
@@ -573,6 +659,19 @@ def kitchen_words(dataset: Dataset) -> list[dict]:
             row["category"] = word.category
         if word.parent is not None:
             row["parent"] = word.parent
+        # A product says so, with its brand: what the shopping list shows
+        # beside a household's generic word. A discontinued one keeps its
+        # id and values and only leaves the suggestions.
+        if word.kind is not None:
+            row["kind"] = word.kind
+        if word.brand is not None:
+            row["brand"] = word.brand
+        if word.raw.get("ean"):
+            row["ean"] = word.raw["ean"]
+        if "like" in word.raw and word.nutrition is None:
+            row["like"] = word.raw["like"]
+        if boolean(word.raw.get("discontinued", "false")):
+            row["discontinued"] = True
         out.append(row)
     return out
 
@@ -676,14 +775,20 @@ def community(dataset: Dataset) -> dict:
     entries = []
     for word in dataset.words:
         for row in inline_rows(word):
-            entries.append({
+            entry = {
                 "code": row["code"],
                 "name": row["name"],
                 "group": row.get("group", row["code"][0]),
                 "category": row.get("category", category_of(word, by_name)),
                 "source": row["source"],
-                "perHundredGrams": {k: number(v) for k, v in row["per100g"].items()},
-            })
+                "perHundredGrams": per_hundred_grams(word, row)[0],
+            }
+            # A label's date and reference travel with its values, so a
+            # stale row is findable and a drained figure says so.
+            for key in ("checked", "per"):
+                if key in row:
+                    entry[key] = row[key]
+            entries.append(entry)
     header = dataset.sources["supplements"]
     return {
         "datasetVersion": header["datasetVersion"],

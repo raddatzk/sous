@@ -230,6 +230,163 @@ class BrokenData(unittest.TestCase):
             "the product row Z-acme-muesli has no 'per'",
         )
 
+    # Two products as a label gives them, as fixtures only: Data/ holds no
+    # product until the cook brings the packs.
+    BUTTER = [
+        "- id: testmarke-vegane-butter",
+        "  kind: product",
+        "  name: Testmarke Vegane Butter",
+        "  brand: Testmarke",
+        "  aliases: [Testmarke vegane Butter Block]",
+        "  category: dairy",
+        "  ean: ['0012345678905', '4006381333931']",
+        "  nutrition:",
+        "    unspecified:",
+        "      - code: Z-testmarke-vegane-butter",
+        "        name: Testmarke Vegane Butter",
+        "        source: Nährwertdeklaration der Packung",
+        "        checked: '2026-10-02'",
+        "        per: as-sold",
+        "        per100g: {kj: '2988', fatG: '80', saturatedFatG: '37', carbsG: '0.5',",
+        "                  sugarG: '0.5', proteinG: '0.2', saltG: '1.2'}",
+    ]
+    DRINK = [
+        "- id: testmarke-haferdrink",
+        "  kind: product",
+        "  name: Testmarke Haferdrink",
+        "  brand: Testmarke",
+        "  category: drinks",
+        "  ean: ['96385074']",
+        "  discontinued: 'true'",
+        "  density: '1.03'",
+        "  nutrition:",
+        "    unspecified:",
+        "      - code: Z-testmarke-haferdrink",
+        "        name: Testmarke Haferdrink",
+        "        source: Nährwertdeklaration der Packung",
+        "        checked: '2026-10-02'",
+        "        per: as-sold",
+        "        per100ml: {kcal: '46', kj: '193', fatG: '1.5', carbsG: '7.0', fiberG: '0.8',",
+        "                   proteinG: '1.0', saltG: '0.1'}",
+    ]
+
+    def write_products(self, *lines: str) -> None:
+        self.write("products/testmarke.yaml", "\n".join(self.BUTTER + self.DRINK + list(lines)) + "\n")
+
+    def test_products_compile_with_their_label(self):
+        self.write_products()
+        outputs, warnings, _ = data_compiler.compile_data(self.data)
+        words = {w["name"]: w for w in json.loads(outputs["kitchen_words.json"])}
+        butter = words["Testmarke Vegane Butter"]
+        self.assertEqual(butter["kind"], "product")
+        self.assertEqual(butter["brand"], "Testmarke")
+        # An EAN is a string: its leading zeros are part of it.
+        self.assertEqual(butter["ean"], ["0012345678905", "4006381333931"])
+        self.assertNotIn("discontinued", butter)
+        self.assertIs(words["Testmarke Haferdrink"]["discontinued"], True)
+        # A plain ingredient's row is unchanged.
+        self.assertNotIn("kind", words["Zwiebel"])
+
+        rows = {r["code"]: r for r in json.loads(outputs["community.json"])["entries"]}
+        values = rows["Z-testmarke-vegane-butter"]["perHundredGrams"]
+        self.assertAlmostEqual(values["kcal"], 2988 / 4.184, places=2)
+        self.assertNotIn("kj", values)
+        self.assertEqual(values["sodiumMg"], 480)
+        # Absent stays absent: the label declares no fibre and no vitamins.
+        self.assertNotIn("fiberG", values)
+        self.assertNotIn("vitaminCMg", values)
+        self.assertEqual(rows["Z-testmarke-vegane-butter"]["checked"], "2026-10-02")
+        self.assertEqual(rows["Z-testmarke-vegane-butter"]["per"], "as-sold")
+
+        # Per 100 ml through the density; the label's kcal beats its kJ.
+        drink = rows["Z-testmarke-haferdrink"]["perHundredGrams"]
+        self.assertAlmostEqual(drink["kcal"], 46 / 1.03, places=2)
+        self.assertAlmostEqual(drink["fiberG"], 0.8 / 1.03, places=2)
+        self.assertAlmostEqual(drink["sodiumMg"], 40 / 1.03, places=2)
+        self.assertTrue(any("Z-testmarke-vegane-butter: kcal from kJ" in w for w in warnings))
+        self.assertTrue(any("Z-testmarke-haferdrink: per 100 ml through the density 1.03" in w
+                            for w in warnings))
+
+    def test_a_product_spelled_like_an_ingredient(self):
+        self.write_products("- id: testmarke-zwiebel", "  kind: product", "  name: Zwiebel",
+                            "  brand: Testmarke", "  category: vegetables", "  nutrition:",
+                            "    unspecified:", "      - code: Z-testmarke-zwiebel",
+                            "        name: Zwiebel", "        source: Etikett",
+                            "        checked: '2026-10-02'", "        per: as-sold",
+                            "        per100g: {kcal: '40'}")
+        self.assertFails("the product spelling 'Zwiebel' does not name the brand 'Testmarke'",
+                         "'Zwiebel' (Zwiebel) is already spelled")
+
+    def test_a_product_without_values(self):
+        """Name and brand are enough; `like` makes it an estimate, and
+        without it the product is simply not computed."""
+        self.write_products(
+            "- id: testmarke-margarine", "  kind: product", "  name: Testmarke Margarine",
+            "  brand: Testmarke", "  category: dairy", "  like: margarine",
+            "- id: testmarke-ghee", "  kind: product", "  name: Testmarke Ghee",
+            "  brand: Testmarke", "  category: dairy",
+        )
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        words = {w["name"]: w for w in json.loads(outputs["kitchen_words.json"])}
+        self.assertEqual(words["Testmarke Margarine"]["like"], "margarine")
+        self.assertNotIn("like", words["Testmarke Ghee"])
+        curated = json.loads(outputs["curation.json"])["words"]
+        self.assertNotIn("Testmarke Margarine", curated)
+        self.assertNotIn("Testmarke Ghee", curated)
+
+    def test_like_names_a_generic_word(self):
+        self.write_products(
+            "- id: testmarke-margarine", "  kind: product", "  name: Testmarke Margarine",
+            "  brand: Testmarke", "  category: dairy", "  like: margarin",
+            "- id: testmarke-butterersatz", "  kind: product", "  name: Testmarke Butterersatz",
+            "  brand: Testmarke", "  category: dairy", "  like: testmarke-vegane-butter",
+        )
+        self.assertFails("Testmarke Margarine is like 'margarin', which is no id",
+                         "Testmarke Butterersatz is like the product Testmarke Vegane Butter")
+
+    def test_label_values_replace_like(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "  category: dairy\n",
+                  "  category: dairy\n  like: margarine\n")
+        outputs, warnings, _ = data_compiler.compile_data(self.data)
+        words = {w["name"]: w for w in json.loads(outputs["kitchen_words.json"])}
+        self.assertNotIn("like", words["Testmarke Vegane Butter"])
+        self.assertTrue(any("Testmarke Vegane Butter has label values; they replace "
+                            "`like: margarine`" in w for w in warnings))
+
+    def test_a_wrong_ean(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "'4006381333931'", "'4006381333932'")
+        self.assertFails("Testmarke Vegane Butter's EAN 4006381333932 has a wrong check digit")
+
+    def test_one_ean_on_two_products(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "ean: ['96385074']", "ean: ['4006381333931']")
+        self.assertFails("the EAN 4006381333931 of Testmarke Haferdrink is "
+                         "Testmarke Vegane Butter's already")
+
+    def test_per_100_ml_without_a_density(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "  density: '1.03'\n", "")
+        self.assertFails("the row Z-testmarke-haferdrink is per 100 ml, but Testmarke "
+                         "Haferdrink has no density")
+
+    def test_a_label_without_energy(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "per100g: {kj: '2988', ", "per100g: {")
+        self.assertFails("the product row Z-testmarke-vegane-butter has no energy")
+
+    def test_salt_and_sodium(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "saltG: '1.2'", "saltG: '1.2', sodiumMg: '480'")
+        self.assertFails("the row Z-testmarke-vegane-butter gives salt and sodium")
+
+    def test_a_row_with_both_bases(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "        per100ml: {kcal: '46'",
+                  "        per100g: {kcal: '45'}\n        per100ml: {kcal: '46'")
+        self.assertFails("Z-testmarke-haferdrink")
+
 
 class Manifest(unittest.TestCase):
     """manifest.json: the set's hashes, and a dataVersion that moves only

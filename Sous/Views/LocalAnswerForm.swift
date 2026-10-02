@@ -109,7 +109,7 @@ struct LocalAnswerForm: View {
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(match.name)
-                            Text(match.category.title)
+                            Text(match.product.map { "Produkt · \($0.brand)" } ?? match.category.title)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -129,10 +129,23 @@ struct LocalAnswerForm: View {
     }
 
     /// Catalog words to count as: only shipped ones, which have an id to
-    /// point at, and never the name itself.
+    /// point at, never the name itself, and no product that is no longer
+    /// sold. For a name the catalog knows, this is a brand choice, so its
+    /// products come first.
     private var targets: [CatalogIngredient] {
-        catalog.catalogWithoutLocalAnswers.search(targetQuery, limit: 8)
-            .filter { $0.catalogID != nil && $0.key != IngredientCatalog.normalize(name) }
+        catalog.catalogWithoutLocalAnswers.search(targetQuery, limit: 12)
+            .filter {
+                $0.catalogID != nil && $0.key != IngredientCatalog.normalize(name)
+                    && $0.product?.isDiscontinued != true
+            }
+            .enumerated()
+            .sorted { first, second in
+                guard catalogKnowsName else { return first.offset < second.offset }
+                let a = first.element.product == nil ? 1 : 0, b = second.element.product == nil ? 1 : 0
+                return (a, first.offset) < (b, second.offset)
+            }
+            .prefix(8)
+            .map(\.element)
     }
 
     private var valuesSection: some View {
@@ -149,7 +162,7 @@ struct LocalAnswerForm: View {
         } header: {
             Text("Eigene Werte je 100 g")
         } footer: {
-            Text("Schlagen die Werte des Katalogs und des Ziels.")
+            Text("Schlagen die Werte des Katalogs und des Ziels. Was die Packung nicht angibt, bleibt leer: es fehlt, statt als 0 zu zählen.")
         }
     }
 
@@ -160,6 +173,11 @@ struct LocalAnswerForm: View {
                 #if os(iOS)
                 .keyboardType(.numberPad)
                 #endif
+            if draft.eanLooksWrong {
+                Text("Die Prüfziffer passt nicht zu dieser EAN.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
         } header: {
             Text("Eigenes Produkt")
         } footer: {
@@ -262,22 +280,28 @@ private struct Draft: Equatable {
     var ean = ""
     var weights: [Weight] = []
 
-    /// Milligrams of sodium per gram of salt: a packet prints salt, BLS
-    /// stores sodium.
-    private static let sodiumMgPerSaltGram = 400.0
+    /// An EAN was typed, and its check digit does not fit.
+    var eanLooksWrong: Bool {
+        let code = ean.trimmingCharacters(in: .whitespaces)
+        return !code.isEmpty && !CatalogProduct.isValidEAN(code)
+    }
 
     init(_ answer: LocalAnswer) {
         targetID = answer.targetID
         isProduct = answer.kind == .product
         if let values = answer.values {
-            kcal = DecimalText.text(values.kcal)
-            protein = DecimalText.optionalText(values.proteinG)
-            fat = DecimalText.optionalText(values.fatG)
-            saturatedFat = DecimalText.optionalText(values.saturatedFatG)
-            carbs = DecimalText.optionalText(values.carbsG)
-            sugar = DecimalText.optionalText(values.sugarG)
-            fiber = DecimalText.optionalText(values.fiberG)
-            salt = DecimalText.optionalText(values.sodiumMg / Self.sodiumMgPerSaltGram)
+            // A stated 0 reads "0"; only an absent value is a blank field.
+            func text(_ nutrient: Nutrient, _ factor: Double = 1) -> String {
+                values[nutrient].map { DecimalText.text($0 / factor) } ?? ""
+            }
+            kcal = text(.kcal)
+            protein = text(.proteinG)
+            fat = text(.fatG)
+            saturatedFat = text(.saturatedFatG)
+            carbs = text(.carbsG)
+            sugar = text(.sugarG)
+            fiber = text(.fiberG)
+            salt = text(.sodiumMg, NutritionInfo.sodiumMgPerSaltGram)
         }
         source = answer.valuesSource ?? ""
         brand = answer.brand ?? ""
@@ -299,12 +323,10 @@ private struct Draft: Equatable {
             isBrand ? .product : nil
         }
         let entered = [kcal, protein, fat, saturatedFat, carbs, sugar, fiber, salt].map(DecimalText.number)
-        answer.values = entered.contains(where: { $0 != nil }) ? NutritionInfo(
-            kcal: entered[0] ?? 0, proteinG: entered[1] ?? 0, fatG: entered[2] ?? 0,
-            saturatedFatG: entered[3] ?? 0, carbsG: entered[4] ?? 0, sugarG: entered[5] ?? 0,
-            fiberG: entered[6] ?? 0, sodiumMg: (entered[7] ?? 0) * Self.sodiumMgPerSaltGram,
-            vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0, vitaminEMg: 0,
-            calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
+        answer.values = entered.contains(where: { $0 != nil }) ? NutritionInfo.label(
+            kcal: entered[0], proteinG: entered[1], fatG: entered[2],
+            saturatedFatG: entered[3], carbsG: entered[4], sugarG: entered[5],
+            fiberG: entered[6], saltG: entered[7]
         ) : nil
         answer.valuesSource = answer.values == nil ? nil : source
         answer.brand = brand

@@ -28,11 +28,16 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
     /// answer: its rows come from wherever the food happened to be documented.
     public var source: String?
     public var perHundredGrams: NutritionInfo
+    /// For a label row: the day the label was read, "2026-10-02", so a
+    /// stale row is findable.
+    public var checked: String?
+    /// For a label row: what its values refer to, `as-sold` or `drained`.
+    public var per: String?
 
     public init(
         code: String, name: String, group: String,
         category: IngredientCategory, source: String? = nil,
-        perHundredGrams: NutritionInfo
+        perHundredGrams: NutritionInfo, checked: String? = nil, per: String? = nil
     ) {
         self.code = code
         self.name = name
@@ -40,6 +45,18 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
         self.category = category
         self.source = source
         self.perHundredGrams = perHundredGrams
+        self.checked = checked
+        self.per = per
+    }
+
+    /// The row's source as the app prints it: a label row adds the day it
+    /// was read, and says so where its values are for the drained food.
+    public var labelledSource: String? {
+        guard let source else { return nil }
+        var parts = [source]
+        if per == "drained" { parts.append("pro 100 g abgetropft") }
+        if let checked { parts.append("gelesen \(checked)") }
+        return parts.joined(separator: " · ")
     }
 }
 

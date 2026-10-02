@@ -205,6 +205,15 @@ struct IngredientDetailView: View {
         Section {
             LabeledContent("Name", value: ingredient.name)
             LabeledContent("Kategorie", value: categoryText)
+            if let product = ingredient.product {
+                LabeledContent("Marke", value: product.brand)
+                if !product.eans.isEmpty {
+                    LabeledContent("EAN", value: product.eans.joined(separator: ", "))
+                }
+                if product.isDiscontinued {
+                    LabeledContent("Handel", value: "nicht mehr erhältlich")
+                }
+            }
             if !ingredient.aliases.isEmpty {
                 LabeledContent("Schreibweisen") {
                     Text(ingredient.aliases.joined(separator: ", "))
@@ -372,15 +381,18 @@ struct IngredientDetailView: View {
                     }
                 }
             }
-            nutrientRow("Energie", Self.nutrients.string(kilocalories: values.kcal), emphasized: true)
-            nutrientRow("Fett", mass(values.fatG))
-            measuredRow("davon gesättigte Fettsäuren", values.saturatedFatG, indented: true)
-            nutrientRow("Kohlenhydrate", mass(values.carbsG))
-            measuredRow("davon Zucker", values.sugarG, indented: true)
-            measuredRow("Ballaststoffe", values.fiberG)
-            nutrientRow("Eiweiß", mass(values.proteinG))
+            nutrientRow(
+                "Energie", values[.kcal].map { Self.nutrients.string(kilocalories: $0) } ?? Self.notStated,
+                emphasized: true
+            )
+            statedRow("Fett", values, .fatG)
+            statedRow("davon gesättigte Fettsäuren", values, .saturatedFatG, indented: true)
+            statedRow("Kohlenhydrate", values, .carbsG)
+            statedRow("davon Zucker", values, .sugarG, indented: true)
+            statedRow("Ballaststoffe", values, .fiberG)
+            statedRow("Eiweiß", values, .proteinG)
             // BLS reports sodium; the EU label shows salt.
-            measuredRow("Salz", values.sodiumMg * 2.5 / 1000)
+            statedRow("Salz", values, .sodiumMg, gramsPerUnit: 2.5 / 1000)
         } header: {
             Text("Nährwerte")
         } footer: {
@@ -392,6 +404,9 @@ struct IngredientDetailView: View {
                         Text("Katalog: \(own.provenance ?? "\(Int(own.values.kcal.rounded())) kcal")")
                     }
                 } else {
+                    if let like = basis.estimatedLike {
+                        Text("Schätzung wie \(like), bis die Packungswerte da sind")
+                    }
                     if let inherited = basis.inheritedFrom {
                         Text("geerbt von \(inherited)")
                     }
@@ -407,14 +422,30 @@ struct IngredientDetailView: View {
     @ViewBuilder
     private func micronutrientSection(_ info: NutritionInfo) -> some View {
         let rows = micronutrientRows(info)
-        if !rows.isEmpty {
-            Section("Vitamine & Mineralstoffe") {
+        let absent = Self.micronutrients.filter { !info.states($0) }
+        if !rows.isEmpty || !absent.isEmpty {
+            Section {
                 ForEach(rows, id: \.label) { row in
                     nutrientRow(row.label, row.value)
+                }
+            } header: {
+                Text("Vitamine & Mineralstoffe")
+            } footer: {
+                // Absent, not zero: a label rarely states them, and a BLS
+                // row sometimes leaves one out. Nothing is filled in.
+                if !absent.isEmpty {
+                    Text("Nicht angegeben: \(absent.map(\.label).joined(separator: ", "))")
                 }
             }
         }
     }
+
+    private static let micronutrients: [Nutrient] = [
+        .vitaminAMcg, .vitaminCMg, .vitaminDMcg, .vitaminEMg,
+        .calciumMg, .ironMg, .magnesiumMg, .potassiumMg,
+    ]
+
+    private static let notStated = "nicht angegeben"
 
     /// Only what the source had a value for — anything above zero, however
     /// small, since the formatter can always find a unit that fits it.
@@ -478,12 +509,13 @@ struct IngredientDetailView: View {
 
     // MARK: - Rows
 
-    private func measuredRow(_ label: String, _ grams: Double, indented: Bool = false) -> some View {
-        Group {
-            if grams > 0 {
-                nutrientRow(label, mass(grams), indented: indented)
-            }
-        }
+    /// A stated value, a stated zero included; an absent one says so
+    /// rather than reading as 0.
+    private func statedRow(
+        _ label: String, _ values: NutritionInfo, _ nutrient: Nutrient,
+        gramsPerUnit: Double = 1, indented: Bool = false
+    ) -> some View {
+        nutrientRow(label, values[nutrient].map { mass($0 * gramsPerUnit) } ?? Self.notStated, indented: indented)
     }
 
     private func nutrientRow(

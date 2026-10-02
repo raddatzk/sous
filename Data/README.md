@@ -234,6 +234,10 @@ It compiles into `community.json`. The rules:
    there, but do not copy rows.
 5. **Missing values are left out, not written as zero.** Ciqual marks unknowns
    with `–` and traces with `<`; neither is a zero.
+6. **Write the label as it reads.** `per100ml` instead of `per100g` for a
+   liquid's label, with the entry's `density`, which the compiler then needs;
+   `kj` where a label gives no kcal (÷ 4.184); `saltG` for salt, stored as
+   sodium (÷ 2.5). The compiler notes every conversion.
 
 Take the rows you have a gap for. A bulk import would need a German word for
 each of thousands of rows before a cook could reach any of them.
@@ -266,10 +270,40 @@ and those grams are cooked chickpeas, not dry ones.
 A finished product (`kind: product`) stands **beside** the ingredients, in
 `Data/products/<brand>.yaml`, never nested under a generic word, and inherits
 nothing. Its values come only from the label, as an inline row with `source`,
-`checked` (the date the label was read) and `per` (`as-sold` or `drained`).
-**Every one of its spellings names the brand**: a generic word ("Proteinmüsli")
-must never lead to a product, or every recipe's muesli would silently become
-one brand. See `schema.json` for the fields; the app learns products in phase 7.
+`checked` (the date the label was read) and `per` (`as-sold` or `drained`),
+and at least its energy, where it has a label row. **Every one of its spellings names the brand**: a
+generic word ("Proteinmüsli") must never lead to a product, or every recipe's
+muesli would silently become one brand. A household that buys the brand says
+so with a local product choice for its own word.
+
+```yaml
+- id: ja-vegane-butter
+  kind: product
+  name: ja! Vegane Butter
+  brand: ja!
+  category: dairy
+  ean: ['…']                          # quoted: an EAN keeps its leading zeros
+  nutrition:
+    unspecified:
+      - code: Z-ja-vegane-butter
+        name: ja! Vegane Butter
+        source: Nährwertdeklaration der Packung
+        checked: '2026-10-02'
+        per: as-sold
+        per100g: {kcal: …, fatG: …, saturatedFatG: …, carbsG: …, sugarG: …,
+                  proteinG: …, saltG: …}
+```
+
+- **A product needs no values.** Name and brand are enough. Without a label,
+  `like: margarine` lets it count with that generic word's values and weights,
+  shown as an estimate ("Schätzung wie Margarine"); without `like` it is simply
+  not computed. Label values replace the estimate when they arrive, and `like`
+  can then go. `like` names a generic word, never another product.
+- Only what the label states. Leave out what it does not: fibre is voluntary,
+  vitamins rarely there. Absent is not zero, and nothing is extrapolated.
+- Every EAN must carry a right check digit, and no two products share one.
+- `discontinued: 'true'` keeps the id and the values for old recipes; the app
+  only stops suggesting the product.
 
 ## What the compiler checks
 
