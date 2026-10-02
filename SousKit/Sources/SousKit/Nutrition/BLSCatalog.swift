@@ -89,6 +89,8 @@ public struct BLSCatalog: Sendable {
         var license: String
         var attribution: String
         var changeNote: String
+        /// Only in the supplements file: `Data/assumed-zeros.yaml`.
+        var assumedZero: [AssumedZero]?
         var entries: [BLSEntry]
 
         var sourceValue: Source {
@@ -198,6 +200,16 @@ public struct BLSCatalog: Sendable {
         return nil
     }
 
+    /// One rule of `Data/assumed-zeros.yaml`: in these BLS groups, a blank
+    /// for this nutrient is a zero nobody wrote down — vitamin C in flour,
+    /// fibre in cheese.
+    struct AssumedZero: Codable, Hashable, Sendable {
+        /// A string, not a ``Nutrient``: a nutrient a later data set names
+        /// and this app does not know is a rule to skip, not a file to refuse.
+        var nutrient: String
+        var groups: [String]
+    }
+
     /// `bls.json` and `community.json`, the supplements. Both are part of
     /// every data set, so a set missing either one is not a set.
     init(bls: Data, supplements: Data) throws {
@@ -208,9 +220,27 @@ public struct BLSCatalog: Sendable {
             // BLS rows first, so a supplement can never take a code the
             // catalog already uses — `byCode` keeps the first of a pair.
             source: file.sourceValue,
-            entries: file.entries + supplements.entries,
+            entries: Self.applying(supplements.assumedZero ?? [], to: file.entries) + supplements.entries,
             supplementSource: supplements.sourceValue
         )
+    }
+
+    /// The BLS rows with the assumed zeros filled in. Only blanks change, and
+    /// only the BLS's: a supplement or a product label keeps every blank it
+    /// has, since nobody vouched for its zeros.
+    static func applying(_ rules: [AssumedZero], to entries: [BLSEntry]) -> [BLSEntry] {
+        let byGroup = rules.reduce(into: [String: Set<Nutrient>]()) { result, rule in
+            guard let nutrient = Nutrient(rawValue: rule.nutrient) else { return }
+            for group in rule.groups { result[group, default: []].insert(nutrient) }
+        }
+        guard !byGroup.isEmpty else { return entries }
+        return entries.map { entry in
+            guard let zeros = byGroup[entry.group] else { return entry }
+            var entry = entry
+            // An absent value reads 0 already; stating it is all that is left.
+            entry.perHundredGrams.absent.subtract(zeros)
+            return entry
+        }
     }
 
     /// The tables of the data set this process runs on.

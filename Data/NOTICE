@@ -15,6 +15,9 @@ redistributing it, whole or in part, credits them as below.
    reduced to 16 nutrient fields per 100 g, and linked to kitchen words,
    spellings, varieties, measures and aisles. The nutrient values themselves
    are unchanged. They ship in bls.json; the catalog refers to them by SBLS code.
+   Where a row leaves a nutrient blank and the food by nature carries next to
+   none of it, the app counts the blank as 0 (Data/assumed-zeros.yaml); no
+   value the BLS states is changed.
 
 
 2. Table de composition nutritionnelle des aliments Ciqual 2020

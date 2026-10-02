@@ -354,6 +354,29 @@ class BrokenData(unittest.TestCase):
         self.assertTrue(any("Testmarke Vegane Butter has label values; they replace "
                             "`like: margarine`" in w for w in warnings))
 
+    def test_assumed_zeros_travel_with_the_supplements(self):
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        rules = json.loads(outputs["community.json"])["assumedZero"]
+        vitamin_c = next(rule for rule in rules if rule["nutrient"] == "vitaminCMg")
+        self.assertIn("C", vitamin_c["groups"])
+        self.assertEqual(vitamin_c["groups"], sorted(vitamin_c["groups"]))
+
+    def test_a_nutrient_with_two_assumed_zero_rules(self):
+        path = self.data / "assumed-zeros.yaml"
+        path.write_text(path.read_text(encoding="utf-8")
+                        + "\n- nutrient: vitaminCMg\n  groups: [Y]\n  reason: Again.\n",
+                        encoding="utf-8")
+        self.assertFails("assumed-zeros.yaml", "vitaminCMg has two rules")
+
+    def test_an_assumed_zero_group_without_a_blank(self):
+        self.edit("assumed-zeros.yaml", "  groups: [S]\n", "  groups: [S, Q]\n")
+        _, warnings, _ = data_compiler.compile_data(self.data)
+        self.assertTrue(any("no BLS row in Q leaves ironMg blank" in w for w in warnings), warnings)
+
+    def test_an_assumed_zero_for_no_nutrient(self):
+        self.edit("assumed-zeros.yaml", "nutrient: proteinG", "nutrient: protein")
+        self.assertFails("assumed-zeros.yaml")
+
     def test_a_wrong_ean(self):
         self.write_products()
         self.edit("products/testmarke.yaml", "'4006381333931'", "'4006381333932'")
@@ -452,7 +475,9 @@ class Manifest(unittest.TestCase):
         bls = self.resources / "bls.json"
         bls.write_bytes(bls.read_bytes() + b" ")
         after = self.compile(date(2026, 10, 1))
-        self.assertEqual(after["dataVersion"], 2026100100)
+        # Higher, not a fixed number: the checked-in manifest may already be
+        # past the test's dates.
+        self.assertGreater(after["dataVersion"], before["dataVersion"])
         self.assertNotEqual(after["files"]["bls.json"], before["files"]["bls.json"])
 
     def test_a_stale_manifest_is_caught(self):

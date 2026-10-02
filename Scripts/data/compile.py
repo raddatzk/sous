@@ -13,11 +13,13 @@ Reads:
   - `Data/aisles.yaml`         BLS group -> category, and the extraction filter
   - `Data/sources.yaml`        what each source says about itself
   - `Data/retired.yaml`        ids that left the catalog, each with a reason
+  - `Data/assumed-zeros.yaml`  per nutrient, the BLS groups where a blank is 0
   - `Data/released-ids.txt`    every id ever released; it only grows
   - `Data/schema.json`         the shape all of the above is validated against
   - `Resources/bls.json`       generated from the BLS workbook by
                                `Scripts/nutrition/build_data.py`; read here only
-                               to check that every code exists
+                               to check that every code exists, and which
+                               blanks an assumed-zero rule reaches
 
 Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`
 and `community.json`, in the shapes the app has always read, `sources.json`,
@@ -269,6 +271,10 @@ class Dataset:
     sources: dict
     bls_codes: set[str]
     retired: dict[str, str] = field(default_factory=dict)
+    assumed_zeros: list = field(default_factory=list)
+    # Per BLS group, per nutrient, how many rows leave it blank: what an
+    # assumed-zero rule can reach.
+    bls_blanks: dict = field(default_factory=dict)
     released: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
@@ -307,6 +313,7 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
     aisles = validated(data / "aisles.yaml", "aislesFile")
     sources = validated(data / "sources.yaml", "sourcesFile")
     retired = validated(data / "retired.yaml", "retiredFile") or []
+    assumed_zeros = validated(data / "assumed-zeros.yaml", "assumedZerosFile") or []
     if errors:
         raise DataError("\n".join(errors))
 
@@ -319,10 +326,19 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
         raise DataError("\n".join(errors))
 
     bls = json.loads((resources / "bls.json").read_text(encoding="utf-8"))
+    nutrients = schema["$defs"]["nutrient"]["enum"]
+    blanks: dict = {}
+    for row in bls["entries"]:
+        for nutrient in nutrients:
+            if nutrient not in row["perHundredGrams"]:
+                group = blanks.setdefault(row["group"], {})
+                group[nutrient] = group.get(nutrient, 0) + 1
     return Dataset(
         words=words, measures=measures, aisles=aisles, sources=sources,
         bls_codes={row["code"] for row in bls["entries"]},
         retired=retired_ids,
+        assumed_zeros=assumed_zeros,
+        bls_blanks=blanks,
         released=read_released(data / "released-ids.txt"),
     )
 
@@ -465,6 +481,20 @@ def check(dataset: Dataset) -> None:
     words = dataset.words
 
     errors.extend(id_errors(dataset))
+
+    # Assumed zeros: one rule per nutrient, and a group that has no blank for
+    # it is a rule that does nothing.
+    ruled: set[str] = set()
+    for rule in dataset.assumed_zeros:
+        nutrient = rule["nutrient"]
+        if nutrient in ruled:
+            errors.append(f"Data/assumed-zeros.yaml: {nutrient} has two rules; "
+                          f"put its groups under one")
+        ruled.add(nutrient)
+        idle = [g for g in rule["groups"] if not dataset.bls_blanks.get(g, {}).get(nutrient)]
+        if idle:
+            warnings.append(f"Data/assumed-zeros.yaml: no BLS row in {', '.join(idle)} leaves "
+                            f"{nutrient} blank; the group can go")
 
     # Names and aliases: once across the whole catalog, products included,
     # compared the way the app compares them.
@@ -790,12 +820,20 @@ def community(dataset: Dataset) -> dict:
                     entry[key] = row[key]
             entries.append(entry)
     header = dataset.sources["supplements"]
+    # The rules travel with the supplements because they are this catalog's
+    # addition to the BLS, as the supplements are; the app applies them to
+    # bls.json's rows only.
+    assumed_zero = [
+        {"nutrient": rule["nutrient"], "groups": sorted(rule["groups"])}
+        for rule in dataset.assumed_zeros
+    ]
     return {
         "datasetVersion": header["datasetVersion"],
         "release": header["release"],
         "license": header["license"],
         "attribution": header["attribution"],
         "changeNote": header["changeNote"],
+        "assumedZero": assumed_zero,
         "entries": sorted(entries, key=lambda e: e["code"]),
     }
 

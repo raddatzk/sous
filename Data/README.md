@@ -30,6 +30,7 @@ Data/
                           Scripts/nutrition/build_data.py applies to the workbook
   sources.yaml            what each data source says about itself
   retired.yaml            ids that left the catalog, each with a reason
+  assumed-zeros.yaml      per nutrient, the BLS groups where a blank counts as 0
   released-ids.txt        every id ever released; compile.py adds to it, nobody
                           removes from it
   schema.json             the shape all of the above is validated against
@@ -197,6 +198,27 @@ it without values, as for spices the BLS does not list. The app then says
 or say `without`, because a curated gap is an answer and a forgotten one is
 not.
 
+### Blanks that are zeros
+
+The BLS leaves a nutrient blank where it has no value, and the app keeps a
+blank as "not stated": a recipe whose energy rests on too many blanks for one
+of the NRF nutrients gets no letter. For a food that by nature carries next to
+none of a nutrient, vitamin C in flour or fibre in cheese, the blank is a zero
+nobody wrote down. `assumed-zeros.yaml` names those cases:
+
+```yaml
+- nutrient: vitaminCMg
+  groups: [B, C, E, H, M, Q, S, T, U, V, W]
+  reason: Bread, grain, eggs, … carry next to no vitamin C.
+```
+
+A rule fills blanks only, only in `bls.json` rows, and only in the groups it
+names: a stated value never changes, and a Ciqual row or a product label keeps
+its blanks. A group goes in only when everything in it is low enough that a
+portion moves the score by nothing; a mixed group (fruit and vitamin E,
+vegetables and vitamin C, spices) stays out. The rules ship in
+`community.json` (`assumedZero`), and the app applies them as it loads.
+
 ### Foods the BLS does not have
 
 The BLS is a catalog of analysed foods, and some things people cook with are
@@ -319,10 +341,12 @@ numbers where numbers belong), then across files:
 - a root has a category and maps or says `without`
 - no ancestor loops
 - product spellings name the brand; product rows carry `source`, `checked`, `per`
+- one assumed-zero rule per nutrient
 
 It warns, without failing, where a spelling is another entry's spelling plus a
-plural ending (the app's plural fallback strips `en`, `n`, `e`, `s`) and where a
-variety's own nutrition drops a state its parent has.
+plural ending (the app's plural fallback strips `en`, `n`, `e`, `s`), where a
+variety's own nutrition drops a state its parent has, and where an assumed-zero
+group has no BLS row with that blank.
 
 The loader is strict because YAML's conveniences are traps in a data set: every
 scalar is read as a string (`no` stays "no", `1.10` stays "1.10", an EAN keeps

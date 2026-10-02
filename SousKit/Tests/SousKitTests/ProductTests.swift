@@ -82,12 +82,53 @@ struct ProductTests {
     @Test("A BLS row's gap decodes as absent, not as a stated zero")
     func blsGapsAreAbsent() throws {
         let rows = DataSet.bundled.bls.entries
-        let roggenmischbrot = try #require(DataSet.bundled.bls.entry(for: "B271000"))
-        #expect(!roggenmischbrot.perHundredGrams.states(.vitaminCMg))
-        #expect(roggenmischbrot.perHundredGrams[.vitaminCMg] == nil)
-        #expect(roggenmischbrot.perHundredGrams.states(.kcal))
-        // The 656 BLS rows the review counted, which used to read as zeros.
-        #expect(rows.filter { !$0.code.hasPrefix("Z") && !$0.perHundredGrams.absent.isEmpty }.count == 656)
+        // Fruit is not one of vitamin E's assumed-zero groups.
+        let feige = try #require(DataSet.bundled.bls.entry(for: "F505100"))
+        #expect(!feige.perHundredGrams.states(.vitaminEMg))
+        #expect(feige.perHundredGrams[.vitaminEMg] == nil)
+        #expect(feige.perHundredGrams.states(.kcal))
+        // Of the 656 BLS rows the review counted, the ones a blank still
+        // leaves open once Data/assumed-zeros.yaml has spoken.
+        #expect(rows.filter { !$0.code.hasPrefix("Z") && !$0.perHundredGrams.absent.isEmpty }.count == 269)
+    }
+
+    @Test("A BLS blank in an assumed-zero group is a stated zero")
+    func assumedZerosFillBLSBlanks() throws {
+        let bls = DataSet.bundled.bls
+        // Vitamin C in bread, grain and eggs; fibre and vitamin C in fish.
+        for (code, nutrient) in [
+            ("B271000", Nutrient.vitaminCMg), ("C111000", .vitaminCMg),
+            ("E111100", .vitaminCMg), ("T410100", .fiberG),
+        ] {
+            let row = try #require(bls.entry(for: code))
+            #expect(row.perHundredGrams[nutrient] == 0, "\(code) \(nutrient)")
+        }
+    }
+
+    @Test("Assumed zeros fill the BLS's blanks only, never a supplement's or a stated value")
+    func assumedZerosLeaveSupplementsAlone() throws {
+        func file(_ entries: String, rules: String = "") -> Data {
+            Data("""
+            {"datasetVersion": "1", "release": "r", "license": "l", "attribution": "a",
+             "changeNote": "c", \(rules) "entries": [\(entries)]}
+            """.utf8)
+        }
+        let bls = file("""
+            {"code": "C000001", "name": "Mehl", "group": "C", "category": "baking",
+             "perHundredGrams": {"kcal": 350}},
+            {"code": "C000002", "name": "Keim", "group": "C", "category": "baking",
+             "perHundredGrams": {"kcal": 350, "vitaminCMg": 4}}
+            """)
+        let supplements = file("""
+            {"code": "Z000009", "name": "Etikett", "group": "C", "category": "baking",
+             "source": "Packung", "perHundredGrams": {"kcal": 350}}
+            """, rules: #""assumedZero": [{"nutrient": "vitaminCMg", "groups": ["C"]}, {"nutrient": "nonsenseMg", "groups": ["C"]}],"#)
+        let catalog = try BLSCatalog(bls: bls, supplements: supplements)
+
+        #expect(catalog.entry(for: "C000001")?.perHundredGrams[.vitaminCMg] == 0)
+        #expect(catalog.entry(for: "C000001")?.perHundredGrams[.fiberG] == nil)
+        #expect(catalog.entry(for: "C000002")?.perHundredGrams[.vitaminCMg] == 4)
+        #expect(catalog.entry(for: "Z000009")?.perHundredGrams[.vitaminCMg] == nil)
     }
 
     @Test("Absent survives scaling, a sum and a round trip; a sum keeps the stated part's number")

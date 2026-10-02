@@ -1,0 +1,52 @@
+# BLS blanks the app counts as 0, by food group.
+#
+# The BLS leaves a nutrient blank where it has no value, and the app keeps a
+# blank as "not stated": a recipe whose energy rests on too many blanks gets
+# no NRF letter. For a food that by nature carries next to none of a nutrient
+# (vitamin C in flour, fibre in cheese) the blank is a zero nobody wrote down,
+# and it should not cost a recipe its letter.
+#
+# A rule names one nutrient and the BLS groups (the code's first letter) in
+# which a blank for it counts as 0. It touches blanks only: a stated value is
+# never changed, and rows outside bls.json (Ciqual rows, product labels) keep
+# their blanks. A group goes in only when everything in it is low enough that
+# a whole portion moves the score by nothing; where a group mixes (fruit and
+# vitamin E, vegetables and vitamin C, spices) it stays out.
+#
+# Only the NRF 9.3 nutrients are listed, because only the score asks.
+
+- nutrient: vitaminCMg
+  groups: [B, C, E, H, M, Q, S, T, U, V, W]
+  reason: Bread, grain, eggs, pulses, nuts and seeds, dairy, fats, sugar, fish and meat carry next to no vitamin C.
+
+- nutrient: fiberG
+  groups: [M, Q, S, T, W]
+  reason: Dairy, fats, sugars, fish and sausage carry no fibre.
+
+- nutrient: vitaminEMg
+  groups: [E, M, P, S, U]
+  reason: The blanks here are egg white, skimmed milk, drinks, honey, blood and broth.
+
+- nutrient: proteinG
+  groups: [Q, S]
+  reason: Pure fats and sugars carry no protein.
+
+- nutrient: calciumMg
+  groups: [Q, S]
+  reason: Pure fats and sugars carry next to no minerals.
+
+- nutrient: ironMg
+  groups: [S]
+  reason: Pure sugars carry next to no iron.
+
+- nutrient: magnesiumMg
+  groups: [Q, S]
+  reason: Pure fats and sugars carry next to no minerals.
+
+- nutrient: potassiumMg
+  groups: [Q, S]
+  reason: Pure fats and sugars carry next to no minerals.
+
+- nutrient: sodiumMg
+  groups: [C, F, G, H, K, Q, S]
+  reason: Unsalted grain, fruit, vegetables, pulses, nuts, potatoes, fats and sugars carry a few milligrams at most.

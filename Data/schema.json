@@ -200,6 +200,20 @@
     }
    }
   },
+  "assumedZerosFile": {
+   "description": "Data/assumed-zeros.yaml: per nutrient, the BLS groups in which a blank counts as 0.",
+   "type": "array",
+   "items": {
+    "type": "object",
+    "required": ["nutrient", "groups", "reason"],
+    "additionalProperties": false,
+    "properties": {
+     "nutrient": {"$ref": "#/$defs/nutrient"},
+     "groups": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/group"}},
+     "reason": {"$ref": "#/$defs/text"}
+    }
+   }
+  },
   "ingredientFile": {
    "description": "Data/ingredients/<root id>.yaml: one family.",
    "type": "array",
