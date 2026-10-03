@@ -15,8 +15,9 @@ import Foundation
 /// unique across every type in the zone, so a name somebody took first with
 /// a type anyone may create would otherwise pass as the pointer.
 public struct CloudKitReleaseSource: DataReleaseSource {
-    /// The user records allowed to publish: the one the server-to-server key
-    /// acts as, per environment (development, then production).
+    /// The user records allowed to publish: the one the server-to-server
+    /// keys act as. The same record name in development and production
+    /// (checked 2026-10-03, one key per environment).
     static let publishers: Set<String> = [
         "_68d93d389c4a0b80d4adbb247564658a",
     ]
