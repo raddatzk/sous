@@ -11,10 +11,12 @@ import Foundation
 /// - **own weights** per unit, each with the state it is weighed in
 ///   (``weights``).
 ///
-/// Brand and EAN make the answer a local product (§3 I). What it never says
-/// is what the name *is*: the shopping list keeps the written name, its own
-/// pantry flag and its own row (R2). See ``LocalAnswerSet`` for the
-/// precedence.
+/// Brand and EAN make the answer an **own product** (§3 I, phase 7b): an
+/// entry of the household's catalog of its own ("Greenforce Sojahack"),
+/// which a name links to with a product choice whose target is the
+/// product's ``key``. What an answer never says is what the name *is*: the
+/// shopping list keeps the written name, its own pantry flag and its own row
+/// (R2). See ``LocalAnswerSet`` for the precedence.
 public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
     public enum Kind: String, Codable, Hashable, Sendable, CaseIterable {
         /// The name counts as an ordinary catalog ingredient. A fallback by
@@ -24,6 +26,14 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
         /// The household buys this product for the name. A purchase choice,
         /// and so an override: it stays when the catalog learns the name.
         case product
+        /// The name is a word of its own, without values yet — what the
+        /// optimization proposes for a name nothing fairly stands in for
+        /// ("Pandanblatt"). It is read and shopped as written and computed as
+        /// "keine Nährwerte hinterlegt". A fallback like "zählt wie".
+        case word
+
+        /// Falls silent once the catalog knows the name (R3).
+        public var isFallback: Bool { self != .product }
     }
 
     /// What one of a unit weighs, and in which state — "1 Dose = 240 g,
@@ -47,9 +57,10 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
     /// what the answer is shown as either way.
     public var name: String
     public var kind: Kind?
-    /// The catalog word the name counts as, or the product chosen for it.
-    /// `nil` on a product means the answer itself is the product: its own
-    /// values, brand and EAN.
+    /// The catalog word the name counts as, or the product chosen for it —
+    /// a catalog id, or an own product's ``key`` ("name:greenforce
+    /// sojahack"), which a catalog id never looks like. On an own product,
+    /// the generic word it counts like until its label is in.
     public var targetID: String?
     public var values: NutritionInfo?
     /// Where the values were read: "Packung, Marke X".
@@ -109,4 +120,14 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
 
     /// Whether the answer describes a product of its own (§3 I).
     public var isLocalProduct: Bool { brand != nil || ean != nil }
+
+    /// Whether the target is one of the household's own products rather
+    /// than a catalog word.
+    public var targetsOwnProduct: Bool { targetID.map(Self.isKey) ?? false }
+
+    /// Whether `id` is an answer's ``key`` rather than a catalog id: the
+    /// key's prefix is what keeps the two apart.
+    public static func isKey(_ id: String) -> Bool {
+        id.hasPrefix("name:") || id.hasPrefix("id:")
+    }
 }

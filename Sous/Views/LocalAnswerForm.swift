@@ -4,7 +4,12 @@ import SwiftUI
 /// The one local form (INGREDIENTS-DATA §3 B): what this household says about
 /// a name the catalog cannot answer yet. Three things, which combine — "zählt
 /// wie" (or a product chosen for the name), own values with their source, and
-/// own weights per unit — plus brand and EAN for a product of its own.
+/// own weights per unit.
+///
+/// The same form keeps an **own product** (phase 7b): an entry of the
+/// household's catalog with name and brand, optionally EAN, label values and
+/// a word it counts like until the label is in. A name links to it by
+/// choosing it as its product; the name's own form carries no brand.
 ///
 /// Deliberately not here: aliases, varieties, aisles, statuses. Those are
 /// the catalog's, and reach it through the report, not through this form.
@@ -15,18 +20,31 @@ struct LocalAnswerForm: View {
     @Environment(NutritionLibrary.self) private var nutrition
     @Environment(\.dismiss) private var dismiss
 
-    /// The name as written in the recipe.
+    /// The name as written in the recipe — for an own product, the name it
+    /// was opened with.
     let name: String
     private let existing: LocalAnswer?
+    /// Whether the form keeps an own product rather than answers a name.
+    private let isOwnProduct: Bool
 
     @State private var draft: Draft
     @State private var targetQuery = ""
     @State private var isWriting = false
 
+    /// The answer about `name`; an own product opens as one.
     init(name: String, existing: LocalAnswer?) {
         self.name = name
         self.existing = existing
+        isOwnProduct = existing?.isLocalProduct ?? false
         _draft = State(initialValue: Draft(existing ?? LocalAnswer(name: name)))
+    }
+
+    /// A new own product — "Produkt hinzufügen" in the catalog.
+    init(newProduct: Void) {
+        name = ""
+        existing = nil
+        isOwnProduct = true
+        _draft = State(initialValue: Draft(LocalAnswer(name: "")))
     }
 
     /// The units a weight can be given for. Mass and the litre stay out — a
@@ -38,34 +56,46 @@ struct LocalAnswerForm: View {
 
     /// Whether the catalog itself knows the name. "Zählt wie" is only for a
     /// name it does not (§3 B); for a known one, a target is a brand choice.
-    private var catalogKnowsName: Bool { catalog.catalogKnows(name) }
+    private var catalogKnowsName: Bool { !isOwnProduct && catalog.catalogKnows(name) }
 
     private var hasChanges: Bool { draft != Draft(existing ?? LocalAnswer(name: name)) }
+
+    /// An own product needs a name and a brand; a name's answer, nothing.
+    private var canSave: Bool {
+        guard isOwnProduct else { return true }
+        return !draft.name.trimmingCharacters(in: .whitespaces).isEmpty
+            && !draft.brand.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var title: String {
+        if isOwnProduct { return existing == nil ? "Neues Produkt" : existing!.name }
+        return "„\(name)“"
+    }
 
     var body: some View {
         NavigationStack {
             Form {
-                if let trace = catalog.localTrace(for: name), trace.status != .applied {
+                if !isOwnProduct, let trace = catalog.localTrace(for: name), trace.status != .applied {
                     Section {
                         Text(trace.label)
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
+                if isOwnProduct { productSection }
                 targetSection
                 valuesSection
-                productSection
                 weightsSection
                 if existing != nil {
                     Section {
-                        Button("Lokale Angabe entfernen", role: .destructive) {
+                        Button(isOwnProduct ? "Produkt entfernen" : "Lokale Angabe entfernen", role: .destructive) {
                             write { if let existing { await catalog.deleteLocalAnswer(existing) } }
                         }
                     }
                 }
             }
             .formStyle(.grouped)
-            .navigationTitle("„\(name)“")
+            .navigationTitle(title)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -75,10 +105,14 @@ struct LocalAnswerForm: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(role: .confirm) {
-                        let answer = draft.answer(base: existing ?? LocalAnswer(name: name), catalogKnowsName: catalogKnowsName)
+                        let answer = draft.answer(
+                            base: existing ?? LocalAnswer(name: name),
+                            isOwnProduct: isOwnProduct,
+                            isProductChoice: catalogKnowsName || chosenTargetIsProduct
+                        )
                         write { await catalog.saveLocalAnswer(answer) }
                     }
-                    .disabled(!hasChanges || isWriting)
+                    .disabled(!hasChanges || !canSave || isWriting)
                 }
             }
         }
@@ -88,28 +122,46 @@ struct LocalAnswerForm: View {
 
     // MARK: - Sections
 
+    private var productSection: some View {
+        Section {
+            TextField("Name, z. B. Greenforce Sojahack", text: $draft.name)
+            TextField("Marke", text: $draft.brand)
+            TextField("EAN (optional)", text: $draft.ean)
+                #if os(iOS)
+                .keyboardType(.numberPad)
+                #endif
+            if draft.eanLooksWrong {
+                Text("Die Prüfziffer passt nicht zu dieser EAN.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        } header: {
+            Text("Eigenes Produkt")
+        } footer: {
+            Text("Ein Name im Rezept, etwa „Sojahack“, verweist über „Produkt wählen“ auf dieses Produkt. Auf der Einkaufsliste steht dann die Marke dabei.")
+        }
+    }
+
     private var targetSection: some View {
         Section {
             if let targetID = draft.targetID {
                 HStack {
-                    Text(catalog.catalog.ingredient(forID: targetID)?.name ?? targetID)
+                    Text(catalog.targetName(for: targetID) ?? targetID)
                     Spacer()
                     Button("Entfernen", role: .destructive) { draft.targetID = nil }
                         .buttonStyle(.borderless)
                 }
-                if !catalogKnowsName {
-                    Toggle("Markenwahl (Produkt)", isOn: $draft.isProduct)
-                }
             } else {
-                TextField("Im Katalog suchen", text: $targetQuery)
-                ForEach(targets) { match in
+                TextField(isOwnProduct ? "Im Katalog suchen" : "Im Katalog und in eigenen Produkten suchen",
+                          text: $targetQuery)
+                ForEach(targets) { choice in
                     Button {
-                        draft.targetID = match.catalogID
+                        draft.targetID = choice.id
                         targetQuery = ""
                     } label: {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(match.name)
-                            Text(match.product.map { "Produkt · \($0.brand)" } ?? match.category.title)
+                            Text(choice.name)
+                            Text(choice.detail)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -120,23 +172,57 @@ struct LocalAnswerForm: View {
                 }
             }
         } header: {
-            Text(catalogKnowsName ? "Produkt wählen" : "Zählt wie")
+            Text(isOwnProduct ? "Rechnet wie" : catalogKnowsName ? "Produkt wählen" : "Zählt wie oder Produkt")
         } footer: {
-            Text(catalogKnowsName
-                ? "Für diesen Haushalt rechnet „\(name)“ dann mit dem gewählten Produkt, auch wenn der Katalog später mehr weiß."
-                : "„\(name)“ rechnet dann mit Nährwerten und Gewichten des Ziels und steht in dessen Gang. Auf der Einkaufsliste bleibt es „\(name)“. Kennt der Katalog den Namen später selbst, gilt seine Angabe – außer bei einer Markenwahl.")
+            Text(targetFooter)
         }
     }
 
-    /// Catalog words to count as: only shipped ones, which have an id to
-    /// point at, never the name itself, and no product that is no longer
-    /// sold. For a name the catalog knows, this is a brand choice, so its
-    /// products come first.
-    private var targets: [CatalogIngredient] {
-        catalog.catalogWithoutLocalAnswers.search(targetQuery, limit: 12)
+    private var targetFooter: String {
+        if isOwnProduct {
+            return "Ohne Packungswerte rechnet das Produkt mit diesem Wort, als Schätzung. Packungswerte unten gehen vor."
+        }
+        if catalogKnowsName {
+            return "Für diesen Haushalt rechnet „\(name)“ dann mit dem gewählten Produkt, auch wenn der Katalog später mehr weiß. Eigene Produkte legst du im Zutatenkatalog an."
+        }
+        return "„\(name)“ rechnet dann mit Nährwerten und Gewichten des Ziels und steht in dessen Gang. Auf der Einkaufsliste bleibt es „\(name)“. Kennt der Katalog den Namen später selbst, gilt seine Angabe – außer bei einem gewählten Produkt."
+    }
+
+    /// One thing a name can count as or choose: a catalog word or product, or
+    /// one of the household's own products, by the id the answer stores.
+    private struct TargetChoice: Identifiable {
+        let id: String
+        let name: String
+        let detail: String
+    }
+
+    /// Whether the chosen target is a product, so the choice is a purchase,
+    /// not a "zählt wie".
+    private var chosenTargetIsProduct: Bool {
+        guard let targetID = draft.targetID else { return false }
+        if LocalAnswer.isKey(targetID) { return true }
+        return catalog.catalog.ingredient(forID: targetID)?.product != nil
+    }
+
+    /// What a name can point at: the household's own products first, then
+    /// shipped catalog words, which have an id to point at — never the name
+    /// itself, and no product that is no longer sold. For a name the catalog
+    /// knows, this is a brand choice, so products come first. An own
+    /// product counts like a generic word only.
+    private var targets: [TargetChoice] {
+        let own: [TargetChoice] = isOwnProduct ? [] : {
+            let query = IngredientCatalog.normalize(targetQuery)
+            return catalog.ownProducts
+                .filter { query.isEmpty || $0.writtenKey.contains(query)
+                    || ($0.brand.map(IngredientCatalog.normalize)?.contains(query) ?? false) }
+                .map { TargetChoice(id: $0.key, name: $0.name,
+                                    detail: "Eigenes Produkt" + ($0.brand.map { " · \($0)" } ?? "")) }
+        }()
+        let words = catalog.catalogWithoutLocalAnswers.search(targetQuery, limit: 12)
             .filter {
                 $0.catalogID != nil && $0.key != IngredientCatalog.normalize(name)
                     && $0.product?.isDiscontinued != true
+                    && !(isOwnProduct && $0.product != nil)
             }
             .enumerated()
             .sorted { first, second in
@@ -144,8 +230,10 @@ struct LocalAnswerForm: View {
                 let a = first.element.product == nil ? 1 : 0, b = second.element.product == nil ? 1 : 0
                 return (a, first.offset) < (b, second.offset)
             }
-            .prefix(8)
             .map(\.element)
+            .map { TargetChoice(id: $0.catalogID!, name: $0.name,
+                                detail: $0.product.map { "Produkt · \($0.brand)" } ?? $0.category.title) }
+        return Array((own + words).prefix(8))
     }
 
     private var valuesSection: some View {
@@ -163,25 +251,6 @@ struct LocalAnswerForm: View {
             Text("Eigene Werte je 100 g")
         } footer: {
             Text("Schlagen die Werte des Katalogs und des Ziels. Was die Packung nicht angibt, bleibt leer: es fehlt, statt als 0 zu zählen.")
-        }
-    }
-
-    private var productSection: some View {
-        Section {
-            TextField("Marke", text: $draft.brand)
-            TextField("EAN", text: $draft.ean)
-                #if os(iOS)
-                .keyboardType(.numberPad)
-                #endif
-            if draft.eanLooksWrong {
-                Text("Die Prüfziffer passt nicht zu dieser EAN.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-        } header: {
-            Text("Eigenes Produkt")
-        } footer: {
-            Text("Mit Marke oder EAN wird die Angabe ein eigenes Produkt.")
         }
     }
 
@@ -265,8 +334,8 @@ private struct Draft: Equatable {
         }
     }
 
+    var name = ""
     var targetID: String?
-    var isProduct = false
     var kcal = ""
     var protein = ""
     var fat = ""
@@ -287,8 +356,8 @@ private struct Draft: Equatable {
     }
 
     init(_ answer: LocalAnswer) {
+        name = answer.name
         targetID = answer.targetID
-        isProduct = answer.kind == .product
         if let values = answer.values {
             // A stated 0 reads "0"; only an absent value is a blank field.
             func text(_ nutrient: Nutrient, _ factor: Double = 1) -> String {
@@ -311,16 +380,23 @@ private struct Draft: Equatable {
         }
     }
 
-    /// The draft written onto `base`, keeping its id and sharing stamp.
-    func answer(base: LocalAnswer, catalogKnowsName: Bool) -> LocalAnswer {
+    /// The draft written onto `base`, keeping its id and sharing stamp. An
+    /// own product is a product with its brand; a name's answer carries none,
+    /// and is a purchase where `isProductChoice` says the target is one.
+    func answer(base: LocalAnswer, isOwnProduct: Bool, isProductChoice: Bool) -> LocalAnswer {
         var answer = base
         answer.targetID = targetID
-        let isBrand = !brand.trimmingCharacters(in: .whitespaces).isEmpty
-            || !ean.trimmingCharacters(in: .whitespaces).isEmpty
-        answer.kind = if targetID != nil {
-            catalogKnowsName || isProduct ? .product : .countsAs
+        if isOwnProduct {
+            answer.name = name
+            answer.kind = .product
+            answer.brand = brand
+            answer.ean = ean
         } else {
-            isBrand ? .product : nil
+            answer.kind = if targetID != nil {
+                isProductChoice ? .product : .countsAs
+            } else {
+                base.kind == .word ? .word : nil
+            }
         }
         let entered = [kcal, protein, fat, saturatedFat, carbs, sugar, fiber, salt].map(DecimalText.number)
         answer.values = entered.contains(where: { $0 != nil }) ? NutritionInfo.label(
@@ -329,8 +405,6 @@ private struct Draft: Equatable {
             fiberG: entered[6], saltG: entered[7]
         ) : nil
         answer.valuesSource = answer.values == nil ? nil : source
-        answer.brand = brand
-        answer.ean = ean
         answer.weights = weights.reduce(into: [:]) { result, weight in
             guard let grams = DecimalText.number(weight.grams), grams > 0 else { return }
             result[weight.unit] = LocalAnswer.Weight(grams: grams, state: weight.state)

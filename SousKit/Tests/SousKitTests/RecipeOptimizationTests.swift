@@ -3,7 +3,7 @@ import SwiftData
 import Testing
 @testable import SousKit
 
-@Suite("Optimizing a recipe for Sous (prompt v3)")
+@Suite("Optimizing a recipe for Sous (prompt v4)")
 struct RecipeOptimizationTests {
     let chili = Recipe(
         title: "Chili sin Carne",
@@ -24,7 +24,7 @@ struct RecipeOptimizationTests {
         """
     )
 
-    /// An answer in the v3 shape: `lines` are the entries of "zeilen" as
+    /// An answer in the v4 shape: `lines` are the entries of "zeilen" as
     /// JSON objects, `steps` those of "schritte".
     private func answer(lines: [String], steps: [String], groups: [String] = []) -> String {
         """
@@ -453,8 +453,51 @@ struct RecipeOptimizationTests {
         let tempeh = try #require(optimization.classifications.first)
         #expect(tempeh.kind == .variety)
         #expect(tempeh.target == IngredientCatalog.bundled.ingredient(for: "Tempeh")?.name)
-        #expect(tempeh.countsAs == tempeh.target)
+        // The catalog has no Tempeh to count as: a word of its own, then.
+        #expect(tempeh.target == nil)
+        #expect(tempeh.proposal == .word)
         #expect(optimization.report([tempeh]).contains("„Tempeh-Streifen“: Sorte von"))
+    }
+
+    @Test("A name that stays unknown comes with a household proposal that makes its line read")
+    func householdProposals() throws {
+        let recipe = Recipe(
+            title: "Curry",
+            ingredientsText: "400 ml dünne Kokosmilch (oder mehr)\n2 Einhornstaub\n1 TL Kreuzkümel\n1 Prise Glitzerzucker",
+            instructionsText: "Alles kochen."
+        )
+        let optimization = try read(answer(lines: [
+            #"{"zeile": 1, "neu": [{"nr": 1, "text": "400 ml dünne Kokosmilch"}], "einordnung": {"name": "dünne Kokosmilch", "art": "formulierung", "ziel": "Kokosmilch"}}"#,
+            #"{"zeile": 2, "neu": [{"nr": 2, "text": "2 Einhornstaub"}], "einordnung": {"name": "Einhornstaub", "art": "neu", "ziel": null}}"#,
+            #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 TL Kreuzkümel"}], "einordnung": {"name": "Kreuzkümel", "art": "tippfehler", "ziel": "Kreuzkümmel"}}"#,
+            // A name that would not make the line read is no proposal.
+            #"{"zeile": 4, "neu": [{"nr": 4, "text": "1 Prise Glitzerzucker"}], "einordnung": {"name": "Glitzer", "art": "neu", "ziel": null}}"#,
+        ], steps: oldSteps(recipe)), for: recipe)
+
+        let proposals = Dictionary(uniqueKeysWithValues: optimization.householdProposals.map { ($0.name, $0.proposal) })
+        #expect(proposals == [
+            "dünne Kokosmilch": .countsAs(try #require(IngredientCatalog.bundled.ingredient(for: "Kokosmilch")?.name)),
+            "Einhornstaub": .word,
+        ])
+        #expect(RecipeOptimization.HouseholdProposal.word.label == "neues Wort, ohne Werte")
+    }
+
+    @Test("Asked again, an optimized recipe keeps its lines and still gets proposals and references")
+    func idempotent() throws {
+        let recipe = Recipe(
+            title: "Curry",
+            ingredientsText: "2 Einhornstaub\n200 g Reis",
+            instructionsText: "Reis kochen."
+        )
+        let optimization = try read(answer(lines: [
+            #"{"zeile": 1, "neu": [{"nr": 1, "text": "2 Einhornstaub"}], "einordnung": {"name": "Einhornstaub", "art": "neu", "ziel": null}}"#,
+            #"{"zeile": 2, "neu": [{"nr": 2, "text": "200 g Reis", "zutat": "Reis"}]}"#,
+        ], steps: [#"{"alt": 1, "bezuege": [{"art": "bezug", "zeile": 2, "menge": "200 g"}]}"#]), for: recipe)
+        #expect(!optimization.changesAnything)
+        #expect(optimization.householdProposals.map(\.proposal) == [.word])
+        let applied = optimization.applied(optimization.defaultSelection)
+        #expect(applied.recipe.ingredientsText == recipe.ingredientsText)
+        #expect(applied.recipe.stepReferences?.steps.first?.first?.line == 2)
     }
 
     // MARK: - The backend contract

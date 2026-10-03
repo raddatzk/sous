@@ -132,8 +132,9 @@ public final class IngredientCatalogLibrary {
     /// `nil` for a name it only counts as something else — a "zählt wie" is
     /// recognition, not a purchase, and says nothing about a brand.
     ///
-    /// A chosen catalog product is named by its brand ("ja!"); a target
-    /// without one, a plain word chosen as a purchase, by its whole name.
+    /// A chosen product is named by its brand ("ja!", "Greenforce"); a
+    /// target without one, a plain word chosen as a purchase, by its whole
+    /// name.
     public func brand(for name: String) -> String? {
         let written = IngredientCatalog.normalize(name)
         let id = catalogWithoutLocalAnswers.ingredient(for: name)?.catalogID
@@ -141,10 +142,33 @@ public final class IngredientCatalogLibrary {
             $0.writtenKey == written || ($0.catalogID != nil && $0.catalogID == id)
         }) else { return nil }
         if let brand = answer.brand { return brand }
-        guard answer.kind == .product, let target = answer.targetID.flatMap(catalog.ingredient(forID:)) else {
-            return nil
+        guard answer.kind == .product, let targetID = answer.targetID else { return nil }
+        if LocalAnswer.isKey(targetID) {
+            guard let product = ownProduct(forKey: targetID) else { return nil }
+            return product.brand ?? product.name
         }
+        guard let target = catalog.ingredient(forID: targetID) else { return nil }
         return target.product?.brand ?? target.name
+    }
+
+    /// The household's own products (phase 7b): entries of its catalog with
+    /// a brand or EAN, which a name links to with a product choice.
+    public var ownProducts: [LocalAnswer] {
+        localAnswers.answers.filter(\.isLocalProduct)
+            .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
+    /// The own product an answer's target names by its key.
+    public func ownProduct(forKey key: String) -> LocalAnswer? {
+        localAnswers.answers.first { $0.key == key && $0.isLocalProduct }
+    }
+
+    /// What a target id is shown as: an own product's name, or the catalog
+    /// word's.
+    public func targetName(for targetID: String) -> String? {
+        LocalAnswer.isKey(targetID)
+            ? ownProduct(forKey: targetID)?.name
+            : catalog.ingredient(forID: targetID)?.name
     }
 
     /// Whether the data set's catalog, without the local answers, knows
@@ -274,7 +298,7 @@ public final class IngredientCatalogLibrary {
         var answer = answer
         answer.name = answer.name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !answer.name.isEmpty else { return false }
-        if answer.catalogID == nil, answer.kind != .countsAs,
+        if answer.catalogID == nil, answer.kind?.isFallback != true,
            let known = catalogWithoutLocalAnswers.ingredient(writtenAs: answer.name) {
             answer.catalogID = known.catalogID
         }
@@ -288,6 +312,12 @@ public final class IngredientCatalogLibrary {
             // otherwise: delete under the key it was read with, then write.
             if let held = localAnswers.answers.first(where: { $0.id == answer.id }), held.key != answer.key {
                 try await localAnswerStore.delete(held)
+                // A renamed own product takes the names linked to it along.
+                for var link in localAnswers.answers where link.targetID == held.key {
+                    link.targetID = answer.key
+                    link.updatedAt = .nowInSyncPrecision
+                    _ = try await localAnswerStore.save(link)
+                }
             }
             _ = try await localAnswerStore.save(answer)
             await reloadAnswers()
@@ -318,6 +348,18 @@ public final class IngredientCatalogLibrary {
         var answer = localAnswers.answers.first { $0.writtenKey == written } ?? LocalAnswer(name: name)
         answer.kind = kind
         answer.targetID = targetID
+        return await saveLocalAnswer(answer)
+    }
+
+    /// "`name` ist ein eigenes Wort, ohne Werte" — what the optimization
+    /// proposes for a name nothing in the catalog fairly stands in for. Keeps
+    /// whatever else the household already said about the name.
+    @discardableResult
+    public func addWord(_ name: String) async -> Bool {
+        let written = IngredientCatalog.normalize(name)
+        var answer = localAnswers.answers.first { $0.writtenKey == written } ?? LocalAnswer(name: name)
+        guard answer.kind == nil else { return true }
+        answer.kind = .word
         return await saveLocalAnswer(answer)
     }
 

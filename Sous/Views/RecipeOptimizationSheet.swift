@@ -6,14 +6,16 @@ import UIKit
 import AppKit
 #endif
 
-/// "Für Sous optimieren": the recipe's lines brought into the line
-/// principle's form by a chat model the cook already uses, checked by Sous,
-/// and previewed old → new before anything is taken. See
-/// ``RecipeOptimization``.
+/// "Für Sous optimieren", the one AI action on a recipe (phase 7b): the
+/// recipe's lines brought into the line principle's form by a chat model the
+/// cook already uses, checked by Sous, and previewed old → new before
+/// anything is taken; the step references come along, read against the new
+/// text. Offered whether or not the recipe was optimized before — asked
+/// again, the lines stay and the references are made anew.
 ///
-/// Built like ``StepReferencesSheet`` — copy the prompt, paste the answer
-/// back, same chat setting — because it is the same act with a larger
-/// answer: the step references come along, read against the new text.
+/// Names that stay as written but unknown come with a proposal for the
+/// household ("zählt wie Kokosmilch", "neues Wort, ohne Werte"), ticked, and
+/// saved as local answers with the rest. See ``RecipeOptimization``.
 struct RecipeOptimizationSheet: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(IngredientCatalogLibrary.self) private var catalogLibrary
@@ -30,8 +32,8 @@ struct RecipeOptimizationSheet: View {
     @State private var selection = RecipeOptimization.Selection()
     @State private var reported: Set<Int> = []
     @State private var didCopyReport = false
-    /// The proposals stored as local answers in this sheet, by line.
-    @State private var storedLocally: Set<Int> = []
+    /// The household proposals to save with the recipe, by line.
+    @State private var proposed: Set<Int> = []
     @State private var failure: String?
     @State private var createdVariant: String?
 
@@ -56,8 +58,10 @@ struct RecipeOptimizationSheet: View {
                     Button(role: .close) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
+                    // Even with nothing ticked the answer brings the step
+                    // references: taking it is never empty.
                     Button(role: .confirm) { apply() }
-                        .disabled(optimization == nil || selection == RecipeOptimization.Selection())
+                        .disabled(optimization == nil)
                 }
             }
         }
@@ -87,7 +91,7 @@ struct RecipeOptimizationSheet: View {
         } header: {
             Text("Chat fragen")
         } footer: {
-            Text("Der Chat bringt die Zutaten in eine feste Form: Menge, Einheit, Zutat. Zubereitung wird ein Schritt, Alternativen kommen in die Notizen. Sous prüft jede Zeile, bevor sie angeboten wird; das Original bleibt erhalten.")
+            Text("Der Chat bringt die Zutaten in eine feste Form – Menge, Einheit, Zutat – und ordnet jedem Schritt seine Zutaten zu. Zubereitung wird ein Schritt, Alternativen kommen in die Notizen. Sous prüft jede Zeile, bevor sie angeboten wird; das Original bleibt erhalten. Schon optimierte Rezepte lassen sich jederzeit neu fragen.")
         }
     }
 
@@ -141,6 +145,9 @@ struct RecipeOptimizationSheet: View {
             optimization = value
             selection = value.defaultSelection
             reported = Set(value.classifications.map(\.id))
+            proposed = Set(value.householdProposals
+                .filter { catalogLibrary.localTrace(for: $0.name) == nil }
+                .map(\.id))
             failure = nil
         case .failure(let error):
             optimization = nil
@@ -151,7 +158,9 @@ struct RecipeOptimizationSheet: View {
     private func apply() {
         guard let optimization else { return }
         let applied = optimization.applied(selection)
+        let proposals = optimization.householdProposals.filter { proposed.contains($0.id) }
         Task {
+            await saveProposals(proposals)
             if await library.applyOptimization(applied, to: recipe) {
                 dismiss()
             } else {
@@ -221,6 +230,11 @@ struct RecipeOptimizationSheet: View {
             } footer: {
                 Text("Eine Variante lohnt sich nur für ein wirklich anderes Gericht. Einzelne Tauschmöglichkeiten gehören in die Notizen.")
             }
+        }
+
+        let proposals = optimization.householdProposals
+        if !proposals.isEmpty {
+            proposalSection(proposals)
         }
 
         if !optimization.classifications.isEmpty {
@@ -325,6 +339,38 @@ struct RecipeOptimizationSheet: View {
         }
     }
 
+    /// The household's answers the answer proposes for names that stay
+    /// unknown — ticked, and saved with the recipe.
+    private func proposalSection(_ proposals: [RecipeOptimization.Classification]) -> some View {
+        Section {
+            ForEach(proposals) { item in
+                let saved = catalogLibrary.localTrace(for: item.name)
+                Toggle(isOn: Binding(
+                    get: { proposed.contains(item.id) },
+                    set: { if $0 { proposed.insert(item.id) } else { proposed.remove(item.id) } }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.name)
+                        if let saved {
+                            Label(saved.label, systemImage: "house")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else if let proposal = item.proposal {
+                            Text(proposal.label)
+                                .font(.caption)
+                                .foregroundStyle(Color.sousAccent)
+                        }
+                    }
+                }
+                .disabled(saved != nil)
+            }
+        } header: {
+            Text("Für deinen Haushalt")
+        } footer: {
+            Text("Sous kennt diese Namen noch nicht. Übernehmen legt die angehakten Angaben für diesen Haushalt an; der Name im Rezept bleibt, wie er ist. „Zählt wie“ rechnet mit Nährwerten und Gewichten des Ziels, ein neues Wort ohne Werte wird erkannt und eingekauft, aber nicht berechnet.")
+        }
+    }
+
     @ViewBuilder
     private func classificationSection(_ optimization: RecipeOptimization) -> some View {
         Section {
@@ -338,25 +384,9 @@ struct RecipeOptimizationSheet: View {
                         Text([item.kind.title, item.target].compactMap { $0 }.joined(separator: " "))
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        if let countsAs = item.countsAs {
-                            if storedLocally.contains(item.id) || catalogLibrary.localTrace(for: item.name) != nil {
-                                Label("lokal gespeichert: \(item.kind == .product ? "Produkt" : "zählt wie") \(countsAs)", systemImage: "checkmark")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text("\(item.kind == .product ? "Produkt" : "zählt wie") \(countsAs)")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.sousAccent)
-                            }
-                        }
                     }
                 }
             }
-            let storable = storableProposals(optimization)
-            Button("Lokal speichern", systemImage: "house") {
-                Task { await storeLocally(storable) }
-            }
-            .disabled(storable.isEmpty)
             Button(didCopyReport ? "Meldung kopiert" : "Meldung kopieren", systemImage: didCopyReport ? "checkmark" : "paperplane") {
                 SousPasteboard.copy(optimization.report(optimization.classifications.filter { reported.contains($0.id) }))
                 didCopyReport = true
@@ -365,30 +395,24 @@ struct RecipeOptimizationSheet: View {
         } header: {
             Text("Für den Katalog")
         } footer: {
-            Text("Sous kennt diese Namen noch nicht. „Lokal speichern“ legt die angehakten „zählt wie“- und Produktvorschläge für diesen Haushalt an: Nährwerte und Gewichte kommen vom Ziel, die Einkaufsliste zeigt weiter den geschriebenen Namen. Die Meldung geht an den Katalog.")
+            Text("Was der Chat über diese Namen sagt. Die Meldung geht an den Katalog, damit er sie für alle lernt.")
         }
     }
 
-    /// The ticked proposals that name a catalog word to count as, and are
-    /// not stored yet.
-    private func storableProposals(_ optimization: RecipeOptimization) -> [RecipeOptimization.Classification] {
-        optimization.classifications.filter { item in
-            reported.contains(item.id) && item.countsAs != nil
-                && !storedLocally.contains(item.id)
-                && catalogLibrary.localTrace(for: item.name) == nil
-        }
-    }
-
-    /// Writes the proposals as local answers (INGREDIENTS-DATA §3 B): a
-    /// product as a purchase choice, everything else as "zählt wie".
-    private func storeLocally(_ proposals: [RecipeOptimization.Classification]) async {
-        for item in proposals {
-            guard let name = item.countsAs, let target = catalog.ingredient(for: name) else { continue }
-            if await catalogLibrary.count(item.name, as: target, kind: item.kind == .product ? .product : .countsAs) {
-                storedLocally.insert(item.id)
+    /// Writes the ticked proposals as local answers (INGREDIENTS-DATA §3 B):
+    /// a "zählt wie" onto the catalog word, or a word of its own.
+    private func saveProposals(_ proposals: [RecipeOptimization.Classification]) async {
+        for item in proposals where catalogLibrary.localTrace(for: item.name) == nil {
+            switch item.proposal {
+            case .countsAs(let name):
+                guard let target = catalogLibrary.catalogWithoutLocalAnswers.ingredient(for: name) else { continue }
+                await catalogLibrary.count(item.name, as: target)
+            case .word:
+                await catalogLibrary.addWord(item.name)
+            case nil:
+                continue
             }
         }
-        if let message = catalogLibrary.errorMessage { failure = message }
     }
 
     // MARK: - Bindings and texts

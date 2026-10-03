@@ -2,6 +2,30 @@ import Foundation
 import Testing
 @testable import SousKit
 
+extension StepReferencesPrompt {
+    /// An answer in the retired v2 shape — `{"schritte": [{"schritt": n,
+    /// "bezuege": [...]}]}` — through the reader the optimization uses. The
+    /// shape is the tests' shorthand for references; no prompt asks for it
+    /// any more.
+    static func read(_ pasted: String, for recipe: Recipe) -> Result<Reading, Failure> {
+        guard let open = pasted.firstIndex(of: "{"), let close = pasted.lastIndex(of: "}"), open < close else {
+            return .failure(.noAnswer)
+        }
+        struct Answer: Decodable {
+            struct Step: Decodable {
+                let schritt: Int
+                let bezuege: [AnswerItem]
+            }
+            let schritte: [Step]
+            let hinweise: [String]?
+        }
+        guard let answer = try? JSONDecoder().decode(Answer.self, from: Data(pasted[open...close].utf8)) else {
+            return .failure(.unreadable)
+        }
+        return reading(steps: answer.schritte.map { ($0.schritt, $0.bezuege) }, notes: answer.hinweise ?? [], for: recipe)
+    }
+}
+
 @Suite("Step references from a pasted answer")
 struct StepReferencesTests {
     let recipe = Recipe(
@@ -41,15 +65,6 @@ struct StepReferencesTests {
     ]}
     ```
     """#
-
-    @Test("The prompt numbers lines and steps and asks for the reference shape")
-    func prompt() {
-        let prompt = StepReferencesPrompt.prompt(for: recipe)
-        #expect(prompt.contains("Z3: 200 g Butter"))
-        #expect(prompt.contains("[Füllung]"))
-        #expect(prompt.contains("S2: Die Hälfte der Butter schmelzen."))
-        #expect(prompt.contains(#""bezuege""#))
-    }
 
     @Test("An answer is read out of a code fence and the words around it")
     func reads() throws {

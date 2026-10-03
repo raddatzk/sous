@@ -289,7 +289,7 @@ struct ProductTests {
     // MARK: - Households
 
     @MainActor
-    private static func libraries(
+    static func libraries(
         _ answers: [LocalAnswer]
     ) throws -> (NutritionLibrary, IngredientCatalogLibrary) {
         let container = try ModelContainer.sousContainer(inMemory: true)

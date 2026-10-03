@@ -325,81 +325,16 @@ extension Recipe {
     }
 }
 
-/// Builds the prompt the cook copies into a chat app, and reads back what
-/// they paste. See ``StepReferences``.
+/// What step references are checked and stamped with: the fingerprint, and
+/// the reader behind the optimization prompt's references
+/// (``RecipeOptimizationPrompt``). The prompt that asked for references
+/// alone (v2) is gone since phase 7b — one AI action, one prompt — but its
+/// version stays in the fingerprint, so references made with it stay
+/// current. See ``StepReferences``.
 public enum StepReferencesPrompt {
-    /// Part of the fingerprint: a changed prompt asks a different question,
-    /// so answers to the old one should not pass for answers to the new.
+    /// Part of the fingerprint. The v2 prompt is retired; the version stays,
+    /// as changing it would make every stored reference stale.
     static let version = "v2"
-
-    static let rules = """
-    Du liest ein deutsches Rezept. Für jeden Zubereitungsschritt sagst du, \
-    welche Zeilen der Zutatenliste der Schritt verwendet und wie viel davon.
-
-    Jeder Eintrag hat:
-    - "art": "menge", wenn im Satz eine Mengenangabe dieser Zutat steht \
-    ("200 g", "2 EL", "3"). Dann gehört dazu "stelle": genau diese \
-    Mengenangabe, so wie sie im Schritt steht (gleiche Schreibweise, gleiche \
-    Brüche, ohne Zutatennamen), und "vorkommen": das wievielte Vorkommen \
-    dieses Wortlauts im Schritt gemeint ist, sonst 1. Steht die Zutat nicht in \
-    der Liste ("300 ml Wasser"), ist "zeile" null.
-    - "art": "bezug", wenn der Schritt eine Zutat ohne eigene Zahl verwendet: \
-    beim Namen ("Zwiebeln"), als Anteil ("die Hälfte der Butter"), als \
-    Sammelbegriff ("die trockenen Zutaten" — ein Eintrag je gemeinter Zeile) \
-    oder nur gemeint ("abschmecken" für Salz). Ohne "stelle".
-    - "zeile": die Nummer der Zutatenzeile (Z-Nummer ohne Z).
-    - "menge": was dieser Schritt von der Zeile nimmt, mit der Einheit der \
-    Zeile und ohne Zutatennamen: "150 g", "½ TL", "2 Zehen", "1" — nicht \
-    "1 Schalotte". \
-    "Die Hälfte", "den Rest", "je ¼ TL" bei mehreren Stücken rechnest du um. \
-    Hat die Zeile keine Menge (Salz, "etwas Öl"), bleibt "menge" leer. \
-    Runde so, wie ein Rezept es schreiben würde: "85 g" statt "83,3 g", \
-    "⅓ TL" statt "0,33 TL".
-
-    Regeln:
-    - Pro Schritt höchstens ein Eintrag je Zeile. Nimmt ein Schritt eine Zeile \
-    in mehreren Teilen ("⅓ Mozzarella", dann "die übrigen Zutaten ebenso"), \
-    ist das ein Eintrag mit der Summe. Ausnahme: mehrere geschriebene \
-    Mengenangaben derselben Zutat im Satz — jede ist ein eigener "menge"-Eintrag.
-    - Wird eine Zutat erst ganz vorbereitet und später aufgeteilt ("Kürbis \
-    würfeln", dann "die Hälfte vom Kürbis", dann "die restlichen Kürbiswürfel"), \
-    bekommt der Vorbereitungsschritt die ganze Menge und jeder spätere Schritt \
-    seinen Anteil davon.
-    - Nennt ein Schritt eine Zutat, die ein früherer Schritt schon vollständig \
-    verarbeitet hat ("die Zwiebeln glasig dünsten" nach "Zwiebeln würfeln"), \
-    gibt es dafür keinen Eintrag.
-    - Zahlen, die keine Zutatenmenge sind — Temperaturen, Zeiten, Größen wie \
-    "3 cm", Stückzahlen des Ergebnisses wie "24 Kugeln" —, bekommen keinen \
-    Eintrag.
-    - Mengen pro Stück ("je ¼ TL Salz", "à 40 g") bleiben gleich, wenn das \
-    Rezept verdoppelt wird, und sind deshalb keine "menge": Nimm die Zutat \
-    als "bezug" mit der Gesamtmenge ("menge": "1 TL" bei vier Stücken).
-    - Salz für Koch- oder Nudelwasser ("in Salzwasser garen") ist ein "bezug" \
-    auf die Salz-Zeile ohne Menge.
-    - Nur Zeilen aus der Liste, keine erfundenen Zutaten. Schritte ohne Zutaten \
-    bekommen eine leere Liste.
-    - "hinweise" ist für die Person, die das Rezept pflegt, und nur für genau \
-    diese drei Fälle, je ein kurzer Satz: (1) Die Schritte nennen mehr oder \
-    eine andere Menge einer Zutat als die Liste. (2) Ein Schritt verwendet eine \
-    Zutat, die in der Liste fehlt. (3) Eine Zeile der Liste kommt in keinem \
-    Schritt vor. Nicht dazu zählen: Wasser (auch Koch-, Nudel- und Salzwasser), \
-    Serviervorschläge ("dazu passt Reis") und Zutaten, die als Alternative oder \
-    Variante gekennzeichnet sind. Erkläre keine eigenen Annahmen oder \
-    Zuordnungen. Trifft keiner der drei Fälle zu, bleibt "hinweise" leer.
-
-    Antworte ausschließlich mit einem JSON-Codeblock in genau dieser Form, \
-    ein Eintrag pro Schritt, in Schrittreihenfolge:
-
-    ```json
-    {"schritte": [{"schritt": 1, "bezuege": [{"art": "menge", "stelle": "200 g", "vorkommen": 1, "zeile": 1, "menge": "200 g"}, {"art": "bezug", "zeile": 4, "menge": "50 g"}]}], "hinweise": []}
-    ```
-    """
-
-    /// The whole text to copy: rules, answer format, and the recipe with its
-    /// lines and steps numbered.
-    public static func prompt(for recipe: Recipe) -> String {
-        "\(rules)\n\nRezept: \(recipe.title)\n\(body(for: recipe))"
-    }
 
     /// Hash of the recipe as the cook wrote it, title aside — renaming a
     /// dish does not change what its steps refer to.
@@ -500,32 +435,6 @@ public enum StepReferencesPrompt {
         /// What the model noticed does not add up between the steps and the
         /// ingredient list — for the cook to fix in the recipe, not stored.
         public let notes: [String]
-    }
-
-    /// Reads a pasted answer for `recipe`: the first `{` to the last `}`, so
-    /// a code fence or a sentence around it does not matter. An answer that
-    /// names a line or step the recipe lacks is refused whole — it was made
-    /// for some other text.
-    public static func read(_ pasted: String, for recipe: Recipe) -> Result<Reading, Failure> {
-        guard let open = pasted.firstIndex(of: "{"), let close = pasted.lastIndex(of: "}"), open < close else {
-            return .failure(.noAnswer)
-        }
-        struct Answer: Decodable {
-            struct Step: Decodable {
-                let schritt: Int
-                let bezuege: [AnswerItem]
-            }
-            let schritte: [Step]
-            let hinweise: [String]?
-        }
-        guard let answer = try? JSONDecoder().decode(Answer.self, from: Data(pasted[open...close].utf8)) else {
-            return .failure(.unreadable)
-        }
-        return reading(
-            steps: answer.schritte.map { ($0.schritt, $0.bezuege) },
-            notes: answer.hinweise ?? [],
-            for: recipe
-        )
     }
 
     /// One reference as the answer writes it, before it is checked.

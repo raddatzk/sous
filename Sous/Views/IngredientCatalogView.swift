@@ -13,10 +13,21 @@ struct IngredientCatalogView: View {
 
     @State private var searchText = ""
     @State private var showing: CatalogIngredient?
+    @State private var isAddingProduct = false
 
     var body: some View {
         NavigationStack {
             List {
+                if !ownProducts.isEmpty {
+                    Section {
+                        ForEach(ownProducts) { ingredient in
+                            row(ingredient)
+                        }
+                    } header: {
+                        Text("Eigene Produkte")
+                            .sousGroupHeader()
+                    }
+                }
                 ForEach(groups, id: \.category) { group in
                     Section {
                         ForEach(group.ingredients) { ingredient in
@@ -43,9 +54,12 @@ struct IngredientCatalogView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(role: .close) { dismiss() }
                 }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Produkt hinzufügen", systemImage: "plus") { isAddingProduct = true }
+                }
             }
             .overlay {
-                if groups.isEmpty {
+                if groups.isEmpty && ownProducts.isEmpty {
                     ContentUnavailableView.search
                 }
             }
@@ -55,6 +69,9 @@ struct IngredientCatalogView: View {
         }
         .sheet(item: $showing) { ingredient in
             IngredientDetailView(ingredient: ingredient)
+        }
+        .sheet(isPresented: $isAddingProduct) {
+            LocalAnswerForm(newProduct: ())
         }
         .sousErrorAlert(catalog)
         .sousSheetSizing(.page)
@@ -102,13 +119,23 @@ struct IngredientCatalogView: View {
         .buttonStyle(.plain)
     }
 
-    /// Matching ingredients, grouped by category in aisle order.
-    private var groups: [(category: IngredientCategory, ingredients: [CatalogIngredient])] {
-        let matches = searchText.isEmpty
+    /// The household's own products (phase 7b), on top and in no aisle —
+    /// matching the search, where there is one.
+    private var ownProducts: [CatalogIngredient] {
+        let keys = Set(catalog.ownProducts.map(\.writtenKey))
+        return matches.filter { keys.contains($0.key) }.sorted { $0.name < $1.name }
+    }
+
+    private var matches: [CatalogIngredient] {
+        searchText.isEmpty
             ? catalog.catalog.ingredients
             : catalog.catalog.search(searchText, limit: 200, requiresEveryWord: true)
+    }
 
-        return Dictionary(grouping: matches, by: \.category)
+    /// Matching ingredients, grouped by category in aisle order.
+    private var groups: [(category: IngredientCategory, ingredients: [CatalogIngredient])] {
+        let own = Set(catalog.ownProducts.map(\.writtenKey))
+        return Dictionary(grouping: matches.filter { !own.contains($0.key) }, by: \.category)
             .map { (category: $0.key, ingredients: $0.value.sorted { $0.name < $1.name }) }
             .sorted { $0.category.aisleOrder < $1.category.aisleOrder }
     }
@@ -272,7 +299,9 @@ struct IngredientDetailView: View {
             if let trace = catalog.localTrace(for: ingredient.name) {
                 Text(trace.label)
                     .foregroundStyle(.secondary)
-                Button("Lokale Angabe bearbeiten …") { isEditingLocalAnswer = true }
+                Button(trace.answer.isLocalProduct ? "Produkt bearbeiten …" : "Lokale Angabe bearbeiten …") {
+                    isEditingLocalAnswer = true
+                }
                 Button("Lokale Angabe entfernen", role: .destructive) { isConfirmingRemoval = true }
             } else {
                 Button("Lokale Angabe …") { isEditingLocalAnswer = true }

@@ -83,15 +83,22 @@ public struct LocalAnswerSet: Sendable, Equatable {
         var addedKeys: Set<String> = []
         var traces: [String: LocalAnswerTrace] = [:]
         var steps: [Applied.Step] = []
+        /// The household's own products by their answer's key, for a name's
+        /// product choice to point at (phase 7b).
+        var ownProducts: [String: CatalogIngredient] = [:]
 
-        for answer in answers {
-            let target = answer.targetID.flatMap { base.resolve(id: $0).ingredient }
+        // Own products before the names that link to them.
+        let ordered = answers.filter { !$0.targetsOwnProduct } + answers.filter(\.targetsOwnProduct)
+        for answer in ordered {
+            let target: CatalogIngredient? = answer.targetID.flatMap { targetID in
+                LocalAnswer.isKey(targetID) ? ownProducts[targetID] : base.resolve(id: targetID).ingredient
+            }
             // The word the answer is about, where the catalog knows it.
             let known: CatalogIngredient? = answer.catalogID
                 .flatMap { base.resolve(id: $0).ingredient }
                 ?? base.ingredient(writtenAs: answer.name)
 
-            if let known, answer.kind == .countsAs {
+            if let known, answer.kind?.isFallback == true {
                 // The catalog learned the name: its answer stands, quietly.
                 traces[known.key] = LocalAnswerTrace(
                     answer: answer, targetName: target?.name, status: .silenced(by: known.name)
@@ -101,28 +108,33 @@ public struct LocalAnswerSet: Sendable, Equatable {
             }
 
             if answer.kind != nil, answer.targetID != nil, target == nil,
-               answer.values == nil, answer.weights.isEmpty {
+               answer.values == nil, answer.weights.isEmpty, !answer.isLocalProduct {
                 // Pointed at a word retired without a successor (or one only
-                // a newer data set has): nothing to count with, so the name
-                // stays the gap it was.
+                // a newer data set has), or at an own product since deleted:
+                // nothing to count with, so the name stays the gap it was.
                 let trace = LocalAnswerTrace(answer: answer, targetName: nil, status: .unresolvedTarget)
                 traces[known?.key ?? answer.writtenKey] = trace
                 continue
             }
 
-            let subject: String
+            let subject: CatalogIngredient
             if let known {
-                subject = known.name
+                subject = known
             } else {
                 guard addedKeys.insert(answer.writtenKey).inserted else { continue }
                 // A word of its own: the target's aisle, nothing else of it.
-                additions.append(CatalogIngredient(name: answer.name, category: target?.category))
-                subject = answer.name
+                var word = CatalogIngredient(name: answer.name, category: target?.category)
+                if answer.isLocalProduct {
+                    word.product = CatalogProduct(brand: answer.brand ?? "", eans: answer.ean.map { [$0] } ?? [])
+                }
+                additions.append(word)
+                subject = word
             }
+            if answer.isLocalProduct { ownProducts[answer.key] = subject }
             let trace = LocalAnswerTrace(answer: answer, targetName: target?.name, status: .applied)
-            traces[IngredientCatalog.normalize(subject)] = trace
+            traces[subject.key] = trace
             traces[answer.writtenKey] = trace
-            steps.append(Applied.Step(subject: subject, targetName: target?.name, answer: answer))
+            steps.append(Applied.Step(subject: subject.name, targetName: target?.name, answer: answer))
         }
 
         let catalog = additions.isEmpty
@@ -165,17 +177,29 @@ public struct LocalAnswerSet: Sendable, Equatable {
         /// — under the subject's name, so a name counted as Tofu is weighed
         /// and computed as Tofu. Own values then replace the basis, and each
         /// own weight replaces the weight for its unit.
+        ///
+        /// An own product without label values lends its target as an
+        /// estimate ("Schätzung wie Hackfleisch"), like a catalog product's
+        /// `like`; a name linked to an own product takes the product's entry
+        /// as just computed, estimate and all.
         public func nutrition(over base: NutritionCatalog) -> NutritionCatalog {
             guard !steps.isEmpty else { return base }
             var entries: [CatalogNutrition] = []
+            var computed: [String: CatalogNutrition] = [:]
             for step in steps {
                 let answer = step.answer
                 var entry: CatalogNutrition
                 if let targetName = step.targetName,
-                   var lent = base.nutrition(forCanonicalName: targetName) {
-                    lent.name = step.subject
-                    lent.parentName = nil
-                    entry = lent
+                   var lent = computed[IngredientCatalog.normalize(targetName)]
+                       ?? base.nutrition(forCanonicalName: targetName) {
+                    if answer.isLocalProduct, answer.values == nil {
+                        entry = CatalogNutrition(name: step.subject, bases: [:], source: CatalogNutrition.ownSource)
+                            .estimating(like: lent)
+                    } else {
+                        lent.name = step.subject
+                        lent.parentName = nil
+                        entry = lent
+                    }
                 } else {
                     entry = base.nutrition(forCanonicalName: step.subject)
                         ?? CatalogNutrition(name: step.subject, bases: [:], source: CatalogNutrition.ownSource)
@@ -193,6 +217,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
                     entry.unitStates[unit] = weight.state
                 }
                 entries.append(entry)
+                computed[IngredientCatalog.normalize(step.subject)] = entry
             }
             return base.replacing(entries)
         }
@@ -218,12 +243,16 @@ public struct LocalAnswerTrace: Hashable, Sendable {
     /// "lokal: zählt wie Tofu · jetzt vom Katalog beantwortet".
     public var label: String {
         var parts: [String] = []
-        switch answer.kind {
-        case .countsAs: parts.append("zählt wie \(targetName ?? "?")")
-        case .product:
-            parts.append(targetName.map { "Produkt \($0)" }
-                ?? answer.brand.map { "Produkt von \($0)" } ?? "eigenes Produkt")
-        case nil: break
+        if answer.isLocalProduct {
+            parts.append(answer.brand.map { "eigenes Produkt von \($0)" } ?? "eigenes Produkt")
+            if let targetName, answer.values == nil { parts.append("Schätzung wie \(targetName)") }
+        } else {
+            switch answer.kind {
+            case .countsAs: parts.append("zählt wie \(targetName ?? "?")")
+            case .product: parts.append(targetName.map { "Produkt \($0)" } ?? "Produkt")
+            case .word: parts.append("eigenes Wort, ohne Werte")
+            case nil: break
+            }
         }
         if answer.values != nil { parts.append("eigene Werte") }
         if !answer.weights.isEmpty { parts.append("eigene Gewichte") }

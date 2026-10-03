@@ -7,10 +7,9 @@ import AppKit
 #endif
 
 /// Which ingredients each step takes, and which written amounts belong to
-/// which line: asked of a chat model the cook already uses — copy the
-/// prompt, paste it into the chat the cook picked, paste the answer back — and
-/// corrected, or assigned from scratch, by hand. Sous never talks to the
-/// model itself — see ``StepReferences``.
+/// which line, assigned or corrected by hand. Asking a chat is "Für Sous
+/// optimieren", which brings the references along (phase 7b: one AI action,
+/// one prompt). See ``StepReferences``.
 struct StepReferencesSheet: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
@@ -19,13 +18,9 @@ struct StepReferencesSheet: View {
 
     @AppStorage(SousSetting.stepReferencesChat, store: .sous)
     private var chat: StepReferencesChat?
-    @State private var didCopy = false
     /// What is being edited: the stored references while they still fit the
-    /// recipe, a pasted answer, or an empty start by hand. `nil` until one
-    /// of those exists.
+    /// recipe, or an empty start by hand. `nil` until one of those exists.
     @State private var draft: StepReferences?
-    @State private var reading: StepReferencesPrompt.Reading?
-    @State private var failure: String?
     /// What the draft started as, so a swipe can tell whether it would lose
     /// anything.
     private let initialDraft: StepReferences?
@@ -46,24 +41,15 @@ struct StepReferencesSheet: View {
         NavigationStack {
             Form {
                 statusSection
-                if chat != .off {
-                    askSection
-                    pasteSection
-                    if let reading {
-                        readingSections(reading)
-                    }
-                }
                 if draft == nil {
                     Section {
                         Button("Von Hand zuordnen", systemImage: "hand.point.up.left") {
                             draft = .empty(for: recipe)
                         }
                     } footer: {
-                        if chat == .off {
-                            Text("Schritt für Schritt selbst festlegen, was jeder Schritt braucht. KI ist in den Einstellungen ausgeschaltet.")
-                        } else {
-                            Text("Ohne Chat: Schritt für Schritt selbst festlegen, was jeder Schritt braucht.")
-                        }
+                        Text(chat == .off
+                            ? "Schritt für Schritt selbst festlegen, was jeder Schritt braucht. KI ist in den Einstellungen ausgeschaltet."
+                            : "Schritt für Schritt selbst festlegen, was jeder Schritt braucht. Schneller geht es mit „Für Sous optimieren“, das die Zuordnung mitbringt.")
                     }
                 } else {
                     editor
@@ -96,7 +82,7 @@ struct StepReferencesSheet: View {
         .sousSheetSizing(.page)
     }
 
-    // MARK: - Asking
+    // MARK: - Status
 
     @ViewBuilder
     private var statusSection: some View {
@@ -110,67 +96,6 @@ struct StepReferencesSheet: View {
                         await library.setStepReferences(nil, for: recipe)
                         dismiss()
                     }
-                }
-            }
-        }
-    }
-
-    private var askSection: some View {
-        Section {
-            Button(didCopy ? "Prompt kopiert" : "Prompt kopieren", systemImage: didCopy ? "checkmark" : "doc.on.doc") {
-                copy(StepReferencesPrompt.prompt(for: recipe))
-                didCopy = true
-            }
-            if let chat {
-                if let url = chat.url {
-                    Link(destination: url) {
-                        Label("\(chat.title) öffnen", systemImage: "arrow.up.forward.app")
-                    }
-                }
-            } else {
-                StepReferencesChatPicker()
-            }
-        } header: {
-            Text("Chat fragen")
-        } footer: {
-            Text("Den kopierten Text in einen neuen Chat einfügen und abschicken. Welcher Chat, lässt sich in den Einstellungen ändern.")
-        }
-    }
-
-    private var pasteSection: some View {
-        Section {
-            PasteButton(payloadType: String.self) { strings in
-                let pasted = strings.joined(separator: "\n")
-                Task { @MainActor in read(pasted) }
-            }
-            if let failure {
-                Label(failure, systemImage: "xmark.octagon")
-                    .foregroundStyle(.red)
-            }
-        } header: {
-            Text("Antwort einfügen")
-        } footer: {
-            Text("Die Antwort des Chats kopieren — am einfachsten über den Kopieren-Knopf am Codeblock. Sie ersetzt, was unten steht.")
-        }
-    }
-
-    @ViewBuilder
-    private func readingSections(_ reading: StepReferencesPrompt.Reading) -> some View {
-        if !reading.notes.isEmpty {
-            Section {
-                ForEach(reading.notes, id: \.self) { note in
-                    Label(note, systemImage: "text.badge.checkmark")
-                }
-            } header: {
-                Text("Passt im Rezept nicht zusammen")
-            } footer: {
-                Text("Das hat der Chat bemerkt. Korrigieren lässt es sich im Rezept selbst — danach neu fragen.")
-            }
-        }
-        if !reading.warnings.isEmpty {
-            Section("Hinweise") {
-                ForEach(reading.warnings, id: \.self) { warning in
-                    Label(text(for: warning), systemImage: "exclamationmark.triangle")
                 }
             }
         }
@@ -319,39 +244,9 @@ struct StepReferencesSheet: View {
         }
         return result
     }
-
-    private func read(_ pasted: String) {
-        switch StepReferencesPrompt.read(pasted, for: recipe) {
-        case .success(let value):
-            reading = value
-            draft = value.references
-            failure = nil
-        case .failure(let error):
-            reading = nil
-            failure = error.localizedDescription
-        }
-    }
-
-    private func text(for warning: StepReferencesPrompt.Warning) -> String {
-        func name(_ line: Int) -> String {
-            lines.indices.contains(line - 1) ? lines[line - 1].name : "Zeile \(line)"
-        }
-        switch warning {
-        case .notInStep(let step, let text):
-            return "Schritt \(step): Die Menge „\(text)“ steht so nicht im Text und wird nicht umgerechnet."
-        case .unreadableAmount(let step, let text):
-            return "Schritt \(step): „\(text)“ ist keine lesbare Menge und bleibt, wie sie ist."
-        case .overbooked(let line, let percent):
-            return "\(name(line)): Die im Text geschriebenen Mengen ergeben zusammen \(percent) % der Zeile."
-        }
-    }
-
-    private func copy(_ text: String) {
-        SousPasteboard.copy(text)
-    }
 }
 
-/// The chat the cook asks for "Zutaten pro Schritt" — chosen once, in the
+/// The chat the cook asks for "Für Sous optimieren" — chosen once, in the
 /// welcome or the settings, so the sheet offers one way out instead of a
 /// list of apps somebody else uses.
 ///
@@ -360,9 +255,8 @@ struct StepReferencesSheet: View {
 /// opens instead of the browser. "Anderer Chat" is for everything not listed
 /// — the sheet then only copies.
 ///
-/// `off` is for cooks who want no AI in the app at all: the sheet then
-/// neither copies a prompt nor takes an answer, and assigning by hand is
-/// what is left. One setting rather than a toggle beside the choice, so
+/// `off` is for cooks who want no AI in the app at all: the optimization is
+/// not offered, and assigning step references by hand is what is left. One setting rather than a toggle beside the choice, so
 /// "which chat" and "whether a chat" cannot contradict each other.
 enum StepReferencesChat: String, CaseIterable, Identifiable {
     case chatGPT = "chatgpt"

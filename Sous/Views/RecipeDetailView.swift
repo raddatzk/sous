@@ -80,7 +80,7 @@ struct RecipeDetailView: View {
     @State private var isPlanning = false
     @State private var isReadingStepReferences = false
     @State private var isOptimizing = false
-    /// "Reduziert": the recipe as imported, where an optimization changed it.
+    /// "Original": the recipe as imported, where an optimization changed it.
     @State private var showsOriginal = false
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
@@ -1041,7 +1041,7 @@ struct RecipeDetailView: View {
     private var modePicker: some View {
         Picker("Ansicht", selection: $showsOriginal) {
             Text("Sous-optimiert").tag(false)
-            Text("Reduziert").tag(true)
+            Text("Original").tag(true)
         }
         .pickerStyle(.segmented)
         .labelsHidden()
@@ -1407,17 +1407,14 @@ struct RecipeDetailView: View {
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
                 Button("Bearbeiten", systemImage: "pencil") { openEditor() }
+                // One AI action (phase 7b): the optimization brings the step
+                // references along. Assigning or correcting them by hand
+                // stays, AI or not.
                 if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
-                    // Without the sparkles once AI is switched off: what is
-                    // left behind the item is assigning by hand.
-                    Button(
-                        "Zutaten pro Schritt",
-                        systemImage: stepReferencesChat == .off ? "list.bullet.indent" : "sparkles"
-                    ) {
+                    Button("Zutaten pro Schritt", systemImage: "list.bullet.indent") {
                         isReadingStepReferences = true
                     }
                 }
-                // All AI: nothing is left of it once AI is switched off.
                 if !recipe.ingredients.isEmpty, stepReferencesChat != .off, !recipe.isDeleted {
                     Button("Für Sous optimieren", systemImage: "wand.and.stars") {
                         isOptimizing = true

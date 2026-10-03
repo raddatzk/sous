@@ -59,7 +59,7 @@ struct OnboardingView: View {
             switch self {
             case .welcome: "Willkommen bei Sous"
             case .recipes: "Rezepte hineinbringen"
-            case .steps: "Zutaten pro Schritt"
+            case .steps: "Für Sous optimieren"
             case .planning: "Planen und einkaufen"
             case .ingredients: "Aus einer Zeile wird mehr"
             case .household: "Zu zweit kochen"
@@ -81,12 +81,13 @@ struct OnboardingView: View {
                 """
             case .steps:
                 """
-                Welche Zutat in welchen Schritt gehört, sagt dir ein Chat, den \
-                du schon nutzt: Sous kopiert die Frage zum Rezept, du fügst \
-                sie dort ein und die Antwort zurück. Dann zeigt der Kochmodus \
-                bei jedem Schritt, was er braucht, und rechnet Mengen im Text \
-                mit. Ohne KI geht es auch — dann ordnest du von Hand zu. Zu \
-                finden im Menü eines Rezepts.
+                Ein Chat, den du schon nutzt, bringt die Zutaten in eine \
+                feste Form und sagt, welche Zutat in welchen Schritt gehört: \
+                Sous kopiert die Frage zum Rezept, du fügst sie dort ein und \
+                die Antwort zurück. Dann zeigt der Kochmodus bei jedem \
+                Schritt, was er braucht, und rechnet Mengen im Text mit. Ohne \
+                KI geht es auch — dann ordnest du von Hand zu. Zu finden im \
+                Menü eines Rezepts.
                 """
             case .planning:
                 """

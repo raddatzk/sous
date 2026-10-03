@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Optimizing a recipe for Sous rewrites its lines — preparation into the
 /// steps, alternatives into the notes, noise dropped — and overwrites the
-/// recipe. The text it came with stays here, read-only, so "Reduziert" can
+/// recipe. The text it came with stays here, read-only, so "Original" can
 /// show it and the cook can always see what the optimization changed.
 ///
 /// History, not a source: nothing derived (nutrition, shopping, the search
@@ -36,7 +36,7 @@ public struct RecipeOriginal: Codable, Hashable, Sendable {
     }
 
     /// Whether `recipe` still reads exactly like this — then there is nothing
-    /// for "Reduziert" to show apart from what is on screen already.
+    /// for "Original" to show apart from what is on screen already.
     public func matches(_ recipe: Recipe) -> Bool {
         ingredientsText == recipe.ingredientsText
             && instructionsText == recipe.instructionsText

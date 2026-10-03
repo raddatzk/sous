@@ -38,13 +38,13 @@ struct SettingsForm: View {
             Section {
                 StepReferencesChatPicker()
             } header: {
-                Text("Zutaten pro Schritt")
+                Text("Für Sous optimieren")
             } footer: {
                 Text("""
-                Welche Zutaten jeder Schritt braucht, fragst du in einem Chat, \
-                den du schon nutzt. Sous öffnet ihn neben dem kopierten Prompt. \
-                „Keine KI verwenden“ blendet das Fragen ganz aus — zuordnen \
-                lässt es sich dann weiter von Hand.
+                Feste Zeilen und die Zutaten jedes Schritts fragst du in einem \
+                Chat, den du schon nutzt. Sous öffnet ihn neben dem kopierten \
+                Prompt. „Keine KI verwenden“ blendet das Fragen ganz aus — \
+                Zutaten pro Schritt lassen sich dann von Hand zuordnen.
                 """)
             }
 

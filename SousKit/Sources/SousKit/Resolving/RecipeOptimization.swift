@@ -184,9 +184,28 @@ public struct RecipeOptimization: Sendable {
         /// The catalog's name for what it is, where one fits fairly.
         public let target: String?
         /// Where the line still reads as unknown after the rewrite: the
-        /// "zählt wie" this would give. Stored from phase 6 on; until then
-        /// only reported.
-        public let countsAs: String?
+        /// household's answer this proposes for the name, which makes the
+        /// line read as written (phase 7b). `nil` where the name is known
+        /// by then, or the line should have been fixed instead (a typo, a
+        /// preparation word).
+        public let proposal: HouseholdProposal?
+    }
+
+    /// What the household is offered to say about a name that stays as
+    /// written but unknown: it counts as a catalog word, or it is a word of
+    /// its own, without values. Saved as a local answer; the name is never
+    /// renamed.
+    public enum HouseholdProposal: Hashable, Sendable {
+        case countsAs(String)
+        case word
+
+        /// "zählt wie Kokosmilch", "neues Wort, ohne Werte".
+        public var label: String {
+            switch self {
+            case .countsAs(let target): "zählt wie \(target)"
+            case .word: "neues Wort, ohne Werte"
+            }
+        }
     }
 
     /// An ingredient group headed as alternatives ("# Alternative").
@@ -270,10 +289,10 @@ public struct RecipeOptimization: Sendable {
         lines.contains(where: \.isChanged) || !newSteps.isEmpty || groups.contains { $0.action != .keep }
     }
 
-    /// The "zählt wie" proposals: names that stay unknown after the rewrite
-    /// and have a fair stand-in in the catalog.
-    public var countsAsProposals: [Classification] {
-        classifications.filter { $0.countsAs != nil }
+    /// The household's answers the answer proposes: names that stay unknown
+    /// after the rewrite, each with a fair stand-in or as a word of its own.
+    public var householdProposals: [Classification] {
+        classifications.filter { $0.proposal != nil }
     }
 }
 
@@ -463,7 +482,7 @@ extension RecipeOptimization {
 
 extension RecipeOptimization {
     /// The classifications as text to send to the curator — the way to
-    /// share them until local answers exist (phase 6).
+    /// share them until sharing exists (phase 10).
     public func report(_ chosen: [Classification]) -> String {
         var text = "Sous – Vorschläge für den Zutatenkatalog\nRezept: \(recipe.title)\n"
         for item in chosen {
@@ -476,15 +495,21 @@ extension RecipeOptimization {
 
 // MARK: - The prompt
 
-/// Builds the optimization prompt (v3) and reads the answer. See
+/// Builds the optimization prompt (v4) and reads the answer. See
 /// ``RecipeOptimization``.
+///
+/// The one AI action on a recipe (phase 7b): the lines in the fixed form and
+/// the step references in one answer, offered whether or not the recipe was
+/// optimized before — on an optimized one the lines stay and the references
+/// are made anew. v4 adds the household proposals for names that stay
+/// unknown.
 ///
 /// The step references it asks for are the same references as v2's, read by
 /// the same reader and stamped with the same fingerprint scheme — only over
 /// the new text. That is why this prompt's version is its own: answers to
 /// v2 stay current, and nothing becomes stale by this prompt existing.
 public enum RecipeOptimizationPrompt {
-    static let version = "v3"
+    static let version = "v4"
 
     static let rules = """
     Du bereitest ein deutsches Rezept für die Koch-App Sous vor. Eine Antwort, \
@@ -542,10 +567,13 @@ public enum RecipeOptimizationPrompt {
     hat. Eine Zeile fällt nur weg, wenn ihr Inhalt in die Notizen wandert oder \
     ihre Gruppe entfernt wird.
 
-    Unbekannte Namen: Steht der Name einer Zeile nicht im Katalog (weder als Name \
-    noch als Alias; Einzahl und Mehrzahl zählen gleich), ordnest du ihn ein: \
-    "einordnung": {"name": der Name wie in der Zeile, "art": …, "ziel": ein \
-    Katalogname oder null}.
+    Unbekannte Namen: Steht der Name einer neuen Zeile nicht im Katalog (weder \
+    als Name noch als Alias; Einzahl und Mehrzahl zählen gleich), ordnest du ihn \
+    ein, auch wenn die Zeile schon in Form ist und unverändert bleibt: \
+    "einordnung": {"name": der Name genau wie in der neuen Zeile, ohne Menge und \
+    Einheit, "art": …, "ziel": ein Katalogname oder null}. Sous merkt sich das \
+    für den Haushalt: Mit "ziel" zählt der Name wie dieser Katalogname, ohne \
+    "ziel" wird er ein eigenes Wort ohne Nährwerte. Die Zeile behält ihren Namen.
     - "alias": derselbe Einkauf, ein anderes Wort ("Rotkraut" → Rotkohl). \
     Derselbe Einkauf heißt: Mit dem Katalognamen auf dem Einkaufszettel nähme man \
     dasselbe aus dem Regal.
@@ -1060,12 +1088,37 @@ public enum RecipeOptimizationPrompt {
         // says about them.
         guard catalog.ingredient(for: parsed.name) == nil else { return nil }
         let name = raw.name.flatMap(nonEmpty) ?? parsed.name
-        guard line.written.range(of: name, options: [.caseInsensitive, .diacriticInsensitive]) != nil else { return nil }
+        let texts = line.isRefused ? [line.written] : line.rewritten
+        guard ([line.written] + texts).contains(where: {
+            $0.range(of: name, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }) else { return nil }
         // An unknown target drops the target, not the classification.
         let target = kind == .new ? nil : raw.ziel.flatMap(nonEmpty).flatMap { catalog.ingredient(for: $0)?.name }
-        let stillUnknown = line.isRefused || !line.resolves
-        let countsAs = [.new, .typo].contains(kind) || !stillUnknown ? nil : target
-        return .init(line: line.number, name: name, kind: kind, target: target, countsAs: countsAs)
+        // A typo is corrected, never answered. A wording kept as written
+        // ("dünne Kokosmilch") counts as its word where it has one; it is
+        // never a word of its own.
+        let proposal: RecipeOptimization.HouseholdProposal?
+        if kind == .typo || line.resolves && !line.isRefused
+            || !teaching(name, readsAnyOf: texts, catalog: catalog) {
+            proposal = nil
+        } else if kind == .wording {
+            proposal = target.map { .countsAs($0) }
+        } else {
+            proposal = target.map { .countsAs($0) } ?? .word
+        }
+        return .init(line: line.number, name: name, kind: kind, target: target, proposal: proposal)
+    }
+
+    /// Whether a household answer for `name` makes one of `texts` read that
+    /// does not read without it — so a proposal saved is a line fixed, not
+    /// a word nobody reads by.
+    private static func teaching(_ name: String, readsAnyOf texts: [String], catalog: IngredientCatalog) -> Bool {
+        let taught = IngredientCatalog(
+            ingredients: [CatalogIngredient(name: name)] + catalog.ingredients, renames: catalog.renames
+        )
+        return texts.contains {
+            !IngredientLineReader.isInForm($0, catalog: catalog) && IngredientLineReader.isInForm($0, catalog: taught)
+        }
     }
 
     private static func variantProposal(

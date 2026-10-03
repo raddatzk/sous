@@ -79,7 +79,7 @@ struct RecipeOptimizationSparringTests {
                 if let variant = group.variant { report += "      Variante: \(variant.title); fremde Mengen: \(variant.foreignAmounts)\n" }
             }
             for item in optimization.classifications {
-                report += "  ? \(item.name): \(item.kind.rawValue) \(item.target ?? "–")\(item.countsAs.map { " → zählt wie \($0)" } ?? "")\n"
+                report += "  ? \(item.name): \(item.kind.rawValue) \(item.target ?? "–")\(item.proposal.map { " → \($0.label)" } ?? "")\n"
             }
             for note in optimization.notes { report += "  Hinweis: \(note)\n" }
             let applied = optimization.applied(optimization.defaultSelection)
