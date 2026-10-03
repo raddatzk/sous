@@ -14,8 +14,9 @@ import Testing
 /// launched.
 @Suite("Data set")
 struct DataSetTests {
-    /// A temporary store, and a folder beside it to build sets in.
-    private struct Scratch {
+    /// A temporary store, and a folder beside it to build sets in. Shared
+    /// with the fetching tests.
+    struct Scratch {
         let base = FileManager.default.temporaryDirectory
             .appending(path: "sous-dataset-\(UUID().uuidString)", directoryHint: .isDirectory)
         var store: DataSetStore { DataSetStore(root: base.appending(path: "Data", directoryHint: .isDirectory)) }
@@ -66,7 +67,7 @@ struct DataSetTests {
     private static let bundled = DataSetManifest.bundled.dataVersion
 
     /// Kitchen words with one word more, so a test can tell which set it got.
-    private static func addingWord(_ name: String) -> (inout [String: Data]) throws -> Void {
+    static func addingWord(_ name: String) -> (inout [String: Data]) throws -> Void {
         { files in
             var words = try #require(
                 try JSONSerialization.jsonObject(with: files["kitchen_words.json"]!) as? [[String: Any]]

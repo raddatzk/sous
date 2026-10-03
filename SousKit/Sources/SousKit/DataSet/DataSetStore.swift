@@ -20,8 +20,9 @@ import os
 /// here: two processes launching at once would otherwise decide twice, and
 /// could decide differently.
 ///
-/// Fetching is phase 9. What this type offers it is ``stage(_:)``, which
-/// takes a finished folder in whole or not at all.
+/// Fetching (``DataUpdater``, also the app's alone) hands its result to
+/// ``stage(_:)``, which takes a finished folder in whole or not at all, and
+/// remembers a release that failed its checks with ``markBad(_:)``.
 public struct DataSetStore: Sendable {
     public let root: URL
 
@@ -114,6 +115,14 @@ public struct DataSetStore: Sendable {
         try fileManager.moveItem(at: copy, to: destination)
         try Data().write(to: marker(for: version), options: .atomic)
         return version
+    }
+
+    /// Remembers a release that failed its checks, so it is never fetched
+    /// or tried again. **The app's alone**, like ``activate()``.
+    public func markBad(_ version: Int) {
+        var bad = badVersions
+        guard bad.insert(version).inserted else { return }
+        write(bad.sorted(), to: badURL)
     }
 
     // MARK: - Choosing, at launch

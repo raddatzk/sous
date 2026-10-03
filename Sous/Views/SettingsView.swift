@@ -14,6 +14,10 @@ struct SettingsForm: View {
     /// When this device first ran against that data — the trace concept §7
     /// asks the sources screen to leave.
     private let lastSeen = BundledDataMarker().lastSeen
+    /// The catalog release this process runs on, and the last daily check.
+    private let dataSet = DataSet.current.manifest
+    private let dataSetIsFetched = DataSet.current.origin != .bundled
+    private let lastDataCheck = DataUpdateSchedule().lastCheck
 
     var body: some View {
         Form {
@@ -48,6 +52,7 @@ struct SettingsForm: View {
                 """)
             }
 
+            catalogRelease
             dataSources
         }
         .formStyle(.grouped)
@@ -78,6 +83,38 @@ struct SettingsForm: View {
             furtherSource(source)
         }
     }
+
+    /// Which release of the catalog — words, weights, aisles, the BLS rows —
+    /// the app is reading, and where its history is: the Git log of `Data/`,
+    /// where every change is a reviewed commit. A newer release arrives on
+    /// its own, at most daily, and is read from the next cold start.
+    private var catalogRelease: some View {
+        Section {
+            LabeledContent("Version") {
+                Text(verbatim: String(dataSet.dataVersion))
+            }
+            if let day = dataSet.day {
+                LabeledContent("Stand") {
+                    Text(day.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: .gmt)))
+                }
+            }
+            LabeledContent("Herkunft") {
+                Text(dataSetIsFetched ? "Nachgeladen" : "Mit der App geliefert")
+            }
+            if let lastDataCheck {
+                LabeledContent("Zuletzt nach Neuem gesehen") {
+                    Text(lastDataCheck.formatted(date: .abbreviated, time: .shortened))
+                }
+            }
+            Link("Änderungen ansehen", destination: Self.dataHistory)
+        } header: {
+            Text("Zutatenkatalog")
+        } footer: {
+            Text("Neue Katalogdaten lädt Sous höchstens einmal am Tag und verwendet sie ab dem nächsten Start.")
+        }
+    }
+
+    private static let dataHistory = URL(string: "https://github.com/raddatzk/sous/commits/main/Data")!
 
     @ViewBuilder
     private func primarySource(_ source: DataSource) -> some View {

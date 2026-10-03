@@ -225,6 +225,19 @@ struct SousApp: App {
         AppDependencyManager.shared.add(dependency: sousNavigation)
     }
 
+    /// Newer catalog data, at most once in 20 hours: read from the public
+    /// CloudKit database, staged, and current at the next cold start. The
+    /// app's alone — the share extension and the widgets only follow what it
+    /// chose. Silent either way; the bundled set is always the floor.
+    private func checkForNewData() async {
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        await DataUpdater(
+            store: .shared,
+            source: CloudKitReleaseSource(),
+            appBuild: build.flatMap { Int($0) }
+        ).checkIfDue()
+    }
+
     /// Attaches anything the migration brought over to the household, then
     /// makes sure that household sits in a shared CloudKit zone.
     ///
@@ -538,6 +551,7 @@ struct SousApp: App {
                 // for all the world as though saving one recipe had restored
                 // the others.
                 .task { registerForCloudKitPushes() }
+                .task { await checkForNewData() }
                 .task { await watchForRemoteChanges() }
                 // A reinstall's first import settles the households the
                 // moment it arrives, rather than whenever the next store
@@ -618,6 +632,9 @@ struct SousApp: App {
                     // changes or the app is started again — which for a
                     // long-lived app on a phone can be days.
                     Task { await calendarMirror.syncIfEnabled() }
+                    // An app kept alive for days asks here; the update is
+                    // ready for whichever cold start comes next.
+                    Task { await checkForNewData() }
                 }
                 // A page shared from Safari arrives as sous://import?url=…,
                 // a recipe file opened with Sous as the file itself, a link

@@ -29,6 +29,14 @@ public struct DataSetManifest: Codable, Hashable, Sendable {
     /// File name → the SHA-256 of its bytes, lowercase hex.
     public var files: [String: String]
 
+    /// The UTC day in ``dataVersion``: when the compiler first saw this data.
+    public var day: Date? {
+        let day = dataVersion / 100
+        var components = DateComponents(year: day / 10000, month: day / 100 % 100, day: day % 100)
+        components.timeZone = TimeZone(identifier: "UTC")
+        return Calendar(identifier: .gregorian).date(from: components)
+    }
+
     public init(schema: Int, dataVersion: Int, sha256: String, files: [String: String]) {
         self.schema = schema
         self.dataVersion = dataVersion

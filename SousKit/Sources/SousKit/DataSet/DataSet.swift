@@ -136,6 +136,15 @@ public final class DataSet: Sendable {
         return Bundle.module.url(forResource: name.deletingPathExtension, withExtension: name.pathExtension)
     }
 
+    /// Where one of this set's files is: in the bundle, or in its folder.
+    /// What a fetch copies instead of downloading a file that did not change.
+    func url(of fileName: String) -> URL? {
+        switch origin {
+        case .bundled: return Self.bundledURL(of: fileName)
+        case .stored(let folder): return folder.appending(path: fileName)
+        }
+    }
+
     // MARK: - The set this process runs on
 
     /// What a process may do with the sets in its store.

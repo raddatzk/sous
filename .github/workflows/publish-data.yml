@@ -1,0 +1,69 @@
+# Publishes the compiled data set to the app's CloudKit public database
+# (INGREDIENTS-DATA §5; Data/README.md, "Publishing").
+#
+# A push to main that touches the data goes to development, where debug
+# builds read it first. Production only by hand — Actions -> Publish data ->
+# Run workflow -> environment "production" — and the GitHub environment
+# `cloudkit-production` asks for an approval before the job gets its key.
+#
+# Each GitHub environment (`cloudkit-development`, `cloudkit-production`)
+# holds its own server-to-server key as the secrets CLOUDKIT_KEY_ID and
+# CLOUDKIT_PRIVATE_KEY (the PEM text). The key acts as the publisher's user
+# record, which holds the CloudKit role `Publisher` in that environment.
+name: Publish data
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Data/**
+      - SousKit/Sources/SousKit/Resources/*.json
+      - Scripts/data/**
+      - .github/workflows/publish-data.yml
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: CloudKit environment
+        type: choice
+        options: [development, production]
+        default: development
+
+# One publish per environment at a time, and none cancelled halfway: the
+# pointer moves only after its release is complete, but a second run racing
+# the first could move it back.
+concurrency:
+  group: publish-data-${{ inputs.environment || 'development' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    # What the app bundles is what main holds; a branch never publishes.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: cloudkit-${{ inputs.environment || 'development' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: Scripts/data/requirements.txt
+
+      - name: Install the compiler's and the publisher's dependencies
+        run: pip install -r Scripts/data/requirements.txt
+
+      - name: Resources and manifest equal compile(Data/)
+        run: python3 Scripts/data/compile.py --check
+
+      - name: Publish the release, then move the pointer
+        env:
+          CLOUDKIT_KEY_ID: ${{ secrets.CLOUDKIT_KEY_ID }}
+          CLOUDKIT_PRIVATE_KEY: ${{ secrets.CLOUDKIT_PRIVATE_KEY }}
+          ENVIRONMENT: ${{ inputs.environment || 'development' }}
+        run: python3 Scripts/data/publish.py --environment "$ENVIRONMENT" --commit "$GITHUB_SHA"

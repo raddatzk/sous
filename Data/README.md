@@ -45,8 +45,7 @@ catalog refers to its rows by code.
 The compiled files, `bls.json` included, are one **data set**, and
 `compile.py` writes its `manifest.json` last: the format (`schema`), the
 release (`dataVersion`), and the SHA-256 of every file. The app reads a set
-only through its manifest, the one it ships and, from phase 9, the ones it
-fetches.
+only through its manifest, the one it ships and the ones it fetches.
 
 `dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this content,
 and a counter within the day. Nobody sets it. `compile.py` raises it whenever
@@ -58,6 +57,56 @@ Two data pull requests open at once both raise the version; their manifests
 conflict, and the second one compiles again on top of the first.
 `--check --since <base>` fails when the data changed and the version did not
 grow.
+
+## Publishing
+
+After a merge to `main` that touches the data, the Action *Publish data*
+(`.github/workflows/publish-data.yml`) runs `compile.py --check` and
+`Scripts/data/publish.py`, which puts exactly the bundled files into the app's
+CloudKit container, public database:
+
+- a `DataRelease` record `release-<dataVersion>`, one asset per file in a
+  field named after it (`kitchen_words.json` → `kitchen_words`), plus the
+  manifest. Every asset is read back and checked against the manifest.
+- only then the pointer `current-v<schema>` (type `CurrentRelease`), which
+  carries the version and the manifest. Apps read it at most every 20 hours,
+  by id, fetch only the files whose hash changed, and use the new set from
+  their next cold start.
+
+A push publishes to **development**, which debug builds read. **Production**
+is a manual run (*Run workflow* → `production`) that the GitHub environment
+`cloudkit-production` holds for approval. Each environment keeps its own
+server-to-server key as the secrets `CLOUDKIT_KEY_ID` and
+`CLOUDKIT_PRIVATE_KEY`.
+
+**Who may write.** Both record types grant read to everyone (no iCloud
+account needed) and create and write only to the role `Publisher`, which
+only the publisher's user record holds — the record the key acts as. The app
+also takes a pointer or release only from that user (`CloudKitReleaseSource`)
+and only of the right type: record names are unique across all types of the
+zone, so a name taken first with any type that signed-in users may create
+would otherwise pass. That is why no other type in the public database may
+let signed-in users create records either. Core Data's types get exactly
+that by default whenever their schema is initialized in development, so
+**check the roles before every production deploy of the schema**:
+
+```sh
+xcrun cktool export-schema --team-id MDQY93XVHF --container-id iCloud.me.raddatz.sous \
+  --environment development | grep -c 'GRANT CREATE TO "_icloud"'   # wants 0
+```
+
+**Releases are never deleted.** `publish.py --point-to <dataVersion>` turns
+the pointer to an older release, which stops devices that have not fetched
+the newer one yet; a device that has keeps it, since a client never goes
+back. The real undo is a revert in `Data/`, which compiles to a new, higher
+version.
+
+To publish by hand, with the key of the environment in
+`CLOUDKIT_KEY_ID` and `CLOUDKIT_PRIVATE_KEY_FILE`:
+
+```sh
+python3 Scripts/data/publish.py --environment development --commit "$(git rev-parse HEAD)"
+```
 
 ## An ingredient
 
