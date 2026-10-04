@@ -18,3 +18,6 @@ Rezepte.melarecipes
 
 # Der JetBrains-Arbeitsbereich, pro Rechner wie xcuserdata/ darüber
 .idea/
+
+# The data compiler's own environment (Scripts/hooks/pre-commit uses it)
+Scripts/data/.venv/

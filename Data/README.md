@@ -9,6 +9,24 @@ belongs to. `Scripts/data/compile.py` turns it into the JSON the app bundles
 **Edit the YAML here, never the resources.** They are compiled output, and CI
 fails when they differ from `compile(Data/)`.
 
+You need not compile by hand:
+- **A pull request** that changes `Data/` is compiled by
+  `.github/workflows/compile-data.yml`: where the resources differ, it commits
+  them to the branch as "Compile Data/" and runs CI on that commit. A YAML edit
+  in the browser is a whole change. (Branches of this repository only; a fork
+  compiles itself.)
+- **Locally**, `Scripts/hooks/pre-commit` compiles when a commit stages a change
+  under `Data/`, and stages the resources with it. It steps aside while `Data/`
+  holds unstaged changes, and never blocks a commit. Once per clone:
+
+```
+python3 -m venv Scripts/data/.venv                         # the hook prefers this one
+Scripts/data/.venv/bin/pip install -r Scripts/data/requirements.txt
+git config core.hooksPath Scripts/hooks
+```
+
+By hand, where you want to see the result first:
+
 ```
 python3 -m pip install -r Scripts/data/requirements.txt   # once: PyYAML, jsonschema
 python3 Scripts/data/compile.py                            # writes the resources

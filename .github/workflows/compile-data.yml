@@ -1,0 +1,78 @@
+# Compiles Data/ on a pull request and commits what it compiles to.
+#
+# The catalog is curated as YAML under Data/; the app reads the JSON that
+# Scripts/data/compile.py makes of it (Data/README.md). Both are checked in,
+# and CI fails where they disagree. This lets a pull request change only the
+# YAML — in the browser, say — and still arrive at the merge button whole:
+# where the resources differ from what Data/ compiles to, they are compiled
+# and committed to the pull request's branch as "Compile Data/".
+#
+# A push made with the workflow's own token starts no workflow, CI included,
+# so this one asks CI to run on the commit it made (a `workflow_dispatch`).
+# A data pull request from the inbox (phase 10b) arrives compiled, and this
+# finds nothing to do.
+#
+# Only for branches of this repository: a fork's pull request gets no token
+# that could push to it, and CI tells its author what to run instead.
+name: Compile data
+
+on:
+  pull_request:
+    paths:
+      - Data/**
+      - Scripts/data/compile.py
+
+concurrency:
+  group: compile-data-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  compile:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # The branch itself, not the merge commit a pull request checks out by
+      # default: what is compiled here is committed back onto it.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: Scripts/data/requirements.txt
+
+      - name: Install the compiler's dependencies
+        run: pip install -r Scripts/data/requirements.txt
+
+      - name: Compile Data/
+        run: python3 Scripts/data/compile.py
+
+      - name: Commit what changed
+        id: commit
+        run: |
+          git add -A SousKit/Sources/SousKit/Resources Data/released-ids.txt
+          if git diff --cached --quiet; then
+            echo "::notice::The resources already equal compile(Data/)."
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --cached --stat
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Compile Data/"
+          git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run CI on the compiled commit
+        if: steps.commit.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref "${{ github.event.pull_request.head.ref }}"

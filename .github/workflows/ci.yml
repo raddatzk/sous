@@ -2,10 +2,13 @@ name: CI
 
 # Every push to main and every pull request. Nothing here signs anything, so
 # it needs no secrets and keeps running even if the certificates expire.
+# `workflow_dispatch` is how "Compile data" runs CI on the commit it pushed:
+# a push made with a workflow's own token starts no workflow by itself.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 # A second push to the same branch makes the first run pointless. macOS
 # minutes bill at ten times the rate of Linux, so cancel rather than queue.

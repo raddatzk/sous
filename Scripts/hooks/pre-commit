@@ -1,0 +1,40 @@
+#!/bin/sh
+# Compiles Data/ when a commit changes it, and stages what it compiles to —
+# the local half of .github/workflows/compile-data.yml (Data/README.md).
+#
+# Installed once per clone: git config core.hooksPath Scripts/hooks
+#
+# It compiles the working tree, so it steps aside where Data/ holds changes
+# that are not staged: what it wrote would then not be what is committed.
+# It never blocks a commit; without the compiler's dependencies it says so,
+# and the pull request's workflow compiles instead.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMRD -- Data/ | grep -v '^Data/released-ids.txt$')
+[ -z "$staged" ] && exit 0
+
+if [ -n "$(git diff --name-only -- Data/)" ]; then
+    echo "pre-commit: Data/ has unstaged changes; not compiling. Stage them, or run Scripts/data/compile.py." >&2
+    exit 0
+fi
+
+root=$(git rev-parse --show-toplevel)
+python=python3
+[ -x "$root/Scripts/data/.venv/bin/python" ] && python="$root/Scripts/data/.venv/bin/python"
+# On Apple silicon, natively: an Intel git (Homebrew under /usr/local) runs its
+# hooks under Rosetta, and a Python started from there cannot load the arm64
+# builds of jsonschema's dependencies.
+native=""
+[ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] && native="arch -arm64"
+python="$native $python"
+if ! $python -c "import yaml, jsonschema" 2>/dev/null; then
+    echo "pre-commit: the compiler's dependencies are missing; not compiling." >&2
+    echo "  python3 -m venv Scripts/data/.venv && Scripts/data/.venv/bin/pip install -r Scripts/data/requirements.txt" >&2
+    exit 0
+fi
+
+if ! $python "$root/Scripts/data/compile.py" >/dev/null; then
+    echo "pre-commit: Data/ does not compile — see above. Committing anyway; CI will refuse it." >&2
+    exit 0
+fi
+git add -- "$root/SousKit/Sources/SousKit/Resources" "$root/Data/released-ids.txt"
+echo "pre-commit: compiled Data/ and staged the resources."
