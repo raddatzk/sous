@@ -349,27 +349,34 @@ struct SousApp: App {
     /// Moves the household's rows out of the SwiftData store, if any are
     /// still there — recipes, pictures, plan and shopping list.
     ///
-    /// No marker guarding it and no progress shown, because there is no
-    /// installed base to migrate: on a fresh device the source is empty and
-    /// this is a handful of fetches against empty tables. What it does cover
-    /// is a development device that has been in use, where the library would
-    /// otherwise appear to have been lost.
+    /// No progress shown, because there is no installed base to migrate: on
+    /// a fresh device the source is empty and this is a handful of fetches
+    /// against empty tables. What it does cover is a development device that
+    /// has been in use, where the library would otherwise appear to have
+    /// been lost.
+    ///
+    /// It runs until one run has completed, and never after: a repeat would
+    /// bring back what the cook has since moved or removed in the new store
+    /// (``RecipeStoreMigration/runOnce(from:to:defaults:)``).
     ///
     /// Failure is silent on purpose. The source is never modified, so a run
-    /// that goes wrong leaves the old store intact to try again from.
+    /// that goes wrong leaves the old store intact to try again from on the
+    /// next launch.
     private func migrateStores() async {
+        guard !UserDefaults.sous.bool(forKey: RecipeStoreMigration.finishedKey) else { return }
         // Forced into the oldest own household for the duration: legacy
         // SwiftData content is this person's by definition — adopting it
         // while a joined household is active would write their old recipes
         // into somebody else's kitchen — and it is where earlier launches put
-        // it. The migration runs on every launch and skips what the
-        // destination already holds, so it has to look where the last run
-        // wrote; with no own household yet, that is among the rows waiting
-        // for one.
+        // it. A run that stopped halfway skips what the destination already
+        // holds, so it has to look where the last run wrote; with no own
+        // household yet, that is among the rows waiting for one.
         let active = ActiveHousehold.id
         ActiveHousehold.id = households.oldestOwnID()
         defer { ActiveHousehold.id = active }
-        _ = try? await RecipeStoreMigration.run(from: migrationSource, to: migrationDestination)
+        _ = try? await RecipeStoreMigration.runOnce(
+            from: migrationSource, to: migrationDestination, defaults: .sous
+        )
         await library.reload()
     }
 

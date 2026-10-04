@@ -8,12 +8,14 @@ import Foundation
 /// not have: ones that leave `updatedAt` exactly as they found it, and that
 /// write a shopping list back with its check marks and positions intact.
 ///
-/// **Idempotent by row, not by flag.** Every row is compared against what the
-/// destination already holds and skipped when that copy is current. A marker
-/// saying "migration done" would be a lie after a crash halfway through; this
-/// can be run again, and again after the cook has kept working in the old
-/// store, and it converges either way. It is the same rule the sync applies
-/// later, which is not a coincidence — it is the same problem.
+/// **Idempotent by row, finished by flag.** Every row is compared against
+/// what the destination already holds and skipped when that copy is current,
+/// so a run cut short halfway finishes on the next attempt. Once the cook
+/// works in the destination, though, a repeat run is no longer harmless: a
+/// plan entry moved or removed there, a shopping item removed, a recipe
+/// erased would come back from the old store, which nothing writes to any
+/// more. So the app calls ``runOnce(from:to:defaults:)``, which records the
+/// first run that completes and skips every later one.
 ///
 /// **The source is never touched.** Nothing is deleted, nothing is renamed.
 /// If any of this goes wrong the library is still where it was.
@@ -71,6 +73,25 @@ public enum RecipeStoreMigration {
             recipesCopied == 0 && groupsCopied == 0 && imagesCopied == 0
                 && planEntriesCopied == 0 && shoppingItemsCopied == 0
         }
+    }
+
+    /// The `UserDefaults` key that records a completed migration.
+    public static let finishedKey = "recipeStoreMigration.finished"
+
+    /// Runs the migration until one run has completed, and never after.
+    ///
+    /// Only a run that returns is recorded; one that throws or is cut short
+    /// leaves the flag unset, and the next launch carries on from where the
+    /// rows say it stopped. Returns `nil` when the migration had finished
+    /// before.
+    @discardableResult
+    public static func runOnce(
+        from source: Source, to destination: Destination, defaults: UserDefaults
+    ) async throws -> Report? {
+        guard !defaults.bool(forKey: finishedKey) else { return nil }
+        let report = try await run(from: source, to: destination)
+        defaults.set(true, forKey: finishedKey)
+        return report
     }
 
     @discardableResult
