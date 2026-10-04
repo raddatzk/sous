@@ -721,9 +721,96 @@ public final class RecipeLibrary {
         current.ingredientsText = original.ingredientsText
         current.instructionsText = original.instructionsText
         current.notes = original.notes
+        if let meta = original.meta {
+            current.title = meta.title
+            current.summary = meta.summary
+            current.servings = meta.servings
+            current.categories = meta.categories
+        }
         current.stepReferences = nil
+        // What it was "before the last replacement" is no longer a state
+        // worth going back to once the recipe is back at the start.
+        current.original?.previous = nil
         await save(current)
         return true
+    }
+
+    /// Takes a replacement: the recipe's content becomes `replacement`'s, as
+    /// far as `fields` says, and what it read before is kept — as the
+    /// original, once, and as the step "Letzte KI-Änderung zurücknehmen"
+    /// goes back to. The recipe's own identity — pictures, favourite,
+    /// variant group — stays.
+    ///
+    /// Refused (`false`) where the recipe was changed since the prompt was
+    /// copied, for the reason ``applyOptimization(_:to:)`` gives.
+    @discardableResult
+    public func applyReplacement(
+        _ replacement: RecipeReplacement,
+        fields: RecipeReplacement.Fields = .standard,
+        to asked: Recipe
+    ) async -> Bool {
+        guard let current = await self.recipe(id: asked.id) else { return false }
+        guard current.ingredientsText == asked.ingredientsText,
+              current.instructionsText == asked.instructionsText,
+              current.notes == asked.notes,
+              current.title == asked.title
+        else { return false }
+        var kept = current.keepingOriginal()
+        if kept.original?.meta == nil { kept.original?.meta = RecipeOriginal.Meta(of: current) }
+        kept.original?.previous = RecipeOriginal.Version(of: current)
+        var updated = replacement.applied(to: kept, fields: fields)
+        updated.original = kept.original
+        await save(updated)
+        return true
+    }
+
+    /// "Letzte KI-Änderung zurücknehmen": the recipe reads as before the
+    /// last replacement. One step only; the original stays as it was.
+    @discardableResult
+    public func undoReplacement(_ recipe: Recipe) async -> Bool {
+        guard var current = await self.recipe(id: recipe.id),
+              let previous = current.original?.previous
+        else { return false }
+        current.title = previous.meta.title
+        current.summary = previous.meta.summary
+        current.servings = previous.meta.servings
+        current.categories = previous.meta.categories
+        current.ingredientsText = previous.ingredientsText
+        current.instructionsText = previous.instructionsText
+        current.notes = previous.notes
+        current.stepReferences = previous.stepReferences
+        current.original?.previous = nil
+        await save(current)
+        return true
+    }
+
+    /// A replacement as a recipe of its own, beside the one it was asked
+    /// about — in its variant group if `asVariant` (one is made, titled after
+    /// the recipe, if it has none). Nothing about `recipe` changes.
+    ///
+    /// All of the replacement is taken, title included, and the new recipe
+    /// starts without pictures and step references.
+    public func addReplacement(
+        _ replacement: RecipeReplacement,
+        of recipe: Recipe,
+        asVariant: Bool
+    ) async -> Recipe? {
+        guard let current = await self.recipe(id: recipe.id) else { return nil }
+        if asVariant {
+            guard var variant = await addVariant(of: current, title: replacement.title, groupTitle: current.title)
+            else { return nil }
+            variant = replacement.applied(to: variant, fields: .all)
+            variant.original = nil
+            await save(variant)
+            return variant
+        }
+        var fresh = replacement.applied(
+            to: Recipe(title: replacement.title),
+            fields: .all
+        )
+        fresh.servings = replacement.servings ?? current.servings
+        await save(fresh)
+        return fresh
     }
 
     /// A variant the optimization proposed for a group of alternatives, born

@@ -17,12 +17,60 @@ public struct RecipeOriginal: Codable, Hashable, Sendable {
     /// When it was kept — the import, or the first optimization of a recipe
     /// from before originals were kept.
     public var keptAt: Date
+    /// What a replacement by a chat model could change besides the text:
+    /// kept the first time one happens, so "Original" brings it back too.
+    /// `nil` where none has happened.
+    public var meta: Meta?
+    /// The recipe as it read before the last replacement, so that one step
+    /// can be taken back without going all the way to the original.
+    public var previous: Version?
 
-    public init(ingredientsText: String, instructionsText: String, notes: String?, keptAt: Date = .nowInSyncPrecision) {
+    /// The fields beside the text a replacement may change.
+    public struct Meta: Codable, Hashable, Sendable {
+        public var title: String
+        public var summary: String?
+        public var servings: Int
+        public var categories: [String]
+
+        public init(of recipe: Recipe) {
+            title = recipe.title
+            summary = recipe.summary
+            servings = recipe.servings
+            categories = recipe.categories
+        }
+    }
+
+    /// A whole version of a recipe's content.
+    public struct Version: Codable, Hashable, Sendable {
+        public var meta: Meta
+        public var ingredientsText: String
+        public var instructionsText: String
+        public var notes: String?
+        public var stepReferences: StepReferences?
+
+        public init(of recipe: Recipe) {
+            meta = Meta(of: recipe)
+            ingredientsText = recipe.ingredientsText
+            instructionsText = recipe.instructionsText
+            notes = recipe.notes
+            stepReferences = recipe.stepReferences
+        }
+    }
+
+    public init(
+        ingredientsText: String,
+        instructionsText: String,
+        notes: String?,
+        keptAt: Date = .nowInSyncPrecision,
+        meta: Meta? = nil,
+        previous: Version? = nil
+    ) {
         self.ingredientsText = ingredientsText
         self.instructionsText = instructionsText
         self.notes = notes
         self.keptAt = keptAt
+        self.meta = meta
+        self.previous = previous
     }
 
     /// `recipe`'s text as it reads now.
