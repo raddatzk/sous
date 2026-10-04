@@ -18,6 +18,10 @@
       name: Rosa Pfeffer
       aliases:
         - rosa Pfefferbeeren
+      nutrition: without
+      via: Kein Pfeffer, sondern die Beeren des Peruanischen Pfefferbaums (Schinus); erbte
+        bisher die Werte des schwarzen Pfeffers. Weder BLS noch Ciqual 2020 noch USDA FoodData
+        Central (SR Legacy) führen ihn, daher bewusst ohne Werte.
     - id: schwarzer-pfeffer
       name: Schwarzer Pfeffer
       aliases:

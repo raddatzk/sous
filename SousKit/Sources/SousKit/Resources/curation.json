@@ -692,8 +692,12 @@
    "via": "BLS-Name \"Cashewnussmus\""
   },
   "Cayennepfeffer": {
-   "withoutValues": true,
-   "via": "Gemahlener Cayennepfeffer fehlt im BLS. Die frische Schote gibt es („Pfefferschote“, siehe Chili); gemahlen und getrocknet ist sie ein anderes Lebensmittel je Gramm."
+   "targets": {
+    "unspecified": [
+     "Z-cayennepfeffer"
+    ]
+   },
+   "via": "Gemahlener Cayennepfeffer fehlt im BLS; die frische Schote („Pfefferschote“, siehe Chili) ist getrocknet ein anderes Lebensmittel je Gramm. Ciqual 2020 (Anses) führt ihn als „Cayenne pepper“, inline übernommen — dieselbe Zeile wie bei den Chiliflocken."
   },
   "Champignon": {
    "targets": {
@@ -875,14 +879,11 @@
   },
   "Dattel": {
    "targets": {
-    "raw": [
-     "F504100"
+    "unspecified": [
+     "F504400"
     ]
    },
-   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
-   "candidates": [
-    "F504400"
-   ]
+   "via": "BLS \"Dattel getrocknet\": im deutschen Rezept sind Datteln fast immer die getrockneten aus der Packung. Bisher rechnete das Wort mit frischen (F504100, 140 statt 356 kcal); die stehen jetzt als eigene Sorte da."
   },
   "Desodoriertes Kokosöl": {
    "targets": {
@@ -1026,6 +1027,22 @@
    },
    "via": "BLS-Gruppe \"Eierteigwaren\""
   },
+  "Eigelb": {
+   "targets": {
+    "raw": [
+     "E112100"
+    ],
+    "cooked": [
+     "E112132",
+     "E112182",
+     "E112162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hühnerei Eigelb\". Bisher eine Schreibweise des ganzen Eis: „4 Eigelb“ rechnete mit 135 statt 345 kcal je 100 g und mit dem Gewicht eines ganzen Eis.",
+   "candidates": [
+    "E112500"
+   ]
+  },
   "Eisbergsalat": {
    "targets": {
     "raw": [
@@ -1033,6 +1050,31 @@
     ]
    },
    "via": "BLS \"Eisbergsalat roh\"."
+  },
+  "Eiweiß": {
+   "targets": {
+    "raw": [
+     "E113100"
+    ],
+    "cooked": [
+     "E113132",
+     "E108122",
+     "E113182",
+     "E113162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hühnerei Eiklar\". Bisher eine Schreibweise des ganzen Eis: „3 Eiweiß“ rechnete mit 135 statt 42 kcal je 100 g und mit dem Gewicht eines ganzen Eis.",
+   "candidates": [
+    "E113500"
+   ]
+  },
+  "Emmentaler": {
+   "targets": {
+    "unspecified": [
+     "M304600"
+    ]
+   },
+   "via": "BLS-Zeile \"Emmentaler mind. 45 % Fett i. Tr.\". Bisher eine Schreibweise des Bergkäses; ein eigener Käse im Regal mit eigener Zeile, deutlich milder gesalzen."
   },
   "Endivie": {
    "targets": {
@@ -1127,13 +1169,27 @@
     "H810100"
    ]
   },
+  "Erdnussbutter": {
+   "targets": {
+    "unspecified": [
+     "H880200"
+    ]
+   },
+   "via": "BLS \"Erdnussbutter/Erdnusscreme\": der gesalzene, meist gesüßte Brotaufstrich. Bisher eine Schreibweise der gerösteten Erdnuss. Nicht mit dem Erdnussmus zusammengelegt: das ist das reine Mus ohne Salz, ein eigenes Erzeugnis mit eigener BLS-Zeile.",
+   "candidates": [
+    "H110800"
+   ]
+  },
   "Erdnussmus": {
    "targets": {
     "unspecified": [
      "H110800"
     ]
    },
-   "via": "BLS-Name \"Erdnussmus\" — reines Mus, anders als die Erdnusscreme"
+   "via": "BLS-Name \"Erdnussmus\": reines Mus aus gerösteten Erdnüssen, ungesalzen. Bleibt eine eigene Sorte neben der Erdnussbutter: ein anderes Glas im Regal, und das BLS führt beide mit eigenen Werten (Natrium 3 statt 317 mg).",
+   "candidates": [
+    "H880200"
+   ]
   },
   "Erdnussöl": {
    "targets": {
@@ -1295,6 +1351,18 @@
     "T422600"
    ]
   },
+  "Frische Dattel": {
+   "targets": {
+    "raw": [
+     "F504100"
+    ]
+   },
+   "via": "BLS \"Dattel roh\": die frische Frucht, seltener im Rezept als die getrocknete, die das Wurzelwort meint."
+  },
+  "Frische Kurkuma": {
+   "withoutValues": true,
+   "via": "Die frische Wurzel ist zum größten Teil Wasser und erbte bisher das „ohne Werte“ des Pulvers; jetzt, wo Kurkuma die Pulverzeile trägt, würde sie deren Werte erben. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen frische Kurkuma, daher bewusst ohne Werte."
+  },
   "Frisches Lorbeerblatt": {
    "withoutValues": true,
    "via": "Frische Blätter enthalten viel Wasser und wiegen je Gramm nur einen Bruchteil der getrockneten; mit deren Werten zu rechnen wäre falsch, und keine lizenzierte Datenbank (BLS, Ciqual, USDA) führt frischen Lorbeer. Daher bewusst ohne Werte."
@@ -1446,6 +1514,17 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Gemüsebrühpulver": {
+   "targets": {
+    "unspecified": [
+     "R821000"
+    ]
+   },
+   "via": "BLS \"Gemüse Bouillon/Brühe/Suppe (Brühwürfel, Pulver)\". „Gemüsebrühe Pulver“ war eine Schreibweise der fertigen Brühe und rechnete mit 4 kcal und 268 mg Natrium je 100 g statt mit 195 kcal und 20,7 g Natrium. Ein eigenes Erzeugnis im Regal, daher Sorte. Brühwürfel und gekörnte Brühe ohne Sorte meinen dasselbe; das allgemeine „Bouillon (Brühwürfel, Pulver)“ (R810000) hat dieselben Werte.",
+   "candidates": [
+    "R810000"
+   ]
   },
   "Gerösteter Sesam": {
    "targets": {
@@ -1767,6 +1846,14 @@
    },
    "via": "Griffiges (doppelgriffiges) Mehl ist grob gemahlener Weizen, im BLS \"Weizen Dunst\""
   },
+  "Gruyère": {
+   "targets": {
+    "unspecified": [
+     "M305700"
+    ]
+   },
+   "via": "BLS-Zeile \"Greyerzer mind. 50 % Fett i. Tr.\". Bisher eine Schreibweise des Bergkäses; ein eigener Käse mit eigener Zeile, fast doppelt so salzig."
+  },
   "Grüne Oliven": {
    "targets": {
     "unspecified": [
@@ -1948,7 +2035,7 @@
      "R459000"
     ]
    },
-   "via": "BLS-Gruppe \"Backhefe frisch (Frischbackhefe)\""
+   "via": "BLS-Gruppe \"Backhefe frisch (Frischbackhefe)\". Das Päckchen hieß hier bisher 7 g, gerechnet mit den Werten der frischen Hefe — Gramm der trockenen mit Werten der frischen. Ohne eigenes Maß fiele „1 Pck. Hefe“ auf die allgemeine Packung (250 g) zurück, daher das Päckchen als die Menge Frischhefe, die es ersetzt."
   },
   "Hefeflocken": {
    "targets": {
@@ -2108,6 +2195,14 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Hühnerbrühpulver": {
+   "targets": {
+    "unspecified": [
+     "R822000"
+    ]
+   },
+   "via": "BLS \"Hühner Bouillon/Brühe/Suppe (Brühwürfel, Pulver)\": das Pulver ist ein anderes Lebensmittel je Gramm als die fertige Brühe (201 statt 5 kcal, rund 22 g Natrium). Gleiche Lage wie beim Gemüsebrühpulver."
   },
   "Hüttenkäse": {
    "targets": {
@@ -2483,7 +2578,7 @@
      "G490100"
     ]
    },
-   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "via": "BLS-Namensabgleich, einmalig festgeschrieben. Die Schreibweise „Knoblauchzehe“ bringt die Einheit Zehe mit: „2 Knoblauchzehen“ sind 2 Zehen Knoblauch.",
    "candidates": [
     "G490042",
     "G490200",
@@ -2715,8 +2810,12 @@
    "via": "Das BLS führt den Kräuterseitling nicht (nur den Austernpilz, eine andere Art). Werte aus USDA Foundation Foods \"Mushroom, king oyster\" (FDC 2003599), roh. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
   },
   "Kurkuma": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-kurkuma"
+    ]
+   },
+   "via": "Das BLS führt Kurkuma als Gewürz nicht. Ciqual 2020 (Anses) führt das Pulver als „Turmeric, powder“, inline übernommen. Die frische Wurzel ist eine eigene Sorte."
   },
   "Kuvertüre": {
    "targets": {
@@ -2818,9 +2917,15 @@
    "targets": {
     "raw": [
      "U807000"
+    ],
+    "cooked": [
+     "U867142",
+     "U867162",
+     "U817162",
+     "U867132"
     ]
    },
-   "via": "BLS-Gruppe \"Lamm Muskelfleisch\"",
+   "via": "BLS-Gruppe \"Lamm Muskelfleisch\" für roh. Gegart führt das BLS kein Muskelfleisch, wohl aber die gleich magere Schulter (roh 121 statt 116 kcal) geschmort, gebraten und gekocht und die Nuss gebraten; geschmort vorn, wie Keule und Schulter meist ins Rezept kommen.",
    "candidates": [
     "W139100",
     "W149100"
@@ -2984,22 +3089,22 @@
   },
   "Mais": {
    "targets": {
-    "cooked": [
-     "C341032"
-    ],
     "raw": [
-     "C341000"
+     "G570100"
+    ],
+    "cooked": [
+     "G570132",
+     "G570902",
+     "G570232",
+     "G570172"
     ]
    },
-   "via": "BLS-Namensabgleich, einmalig festgeschrieben",
+   "via": "BLS-Gruppe \"Zuckermais\": „Mais“ im Rezept ist fast immer Gemüsemais aus Dose, Glas oder Tiefkühltruhe, und das Dosenmaß meinte ihn schon. Bisher zeigte das Wort auf das Getreide (C341000, 336 kcal roh) und rechnete eine Dose mit gekochtem Körnermais. Das Getreide bleibt als Popcornmais erreichbar.",
    "candidates": [
-    "C341162",
-    "C346000",
-    "C346032",
-    "C347000",
-    "C347032",
-    "C443000",
-    "C446000"
+    "G570200",
+    "G570802",
+    "C341000",
+    "C341032"
    ]
   },
   "Maiskeimöl": {
@@ -3199,7 +3304,7 @@
   },
   "Medjool-Dattel": {
    "targets": {
-    "raw": [
+    "unspecified": [
      "Z-medjool-dattel"
     ]
    },
@@ -3654,7 +3759,7 @@
      "Z-paprikapulver"
     ]
    },
-   "via": "Das BLS führt Paprikapulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile."
+   "via": "Das BLS führt Paprikapulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. „Rosenpaprika“ war bis zu dieser Runde eine Schreibweise des edelsüßen Pulvers; die ungarische Sorte ist die schärfere und steht deshalb beim scharfen."
   },
   "Paranuss": {
    "targets": {
@@ -3911,15 +4016,20 @@
   },
   "Polenta": {
    "targets": {
+    "raw": [
+     "C346000"
+    ],
     "cooked": [
+     "C346032",
+     "C526000",
      "C526062",
      "C526082"
-    ],
-    "unspecified": [
-     "C526000"
     ]
    },
-   "via": "BLS-Gruppe \"Polenta (Maisgrieß mit Wasser, Fett und Salz) gekocht\""
+   "via": "BLS \"Mais Grieß\": „500 g Polenta“ ist im Rezept fast immer der trockene Grieß aus der Packung. Bisher rechnete das Wort ohne Zustand mit der fertig gekochten Polenta (C526000, 114 kcal) statt mit dem Grieß (330 kcal). Gekocht gilt der in Wasser gegarte Grieß (C346032), weil Butter und Salz im Rezept eigene Zeilen haben; die zubereitete Polenta mit Fett und Salz steht als Alternative dahinter.",
+   "candidates": [
+    "C347000"
+   ]
   },
   "Pomelo": {
    "targets": {
@@ -3928,6 +4038,14 @@
     ]
    },
    "via": "BLS-Name \"Pampelmuse/Pomelo, roh\"; \"Pampelmuse\" sagt der Alltag auch zur Grapefruit, darum kein Alias"
+  },
+  "Popcornmais": {
+   "targets": {
+    "raw": [
+     "C341000"
+    ]
+   },
+   "via": "BLS \"Mais roh\": das getrocknete Korn, das Mais bis zu dieser Runde rechnete. Im Rezept kommt es als Popcornmais vor; ein anderes Erzeugnis im Regal als der Gemüsemais und ein Vielfaches an Energie je Gramm."
   },
   "Portwein": {
    "targets": {
@@ -4173,6 +4291,14 @@
     "X413663"
    ]
   },
+  "Rinderbrühpulver": {
+   "targets": {
+    "unspecified": [
+     "R811000"
+    ]
+   },
+   "via": "BLS \"Fleisch Bouillon/Brühe/Suppe (Brühwürfel, Pulver)\": das Pulver ist ein anderes Lebensmittel je Gramm als die fertige Brühe (207 statt 3 kcal, rund 19,6 g Natrium). Gleiche Lage wie beim Gemüsebrühpulver."
+  },
   "Rindergulasch": {
    "targets": {
     "raw": [
@@ -4184,6 +4310,20 @@
     ]
    },
    "via": "BLS-Gruppe \"Rind Gulasch (Bug)\""
+  },
+  "Rinderhackfleisch": {
+   "targets": {
+    "raw": [
+     "U010100"
+    ],
+    "cooked": [
+     "U010182",
+     "U010162",
+     "U010132",
+     "U010142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Hackfleisch\". „Rinderhack“ war eine Schreibweise des gemischten Hackfleischs; reines Rinderhack ist ein anderes Erzeugnis im Regal und magerer."
   },
   "Rinderroulade": {
    "targets": {
@@ -4292,6 +4432,10 @@
     ]
    },
    "via": "BLS-Gruppe \"Romanesco\": eine eigene Kohlsorte mit eigenen Zeilen, deshalb nicht die Werte des Blumenkohls."
+  },
+  "Rosa Pfeffer": {
+   "withoutValues": true,
+   "via": "Kein Pfeffer, sondern die Beeren des Peruanischen Pfefferbaums (Schinus); erbte bisher die Werte des schwarzen Pfeffers. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen ihn, daher bewusst ohne Werte."
   },
   "Rosenkohl": {
    "targets": {
@@ -4714,13 +4858,14 @@
   "Schwarze Bohnen": {
    "targets": {
     "raw": [
-     "H742100"
+     "H739400"
     ],
     "cooked": [
-     "H742132"
+     "H740132",
+     "H740902"
     ]
    },
-   "via": "kuratierte Auswahl"
+   "via": "BLS \"Gartenbohne reif\": Schwarze Bohnen sind wie Kidneybohnen Phaseolus vulgaris, aber nicht Kidneybohnen; bisher zeigte das Wort auf deren Zeilen (H742…). Trocken die reife Gartenbohne, gekocht die gekochte, die Dose abgetropft als Alternative."
   },
   "Schwarze Johannisbeere": {
    "targets": {
@@ -5771,13 +5916,14 @@
   "Weiße Bohnen": {
    "targets": {
     "raw": [
-     "H742100"
+     "H739400"
     ],
     "cooked": [
-     "H742132"
+     "H740132",
+     "H740902"
     ]
    },
-   "via": "kuratierte Auswahl"
+   "via": "BLS \"Gartenbohne reif\": Weiße Bohnen sind wie Kidneybohnen Phaseolus vulgaris, aber nicht Kidneybohnen; bisher zeigte das Wort auf deren Zeilen (H742…). Trocken die reife Gartenbohne, gekocht die gekochte, die Dose abgetropft als Alternative."
   },
   "Weiße Kuvertüre": {
    "targets": {
@@ -5952,8 +6098,12 @@
    "via": "BLS-Zeile \"Ziegenmilch mind. 3 % Fett\""
   },
   "Zimt": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-zimt"
+    ]
+   },
+   "via": "Das BLS führt Zimt als Gewürz nicht; die Namenssuche fand nur Cerealien mit Zimtgeschmack (424 kcal). Ciqual 2020 (Anses) führt ihn als „Cinnamon, powder“, inline übernommen; die Stange ist dieselbe Rinde."
   },
   "Zitronat": {
    "targets": {
@@ -6016,22 +6166,21 @@
    },
    "via": "BLS \"Zuckerhutsalat roh\". Das nackte \"Zuckerhut\" heißt mancherorts Spitzkohl und bleibt deshalb weg."
   },
-  "Zuckermais": {
+  "Zuckerschote": {
    "targets": {
     "raw": [
-     "G570100"
+     "G761100"
     ],
     "cooked": [
-     "G570132",
-     "G570902",
-     "G570232",
-     "G570172"
+     "G761032",
+     "G761152",
+     "G761232",
+     "G761252"
     ]
    },
-   "via": "BLS-Gruppe \"Zuckermais\": der Gemüsemais aus Dose und Tiefkühltruhe. Das Wurzelwort zeigt auf das Getreide \"Mais\" (C341…), dessen Trockenwert ein Vielfaches ist.",
+   "via": "BLS-Gruppe \"Zuckererbse\": die ganze Schote, 38 kcal roh statt der 80 der grünen Erbse. Bisher eine Schreibweise der Erbse; ein anderes Gemüse im Regal, daher Sorte.",
    "candidates": [
-    "G570200",
-    "G570802"
+    "G761200"
    ]
   },
   "Zwetschge": {

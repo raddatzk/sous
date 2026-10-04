@@ -7,10 +7,31 @@
     - gemahlener Zimt
     - Zimt gemahlen
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-zimt
+        name: Cinnamon, powder
+        source: Ciqual 2020 (Anses), Nr. 11025 „Cinnamon, powder“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 243
+          proteinG: 3.87
+          fatG: 1.22
+          saturatedFatG: 0.44
+          carbsG: 27.5
+          sugarG: 2.17
+          fiberG: 53.1
+          sodiumMg: 10
+          vitaminCMg: 3.8
+          vitaminDMcg: 0
+          vitaminEMg: 2.32
+          calciumMg: 1000
+          ironMg: 8.32
+          magnesiumMg: 60
+          potassiumMg: 431
+  via: Das BLS führt Zimt als Gewürz nicht; die Namenssuche fand nur Cerealien mit Zimtgeschmack
+    (424 kcal). Ciqual 2020 (Anses) führt ihn als „Cinnamon, powder“, inline übernommen; die
+    Stange ist dieselbe Rinde.
   varieties:
     - id: ceylon-zimt
       name: Ceylon-Zimt

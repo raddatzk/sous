@@ -9,3 +9,14 @@
   nutrition:
     unspecified: [X411243]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: huehnerbruehpulver
+      name: Hühnerbrühpulver
+      aliases:
+        - Hühnerbrühe Pulver
+        - Hühnerbrühwürfel
+      nutrition:
+        unspecified: [R822000]
+      via: 'BLS "Hühner Bouillon/Brühe/Suppe (Brühwürfel, Pulver)": das Pulver ist ein anderes
+        Lebensmittel je Gramm als die fertige Brühe (201 statt 5 kcal, rund 22 g Natrium).
+        Gleiche Lage wie beim Gemüsebrühpulver.'

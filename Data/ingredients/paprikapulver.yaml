@@ -3,7 +3,6 @@
   aliases:
     - Paprika edelsüß
     - Paprikapulver edelsüß
-    - Rosenpaprika
   category: spices
   nutrition:
     unspecified:
@@ -31,7 +30,9 @@
     2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname
     wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices,
     paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich
-    Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile.
+    Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. „Rosenpaprika“ war
+    bis zu dieser Runde eine Schreibweise des edelsüßen Pulvers; die ungarische Sorte ist
+    die schärfere und steht deshalb beim scharfen.
   varieties:
     - id: geraeuchertes-paprikapulver
       name: Geräuchertes Paprikapulver
@@ -44,3 +45,4 @@
       aliases:
         - Paprikapulver scharf
         - Paprikapulver rosenscharf
+        - Rosenpaprika

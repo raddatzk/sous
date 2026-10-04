@@ -10,24 +10,31 @@
       state: cooked
       note: Eine 340-g-Dose Zuckermais, abgetropft.
   nutrition:
-    cooked: [C341032]
-    raw: [C341000]
-  candidates: [C341162, C346000, C346032, C347000, C347032, C443000, C446000]
-  via: BLS-Namensabgleich, einmalig festgeschrieben
+    raw: [G570100]
+    cooked: [G570132, G570902, G570232, G570172]
+  candidates: [G570200, G570802, C341000, C341032]
+  via: 'BLS-Gruppe "Zuckermais": „Mais“ im Rezept ist fast immer Gemüsemais aus Dose, Glas
+    oder Tiefkühltruhe, und das Dosenmaß meinte ihn schon. Bisher zeigte das Wort auf das
+    Getreide (C341000, 336 kcal roh) und rechnete eine Dose mit gekochtem Körnermais. Das
+    Getreide bleibt als Popcornmais erreichbar.'
   varieties:
     - id: zuckermais
       name: Zuckermais
       aliases:
         - Gemüsemais
         - Maiskörner
-      nutrition:
-        raw: [G570100]
-        cooked: [G570132, G570902, G570232, G570172]
-      candidates: [G570200, G570802]
-      via: 'BLS-Gruppe "Zuckermais": der Gemüsemais aus Dose und Tiefkühltruhe. Das Wurzelwort
-        zeigt auf das Getreide "Mais" (C341…), dessen Trockenwert ein Vielfaches ist.'
       varieties:
         - id: babymais
           name: Babymais
           aliases:
             - Mini-Maiskolben
+    - id: popcornmais
+      name: Popcornmais
+      aliases:
+        - Puffmais
+      category: grains
+      nutrition:
+        raw: [C341000]
+      via: 'BLS "Mais roh": das getrocknete Korn, das Mais bis zu dieser Runde rechnete. Im
+        Rezept kommt es als Popcornmais vor; ein anderes Erzeugnis im Regal als der Gemüsemais
+        und ein Vielfaches an Energie je Gramm.'

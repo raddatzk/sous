@@ -244,7 +244,10 @@ struct BundledDataTests {
         // Chili left this list on the same day: the fresh chilli is in the
         // table as "Pfefferschote", and is curated - see
         // ``chiliIsCuratedRatherThanDeclaredMissing``.
-        for word in ["Kurkuma", "Zimt", "Cayennepfeffer"] {
+        //
+        // Zimt, Kurkuma and Cayennepfeffer stood here until Ciqual gave them
+        // rows; these three are in no licensed source.
+        for word in ["Sternanis", "Wacholderbeeren", "Sumach"] {
             let entry = try #require(synonyms.entry(for: word), "\(word) is missing")
             #expect(entry.targets.isEmpty, "\(word) suddenly has values")
             #expect(entry.hasNoValues, "\(word) has no values and does not say so")
@@ -643,14 +646,17 @@ struct ListSeparationTests {
 
     @Test("A word that says it has no values proposes nothing")
     func settledWordsOfferNoCandidates() {
-        // The Zimt case. The BLS has no cinnamon, so every route that guesses
-        // at what the word might mean was reaching for whatever the name
-        // search scraped up - breakfast cereal at 424 kcal, offered as if it
-        // were an answer. A settled word has no question left to fill.
-        let zimt = SynonymTable.bundled.entry(for: "Zimt")
-        #expect(zimt?.hasNoValues == true)
-        #expect(zimt?.candidateCodes.isEmpty == true)
-        let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: "Zimt")?
+        // The Zimt case, back when the BLS was the only source and had no
+        // cinnamon: every route that guesses at what the word might mean was
+        // reaching for whatever the name search scraped up - breakfast cereal
+        // at 424 kcal, offered as if it were an answer. A settled word has no
+        // question left to fill. Zimt has a Ciqual row now; Vanille is the
+        // same case today - the name search finds vanilla yoghurt and pudding
+        // powder, and no source has the pod.
+        let vanille = SynonymTable.bundled.entry(for: "Vanille")
+        #expect(vanille?.hasNoValues == true)
+        #expect(vanille?.candidateCodes.isEmpty == true)
+        let basis = NutritionCatalog.bundled.nutrition(forCanonicalName: "Vanille")?
             .basis(for: .unspecified)
         #expect(basis?.status == .deliberatelyWithout)
     }

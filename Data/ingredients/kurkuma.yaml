@@ -5,13 +5,38 @@
     - Curcuma
     - Gelbwurz
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-kurkuma
+        name: Turmeric, powder
+        source: Ciqual 2020 (Anses), Nr. 11089 „Turmeric, powder“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 291
+          proteinG: 9.68
+          fatG: 3.25
+          saturatedFatG: 1.84
+          carbsG: 44.4
+          sugarG: 3.21
+          fiberG: 22.7
+          sodiumMg: 27
+          vitaminCMg: 0.7
+          vitaminDMcg: 0
+          vitaminEMg: 4.43
+          calciumMg: 168
+          ironMg: 55
+          magnesiumMg: 208
+          potassiumMg: 2080
+  via: Das BLS führt Kurkuma als Gewürz nicht. Ciqual 2020 (Anses) führt das Pulver als „Turmeric,
+    powder“, inline übernommen. Die frische Wurzel ist eine eigene Sorte.
   varieties:
     - id: frische-kurkuma
       name: Frische Kurkuma
       aliases:
         - Kurkumawurzel
         - frische Kurkumawurzel
+      nutrition: without
+      via: Die frische Wurzel ist zum größten Teil Wasser und erbte bisher das „ohne Werte“
+        des Pulvers; jetzt, wo Kurkuma die Pulverzeile trägt, würde sie deren Werte erben.
+        Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen frische Kurkuma,
+        daher bewusst ohne Werte.

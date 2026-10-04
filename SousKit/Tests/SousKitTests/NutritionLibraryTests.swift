@@ -165,10 +165,10 @@ struct NutritionLibraryTests {
     @Test("A word the catalog settles as without values is no defect")
     func catalogsWithoutIsAnAnswer() async throws {
         let (nutrition, _) = try makeLibrary()
-        let recipe = Recipe(title: "Milchreis", servings: 2, ingredientsText: "1 TL Zimt\n200 g Zucker")
+        let recipe = Recipe(title: "Milchreis", servings: 2, ingredientsText: "1 Vanilleschote\n200 g Zucker")
 
         let figure = try #require(await nutrition.nutrition(for: recipe))
-        #expect(figure.coverage.gaps.first { $0.ingredientName == "Zimt" }?.reason == .deliberatelyWithout)
+        #expect(figure.coverage.gaps.first { $0.ingredientName == "Vanilleschote" }?.reason == .deliberatelyWithout)
         #expect(figure.coverage.defects.isEmpty)
         #expect(figure.coverage.isComplete)
     }

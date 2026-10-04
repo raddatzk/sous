@@ -2,7 +2,6 @@
   name: Erdnuss
   aliases:
     - Erdnüsse
-    - Erdnussbutter
     - Erdnusskerne
     - Aschantinuss
     - Aschantinüsse
@@ -20,8 +19,21 @@
       nutrition:
         unspecified: [H110700]
       via: BLS-Name "Erdnuss geröstet, gesalzen"
+    - id: erdnussbutter
+      name: Erdnussbutter
+      aliases:
+        - Erdnusscreme
+      nutrition:
+        unspecified: [H880200]
+      candidates: [H110800]
+      via: 'BLS "Erdnussbutter/Erdnusscreme": der gesalzene, meist gesüßte Brotaufstrich.
+        Bisher eine Schreibweise der gerösteten Erdnuss. Nicht mit dem Erdnussmus zusammengelegt:
+        das ist das reine Mus ohne Salz, ein eigenes Erzeugnis mit eigener BLS-Zeile.'
     - id: erdnussmus
       name: Erdnussmus
       nutrition:
         unspecified: [H110800]
-      via: BLS-Name "Erdnussmus" — reines Mus, anders als die Erdnusscreme
+      candidates: [H880200]
+      via: 'BLS-Name "Erdnussmus": reines Mus aus gerösteten Erdnüssen, ungesalzen. Bleibt
+        eine eigene Sorte neben der Erdnussbutter: ein anderes Glas im Regal, und das BLS
+        führt beide mit eigenen Werten (Natrium 3 statt 317 mg).'

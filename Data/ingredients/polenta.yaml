@@ -6,6 +6,11 @@
     - Bramata
   category: grains
   nutrition:
-    cooked: [C526062, C526082]
-    unspecified: [C526000]
-  via: BLS-Gruppe "Polenta (Maisgrieß mit Wasser, Fett und Salz) gekocht"
+    raw: [C346000]
+    cooked: [C346032, C526000, C526062, C526082]
+  candidates: [C347000]
+  via: 'BLS "Mais Grieß": „500 g Polenta“ ist im Rezept fast immer der trockene Grieß aus
+    der Packung. Bisher rechnete das Wort ohne Zustand mit der fertig gekochten Polenta (C526000,
+    114 kcal) statt mit dem Grieß (330 kcal). Gekocht gilt der in Wasser gegarte Grieß (C346032),
+    weil Butter und Salz im Rezept eigene Zeilen haben; die zubereitete Polenta mit Fett und
+    Salz steht als Alternative dahinter.'

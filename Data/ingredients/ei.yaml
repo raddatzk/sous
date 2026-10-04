@@ -4,8 +4,6 @@
     - Eier
     - Hühnerei
     - Hühnereier
-    - Eigelb
-    - Eiweiß
   category: dairy
   measures:
     Stk.:
@@ -32,3 +30,34 @@
         raw: [E131100]
         cooked: [E131132]
       via: BLS-Gruppe "Entenei"; fetter als Hühnerei
+    - id: eigelb
+      name: Eigelb
+      aliases:
+        - Eidotter
+        - Dotter
+      measures:
+        Stk.:
+          grams: 17
+          note: 'USDA FoodData Central, SR Legacy, FDC ID 172184: das Eigelb eines großen
+            Eis (etwa Größe M) wiegt 17 g.'
+      nutrition:
+        raw: [E112100]
+        cooked: [E112132, E112182, E112162]
+      candidates: [E112500]
+      via: 'BLS-Gruppe "Hühnerei Eigelb". Bisher eine Schreibweise des ganzen Eis: „4 Eigelb“
+        rechnete mit 135 statt 345 kcal je 100 g und mit dem Gewicht eines ganzen Eis.'
+    - id: eiweiss
+      name: Eiweiß
+      aliases:
+        - Eiklar
+      measures:
+        Stk.:
+          grams: 33
+          note: 'USDA FoodData Central, SR Legacy, FDC ID 172183: das Eiweiß eines großen
+            Eis (etwa Größe M) wiegt 33 g.'
+      nutrition:
+        raw: [E113100]
+        cooked: [E113132, E108122, E113182, E113162]
+      candidates: [E113500]
+      via: 'BLS-Gruppe "Hühnerei Eiklar". Bisher eine Schreibweise des ganzen Eis: „3 Eiweiß“
+        rechnete mit 135 statt 42 kcal je 100 g und mit dem Gewicht eines ganzen Eis.'

@@ -1,10 +1,6 @@
 - id: bergkaese
   name: Bergkäse
   aliases:
-    - Emmentaler
-    - Gruyere
-    - Gruyère
-    - Greyerzer
     - Alpkäse
   category: dairy
   nutrition:
@@ -25,3 +21,18 @@
         das Gericht und steht deshalb nicht als Schreibweise da
     - id: comte
       name: Comté
+    - id: emmentaler
+      name: Emmentaler
+      nutrition:
+        unspecified: [M304600]
+      via: BLS-Zeile "Emmentaler mind. 45 % Fett i. Tr.". Bisher eine Schreibweise des Bergkäses;
+        ein eigener Käse im Regal mit eigener Zeile, deutlich milder gesalzen.
+    - id: gruyere
+      name: Gruyère
+      aliases:
+        - Gruyere
+        - Greyerzer
+      nutrition:
+        unspecified: [M305700]
+      via: BLS-Zeile "Greyerzer mind. 50 % Fett i. Tr.". Bisher eine Schreibweise des Bergkäses;
+        ein eigener Käse mit eigener Zeile, fast doppelt so salzig.

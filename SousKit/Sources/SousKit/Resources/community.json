@@ -341,6 +341,30 @@
    }
   },
   {
+   "code": "Z-cayennepfeffer",
+   "name": "Cayenne pepper",
+   "group": "Z",
+   "category": "spices",
+   "source": "Ciqual 2020 (Anses), Nr. 11088 „Cayenne pepper“, Licence Ouverte / CC BY 4.0",
+   "perHundredGrams": {
+    "kcal": 376,
+    "proteinG": 12,
+    "fatG": 17.3,
+    "saturatedFatG": 3.26,
+    "carbsG": 29.4,
+    "sugarG": 10.3,
+    "fiberG": 27.2,
+    "sodiumMg": 30,
+    "vitaminCMg": 76.4,
+    "vitaminDMcg": 0,
+    "vitaminEMg": 29.8,
+    "calciumMg": 148,
+    "ironMg": 7.8,
+    "magnesiumMg": 152,
+    "potassiumMg": 2010
+   }
+  },
+  {
    "code": "Z-chiliflocken",
    "name": "Cayenne pepper",
    "group": "Z",
@@ -1061,6 +1085,30 @@
     "ironMg": 16.2,
     "magnesiumMg": 258,
     "potassiumMg": 1350
+   }
+  },
+  {
+   "code": "Z-kurkuma",
+   "name": "Turmeric, powder",
+   "group": "Z",
+   "category": "spices",
+   "source": "Ciqual 2020 (Anses), Nr. 11089 „Turmeric, powder“, Licence Ouverte / CC BY 4.0",
+   "perHundredGrams": {
+    "kcal": 291,
+    "proteinG": 9.68,
+    "fatG": 3.25,
+    "saturatedFatG": 1.84,
+    "carbsG": 44.4,
+    "sugarG": 3.21,
+    "fiberG": 22.7,
+    "sodiumMg": 27,
+    "vitaminCMg": 0.7,
+    "vitaminDMcg": 0,
+    "vitaminEMg": 4.43,
+    "calciumMg": 168,
+    "ironMg": 55,
+    "magnesiumMg": 208,
+    "potassiumMg": 2080
    }
   },
   {
@@ -1975,6 +2023,30 @@
     "ironMg": 5.3,
     "magnesiumMg": 13,
     "potassiumMg": 800
+   }
+  },
+  {
+   "code": "Z-zimt",
+   "name": "Cinnamon, powder",
+   "group": "Z",
+   "category": "spices",
+   "source": "Ciqual 2020 (Anses), Nr. 11025 „Cinnamon, powder“, Licence Ouverte / CC BY 4.0",
+   "perHundredGrams": {
+    "kcal": 243,
+    "proteinG": 3.87,
+    "fatG": 1.22,
+    "saturatedFatG": 0.44,
+    "carbsG": 27.5,
+    "sugarG": 2.17,
+    "fiberG": 53.1,
+    "sodiumMg": 10,
+    "vitaminCMg": 3.8,
+    "vitaminDMcg": 0,
+    "vitaminEMg": 2.32,
+    "calciumMg": 1000,
+    "ironMg": 8.32,
+    "magnesiumMg": 60,
+    "potassiumMg": 431
    }
   },
   {

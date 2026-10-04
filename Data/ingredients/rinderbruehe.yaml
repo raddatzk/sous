@@ -11,3 +11,16 @@
     unspecified: [X412053]
   candidates: [X413663]
   via: BLS-Name "Rinderkraftbrühe"
+  varieties:
+    - id: rinderbruehpulver
+      name: Rinderbrühpulver
+      aliases:
+        - Rinderbrühe Pulver
+        - Rinderbrühwürfel
+        - Fleischbrühe Pulver
+        - Fleischbrühwürfel
+      nutrition:
+        unspecified: [R811000]
+      via: 'BLS "Fleisch Bouillon/Brühe/Suppe (Brühwürfel, Pulver)": das Pulver ist ein anderes
+        Lebensmittel je Gramm als die fertige Brühe (207 statt 3 kcal, rund 19,6 g Natrium).
+        Gleiche Lage wie beim Gemüsebrühpulver.'
