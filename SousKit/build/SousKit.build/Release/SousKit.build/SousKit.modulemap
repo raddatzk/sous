@@ -1,4 +1,0 @@
-module SousKit {
-header "SousKit-Swift.h"
-export *
-}
