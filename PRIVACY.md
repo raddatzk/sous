@@ -1,6 +1,6 @@
 # Datenschutzerklärung für Sous
 
-**Stand: 3. Oktober 2026**
+**Stand: 4. Oktober 2026**
 
 ## 1. Verantwortlicher
 
@@ -163,14 +163,23 @@ Ein Bild zu einem Rezept wählst du über die Fotoauswahl des Systems aus. Sous
 erhält dabei nur das eine Bild, das du auswählst, und keinen Zugriff auf deine
 Fotomediathek.
 
-## 11. Vorschläge auf dem Gerät
+## 11. Künstliche Intelligenz
 
-Zwei Funktionen – die Erkennung von Mengenangaben beim Import und der
-Vorschlag, ob ein Rezept als Abendessen taugt – nutzen Apples
-Foundation-Models-Framework. Diese Auswertung läuft **vollständig auf deinem
-Gerät**. Es werden keine Rezepttexte an Apple, an mich oder an einen
-KI-Anbieter übertragen. Auf Geräten ohne Apple Intelligence sind diese
-Funktionen schlicht nicht aktiv.
+**Auf dem Gerät.** Der Vorschlag, zu welcher Mahlzeit ein Rezept passt
+(Frühstück, Mittag, Abendessen), nutzt Apples Foundation-Models-Framework.
+Diese Auswertung läuft **vollständig auf deinem Gerät**; dabei werden keine
+Rezepttexte an Apple, an mich oder an einen KI-Anbieter übertragen. Auf
+Geräten ohne Apple Intelligence ist die Funktion schlicht nicht aktiv.
+
+**„Für Sous optimieren“ – nur, wenn du es selbst anstößt.** Diese Funktion
+stellt aus einem Rezept (Titel, Portionen, Zutaten, Zubereitung) eine Anfrage
+zusammen und legt sie in die Zwischenablage; auf Wunsch öffnet Sous dazu den
+Chat, den du in den Einstellungen gewählt hast (etwa ChatGPT, Claude, Gemini,
+Le Chat oder Copilot). **Sous selbst überträgt dabei nichts:** Erst wenn du die
+Anfrage dort einfügst und abschickst, geht der Rezepttext an diesen Anbieter,
+und zwar unter dessen Datenschutzbestimmungen und mit deinem Konto dort. Die
+Antwort fügst du ebenso selbst wieder in Sous ein. Mit der Einstellung „Keine
+KI verwenden“ bietet Sous die Funktion nicht an.
 
 ## 12. Spotlight
 
