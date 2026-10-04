@@ -55,9 +55,6 @@
       via: Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit
         12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm
         — siehe community.json Z000002.
-    # Der feste, fette Teil der Dose, in Rezepten oft "dicke Kokosmilch" neben "dünner".
-    # Das BLS führt keine eigene Zeile; bis ein Etikett da ist, rechnet sie wie ihre
-    # Stamm-Zutat Kokosmilch (H154000), also eher zu mager.
     - id: kokoscreme
       name: Kokoscreme
       aliases:
