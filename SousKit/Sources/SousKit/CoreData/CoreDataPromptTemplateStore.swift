@@ -12,12 +12,14 @@ final class CDPromptTemplate: CDHouseholdMember {
     @NSManaged var sortOrder: Int64
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
+    @NSManaged var deletedAt: Date?
 
     func apply(_ template: PromptTemplate) {
         title = template.title
         body = template.text
         sortOrder = Int64(template.sortOrder)
         updatedAt = template.updatedAt
+        deletedAt = template.deletedAt
     }
 
     var domainValue: PromptTemplate {
@@ -26,7 +28,8 @@ final class CDPromptTemplate: CDHouseholdMember {
             title: title,
             text: body,
             sortOrder: Int(sortOrder),
-            updatedAt: updatedAt ?? .distantPast
+            updatedAt: updatedAt ?? .distantPast,
+            deletedAt: deletedAt
         )
     }
 }

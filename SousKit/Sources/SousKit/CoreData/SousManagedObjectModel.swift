@@ -376,6 +376,8 @@ enum SousManagedObjectModel {
             attribute("sortOrder", .integer64AttributeType, default: 0),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
+            // Set on the row that hides a built-in template.
+            attribute("deletedAt", .dateAttributeType, optional: true),
         ]
         return entity
     }

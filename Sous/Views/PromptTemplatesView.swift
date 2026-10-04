@@ -2,17 +2,18 @@ import SousKit
 import SwiftUI
 
 /// The household's requests for a chat model — "Haushalt → KI-Prompts". The
-/// built-in ones are read-only and can be copied into one's own; the
-/// household's own are edited, deleted and shared with whoever is in it.
+/// ones every household starts with are ordinary entries: changed, taken away
+/// and brought back like any other.
 struct PromptTemplatesView: View {
     @Environment(PromptTemplateLibrary.self) private var library
 
     @State private var editing: PromptTemplate?
+    @State private var isConfirmingRestore = false
 
     var body: some View {
         Form {
             Section {
-                ForEach(library.own) { template in
+                ForEach(library.all) { template in
                     Button { editing = template } label: {
                         row(template)
                     }
@@ -23,22 +24,19 @@ struct PromptTemplatesView: View {
                         }
                     }
                 }
-                Button("Neuer Prompt", systemImage: "plus") {
-                    editing = PromptTemplate(title: "", text: "{{recipe}}")
+                Button("Neuer Prompt", systemImage: "plus.circle.fill") {
+                    editing = PromptTemplate(title: "", text: PromptTemplatesView.newText)
                 }
-            } header: {
-                Text("Eigene")
             } footer: {
                 Text("Der Prompt sagt, was die KI mit dem Rezept tun soll. Wo {{recipe}} steht, setzt Sous das Rezept ein; Regeln, Antwortformat und Zutatenkatalog kommen automatisch dazu.")
             }
-            Section("Vorgegeben") {
-                ForEach(PromptTemplate.builtIn) { template in
-                    row(template)
-                        .contextMenu {
-                            Button("Als eigenen Prompt kopieren", systemImage: "doc.on.doc") {
-                                editing = PromptTemplate(title: template.title, text: template.text)
-                            }
-                        }
+            if library.hasChangedBuiltIns {
+                Section {
+                    Button("Vorgaben wiederherstellen", systemImage: "arrow.counterclockwise") {
+                        isConfirmingRestore = true
+                    }
+                } footer: {
+                    Text("Stellt die mitgelieferten Prompts so wieder her, wie sie waren — auch gelöschte. Eigene bleiben.")
                 }
             }
         }
@@ -51,16 +49,40 @@ struct PromptTemplatesView: View {
         .sheet(item: $editing) { template in
             PromptTemplateEditor(template: template)
         }
+        .sousConfirmation(
+            "Vorgaben wiederherstellen?",
+            isPresented: $isConfirmingRestore,
+            message: "Geänderte mitgelieferte Prompts stehen wieder im Ausgangszustand da, gelöschte kommen zurück. Eigene Prompts bleiben."
+        ) {
+            Button("Wiederherstellen", role: .destructive) {
+                Task { await library.restoreBuiltIns() }
+            }
+        }
     }
 
+    private static let newText = "{{recipe}}"
+
     private func row(_ template: PromptTemplate) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(template.title)
-            Text(template.text.replacingOccurrences(of: RecipeReplacementPrompt.placeholder, with: "…"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
+        HStack(spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.body)
+                .foregroundStyle(.tint)
+                .frame(width: 32, height: 32)
+                .background(.tint.opacity(0.12), in: .rect(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(template.title)
+                    .foregroundStyle(.primary)
+                Text(template.preview)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
+        .contentShape(.rect)
     }
 }
 

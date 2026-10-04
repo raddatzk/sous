@@ -23,20 +23,45 @@ struct PromptTemplateTests {
     }
 
     @MainActor
-    @Test("The library puts the built-in ones first, keeps its own in order and drops empty ones")
+    @Test("Built-in templates can be changed, taken away and restored like the household's own")
     func library() async {
         let library = PromptTemplateLibrary()
         await library.reload()
         #expect(library.all == PromptTemplate.builtIn)
+        #expect(!library.hasChangedBuiltIns)
 
+        // Changed: takes the built-in one's place.
+        var vegan = library.all[0]
+        vegan.text = "Mach es vegan und proteinreich. {{recipe}}"
+        await library.save(vegan)
+        #expect(library.all.count == PromptTemplate.builtIn.count)
+        #expect(library.all[0].text == "Mach es vegan und proteinreich. {{recipe}}")
+        #expect(library.hasChangedBuiltIns)
+
+        // Taken away: gone from the list, and stays gone.
+        let four = library.all.first { $0.title == "Für vier Personen" }!
+        await library.delete(four)
+        #expect(!library.all.contains { $0.id == four.id })
+
+        // One of their own comes after the built-in ones, in order; empty ones are not kept.
         await library.save(PromptTemplate(title: "A", text: "Erstens"))
         await library.save(PromptTemplate(title: "B", text: "Zweitens"))
         await library.save(PromptTemplate(title: "  ", text: "ohne Titel"))
-        #expect(library.own.map(\.title) == ["A", "B"])
-        #expect(library.all.count == PromptTemplate.builtIn.count + 2)
+        #expect(library.all.suffix(2).map(\.title) == ["A", "B"])
+        await library.delete(library.all.last!)
+        #expect(library.all.last?.title == "A")
 
-        await library.delete(library.own[0])
-        #expect(library.own.map(\.title) == ["B"])
+        // Back to the defaults; their own stay.
+        await library.restoreBuiltIns()
+        #expect(Array(library.all.prefix(PromptTemplate.builtIn.count)) == PromptTemplate.builtIn)
+        #expect(library.all.last?.title == "A")
+        #expect(!library.hasChangedBuiltIns)
+    }
+
+    @Test("The preview leaves the placeholder out")
+    func preview() {
+        let template = PromptTemplate(title: "T", text: "Mach es vegan.\n\n{{recipe}}")
+        #expect(template.preview == "Mach es vegan.")
     }
 
     @Test("Every built-in template tells where the recipe goes")
