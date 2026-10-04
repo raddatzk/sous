@@ -35,6 +35,9 @@ public struct RecipeReplacement: Sendable, Equatable {
 
     public enum Failure: Error, Equatable, LocalizedError {
         case noAnswer
+        /// The cook pasted the prompt Sous copied, not the chat's answer —
+        /// whose example JSON would otherwise be read as one.
+        case pastedThePrompt
         case unreadable
         case missing(String)
 
@@ -42,6 +45,8 @@ public struct RecipeReplacement: Sendable, Equatable {
             switch self {
             case .noAnswer:
                 "In der Antwort steht kein JSON-Block. Bitte die KI um das Rezept als JSON bitten und die Antwort erneut einfügen."
+            case .pastedThePrompt:
+                "Eingefügt wurde der Prompt selbst, nicht die Antwort des Chats. Bitte die Antwort des Chats kopieren — am besten den JSON-Block."
             case .unreadable:
                 "Das JSON ist nicht lesbar. Bitte die KI bitten, das Rezept im vorgegebenen Format erneut auszugeben."
             case .missing(let what):
@@ -73,8 +78,11 @@ public enum RecipeReplacementPrompt {
     ```
     """
 
+    /// The rules' first sentence, which marks a pasted prompt.
+    static let promptMarker = "Du arbeitest ein Rezept für die App Sous um."
+
     static let rules = """
-    Du arbeitest ein Rezept für die App Sous um. Antworte so:
+    \(promptMarker) Antworte so:
 
     1. Zeige mir das umgearbeitete Rezept gut lesbar (Titel, Portionen, \
     Zutaten, Zubereitung) und erkläre kurz, was du geändert hast und warum. \
@@ -147,6 +155,7 @@ public enum RecipeReplacementPrompt {
     /// ```json fence and the prose around it do not matter. What makes it
     /// through has a title, ingredients and steps; the rest is optional.
     public static func read(_ pasted: String) -> Result<RecipeReplacement, RecipeReplacement.Failure> {
+        if pasted.contains(promptMarker) { return .failure(.pastedThePrompt) }
         guard let open = pasted.firstIndex(of: "{"), let close = pasted.lastIndex(of: "}"), open < close else {
             return .failure(.noAnswer)
         }

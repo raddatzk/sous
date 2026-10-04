@@ -51,6 +51,12 @@ struct RecipeReplacementTests {
         #expect(replacement.notes == "Rauchsalz passt.")
     }
 
+    @Test("The prompt pasted instead of the answer is refused, its example JSON is no recipe")
+    func refusesThePrompt() {
+        let prompt = RecipeReplacementPrompt.prompt(task: "Mach es vegan.", for: soup)
+        #expect(RecipeReplacementPrompt.read(prompt) == .failure(.pastedThePrompt))
+    }
+
     @Test("Without a title, ingredients or steps, or without JSON, nothing is read")
     func refuses() {
         #expect(RecipeReplacementPrompt.read("Nur Text") == .failure(.noAnswer))
