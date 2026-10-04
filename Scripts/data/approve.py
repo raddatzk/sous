@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turns an approved inbox issue into a change of Data/ (phase 10b).
+"""Turns an approved inbox issue into a change of Data/.
 
 The private inbox repository files shared catalog adjustments as issues, each
 with its reports as a ```json sous-catalog``` block (inbox.py). The cook
@@ -35,7 +35,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -45,7 +47,6 @@ import yaml
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import compile as data_compiler  # noqa: E402
 from compile import DataError, normalize  # noqa: E402
-from export_yaml import Dumper, Flow, FlowMap, slug  # noqa: E402
 from inbox import CATEGORIES, read_block  # noqa: E402
 
 ALIAS, VARIETY, WORD = "als-alias", "als-sorte", "neues-wort"
@@ -63,7 +64,39 @@ class Waiting(Exception):
 
 
 # --------------------------------------------------------------------------
-# YAML as the files are written (export_yaml.py)
+# YAML as the files are written
+
+class Flow(list):
+    """A list written on one line: codes, candidates."""
+
+
+class FlowMap(dict):
+    """A mapping written on one line: a measure without a note."""
+
+
+class Dumper(yaml.SafeDumper):
+    # Indent a list under its key, as the files do. PyYAML's default puts the
+    # dashes flush with the key.
+    def increase_indent(self, flow=False, indentless=False):
+        return super().increase_indent(flow, False)
+
+
+Dumper.add_representer(
+    Flow, lambda d, v: d.represent_sequence("tag:yaml.org,2002:seq", v, flow_style=True)
+)
+Dumper.add_representer(
+    FlowMap, lambda d, v: d.represent_mapping("tag:yaml.org,2002:map", v, flow_style=True)
+)
+
+
+def slug(name: str) -> str:
+    """`Rote Zwiebel` -> `rote-zwiebel`. Umlauts spelled out, accents dropped."""
+    s = name.lower()
+    for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        s = s.replace(a, b)
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+
 
 def _mark(node: Any) -> Any:
     """Marks what the files write on one line, so a load and dump gives the

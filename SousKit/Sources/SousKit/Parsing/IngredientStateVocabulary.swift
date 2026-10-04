@@ -20,9 +20,9 @@ import Foundation
 ///   tomatoes are not tomatoes in a state, they are a different food with
 ///   different numbers and a different shelf.
 ///
-/// So the parser reads both kinds and routes them differently: a state word
-/// sets ``RecipeIngredient/state``, a qualifier word is used to *resolve the
-/// name* — "Tomaten, Konserve" looks its nutrition up under "Tomate Konserve"
+/// So the two kinds are routed differently: a state word in a line's
+/// annotation sets ``RecipeIngredient/state``, a qualifier word is used to
+/// *resolve the name* — "Tomaten, Konserve" looks its nutrition up under "Tomate Konserve"
 /// and falls back to plain "Tomate" when the catalog has no such word.
 ///
 /// The alternative — widening `IngredientState` — was rejected: it needs a
@@ -38,9 +38,10 @@ public enum IngredientStateVocabulary {
     /// The words the catalog files a `cooked` basis under, plus
     /// "blanchiert", which a recipe writes and the BLS does not.
     ///
-    /// Kept tight: every word here can end a name and
-    /// be split off it, so a word that is sometimes something else — "gar",
-    /// which is also half of "gar nicht" — costs more than it is worth.
+    /// Kept tight: a word here is never turned round into a variety name
+    /// (see ``IngredientCatalog/ingredient(for:qualifiedBy:)``), so a word
+    /// that is sometimes something else — "gar", which is also half of "gar
+    /// nicht" — costs more than it is worth.
     static let cookedWords: Set<String> = [
         "gekocht", "gegart", "gedünstet", "gebraten", "gebacken",
         "gegrillt", "gedämpft", "pochiert", "frittiert", "blanchiert",
@@ -72,8 +73,8 @@ public enum IngredientStateVocabulary {
         qualifierWords[clean(word)]
     }
 
-    /// Whether a word says anything at all — what the parser tests a trailing
-    /// word against before splitting it off a name.
+    /// Whether a word says anything at all — what the catalog tests a
+    /// qualifier against before turning it round into a variety name.
     static func isVocabulary(_ word: String) -> Bool {
         state(forWord: word) != nil || qualifier(forWord: word) != nil
     }

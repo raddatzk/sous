@@ -54,7 +54,7 @@ public enum VariantGrouping {
     ) -> [Entry] {
         var entries: [Entry] = []
         var members: [UUID: [Recipe]] = [:]
-        /// Where each group's row goes: the slot its first member claimed.
+        // Where each group's row goes: the slot its first member claimed.
         var slots: [UUID: Int] = [:]
 
         for recipe in recipes {

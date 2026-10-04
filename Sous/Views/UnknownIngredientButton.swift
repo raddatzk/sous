@@ -34,7 +34,7 @@ struct IngredientTeaching: Hashable, Identifiable {
 /// unknown name offers exactly two things, and neither is a question: a local
 /// answer for this household (``LocalAnswerForm``: "zählt wie", own values,
 /// own weights, a product), and a report for the curator, sent through
-/// ``CatalogShareSheet`` (phase 10). Teaching the catalog a spelling, a
+/// ``CatalogShareSheet``. Teaching the catalog a spelling, a
 /// variety or a new ingredient is the curator's work, not the cook's.
 ///
 /// The control reports the choice and presents nothing itself. The caller

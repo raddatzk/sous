@@ -17,12 +17,11 @@ extension StepReferencesPrompt {
                 let bezuege: [AnswerItem]
             }
             let schritte: [Step]
-            let hinweise: [String]?
         }
         guard let answer = try? JSONDecoder().decode(Answer.self, from: Data(pasted[open...close].utf8)) else {
             return .failure(.unreadable)
         }
-        return reading(steps: answer.schritte.map { ($0.schritt, $0.bezuege) }, notes: answer.hinweise ?? [], for: recipe)
+        return reading(steps: answer.schritte.map { ($0.schritt, $0.bezuege) }, for: recipe)
     }
 }
 
@@ -272,8 +271,8 @@ struct StepReferencesTests {
         #expect(try StepReferencesPrompt.read(written, for: recipe).get().warnings == [.overbooked(line: 2, percent: 200)])
     }
 
-    @Test("Two shares of one line in one step become one chip of the sum; notes are read")
-    func mergeAndNotes() throws {
+    @Test("Two shares of one line in one step become one chip of the sum")
+    func mergeShares() throws {
         let pasted = #"""
         {"schritte": [
           {"schritt": 2, "bezuege": [
@@ -282,15 +281,13 @@ struct StepReferencesTests {
             {"art": "bezug", "zeile": 4, "menge": ""},
             {"art": "bezug", "zeile": 4, "menge": ""}
           ]}
-        ],
-        "hinweise": ["Schritt 1 nennt 300 ml Wasser, das in der Liste fehlt.", " "]}
+        ]}
         """#
         let reading = try StepReferencesPrompt.read(pasted, for: recipe).get()
         #expect(reading.references.steps[1] == [
             .init(kind: .mention, text: "", line: 3, amount: "200 g"),
             .init(kind: .mention, text: "", line: 4, amount: nil),
         ])
-        #expect(reading.notes == ["Schritt 1 nennt 300 ml Wasser, das in der Liste fehlt."])
     }
 
     @Test("Stored references survive the column round trip; the old chips shape reads as none")

@@ -10,7 +10,6 @@ import UniformTypeIdentifiers
 @Suite("Migrating a library between stores")
 struct RecipeStoreMigrationTests {
     /// The SwiftData side, the way a device that has been in use holds it.
-    /// The SwiftData side, the way a device that has been in use holds it.
     private func makeSource() throws -> RecipeStoreMigration.Source {
         let container = try ModelContainer.sousContainer(inMemory: true)
         return RecipeStoreMigration.Source(
@@ -222,6 +221,95 @@ struct RecipeStoreMigrationTests {
         let migrated = try #require(try await destination.shopping?.snapshot().items.first)
         #expect(migrated.isChecked)
         #expect(migrated.itemID == item.itemID)
+    }
+
+    // MARK: - Known issues of the every-launch run
+    //
+    // The app runs the migration on every launch. Plan entries and the
+    // shopping list are adopted without comparing against what Core Data
+    // already holds, so work done there since is undone by the next launch.
+    // Each test reproduces one case; `withKnownIssue` keeps the suite green
+    // and turns into a failure once the issue is fixed, as a reminder to
+    // drop the wrapper.
+
+    @Test("A plan entry moved after the migration stays where it was moved")
+    func movedPlanEntryStaysMoved() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+        let plan = try #require(destination.mealPlan)
+        let pooled = try await #require(source.mealPlan).save(MealPlanEntry(day: nil, recipeID: UUID()))
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        var moved = try #require(try await plan.entry(id: pooled.id))
+        moved.day = Date()
+        moved.updatedAt = .nowInSyncPrecision
+        try await plan.save(moved)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        let pool = try await plan.poolEntries()
+        withKnownIssue("Adopting a plan entry ignores updatedAt: the next launch moves it back into the pool") {
+            #expect(pool.isEmpty)
+        }
+    }
+
+    @Test("A plan entry removed after the migration stays removed")
+    func removedPlanEntryStaysRemoved() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+        let plan = try #require(destination.mealPlan)
+        let pooled = try await #require(source.mealPlan).save(MealPlanEntry(day: nil, recipeID: UUID()))
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        try await plan.delete(id: pooled.id)
+        #expect(try await plan.poolEntries().isEmpty)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        let pool = try await plan.poolEntries()
+        withKnownIssue("Adopting a plan entry clears its tombstone: the next launch revives it") {
+            #expect(pool.isEmpty)
+        }
+    }
+
+    @Test("A shopping item removed after the migration stays removed")
+    func removedShoppingItemStaysRemoved() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+        let shopping = try #require(destination.shopping)
+        try await source.shopping?.addManual(
+            key: "mehl", name: "Mehl", category: .grains, quantities: [Quantity(1, .kilogram)]
+        )
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        let item = try #require(try await shopping.snapshot().items.first)
+        try await shopping.remove(itemID: item.itemID)
+        #expect(try await shopping.snapshot().items.isEmpty)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        let items = try await shopping.snapshot().items
+        withKnownIssue("Removing hard-deletes the row and adopting skips by id only: the next launch brings it back") {
+            #expect(items.isEmpty)
+        }
+    }
+
+    @Test("A recipe erased after the migration stays erased")
+    func erasedRecipeStaysErased() async throws {
+        let source = try makeSource()
+        let destination = try makeDestination()
+        let recipe = try await source.recipes.save(Recipe(title: "Brot", ingredientsText: "500 g Mehl"))
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        try await destination.recipes.erase(id: recipe.id)
+        #expect(try await destination.recipes.recipe(id: recipe.id) == nil)
+
+        try await RecipeStoreMigration.run(from: source, to: destination)
+
+        let erased = try await destination.recipes.recipe(id: recipe.id)
+        withKnownIssue("An erased recipe leaves nothing to compare against: the next launch copies it again") {
+            #expect(erased == nil)
+        }
     }
 }
 

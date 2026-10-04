@@ -6,7 +6,7 @@ import Foundation
 ///
 /// `manifest.json`, written by `Scripts/data/compile.py` beside the files it
 /// describes. The bundled set carries one in the resources, and every set
-/// fetched later (phase 9) carries its own, so both are one series: the
+/// fetched later carries its own, so both are one series: the
 /// number the compiler gave the bundled copy is the number the same data is
 /// published under.
 public struct DataSetManifest: Codable, Hashable, Sendable {

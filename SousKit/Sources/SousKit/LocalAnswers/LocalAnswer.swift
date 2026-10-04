@@ -11,14 +11,14 @@ import Foundation
 /// - **own weights** per unit, each with the state it is weighed in
 ///   (``weights``).
 ///
-/// Brand and EAN make the answer an **own product** (§3 I, phase 7b): an
+/// Brand and EAN make the answer an **own product**: an
 /// entry of the household's catalog of its own ("Greenforce Sojahack"),
 /// which a name links to with a product choice whose target is the
 /// product's ``key``. What a "zählt wie" never says is what the name *is*:
 /// the shopping list keeps the written name, its own pantry flag and its own
-/// row (R2). See ``LocalAnswerSet`` for the precedence.
+/// row. See ``LocalAnswerSet`` for the precedence.
 ///
-/// **Overrides of the catalog (phase 7d).** Names differ by region —
+/// **Overrides of the catalog.** Names differ by region —
 /// Brötchen, Semmel, Schrippe — so a household may also say, for one word,
 /// in which aisle it is bought (``category``), what it is a variety of
 /// (``parentID``), which further spellings mean it (``spellings``), and
@@ -42,7 +42,7 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
         /// "keine Nährwerte hinterlegt". A fallback like "zählt wie".
         case word
 
-        /// Falls silent once the catalog knows the name (R3).
+        /// Falls silent once the catalog knows the name.
         public var isFallback: Bool { self != .product }
     }
 
@@ -160,7 +160,7 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
             && brand == nil && ean == nil && !hasOverrides
     }
 
-    /// Whether the answer overrides the catalog anywhere (phase 7d). The
+    /// Whether the answer overrides the catalog anywhere. The
     /// baseline alone is not one: it only remembers what the catalog said.
     public var hasOverrides: Bool {
         category != nil || parentID != nil || !spellings.isEmpty || displayName != nil
@@ -187,7 +187,7 @@ public struct LocalAnswer: Identifiable, Hashable, Sendable, Codable {
 }
 
 /// What the catalog said at the places a household overrides, when it last
-/// decided about them (phase 7d) — the difference between "the catalog
+/// decided about them — the difference between "the catalog
 /// disagrees, and the household knows" and "the catalog has changed since".
 ///
 /// A place whose catalog value is the one remembered here stands quietly;

@@ -18,7 +18,7 @@ struct IngredientCatalogTests {
         // A variety is not a spelling: "Cocktailtomaten" resolves to the
         // variety, which knows what it is a variety of.
         #expect(catalog.canonicalName(for: "Cocktailtomaten") == "Cocktailtomate")
-        #expect(catalog.groupIngredient(for: "Cocktailtomaten")?.name == "Tomate")
+        #expect(catalog.ancestors(of: "Cocktailtomaten").map(\.name) == ["Tomate"])
         #expect(catalog.canonicalName(for: "Möhren") == "Karotte")
         #expect(catalog.canonicalName(for: "Eier") == "Ei")
     }
@@ -101,8 +101,8 @@ extension IngredientCatalogTests {
         #expect(catalog.categorySource(for: "Brauner Champignon")?.name == "Pilz")
         #expect(catalog.categorySource(for: "Pilz")?.name == "Pilz")
         #expect(catalog.categorySource(for: "Nichts") == nil)
-        // The group is the top of the chain, whatever its depth.
-        #expect(catalog.groupIngredient(for: "Brauner Champignon")?.name == "Pilz")
+        // The chain is walked whole, whatever its depth.
+        #expect(catalog.ancestors(of: "Brauner Champignon").last?.name == "Pilz")
     }
 
     @Test("A parent named by one of its spellings still hands its category down")

@@ -64,7 +64,7 @@ enum PlanCost {
 
     /// The mix judged nutrient by nutrient, for the proposal sheet's
     /// summary line — "Protein gut · Ballaststoffe knapp · Natrium hoch".
-    public static func summary(of mix: NutritionInfo) -> MixSummary {
+    static func summary(of mix: NutritionInfo) -> MixSummary {
         guard mix.kcal > 1 else {
             return MixSummary(items: NutrientReference.lowerBounds.map {
                 MixSummary.Item(label: $0.label, status: .short)

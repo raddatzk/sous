@@ -39,11 +39,11 @@ enum RecipeContentHash {
     /// Raised to 10 when `IngredientLineReader` replaced the tolerant parser:
     /// a line outside the fixed form ("Salz nach Geschmack", "1 Chili (rot)")
     /// no longer reaches a name, and "1 1/2 TL" is one and a half.
-    /// Raised to 11 when the household vocabulary stopped taking part
-    /// (phase 6b): a spelling or variety the cook once taught no longer
+    /// Raised to 11 when the household vocabulary stopped taking part:
+    /// a spelling or variety the cook once taught no longer
     /// reaches a name, and no basis is "proposed" or "orphaned" any more.
     /// Raised to 12 when a value the source leaves out became absent rather
-    /// than zero (phase 7): a cached figure carries no per-nutrient coverage,
+    /// than zero: a cached figure carries no per-nutrient coverage,
     /// and the NRF badge and the fibre tag now ask for it.
     static let readingVersion = 12
 

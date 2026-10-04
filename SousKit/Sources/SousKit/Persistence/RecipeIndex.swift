@@ -3,9 +3,9 @@ import Foundation
 /// The two denormalized fields a stored recipe carries beside its content —
 /// what it can be searched by, and what it can be filtered by.
 ///
-/// Free of any persistence framework, because there are now two stores that
-/// write them: the SwiftData one the local half of the app keeps using, and
-/// the Core Data one the shared CloudKit database requires. Two copies of
+/// Free of any persistence framework, because two stores write them: the
+/// Core Data one the library lives in, and the legacy SwiftData one the
+/// tests still exercise. Two copies of
 /// this derivation would mean the same library answering the same search
 /// differently depending on which store happened to hold it, and the
 /// divergence would show up as a recipe that cannot be found rather than as

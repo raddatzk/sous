@@ -29,9 +29,6 @@ public struct CatalogRenames: Codable, Sendable, Hashable {
         self = try JSONDecoder().decode(CatalogRenames.self, from: json)
     }
 
-    /// The map of the data set this process runs on.
-    public static var current: CatalogRenames { DataSet.current.renames }
-
     /// The map shipped with the app.
     public static var bundled: CatalogRenames { DataSet.bundled.renames }
 }

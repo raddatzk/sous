@@ -6,7 +6,7 @@ import SwiftUI
 /// To read, not to maintain (INGREDIENTS-DATA §3 A). The catalog comes with
 /// the data set; what the household says lives beside it — a local answer
 /// for a name the catalog cannot answer yet, its own aisle, parent,
-/// spellings and display name for a word (phase 7d), and pantry, store and
+/// spellings and display name for a word, and pantry, store and
 /// note. Where the catalog has since moved away from the household's
 /// override, "Abweichungen" on top asks, quietly.
 struct IngredientCatalogView: View {
@@ -151,7 +151,7 @@ struct IngredientCatalogView: View {
         return ([ingredient.name] + ingredient.aliases).filter { IngredientCatalog.normalize($0) != shown }
     }
 
-    /// The household's own products (phase 7b), on top and in no aisle —
+    /// The household's own products, on top and in no aisle —
     /// matching the search, where there is one.
     private var ownProducts: [CatalogIngredient] {
         let keys = Set(catalog.ownProducts.map(\.writtenKey))
@@ -192,7 +192,7 @@ struct IngredientCatalogView: View {
 /// is a data fix for the curator, not a question for the cook (§3 A). What
 /// the household says sits beside it:
 /// - its overrides of aisle, parent, spellings and display name, marked
-///   "lokal" and changed in "Anpassen …" (phase 7d) — names differ by
+///   "lokal" and changed in "Anpassen …" — names differ by
 ///   region; with a quiet hint on top where the catalog has since moved;
 /// - the local answer, marked "lokal", with "Lokale Angabe entfernen" (§3 B);
 /// - pantry, preferred store and note, which are facts about the household,
@@ -291,7 +291,7 @@ struct IngredientDetailView: View {
             .flatMap { $0.key == ingredient.key ? $0 : nil } ?? ingredient
     }
 
-    /// The household's overrides of this word, if it has any (phase 7d).
+    /// The household's overrides of this word, if it has any.
     private var overrides: LocalAnswer? {
         catalog.overrideAnswer(of: word).flatMap { $0.hasOverrides ? $0 : nil }
     }
@@ -690,7 +690,7 @@ extension IngredientCatalogLibrary {
     /// The household's words that count as (or chose) another word and were
     /// added to the catalog for it — "dünne Kokosmilch" zählt wie Kokosmilch
     /// — by the target's key. The catalog view shows them under the target
-    /// rather than as rows of their own (phase 7c); the shopping list keeps
+    /// rather than as rows of their own; the shopping list keeps
     /// each its own row (R2). Own products and words of their own stand alone.
     var filedWords: [String: [String]] {
         var filed: [String: [String]] = [:]

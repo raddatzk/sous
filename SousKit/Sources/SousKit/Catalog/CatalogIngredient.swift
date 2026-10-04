@@ -27,7 +27,7 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     public internal(set) var category: IngredientCategory
     /// The category as written for this ingredient, `nil` where it inherits.
     /// Set means overridden, empty means inherited — one rule for every field
-    /// a variety takes from its parent (catalog target, decision B). Of the
+    /// a variety takes from its parent. Of the
     /// 60 shipped varieties not one differed from its parent, so none of them
     /// writes one any more.
     public var ownCategory: IngredientCategory?
@@ -51,7 +51,7 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// writes it, so it is not part of the encoded form.
     public var product: CatalogProduct?
     /// The spelling a household shows this word by — "Semmel" for
-    /// Brötchen (phase 7d). One of its own spellings, never an identity:
+    /// Brötchen. One of its own spellings, never an identity:
     /// ``name`` stays what the word is stored, keyed and computed under, so
     /// the shopping rows, the pantry flag and the numbers do not move. Set
     /// only by ``LocalAnswerSet/applied(to:)``, so not part of the encoded
@@ -64,13 +64,6 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
 
     /// Normalized name, used as the identity.
     public var key: String { IngredientCatalog.normalize(name) }
-
-    /// The key this ingredient bundles under on the shopping list: its
-    /// parent's, so a variety takes its place under the ingredient it is one
-    /// of, rather than beside it.
-    public var groupKey: String {
-        parentName.map(IngredientCatalog.normalize) ?? key
-    }
 
     /// `category` here is the *written* one; pass `nil` for a variety that
     /// should take its parent's. A non-optional value still reads naturally

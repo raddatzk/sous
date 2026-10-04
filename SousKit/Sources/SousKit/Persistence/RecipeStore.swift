@@ -43,8 +43,8 @@ public struct RecipeQuery: Sendable, Hashable {
 /// Storage for recipes.
 ///
 /// The protocol trades only in domain values, which keeps the persistence
-/// framework — and later the sync layer — replaceable without touching
-/// anything above it.
+/// framework replaceable without touching anything above it — it is how the
+/// library moved from SwiftData to Core Data.
 public protocol RecipeStore: Sendable {
     func recipes(matching query: RecipeQuery) async throws -> [Recipe]
     func recipe(id: UUID) async throws -> Recipe?
@@ -58,10 +58,8 @@ public protocol RecipeStore: Sendable {
     func restore(id: UUID) async throws
     /// Removes the row itself, tombstone and all.
     ///
-    /// Emptying the trash is the only thing that does this. Once recipes
-    /// sync, a deletion has to stay visible to the other devices, so this
-    /// will become "keep the tombstone, drop the contents" rather than
-    /// disappearing a row another device still expects to hear about.
+    /// Emptying the trash is the only thing that does this. CloudKit
+    /// mirroring carries the deletion of the row to the other devices.
     func erase(id: UUID) async throws
     func categories() async throws -> [String]
     /// Rebuilds every row's denormalized `searchText` and `ingredientKeys`

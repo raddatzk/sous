@@ -16,8 +16,9 @@ import Synchronization
 ///   the household's own — or a recipe link. Nothing is guessed: no
 ///   qualifier turned round, no preparation word taken off the front.
 /// - Everything after the comma that follows the name is the annotation.
-///   It never becomes part of the name. A state word at its start
-///   ("gekocht", "TK") still picks the basis, as it always did.
+///   It never becomes part of the name. A state word in it ("gekocht")
+///   still picks the basis; a qualifier ("TK", "Konserve") resolves the
+///   name for nutrition.
 ///
 /// A line outside the form is not understood, and says so: it keeps its
 /// words as written, its amount is still read so the line scales with the
@@ -253,7 +254,8 @@ public enum IngredientLineReader {
         return (String(text[..<space]), text[text.index(after: space)...].trimmingCharacters(in: .whitespaces))
     }
 
-    private static func knownUnit(_ word: String) -> IngredientUnit? {
+    /// The unit `word` names, `nil` for a word that is not one.
+    static func knownUnit(_ word: String) -> IngredientUnit? {
         let unit = IngredientUnit(symbol: word)
         if case .custom = unit { return nil }
         return unit

@@ -8,10 +8,10 @@ import Foundation
 public enum RecipeTimes {
     /// The times worth showing.
     ///
-    /// "Gesamt" appears whenever it says something the other numbers do not
-    /// — either because waiting stretches it, or because it is all a recipe
-    /// records. Repeating a total that is plainly the sum of two numbers
-    /// beside it would be noise.
+    /// "Gesamt" appears unless exactly one other time is shown: beside a
+    /// single number it would mostly repeat it. Where it is all a recipe
+    /// records, or beside two or more times, it is the figure the cook reads
+    /// first.
     public static func items(for recipe: Recipe) -> [(label: String, value: String)] {
         var items: [(label: String, value: String)] = []
         if let prep = recipe.prepTimeSeconds, prep > 0 {

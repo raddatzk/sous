@@ -15,7 +15,7 @@
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 		<dict>
-			<!-- "Anpassungen teilen" (phase 10): the household's own catalog
+			<!-- "Anpassungen teilen": the household's own catalog
 			     adjustments, sent only when the cook shares them, to the
 			     app's own CloudKit public database. -->
 			<key>NSPrivacyCollectedDataType</key>

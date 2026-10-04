@@ -28,8 +28,9 @@ struct SousApp: App {
     /// and not whatever the list is currently filtered to.
     private let recipeStore: CoreDataRecipeStore
     /// The two sides of the store migration, held so the launch task can run
-    /// it. The source is what the household's rows used to live in; the
-    /// catalog and the caches are not in either, since they never sync.
+    /// it. The source is the SwiftData store the household's rows used to
+    /// live in; the caches still live in that container, but are not part of
+    /// the migration, since they never sync and are cheaper to recompute.
     private let migrationSource: RecipeStoreMigration.Source
     private let migrationDestination: RecipeStoreMigration.Destination
     /// The household every row hangs off, and the object the share sits on.
@@ -238,16 +239,6 @@ struct SousApp: App {
         ).checkIfDue()
     }
 
-    /// Attaches anything the migration brought over to the household, then
-    /// makes sure that household sits in a shared CloudKit zone.
-    ///
-    /// In that order: a row that reaches the zone has to be hanging off the
-    /// household when the share is made, since sharing traverses the graph
-    /// rather than the table.
-    ///
-    /// Silent either way. Without an iCloud account there is no zone to make,
-    /// and a library that syncs to nobody is still a library — the next
-    /// launch on a signed-in device makes one.
     /// Asks the system to accept CloudKit's silent pushes.
     ///
     /// `NSPersistentCloudKitContainer` creates the subscriptions itself, but
@@ -334,17 +325,6 @@ struct SousApp: App {
         switcher.noteUnassigned(settlement.unassigned)
     }
 
-    /// Moves the household's rows out of the SwiftData store, if any are
-    /// still there — recipes, pictures, plan and shopping list.
-    ///
-    /// No marker guarding it and no progress shown, because there is no
-    /// installed base to migrate: on a fresh device the source is empty and
-    /// this is a handful of fetches against empty tables. What it does cover
-    /// is a development device that has been in use, where the library would
-    /// otherwise appear to have been lost.
-    ///
-    /// Failure is silent on purpose. The source is never modified, so a run
-    /// that goes wrong leaves the old store intact to try again from.
     /// Hands a file opened with Sous to the importer, which lives in the
     /// recipe list — so that is where the app goes.
     ///
@@ -366,6 +346,17 @@ struct SousApp: App {
         commands.openedFiles.append(url)
     }
 
+    /// Moves the household's rows out of the SwiftData store, if any are
+    /// still there — recipes, pictures, plan and shopping list.
+    ///
+    /// No marker guarding it and no progress shown, because there is no
+    /// installed base to migrate: on a fresh device the source is empty and
+    /// this is a handful of fetches against empty tables. What it does cover
+    /// is a development device that has been in use, where the library would
+    /// otherwise appear to have been lost.
+    ///
+    /// Failure is silent on purpose. The source is never modified, so a run
+    /// that goes wrong leaves the old store intact to try again from.
     private func migrateStores() async {
         // Forced into the oldest own household for the duration: legacy
         // SwiftData content is this person's by definition — adopting it

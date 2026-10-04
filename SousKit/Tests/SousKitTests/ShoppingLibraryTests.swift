@@ -58,16 +58,16 @@ struct ShoppingLibraryTests {
         let (shopping, _, _) = try makeLibrary(backend)
         let recipe = Recipe(title: "Salat", servings: 2, ingredientsText: "300 g Tomaten\n1 Zwiebel")
         await shopping.add(recipe)
-        #expect(shopping.hasOpenDemand(forRecipe: recipe.id))
+        #expect(shopping.openPlanEntry(forRecipe: recipe.id) != nil)
 
         // Half shopped is still shopping.
         await shopping.toggle(try #require(shopping.items.first))
-        #expect(shopping.hasOpenDemand(forRecipe: recipe.id))
+        #expect(shopping.openPlanEntry(forRecipe: recipe.id) != nil)
 
         for item in shopping.items where !item.isChecked {
             await shopping.toggle(item)
         }
-        #expect(!shopping.hasOpenDemand(forRecipe: recipe.id))
+        #expect(shopping.openPlanEntry(forRecipe: recipe.id) == nil)
         // The entry is still there, which is what lets a second add mark its
         // demands as arriving late — it just no longer means "outstanding".
         #expect(shopping.planEntries.contains { $0.recipeID == recipe.id })
@@ -83,13 +83,7 @@ struct ShoppingLibraryTests {
 
         // The list shows nothing for it any more, so nothing may say it does.
         #expect(!shopping.byRecipe.contains { $0.planEntry?.recipeID == recipe.id })
-        #expect(!shopping.hasOpenDemand(forRecipe: recipe.id))
-    }
-
-    @Test("A recipe never added has nothing outstanding", arguments: StoreBackend.allCases)
-    func anUnaddedRecipeIsNotOnTheList(_ backend: StoreBackend) async throws {
-        let (shopping, _, _) = try makeLibrary(backend)
-        #expect(!shopping.hasOpenDemand(forRecipe: UUID()))
+        #expect(shopping.openPlanEntry(forRecipe: recipe.id) == nil)
     }
 
     @Test("A stated state survives the store and annotates the line", arguments: StoreBackend.allCases)
@@ -195,7 +189,7 @@ struct ShoppingLibraryTests {
         await shopping.addItem("2 kg Kartoffeln")
         #expect(shopping.items.map(\.name) == ["Kartoffel"])
         #expect(shopping.items[0].quantities == [Quantity(2, .kilogram)])
-        #expect(shopping.items[0].isManual)
+        #expect(shopping.items[0].demands.isEmpty)
 
         await shopping.remove(try #require(shopping.items.first))
         #expect(shopping.items.isEmpty)
@@ -260,7 +254,7 @@ extension ShoppingLibraryTests {
         // The bought line is still bought.
         #expect(shopping.checkedItems.map(\.quantities) == [[Quantity(300, .gram)]])
         // The new wish is its own open line, marked as arriving late.
-        let late = try #require(shopping.openItems.first)
+        let late = try #require(shopping.items.first { !$0.isChecked })
         #expect(late.quantities == [Quantity(300, .gram)])
         #expect(late.isLateAddition)
         #expect(late.demands.allSatisfy { $0.isLate })
@@ -277,7 +271,7 @@ extension ShoppingLibraryTests {
 
         #expect(shopping.checkedItems.count == 1)
         #expect(shopping.checkedItems[0].quantities == [Quantity(300, .gram)])
-        let late = try #require(shopping.openItems.first)
+        let late = try #require(shopping.items.first { !$0.isChecked })
         #expect(late.quantities == [Quantity(200, .gram)])
         #expect(late.isLateAddition)
     }
@@ -407,14 +401,14 @@ extension ShoppingLibraryTests {
 
         // The basket keeps its 300 g; the missing 300 g are their own line.
         #expect(shopping.checkedItems.map(\.quantities) == [[Quantity(300, .gram)]])
-        let difference = try #require(shopping.openItems.first)
+        let difference = try #require(shopping.items.first { !$0.isChecked })
         #expect(difference.quantities == [Quantity(300, .gram)])
         #expect(difference.isLateAddition)
 
         // Turning further up grows the difference row instead of adding more.
         await shopping.setServings(6, for: try #require(shopping.planEntries.first))
-        #expect(shopping.openItems.count == 1)
-        #expect(shopping.openItems[0].quantities == [Quantity(600, .gram)])
+        #expect(shopping.items.filter { !$0.isChecked }.count == 1)
+        #expect(shopping.items.filter { !$0.isChecked }[0].quantities == [Quantity(600, .gram)])
     }
 
     @Test("Scaling down past a checked item annotates the lapse, not the check", arguments: StoreBackend.allCases)

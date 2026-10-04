@@ -7,18 +7,12 @@ import Testing
 /// to stores written before phase 6a.
 @Suite("Local answer store")
 struct LocalAnswerStoreTests {
-    private static func info(kcal: Double) -> NutritionInfo {
-        var info = NutritionInfo.zero
-        info.kcal = kcal
-        return info
-    }
-
     @Test("Every field survives the round trip")
     func roundTrip() async throws {
         let store = CoreDataLocalAnswerStore(container: try SousPersistentContainer.make(inMemory: true))
         let answer = LocalAnswer(
             name: "Hafer-Drink-Pulver", kind: .product, targetID: "haferflocken",
-            values: Self.info(kcal: 400), valuesSource: "Packung",
+            values: info(kcal: 400), valuesSource: "Packung",
             weights: ["Dose": LocalAnswer.Weight(grams: 240, state: .cooked), "EL": LocalAnswer.Weight(grams: 8)],
             brand: "Marke A", ean: "4000000000000"
         )
@@ -64,7 +58,7 @@ struct LocalAnswerStoreTests {
     @Test("A re-keyed answer moves rather than leaving a twin")
     func reKeyedAnswerMoves() async throws {
         let store = CoreDataLocalAnswerStore(container: try SousPersistentContainer.make(inMemory: true))
-        var answer = LocalAnswer(name: "Tofu", values: Self.info(kcal: 150))
+        var answer = LocalAnswer(name: "Tofu", values: info(kcal: 150))
         try await store.save(answer)
 
         answer.catalogID = "tofu"
@@ -84,57 +78,31 @@ struct LocalAnswerStoreTests {
 /// through the store after the migration.
 @Suite("Local answers migrate in")
 struct LocalAnswerMigrationTests {
-    private func temporaryStoreURL() throws -> URL {
-        let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("sous-migration-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appendingPathComponent("Sous.sqlite")
-    }
-
-    private func open(_ url: URL, with model: NSManagedObjectModel) throws -> NSPersistentContainer {
-        let container = NSPersistentContainer(name: "Sous", managedObjectModel: model)
-        let description = NSPersistentStoreDescription(url: url)
-        description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-        description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
-        container.persistentStoreDescriptions = [description]
-        var loadError: Error?
-        container.loadPersistentStores { _, error in
-            if loadError == nil { loadError = error }
-        }
-        if let loadError { throw loadError }
-        return container
-    }
-
-    private func close(_ container: NSPersistentContainer) throws {
-        for store in container.persistentStoreCoordinator.persistentStores {
-            try container.persistentStoreCoordinator.remove(store)
-        }
-    }
-
     @Test("An old store opens, keeps its recipes, and local answers can be written")
     func oldStoreOpensAndTakesLocalAnswers() async throws {
-        let url = try temporaryStoreURL()
+        let url = try ScratchStore.makeURL()
+        defer { ScratchStore.remove(url) }
         let old = SousManagedObjectModel.makeModel(
             includingRetiredEntities: true, includingLocalAnswers: false, includingHouseholdIngredients: false
         )
         #expect(old.entitiesByName[SousManagedObjectModel.localAnswerEntityName] == nil)
 
-        let before = try open(url, with: old)
+        let before = try ScratchStore.open(url, with: old)
         let saved = try await CoreDataRecipeStore(container: before)
             .save(Recipe(title: "Brot", servings: 4, ingredientsText: "500 g Mehl"))
-        try close(before)
+        try ScratchStore.close(before)
 
         for _ in 0..<2 {
-            let after = try open(url, with: SousManagedObjectModel.shared)
+            let after = try ScratchStore.open(url, with: SousManagedObjectModel.shared)
             #expect(try await CoreDataRecipeStore(container: after).recipe(id: saved.id)?.title == "Brot")
-            try close(after)
+            try ScratchStore.close(after)
         }
 
-        let after = try open(url, with: SousManagedObjectModel.shared)
+        let after = try ScratchStore.open(url, with: SousManagedObjectModel.shared)
         let answers = CoreDataLocalAnswerStore(container: after)
         #expect(try await answers.answers().isEmpty)
         try await answers.save(LocalAnswer(name: "Rauchtofu", kind: .countsAs, targetID: "tofu"))
         #expect(try await answers.answers().map(\.name) == ["Rauchtofu"])
-        try close(after)
+        try ScratchStore.close(after)
     }
 }

@@ -160,16 +160,8 @@ public struct RecipeDocument: Hashable, Sendable {
     // MARK: - Building
 
     private static func line(for ingredient: RecipeIngredient, formatter: QuantityFormatter) -> IngredientLine {
-        var amount = ""
-        if let quantity = ingredient.quantity {
-            amount = formatter.string(for: quantity, size: ingredient.size)
-        } else if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
-            amount = phrase.phrase
-        }
+        let amount = ingredient.quantity.map { formatter.string(for: $0, size: ingredient.size) } ?? ""
         var text = plain(ingredient.name)
-        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName {
-            text += " \(phrase.phrase)"
-        }
         if let preparation = ingredient.preparation, !preparation.isEmpty {
             text += " (\(preparation))"
         }

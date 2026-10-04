@@ -43,7 +43,7 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
             /// A name the catalog does not know and the household has not
             /// answered — "An den Katalog melden" on an unknown line.
             case unknown
-            /// A catalog word the household files differently (phase 7d):
+            /// A catalog word the household files differently:
             /// another aisle (``category``), or a variety of another word
             /// (``parent``). Regional, perhaps; the curator decides.
             case catalogOverride = "override"
@@ -70,13 +70,13 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
         /// for a household's own spelling, the word it spells.
         public var target: Target?
         /// Set where the household said the name is a *spelling* of
-        /// ``target`` (phase 7d) — an alias, not a variety.
+        /// ``target`` — an alias, not a variety.
         public var spelling: Bool?
         /// The aisle the household files the word under, where it differs
-        /// from the catalog's (phase 7d).
+        /// from the catalog's.
         public var category: IngredientCategory?
         /// The word the household files this one as a variety of, where it
-        /// differs from the catalog's parent (phase 7d).
+        /// differs from the catalog's parent.
         public var parent: Target?
         /// Per 100 g.
         public var values: NutritionInfo?

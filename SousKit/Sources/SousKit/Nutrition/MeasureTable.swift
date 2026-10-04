@@ -8,8 +8,7 @@ import Foundation
 /// `assumption` is carried per entry rather than assumed table-wide, because
 /// the UI that shows "2 EL ≈ 28 g (Annahme)" needs it per number.
 ///
-/// **Which table answers which unit** (phase 5's decision, and the reason the
-/// file lost four rows when it landed): a unit that converts to milliliters —
+/// **Which table answers which unit**: a unit that converts to milliliters —
 /// `ml`, `l`, `TL` at 5 ml, `EL` at 15 ml — goes through a **density**, since
 /// that is the one mechanism that also covers `ml` and `l` and needs no entry
 /// per (unit, food) pair. Everything that converts to nothing — `Prise`,

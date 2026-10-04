@@ -1,12 +1,7 @@
 import SousKit
 import SwiftUI
-#if os(iOS)
-import UIKit
-#else
-import AppKit
-#endif
 
-/// "Für Sous optimieren", the one AI action on a recipe (phase 7b): the
+/// "Für Sous optimieren", the one AI action on a recipe: the
 /// recipe's lines brought into the line principle's form by a chat model the
 /// cook already uses, checked by Sous, and previewed old → new before
 /// anything is taken; the step references come along, read against the new
@@ -16,7 +11,7 @@ import AppKit
 /// Names that stay as written but unknown come with a proposal for the
 /// household ("zählt wie Kokosmilch", "neues Wort, ohne Werte"), ticked, and
 /// saved as local answers with the rest — the nudge card shares them with the
-/// catalog later (phase 10). See ``RecipeOptimization``.
+/// catalog later. See ``RecipeOptimization``.
 struct RecipeOptimizationSheet: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(IngredientCatalogLibrary.self) private var catalogLibrary
@@ -25,8 +20,8 @@ struct RecipeOptimizationSheet: View {
 
     let recipe: Recipe
 
-    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
-    private var chat: StepReferencesChat?
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var chat: OptimizationChat?
     @State private var backend = CopyPasteBackend()
     @State private var didCopy = false
     @State private var optimization: RecipeOptimization?
@@ -85,7 +80,7 @@ struct RecipeOptimizationSheet: View {
                     }
                 }
             } else {
-                StepReferencesChatPicker()
+                OptimizationChatPicker()
             }
         } header: {
             Text("Chat fragen")
@@ -492,5 +487,84 @@ final class CopyPasteBackend: RecipeOptimizationBackend {
     func cancel() {
         pending?.resume(throwing: CancellationError())
         pending = nil
+    }
+}
+
+/// The chat the cook asks for "Für Sous optimieren" — chosen once, in the
+/// welcome or the settings, so the sheet offers one way out instead of a
+/// list of apps somebody else uses.
+///
+/// Any of them reads the same prompt; the choice only decides which one the
+/// sheet opens. The web addresses are universal links, so an installed app
+/// opens instead of the browser. "Anderer Chat" is for everything not listed
+/// — the sheet then only copies.
+///
+/// `off` is for cooks who want no AI in the app at all: the optimization is
+/// not offered, and assigning step references by hand is what is left. One
+/// setting rather than a toggle beside the choice, so "which chat" and
+/// "whether a chat" cannot contradict each other.
+enum OptimizationChat: String, CaseIterable, Identifiable {
+    case chatGPT = "chatgpt"
+    case claude
+    case gemini
+    case leChat = "lechat"
+    case copilot
+    case other
+    case off
+
+    /// The chats, without the way out of all of them.
+    static let chats = allCases.filter { $0 != .off }
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .chatGPT: "ChatGPT"
+        case .claude: "Claude"
+        case .gemini: "Gemini"
+        case .leChat: "Le Chat"
+        case .copilot: "Copilot"
+        case .other: "Anderer Chat"
+        case .off: "Keine KI verwenden"
+        }
+    }
+
+    /// Where a new chat starts, or `nil` for one Sous does not know.
+    var url: URL? {
+        switch self {
+        case .chatGPT: URL(string: "https://chatgpt.com/")
+        case .claude: URL(string: "https://claude.ai/new")
+        case .gemini: URL(string: "https://gemini.google.com/app")
+        case .leChat: URL(string: "https://chat.mistral.ai/chat")
+        case .copilot: URL(string: "https://copilot.microsoft.com/")
+        case .other, .off: nil
+        }
+    }
+}
+
+extension SousSetting {
+    /// Spelled after the step-reference prompt the choice was first made
+    /// for; kept, because the cook's choice is stored under it.
+    static let optimizationChat = "stepReferencesChat"
+}
+
+/// The choice of chat, the same control wherever it is offered. Unset until
+/// the cook picks one — a default would quietly send everybody to the same
+/// company.
+struct OptimizationChatPicker: View {
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var chat: OptimizationChat?
+
+    var body: some View {
+        Picker("Chat", selection: $chat) {
+            if chat == nil {
+                Text("Nicht gewählt").tag(OptimizationChat?.none)
+            }
+            ForEach(OptimizationChat.chats) { option in
+                Text(option.title).tag(Optional(option))
+            }
+            Divider()
+            Text(OptimizationChat.off.title).tag(Optional(OptimizationChat.off))
+        }
     }
 }

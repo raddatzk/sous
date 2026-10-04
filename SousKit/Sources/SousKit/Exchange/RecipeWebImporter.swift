@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 /// Fetches a recipe page and reads the recipe out of it.
 ///
@@ -12,7 +11,6 @@ public struct RecipeWebImporter: Sendable {
     public init(session: URLSession = .shared) {
         self.session = session
     }
-
 
     /// Reads the page and returns the recipe with its pictures, unsaved.
     public func draft(from url: URL) async throws -> (recipe: Recipe, images: [Data]) {

@@ -39,11 +39,6 @@ public final class CloudKitEventLog: @unchecked Sendable {
         }
     }
 
-    public func stop() {
-        task?.cancel()
-        task = nil
-    }
-
     private static func report(_ event: NSPersistentCloudKitContainer.Event) {
         let kind = switch event.type {
         case .setup: "setup"

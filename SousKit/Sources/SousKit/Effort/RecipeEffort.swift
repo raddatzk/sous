@@ -101,11 +101,6 @@ extension RecipeEffort {
         static let subRecipeFactor = 0.5
     }
 
-    /// How deep a chain of linked recipes is followed. The same limit the
-    /// shopping list uses, for the same reason: beyond that it is a loop or a
-    /// mistake.
-    static let maxLinkDepth = 3
-
     /// Where the rungs sit, set against a library of 166 recipes rather than
     /// reasoned about: they are its thirds, near enough. Thirds because the
     /// rungs exist to be filtered by, and a rung that matches four percent of
@@ -136,8 +131,8 @@ public extension Recipe {
     /// judge it by.
     ///
     /// - Parameter resolve: looks up a linked recipe by id. Without it the
-    ///   sub-recipes count as one step each, which is what they look like
-    ///   from the outside.
+    ///   sub-recipes are counted but add nothing to the score: their effort
+    ///   cannot be judged from the outside.
     func effort(resolve: (UUID) -> Recipe? = { _ in nil }) -> RecipeEffort? {
         effort(depth: 0, visited: [], resolve: resolve)
     }
@@ -164,7 +159,7 @@ public extension Recipe {
         seen.insert(id)
         var subScore = 0.0
         var subCount = 0
-        if depth < RecipeEffort.maxLinkDepth {
+        if depth < RecipeLink.maxDepth {
             for linkedID in linkedRecipeIDs where !seen.contains(linkedID) {
                 seen.insert(linkedID)
                 subCount += 1

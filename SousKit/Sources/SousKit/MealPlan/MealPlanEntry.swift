@@ -28,9 +28,6 @@ public struct MealPlanEntry: Identifiable, Codable, Hashable, Sendable {
 
     public var isDeleted: Bool { deletedAt != nil }
 
-    /// Whether this entry is in the loose pool rather than on a day.
-    public var isInPool: Bool { day == nil }
-
     public init(
         id: UUID = UUID(),
         day: Date?,
@@ -58,20 +55,5 @@ extension Date {
     /// Midnight of this date, at sync precision.
     public var startOfDay: Date {
         Calendar.current.startOfDay(for: self).syncPrecision
-    }
-
-    /// The seven days of the week this date falls in.
-    public var weekDays: [Date] {
-        let calendar = Calendar.current
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: self) else {
-            return [startOfDay]
-        }
-        return (0..<7).compactMap {
-            calendar.date(byAdding: .day, value: $0, to: interval.start)?.startOfDay
-        }
-    }
-
-    public func addingWeeks(_ count: Int) -> Date {
-        Calendar.current.date(byAdding: .weekOfYear, value: count, to: self) ?? self
     }
 }

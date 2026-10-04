@@ -1,7 +1,7 @@
 import SousKit
 import SwiftUI
 
-/// The edit mode of an ingredient's detail (phase 7d): what the household
+/// The edit mode of an ingredient's detail: what the household
 /// overrides of the catalog for one word — its aisle, what it is a variety
 /// of, further spellings, and the spelling it is shown by.
 ///
@@ -269,7 +269,7 @@ private struct OverrideDraft: Equatable {
 }
 
 /// One place where the catalog has moved away from what the household
-/// says (phase 7d), asked quietly: what the catalog says now, what the
+/// says, asked quietly: what the catalog says now, what the
 /// household says, and the two ways out. In the ingredient's detail and
 /// under "Abweichungen" in the catalog.
 struct CatalogConflictRow: View {

@@ -9,7 +9,7 @@ struct UnitTests {
         let unit = IngredientUnit(symbol: "Kugel")
         #expect(unit == .custom("Kugel"))
         #expect(unit.dimension == .imprecise)
-        #expect(!unit.isConvertible)
+        #expect(unit.baseUnitFactor == nil)
 
         let data = try JSONEncoder().encode(unit)
         #expect(try JSONDecoder().decode(IngredientUnit.self, from: data) == unit)

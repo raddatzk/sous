@@ -37,7 +37,7 @@ bundled or fetched (SousKit's `DataSet`).
 content, and a counter within that day. It is raised only when some file's
 bytes changed, read off the manifest already there, so compiling unchanged
 data leaves it alone and `--check` never needs a clock. Bundled and published
-data are one series: phase 9 publishes the manifest of `main` as it is.
+data are one series: publish.py publishes the manifest of `main` as it is.
 
 The YAML loader is strict, because YAML's conveniences are traps in a data
 set: every scalar is read as a string (`no` stays "no", `1.10` stays "1.10",
@@ -88,7 +88,7 @@ SET_FILES = (
     "ids.json", "kitchen_words.json", "measures.json", "sources.json",
 )
 
-# Inline rows written before phase 3 carry numbered codes. They keep them; a
+# Inline rows written before ids existed carry numbered codes. They keep them; a
 # new row's code is derived from its entry's id instead, so two pull requests
 # adding a row each cannot both take the next number.
 NUMBERED_Z_CODES = {"Z000001", "Z000002"}
@@ -679,7 +679,7 @@ def category_of(word: Word, by_name: dict[str, Word]) -> str:
 def kitchen_words(dataset: Dataset) -> list[dict]:
     out = []
     for word in catalog_order(dataset.words):
-        # `id` is new in phase 3; an app that predates it ignores the key.
+        # `id` came later than the file; an app that predates it ignores the key.
         row: dict = {"id": word.id, "name": word.name, "aliases": word.aliases}
         # The spelling stays in `aliases` too, so an app that predates
         # `aliasUnits` still recognizes it; it only misses the unit.

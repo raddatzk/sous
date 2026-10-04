@@ -62,6 +62,35 @@ public enum RecipeFieldParsing {
         return total > 0 ? total : nil
     }
 
+    /// A loose JSON value as text — numbers included, since exporters
+    /// disagree about whether an id or a time is one.
+    static func string(_ value: Any?) -> String? {
+        switch value {
+        case let text as String: text
+        case let number as NSNumber: number.stringValue
+        default: nil
+        }
+    }
+
+    /// A loose JSON value as a flag, however the exporter wrote it.
+    static func bool(_ value: Any?) -> Bool? {
+        switch value {
+        case let flag as Bool: flag
+        case let number as NSNumber: number.boolValue
+        case let text as String: ["true", "yes", "1"].contains(text.lowercased())
+        default: nil
+        }
+    }
+
+    /// A picture written as base64, with or without a `data:` URL prefix.
+    static func base64Data(_ text: String) -> Data? {
+        var encoded = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if encoded.hasPrefix("data:"), let comma = encoded.firstIndex(of: ",") {
+            encoded = String(encoded[encoded.index(after: comma)...])
+        }
+        guard !encoded.isEmpty else { return nil }
+        return Data(base64Encoded: encoded, options: .ignoreUnknownCharacters)
+    }
 
     static func nonEmpty(_ text: String?) -> String? {
         guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {

@@ -6,18 +6,17 @@ import Foundation
 /// person who pasted the model's answer back into Sous, and kept beside the
 /// recipe.
 ///
-/// Sous never talks to the model itself. ``StepReferencesPrompt/prompt(for:)``
-/// writes a prompt to copy into whatever chat app the cook already pays
-/// for; ``StepReferencesPrompt/read(_:for:)`` reads the answer that comes
-/// back.
+/// Sous never talks to the model itself: the references arrive as part of
+/// the optimization answer (see ``RecipeOptimizationPrompt``), copied out of
+/// whatever chat app the cook already pays for, and are checked by
+/// ``StepReferencesPrompt``.
 ///
 /// A reference says a step takes something of a line: either an amount
 /// written in the sentence, anchored to its exact words ("200 g"), or a line
 /// taken without a number of its own — by name, share, collective word or
-/// implication — which becomes a chip and needs no words. Because every
-/// written amount belongs to a line, it can be scaled by *that line's*
-/// factor — which is what lets a single ingredient group be scaled on its
-/// own one day, not just the whole recipe.
+/// implication — which becomes a chip and needs no words. Every written
+/// amount belongs to a line, so cook mode can say which ingredient an
+/// accented amount is, and scales it with the recipe.
 ///
 /// The references are only true of the text they were read from.
 /// ``fingerprint`` hashes exactly that text; once the recipe reads
@@ -215,13 +214,6 @@ extension Recipe {
         } else {
             1
         }
-        // Per line, so that one group can be scaled apart from the rest
-        // later; today every scalable line moves with the serving count.
-        func factor(forLine line: Int?) -> Double {
-            guard let line, lines.indices.contains(line - 1) else { return recipeFactor }
-            return lines[line - 1].scalesWithServings ? recipeFactor : 1
-        }
-
         for (stepIndex, step) in steps.enumerated() where references.steps.indices.contains(stepIndex) {
             let referencesInStep = references.steps[stepIndex]
 
@@ -248,7 +240,7 @@ extension Recipe {
                 // many pieces there are — the prompt asks for these not to
                 // come back as amounts, and this catches the ones that do.
                 let scale = StepAmountScaling.scalesWithServings(quantity.quantity.unit, writtenRange: range, in: step.text)
-                    ? factor(forLine: reference.line)
+                    ? recipeFactor
                     : 1
                 segments.append(.amount(Self.scaled(written, quantity: quantity, by: scale, formatter: formatter)))
                 cursor = range.upperBound
@@ -275,7 +267,6 @@ extension Recipe {
                     guard chips[index].quantity == nil, reference.amount != nil else { continue }
                     chips.remove(at: index)
                 }
-                chip.resolvedGrams = nil
                 if let written = reference.amount.flatMap(StepReferencesPrompt.quantity(in:)) {
                     var quantity = written.quantity
                     // "3" for a line of "3 Zehen Knoblauch": a bare count
@@ -283,7 +274,7 @@ extension Recipe {
                     if quantity.unit == .piece, let lineUnit = lines[line - 1].quantity?.unit, lineUnit != .piece {
                         quantity = Quantity(quantity.amount, lineUnit)
                     }
-                    chip.quantity = quantity.scaled(by: factor(forLine: line))
+                    chip.quantity = quantity.scaled(by: recipeFactor)
                     chip.size = written.size
                 } else {
                     // Named without an amount: the model could not say how
@@ -328,9 +319,9 @@ extension Recipe {
 /// What step references are checked and stamped with: the fingerprint, and
 /// the reader behind the optimization prompt's references
 /// (``RecipeOptimizationPrompt``). The prompt that asked for references
-/// alone (v2) is gone since phase 7b — one AI action, one prompt — but its
-/// version stays in the fingerprint, so references made with it stay
-/// current. See ``StepReferences``.
+/// alone (v2) is gone — one AI action, one prompt — but its version stays
+/// in the fingerprint, so references made with it stay current. See
+/// ``StepReferences``.
 public enum StepReferencesPrompt {
     /// Part of the fingerprint. The v2 prompt is retired; the version stays,
     /// as changing it would make every stored reference stale.
@@ -378,7 +369,7 @@ public enum StepReferencesPrompt {
     /// Serving count, numbered lines and numbered steps. A fixed locale, so
     /// the same recipe reads — and fingerprints — the same on every device.
     static func body(for recipe: Recipe) -> String {
-        let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+        let formatter = QuantityFormatter.german
         var text = "Portionen: \(recipe.servings)\n\nZutaten:\n"
         var lastGroup: String?
         for (index, line) in recipe.ingredients.enumerated() {
@@ -432,9 +423,6 @@ public enum StepReferencesPrompt {
     public struct Reading: Sendable {
         public let references: StepReferences
         public let warnings: [Warning]
-        /// What the model noticed does not add up between the steps and the
-        /// ingredient list — for the cook to fix in the recipe, not stored.
-        public let notes: [String]
     }
 
     /// One reference as the answer writes it, before it is checked.
@@ -451,7 +439,6 @@ public enum StepReferencesPrompt {
     /// behind every prompt that asks for references.
     static func reading(
         steps answerSteps: [(schritt: Int, bezuege: [AnswerItem])],
-        notes answerNotes: [String],
         for recipe: Recipe
     ) -> Result<Reading, Failure> {
         let lines = recipe.ingredients
@@ -518,13 +505,9 @@ public enum StepReferencesPrompt {
                 warnings.append(.overbooked(line: line, percent: Int((share * 100).rounded())))
             }
         }
-        let notes = answerNotes
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
         return .success(Reading(
             references: StepReferences(fingerprint: fingerprint(for: recipe), steps: referencesByStep),
-            warnings: warnings,
-            notes: notes
+            warnings: warnings
         ))
     }
 
@@ -542,7 +525,7 @@ public enum StepReferencesPrompt {
         switch (existing.amount.flatMap(quantity(in:)), reference.amount.flatMap(quantity(in:))) {
         case let (.some(first), .some(second)):
             guard let sum = first.quantity.adding(second.quantity) else { return }
-            let formatter = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+            let formatter = QuantityFormatter.german
             list[index].amount = formatter.string(for: sum, size: first.size)
         case (.none, .some):
             list[index].amount = reference.amount

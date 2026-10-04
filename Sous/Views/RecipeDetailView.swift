@@ -4,8 +4,8 @@ import SwiftUI
 
 struct RecipeDetailView: View {
     @Environment(RecipeLibrary.self) private var library
-    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
-    private var stepReferencesChat: StepReferencesChat?
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var optimizationChat: OptimizationChat?
     @Environment(ShoppingLibrary.self) private var shopping
     @Environment(CookSession.self) private var session
     @Environment(MealPlanLibrary.self) private var plan
@@ -1037,7 +1037,7 @@ struct RecipeDetailView: View {
                                 .font(SousStyle.groupHeading)
                                 .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
-                            Text(attributedText(for: rendition.segments(for: step)))
+                            Text(AttributedString(stepSegments: rendition.segments(for: step)))
                         }
                     }
                 }
@@ -1100,7 +1100,7 @@ struct RecipeDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Notizen")
                     .font(SousStyle.sectionHeading)
-                Text(markdown(notes))
+                Text(AttributedString(inlineMarkdown: notes))
             }
         }
     }
@@ -1420,7 +1420,7 @@ struct RecipeDetailView: View {
                 // that happens to be marked, and fixing a typo while reading
                 // it costs nothing. Saving keeps the tombstone.
                 Button("Bearbeiten", systemImage: "pencil") { openEditor() }
-                // One AI action (phase 7b): the optimization brings the step
+                // One AI action: the optimization brings the step
                 // references along. Assigning or correcting them by hand
                 // stays, AI or not.
                 if !recipe.steps.isEmpty, !recipe.ingredients.isEmpty {
@@ -1428,7 +1428,7 @@ struct RecipeDetailView: View {
                         isReadingStepReferences = true
                     }
                 }
-                if !recipe.ingredients.isEmpty, stepReferencesChat != .off, !recipe.isDeleted {
+                if !recipe.ingredients.isEmpty, optimizationChat != .off, !recipe.isDeleted {
                     Button("Für Sous optimieren", systemImage: "wand.and.stars") {
                         isOptimizing = true
                     }
@@ -1520,33 +1520,6 @@ struct RecipeDetailView: View {
                 await shopping.add(recipe, servings: servings, lines: lines)
             }
         }
-    }
-
-    /// Renders inline markdown, falling back to the raw text if it does not
-    /// parse — a half-typed emphasis marker should not blank out a step.
-    private func markdown(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(text)
-    }
-
-    /// A step's resolved segments, concatenated into one `AttributedString`
-    /// — a resolved amount in the accent color, the way `IngredientLineView`
-    /// sets the amount apart in the ingredient list.
-    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
-        var result = AttributedString()
-        for segment in segments {
-            switch segment {
-            case .text(let string):
-                result += markdown(string)
-            case .amount(let string):
-                var run = AttributedString(string)
-                run.foregroundColor = .sousAccent
-                result += run
-            }
-        }
-        return result
     }
 }
 

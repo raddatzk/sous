@@ -553,7 +553,7 @@ struct CookModeView: View {
                     .font(SousStyle.stepNumber)
                     .foregroundStyle(.tint)
                     .frame(minWidth: 44, alignment: .trailing)
-                Text(attributedText(for: rendition.segments(for: step)))
+                Text(AttributedString(stepSegments: rendition.segments(for: step)))
                     .font(.title3)
             }
 
@@ -865,31 +865,6 @@ struct CookModeView: View {
 
     private func isFirstOfGroup(_ step: RecipeStep, in steps: [RecipeStep]) -> Bool {
         steps.first { $0.group == step.group }?.id == step.id
-    }
-
-    private func markdown(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(text)
-    }
-
-    /// A step's resolved segments, concatenated into one `AttributedString`
-    /// — a resolved amount in the accent color, the way `IngredientLineView`
-    /// sets the amount apart in the ingredient list.
-    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
-        var result = AttributedString()
-        for segment in segments {
-            switch segment {
-            case .text(let string):
-                result += markdown(string)
-            case .amount(let string):
-                var run = AttributedString(string)
-                run.foregroundColor = .sousAccent
-                result += run
-            }
-        }
-        return result
     }
 
     /// Hands covered in dough cannot tap a screen that has gone dark.

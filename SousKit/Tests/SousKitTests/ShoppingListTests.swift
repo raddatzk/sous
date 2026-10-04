@@ -4,10 +4,16 @@ import Testing
 
 @Suite("Shopping list")
 struct ShoppingListTests {
+    /// Several recipes put on the list one after another, their captures
+    /// read as one — what the store sees across consecutive adds.
     private func build(_ planned: [(Recipe, Int)], recipes: [Recipe] = []) -> ShoppingCapture {
-        ShoppingListBuilder.build(from: planned.map { (recipe: $0.0, servings: $0.1) }) { id in
-            recipes.first { $0.id == id }
+        var capture = ShoppingCapture()
+        for (recipe, servings) in planned {
+            let one = build(recipe, servings, picking: nil, recipes: recipes)
+            capture.planEntries += one.planEntries
+            capture.demands += one.demands
         }
+        return capture
     }
 
     /// The one item the capture's demands for `key` would bundle into —

@@ -10,7 +10,7 @@ public enum IngredientState: String, Codable, Hashable, Sendable {
     /// How a nutrition table's variants read when there is more than one of
     /// them and a person has to pick. "Unspecified" is only ever shown on its
     /// own, where naming the state at all would be noise — hence the plain
-    /// "je 100 g" rather than something like "unbestimmt".
+    /// "Allgemein" rather than something like "unbestimmt".
     public var title: String {
         switch self {
         case .unspecified: "Allgemein"
@@ -40,28 +40,6 @@ public enum IngredientState: String, Codable, Hashable, Sendable {
     }
 }
 
-/// Words that stand in for a number — "Salz nach Geschmack", "etwas Mehl".
-///
-/// The phrase is kept as written, and where it stood, so the line renders
-/// back exactly as typed; the *name* stays clean ("Salz"), which is what
-/// lets the catalog recognize the ingredient at all.
-public struct UnquantifiedPhrase: Codable, Hashable, Sendable {
-    public enum Placement: String, Codable, Hashable, Sendable {
-        /// "etwas Salz" — the phrase sits where a number would.
-        case beforeName
-        /// "Salz nach Geschmack" — the phrase trails the name.
-        case afterName
-    }
-
-    public var phrase: String
-    public var placement: Placement
-
-    public init(phrase: String, placement: Placement) {
-        self.phrase = phrase
-        self.placement = placement
-    }
-}
-
 /// One line of a recipe's ingredient list.
 ///
 /// The fields are kept separate on purpose: quantity, unit, name, and
@@ -77,21 +55,11 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
     /// The size word the measure carried, when the line wrote one — see
     /// ``IngredientSize``.
     public var size: IngredientSize?
-    /// The words that stood in for a number, when the line wrote its amount
-    /// that way — see ``UnquantifiedPhrase``.
-    public var unquantifiedPhrase: UnquantifiedPhrase?
     /// How it is prepared: "fein gehackt".
     public var preparation: String?
     /// Optional heading this line belongs to: "Für den Teig".
     public var group: String?
     public var state: IngredientState
-    /// Grams resolved against a nutrition database. Populated in phase 2,
-    /// never entered by hand.
-    public var resolvedGrams: Double?
-    /// Set when this ingredient is itself another recipe in the library.
-    public var linkedRecipeID: UUID?
-    /// Seasoning and frying oil do not scale linearly with servings.
-    public var scalesWithServings: Bool
     /// The line is not in the fixed form (see ``IngredientLineReader``): its
     /// words are kept as written in `name`, its amount is still read, and it
     /// gets no nutrition until it is optimized.
@@ -102,26 +70,18 @@ public struct RecipeIngredient: Identifiable, Codable, Hashable, Sendable {
         name: String,
         quantity: Quantity? = nil,
         size: IngredientSize? = nil,
-        unquantifiedPhrase: UnquantifiedPhrase? = nil,
         preparation: String? = nil,
         group: String? = nil,
         state: IngredientState = .unspecified,
-        resolvedGrams: Double? = nil,
-        linkedRecipeID: UUID? = nil,
-        scalesWithServings: Bool = true,
         isOutsideForm: Bool = false
     ) {
         self.id = id
         self.name = name
         self.quantity = quantity
         self.size = size
-        self.unquantifiedPhrase = unquantifiedPhrase
         self.preparation = preparation
         self.group = group
         self.state = state
-        self.resolvedGrams = resolvedGrams
-        self.linkedRecipeID = linkedRecipeID
-        self.scalesWithServings = scalesWithServings
         self.isOutsideForm = isOutsideForm
     }
 }

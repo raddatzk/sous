@@ -55,16 +55,18 @@ what's for dinner today, start cooking a recipe, open a recipe or the list).
 
 ### Where the AI is
 
-Two places, both on-device Foundation Models, both narrow:
+Two places, both narrow:
 
-- `Resolving/AmountAIExtractor` — reading the amounts a step mentions when the
-  grammar is open enough that a regex cannot.
-- `Planning/MealSuitabilityClassifier` — guessing which slots a recipe suits
-  when the library says nothing.
+- `Planning/MealSuitabilityClassifier` — on-device Foundation Models, guessing
+  which slots a recipe suits when the library says nothing.
+- `Resolving/RecipeOptimization` — "Für Sous optimieren": Sous writes a prompt,
+  the cook pastes it into a chat of their own choosing and pastes the answer
+  back. A fixed reader checks every line of it; only what passes is offered,
+  and without an answer nothing changes.
 
 Everything else — arithmetic, nutrition, scaling, unit merging, parsing with a
-closed grammar — is conventional code, on purpose. The nutrition pipeline in
-`Scripts/` involves no model at all.
+closed grammar, the amounts a step takes — is conventional code, on purpose.
+The nutrition pipeline in `Scripts/` involves no model at all.
 
 ## Repository layout
 
@@ -106,13 +108,15 @@ The domain tests live with the package and need no simulator:
 cd SousKit && swift test
 ```
 
-Three suites are opt-in and stay off in CI, because they either call a language
+Four suites are opt-in and stay off in CI, because they either call a language
 model or need a recipe library that is not in the repo:
 
 ```bash
-SOUS_SPARRING=1 swift test --filter Sparring
+SOUS_SPARRING=1 swift test --filter MealSuitabilitySparring
 SOUS_EFFORT_LIBRARY=/path/to/library.melarecipes swift test --filter EffortCalibration
 SOUS_TAG_LIBRARY=/path/to/library.melarecipes swift test --filter NutritionTagCalibration
+SOUS_OPTIMIZE_LIBRARY=/path/to/export.sousrecipes SOUS_OPTIMIZE_OUT=/path/to/out \
+    swift test --filter RecipeOptimizationSparring
 ```
 
 ## CI and releases
@@ -122,7 +126,11 @@ pull request on GitHub's `xcode-27` image, the one that carries Xcode 27 and
 with it the iOS 27 SDK: regenerate the project, `swift test`, then build for the
 iOS Simulator and for macOS. Nothing is signed, so it
 needs no secrets. The repository is public, so a pull request can come from
-anyone — which is exactly why this does not run on a Mac of ours.
+anyone — which is exactly why this does not run on a Mac of ours. Beside it, a
+Linux job checks that the bundled resources equal what `Data/` compiles to.
+The catalog's own two workflows, [`compile-data.yml`](.github/workflows/compile-data.yml)
+and [`publish-data.yml`](.github/workflows/publish-data.yml), are described in
+[`Data/README.md`](Data/README.md).
 
 [`release.yml`](.github/workflows/release.yml) archives the iOS and the macOS
 app and uploads both to TestFlight, on the same hosted image. It is started by

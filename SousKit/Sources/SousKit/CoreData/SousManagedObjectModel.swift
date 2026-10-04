@@ -154,8 +154,9 @@ enum SousManagedObjectModel {
             attribute("searchText", .stringAttributeType, default: ""),
             attribute("ingredientKeysJSON", .stringAttributeType, default: "[]"),
         ]
-        // The same two indexes the SwiftData model declares: the list sorts by
-        // title and the sync sorts by when a row last changed.
+        // The two indexes the SwiftData model declared — the list sorts by
+        // title and the sync sorts by when a row last changed — and the id
+        // every member is looked up by.
         entity.indexes = [
             index(named: "byTitle", on: entity, properties: ["title"]),
             index(named: "byUpdatedAt", on: entity, properties: ["updatedAt"]),
@@ -173,11 +174,10 @@ enum SousManagedObjectModel {
             attribute("title", .stringAttributeType, default: ""),
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
-            // Made by a person with a name, rather than by the app for an
-            // account that had none. Only the latter may be folded into
-            // another (see `CoreDataHouseholds.mergeDuplicates`); rows
-            // written before this field existed read as `false`, which is
-            // what they were.
+            // Read by nothing: the household's flag of the same name (see
+            // `householdEntity()`) landed on this entity as well. It stays,
+            // because a field the CloudKit schema has seen cannot be taken
+            // out of it again.
             attribute("isDeliberate", .booleanAttributeType, default: false),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
@@ -392,11 +392,10 @@ enum SousManagedObjectModel {
             attribute("sortOrder", .integer64AttributeType, default: 0),
             attribute("addedAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
-            // Made by a person with a name, rather than by the app for an
-            // account that had none. Only the latter may be folded into
-            // another (see `CoreDataHouseholds.mergeDuplicates`); rows
-            // written before this field existed read as `false`, which is
-            // what they were.
+            // Read by nothing: the household's flag of the same name (see
+            // `householdEntity()`) landed on this entity as well. It stays,
+            // because a field the CloudKit schema has seen cannot be taken
+            // out of it again.
             attribute("isDeliberate", .booleanAttributeType, default: false),
         ]
         entity.indexes = [index(named: "byID", on: entity, properties: ["id"])]
@@ -492,7 +491,7 @@ enum SousManagedObjectModel {
             toHousehold.deleteRule = .nullifyDeleteRule
 
             let toMembers = NSRelationshipDescription()
-            // Named after the entity so the household can carry ten of them
+            // Named after the entity so the household can carry all of them
             // without collision: "cdRecipes", "cdMealPlanEntries", …
             toMembers.name = memberRelationName(for: member)
             toMembers.destinationEntity = member
@@ -526,10 +525,10 @@ enum SousManagedObjectModel {
         attribute.name = name
         attribute.attributeType = type
         // CloudKit requires every attribute to be optional or to carry a
-        // default. Where neither is stated here the field is one the store
-        // always writes on insert — an id, a timestamp — and marking it
-        // optional would only move the failure from the compiler to a nil
-        // nobody expected.
+        // default, so one stated with neither is made optional. Those are
+        // the fields the store writes on every insert — an id, a timestamp —
+        // so the optionality is the schema's, never a nil the code has to
+        // expect.
         attribute.isOptional = optional || defaultValue == nil
         attribute.defaultValue = defaultValue
         return attribute

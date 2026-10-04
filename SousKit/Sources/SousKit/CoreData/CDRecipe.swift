@@ -1,12 +1,11 @@
 import CoreData
 import Foundation
 
-/// The Core Data form of a recipe — the counterpart to ``StoredRecipe``.
+/// The Core Data form of a recipe — the successor of ``StoredRecipe``.
 ///
-/// The two mirror each other field for field on purpose. Whichever store the
-/// app is running against, the row it writes has to be readable by the other
-/// one, because the migration from SwiftData to Core Data reads the old store
-/// and writes the new.
+/// It carries every field the SwiftData row had, so the migration can copy a
+/// recipe across without losing anything, and some the old row never got
+/// (the step references, the original).
 @objc(CDRecipe)
 final class CDRecipe: CDHouseholdMember {
     @NSManaged var id: UUID?

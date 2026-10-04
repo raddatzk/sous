@@ -1,7 +1,7 @@
 import SousKit
 import SwiftUI
 
-/// "Anpassungen teilen" (INGREDIENTS-DATA §3 D, phase 10): the household's
+/// "Anpassungen teilen" (INGREDIENTS-DATA §3 D): the household's
 /// own adjustments of the catalog, grouped, all ticked, each shown exactly as
 /// it is sent. ✓ sends the ticked ones as one `CatalogSubmission` to the
 /// public database, where the nightly job in the private inbox repository

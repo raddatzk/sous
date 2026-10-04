@@ -63,8 +63,8 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
 /// The food rows the app ships, keyed by code.
 ///
 /// Deliberately not merged, averaged, or deduplicated: the nine Schmelzkäse
-/// are nine rows here, and picking between them is a question for the cook
-/// (phase 4), not one the build step gets to answer by taking a mean.
+/// are nine rows here, and picking between them is a question for the cook,
+/// not one the build step gets to answer by taking a mean.
 ///
 /// Two files feed it. `bls.json` is the catalog; `community.json` holds the
 /// handful of foods the BLS does not list at all — nutritional yeast, and
@@ -104,8 +104,8 @@ public struct BLSCatalog: Sendable {
     public private(set) var source: Source
     /// The supplements file speaking for itself, or `nil` where the app ships
     /// none. Kept apart from `source` rather than merged into it: the two
-    /// files are under different licences from different bodies, and the
-    /// sources screen has to be able to name both separately.
+    /// files are under different licences from different bodies, and each
+    /// has to be nameable on its own.
     public private(set) var supplementSource: Source?
     public private(set) var entries: [BLSEntry]
     private var byCode: [String: BLSEntry]
@@ -120,85 +120,6 @@ public struct BLSCatalog: Sendable {
     public func entry(for code: String) -> BLSEntry? { byCode[code] }
 
     public func entries(for codes: [String]) -> [BLSEntry] { codes.compactMap(entry(for:)) }
-
-    /// Rows whose catalog name contains `text`, best first — the second half
-    /// of the concept's bridge across the two languages: the synonym table
-    /// carries what curation knows, this carries everything else.
-    ///
-    /// It is what makes the picker usable at all for a word the table has
-    /// nothing for: "Kurkuma" has no candidates and no values, and a picker
-    /// that could only offer its candidates would offer nothing. Prefix
-    /// matches lead, then shorter names, so "Schmelzkäse" lists the plain
-    /// cheeses before the preparations with ham in them.
-    ///
-    /// A supplement whose name is in another language will not be found by a
-    /// German word here, and that is the curation's job to bridge, not this
-    /// method's — the same as for every BLS row whose name nobody writes.
-    public func search(_ text: String, limit: Int = 40) -> [BLSEntry] {
-        let query = IngredientCatalog.normalize(text)
-        guard query.count >= 3 else { return [] }
-
-        return entries
-            .compactMap { entry -> (BLSEntry, Int, Int)? in
-                let name = IngredientCatalog.normalize(entry.name)
-                guard let tier = Self.tier(of: name, for: query) else { return nil }
-                return (entry, tier, name.count)
-            }
-            .sorted { first, second in
-                (first.1, first.2) == (second.1, second.2)
-                    ? first.0.name < second.0.name
-                    : (first.1, first.2) < (second.1, second.2)
-            }
-            .prefix(limit)
-            .map(\.0)
-    }
-
-    /// How well a row's name answers `query`, lower being better, or `nil`
-    /// for a row that does not answer it at all.
-    ///
-    /// Containment alone only ever reaches *down*, to a name longer than
-    /// what was typed — which is the wrong direction for German. The table
-    /// stocks the general word and the cook writes the specific one:
-    /// "Leinöl" is what BLS calls Q160000, "Leinsamenöl" is what stands on
-    /// the bottle. `"leinöl".contains("leinsamenöl")` is false, so the one
-    /// right row in the table was invisible to the one name anybody types.
-    ///
-    /// Tiers 2 to 4 reach up instead, along the seams a German compound
-    /// actually has. The head noun comes last and carries the meaning, so a
-    /// shared ending ranks above a shared beginning: typing "Leinsamenöl"
-    /// should offer the oil before the seeds it is pressed from, even
-    /// though both are real matches.
-    static func tier(of name: String, for query: String) -> Int? {
-        if name.hasPrefix(query) { return 0 }
-        if name.contains(query) { return 1 }
-        // A name at least as long as the query has had its chance above.
-        // The short ones are held back because nearly every row shares a
-        // three-letter ending with something, and "…öl" matching every oil
-        // in the table is no more use than matching none of them.
-        guard name.count >= 4, name.count < query.count else { return nil }
-
-        // "Vollmilch" → "Milch": the query is the row's name with a
-        // modifier written in front of it.
-        if query.hasSuffix(name) { return 2 }
-
-        // "Leinsamenöl" → "Leinöl": the row's name split in two by an
-        // insertion, its beginning and its ending both still in place.
-        // Both halves have to carry weight — a single shared letter at
-        // either end is a coincidence, not a seam.
-        let n = Array(name), q = Array(query)
-        var head = 0
-        while head < n.count, n[head] == q[head] { head += 1 }
-        var tail = 0
-        while tail < n.count - head, n[n.count - 1 - tail] == q[q.count - 1 - tail] { tail += 1 }
-        if head + tail == n.count, head >= 2, tail >= 2 { return 3 }
-
-        // "Leinsamenöl" → "Leinsamen": only the modifier is shared, and the
-        // head noun — the part that says what the thing is — is not. Last,
-        // and only ever as the tail of a list that has better above it.
-        if query.hasPrefix(name) { return 4 }
-
-        return nil
-    }
 
     /// One rule of `Data/assumed-zeros.yaml`: in these BLS groups, a blank
     /// for this nutrient is a zero nobody wrote down — vitamin C in flour,

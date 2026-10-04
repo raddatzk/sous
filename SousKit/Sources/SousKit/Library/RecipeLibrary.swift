@@ -4,8 +4,8 @@ import Observation
 /// The view-facing state of the recipe collection.
 ///
 /// Holds the current filter, reloads when it changes, and forwards writes to
-/// the store. Views never touch the store directly, so swapping persistence
-/// or adding sync later stays invisible to them.
+/// the store. Views never touch the store directly, so what persistence and
+/// sync do underneath stays invisible to them.
 @MainActor
 @Observable
 public final class RecipeLibrary {
@@ -119,10 +119,11 @@ public final class RecipeLibrary {
     public var query: RecipeQuery {
         RecipeQuery(
             searchText: searchText.isEmpty ? nil : searchText,
-            // Without the meal filters: the store can only answer those from
-            // what a recipe states, and most state nothing. They are applied
-            // afterwards, here, where the planner's cached guess can stand in
-            // — see ``narrowedToSlots(_:filters:)``.
+            // Without the meal and effort filters: the store can only answer
+            // those from what a recipe states, and most state nothing. They
+            // are applied afterwards, here, where the planner's cached guess
+            // and the computed effort can stand in — see
+            // ``narrowedToSlots(_:filters:)`` and ``narrowedToEffort(_:filters:)``.
             filters: activeFilters.filter { $0.kind != .slot && $0.kind != .effort },
             onlyFavorites: filter == .favorites,
             onlyWantToCook: filter == .wantToCook
@@ -196,12 +197,6 @@ public final class RecipeLibrary {
 
     public func remove(_ filter: RecipeFilter) async {
         activeFilters.removeAll { $0 == filter }
-        await reload()
-    }
-
-    public func clearFilters() async {
-        activeFilters = []
-        searchText = ""
         await reload()
     }
 
@@ -568,7 +563,7 @@ public final class RecipeLibrary {
 
     /// Why a recipe cannot be taken into a group, in the words the picker
     /// and the alert both use.
-    public func refusal(for recipe: Recipe, group: VariantGroup?) -> String {
+    private func refusal(for recipe: Recipe, group: VariantGroup?) -> String {
         guard let group else { return "„\(recipe.title)“ gehört schon zu einer anderen Gruppe." }
         return "„\(recipe.title)“ gehört schon zur Gruppe „\(group.title)“. Löse sie erst auf."
     }
@@ -586,7 +581,7 @@ public final class RecipeLibrary {
 
     /// The group a recipe belongs to, whether or not it currently draws as
     /// one — for telling a picker why a recipe cannot be taken.
-    public func variantGroup(of recipe: Recipe) async -> VariantGroup? {
+    private func variantGroup(of recipe: Recipe) async -> VariantGroup? {
         guard let id = recipe.variantGroupID else { return nil }
         return await variantGroup(id: id)
     }
@@ -830,8 +825,6 @@ public final class RecipeLibrary {
 
     // MARK: - Trash
 
-    /// Recipes that were deleted and are still recoverable, most recently
-    /// deleted first.
     /// Every live recipe, whatever the list is filtered to — for the
     /// questions that are about the library rather than about the screen,
     /// such as which recipes link to which.
@@ -844,6 +837,8 @@ public final class RecipeLibrary {
         }
     }
 
+    /// Recipes that were deleted and are still recoverable, most recently
+    /// deleted first.
     public func deletedRecipes() async -> [Recipe] {
         do {
             return try await store.recipes(matching: RecipeQuery(includeDeleted: true))
@@ -1024,7 +1019,7 @@ public final class RecipeLibrary {
 
     // MARK: - Export
 
-    /// One recipe as a `.melarecipe` file, pictures included.
+    /// One recipe as a `.sousrecipe` file, pictures included.
     public func exportedRecipe(_ recipe: Recipe) async -> Data? {
         do {
             return try MelaExport.recipe(
@@ -1038,7 +1033,7 @@ public final class RecipeLibrary {
         }
     }
 
-    /// The whole collection as a `.melarecipes` archive.
+    /// The whole collection as a `.sousrecipes` archive.
     ///
     /// Everything, not what the filter happens to show: an export is a copy
     /// of the library, and a copy that quietly left out half of it would be

@@ -84,8 +84,7 @@ public struct IngredientCatalog: Sendable {
     }
 
     /// The catalog shipped with the app — the identity half of the synonym
-    /// table, which is where the names and their spellings now live. One file
-    /// for one thing: a word, what it answers to, what it means.
+    /// table, which is where the names and their spellings live.
     public static var bundled: IngredientCatalog { DataSet.bundled.catalog }
 
     /// The catalog of the data set this process runs on: what the app
@@ -172,7 +171,7 @@ public struct IngredientCatalog: Sendable {
 
     /// The word that holds `name` as its name or one of its spellings,
     /// exactly — no plural, no qualifier turn. What a household's own
-    /// spelling is checked against (phase 7d): whether the catalog gives it
+    /// spelling is checked against: whether the catalog gives it
     /// to a word, and to which.
     public func ingredient(spelledExactly name: String) -> CatalogIngredient? {
         byKey[Self.normalize(name)]
@@ -262,29 +261,15 @@ public struct IngredientCatalog: Sendable {
         return base
     }
 
-    /// The ingredient a written name shares a group with — the top of its
-    /// variety chain, or itself where it is not a variety of anything.
-    ///
-    /// "Pilze" and "braune Champignons" share a group, so they are the same
-    /// thing for search. Any depth, like every walk here (catalog target, decision A); a
-    /// dangling relation falls back to the ingredient itself, because a
-    /// parent nobody defined must not make a variety disappear. The shopping
-    /// list no longer bundles under this — decision E — and takes what a
-    /// variety inherits from ``ancestors(of:)`` instead, nearest first.
-    public func groupIngredient(for name: String) -> CatalogIngredient? {
-        guard let match = ingredient(for: name) else { return nil }
-        return ancestors(of: match).last ?? match
-    }
-
     /// Everything `name` is a variety of, nearest first: Brauner Champignon →
     /// [Champignon, Pilz].
     ///
-    /// The chain may be any depth (catalog target, decision A), so this is
-    /// what walks it — for the search index, which wants a recipe with braune
-    /// Champignons to answer to "Pilz", and for the parent picker, which must
-    /// not offer a descendant as a parent. A cycle cannot be written (the
-    /// stores refuse one), but the walk still stops if it meets a key twice:
-    /// a data file edited by hand is not a store.
+    /// The chain may be any depth, so this is what walks it — for the search
+    /// index, which wants a recipe with braune Champignons to answer to
+    /// "Pilz", and for the parent picker, which must not offer a descendant
+    /// as a parent. A cycle cannot be written (the stores refuse one), but
+    /// the walk still stops if it meets a key twice: a data file edited by
+    /// hand is not a store.
     public func ancestors(of name: String) -> [CatalogIngredient] {
         guard let match = ingredient(for: name) else { return [] }
         return ancestors(of: match)

@@ -2,8 +2,7 @@ import Foundation
 import os
 import Synchronization
 
-/// The daily check for newer catalog data (INGREDIENTS-DATA §5, "Client";
-/// plan phase 9).
+/// The daily check for newer catalog data (INGREDIENTS-DATA §5, "Client").
 ///
 /// At most once in ``interval``, the app reads the pointer for the format it
 /// knows. Only a release that is newer than both the running set and anything

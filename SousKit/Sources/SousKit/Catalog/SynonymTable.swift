@@ -5,7 +5,7 @@ public struct SynonymTarget: Codable, Hashable, Sendable {
     public var code: String
     public var state: IngredientState
     /// Higher wins. The heaviest target per state is what the app computes
-    /// with; the rest are the alternatives the picker will offer in phase 4.
+    /// with; the rest are alternatives it carries but does not use.
     /// Weights come from *how* the mapping was found — the word being the BLS
     /// name outranks one of its aliases being it, and both outrank a further
     /// doneness variant of the same food.
@@ -35,9 +35,6 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     /// without values must not quietly acquire some because the catalog
     /// happens to contain a row whose name starts the same way.
     public var candidates: [String]
-    /// `curated` for a word a person wrote down, `bls` for one that is a BLS
-    /// name itself.
-    public var origin: String
     /// The word this one is a *variety* of — "Cocktailtomate" of "Tomate".
     ///
     /// Curated, never guessed at run time: a spelling and a variety look the
@@ -62,7 +59,7 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
     public init(
         word: String, aliases: [String] = [], category: IngredientCategory? = nil,
         targets: [SynonymTarget] = [], candidates: [String] = [],
-        origin: String = "curated", parent: String? = nil, hasNoValues: Bool = false,
+        parent: String? = nil, hasNoValues: Bool = false,
         aliasUnits: [String: String]? = nil, id: String? = nil, product: CatalogProduct? = nil
     ) {
         self.id = id
@@ -72,7 +69,6 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         self.category = category
         self.targets = targets
         self.candidates = candidates
-        self.origin = origin
         self.parent = parent
         self.hasNoValues = hasNoValues
         self.aliasUnits = aliasUnits
@@ -84,10 +80,9 @@ public struct SynonymEntry: Codable, Hashable, Sendable {
         targets.filter { $0.state == state }.max { $0.weight < $1.weight }
     }
 
-    /// Every code this word could mean, best first: what phase 4's picker
-    /// lists, and what phase 3 already carries through the result without
-    /// showing it. Equal weights keep the targets' order, which the table
-    /// fixes state by state.
+    /// Every code this word could mean, best first — carried through the
+    /// nutrition result without being shown. Equal weights keep the targets'
+    /// order, which the table fixes state by state.
     public var candidateCodes: [String] {
         var seen = Set<String>()
         let ranked = targets.enumerated()
@@ -141,9 +136,6 @@ public struct SynonymTable: Sendable {
     /// already knows how to ask, the same one it asks about any ingredient
     /// whose nutrition is unconfirmed.
     public static var bundled: SynonymTable { DataSet.bundled.synonyms }
-
-    /// The table of the data set this process runs on.
-    public static var current: SynonymTable { DataSet.current.synonyms }
 
     /// The order a word's states are read in, the compiler's (`STATES` in
     /// `Scripts/data/compile.py`).

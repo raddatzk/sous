@@ -5,13 +5,6 @@ import Testing
 
 @Suite("Paprika import")
 struct PaprikaImportTests {
-    private func fixture(_ name: String) throws -> Data {
-        let url = try #require(
-            Bundle.module.url(forResource: "Fixtures/\(name)", withExtension: nil)
-        )
-        return try Data(contentsOf: url)
-    }
-
     @Test("A single gzip-compressed recipe carries over field by field")
     func singleRecipe() throws {
         let batch = try PaprikaImport.read(fixture("Gulasch.paprikarecipe"), named: "Gulasch.paprikarecipe")

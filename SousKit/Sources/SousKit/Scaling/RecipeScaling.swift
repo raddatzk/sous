@@ -4,8 +4,8 @@ extension Recipe {
     /// The ingredients scaled to `targetServings`.
     ///
     /// Scaling produces a reading of the recipe, never a rewrite: the text the
-    /// user typed stays untouched, so a line the parser only partly understood
-    /// cannot be damaged by viewing it at a different serving count.
+    /// cook typed stays untouched, so viewing it at a different serving count
+    /// cannot damage a line.
     ///
     /// `catalog` is what the lines are read against — see
     /// ``Recipe/ingredients(readWith:)``.
@@ -19,17 +19,13 @@ extension Recipe {
     }
 
     /// The ingredients with every scalable amount multiplied by `factor`.
-    public func scaledIngredients(by factor: Double, catalog: IngredientCatalog? = nil) -> [RecipeIngredient] {
+    func scaledIngredients(by factor: Double, catalog: IngredientCatalog? = nil) -> [RecipeIngredient] {
         let ingredients = ingredients(readWith: catalog)
         guard factor > 0, factor != 1 else { return ingredients }
 
         return ingredients.map { ingredient in
-            guard ingredient.scalesWithServings, let quantity = ingredient.quantity else {
-                return ingredient
-            }
             var scaled = ingredient
-            scaled.quantity = quantity.scaled(by: factor)
-            scaled.resolvedGrams = ingredient.resolvedGrams.map { $0 * factor }
+            scaled.quantity = ingredient.quantity?.scaled(by: factor)
             return scaled
         }
     }

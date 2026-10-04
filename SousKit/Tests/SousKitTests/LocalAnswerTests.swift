@@ -75,7 +75,7 @@ struct LocalAnswerTests {
         let recipe = Recipe(title: "Test", servings: 1, ingredientsText: "200 g Rauchtofu\n200 g Tofu")
 
         let capture = ShoppingListBuilder.build(
-            from: [(recipe: recipe, servings: 1)], catalog: applied.catalog, resolve: { _ in nil }
+            from: recipe, servings: 1, selecting: nil, catalog: applied.catalog, resolve: { _ in nil }
         )
 
         let keys = Set(capture.demands.map(\.key))
@@ -85,7 +85,6 @@ struct LocalAnswerTests {
         #expect(smoked?.category == .legumes)
         // Not a variety of Tofu: Tofu's pantry flag and store do not reach it.
         #expect(applied.catalog.ancestors(of: "Rauchtofu").isEmpty)
-        #expect(applied.catalog.groupIngredient(for: "Rauchtofu")?.name == "Rauchtofu")
     }
 
     @Test("A 'zählt wie' falls silent once the catalog knows the name, and says so (R3)")

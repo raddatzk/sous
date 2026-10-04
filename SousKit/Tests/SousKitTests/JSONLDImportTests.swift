@@ -5,13 +5,6 @@ import Testing
 
 @Suite("schema.org file import")
 struct JSONLDImportTests {
-    private func fixture(_ name: String) throws -> Data {
-        let url = try #require(
-            Bundle.module.url(forResource: "Fixtures/\(name)", withExtension: nil)
-        )
-        return try Data(contentsOf: url)
-    }
-
     @Test("A single recipe file reads like the page it could have come from")
     func singleRecipe() throws {
         let data = Data("""

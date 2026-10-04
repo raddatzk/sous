@@ -9,7 +9,7 @@
 #
 # A push made with the workflow's own token starts no workflow, CI included,
 # so this one asks CI to run on the commit it made (a `workflow_dispatch`).
-# A data pull request from the inbox (phase 10b) arrives compiled, and this
+# A data pull request from the inbox (approve.py) arrives compiled, and this
 # finds nothing to do.
 #
 # Only for branches of this repository: a fork's pull request gets no token

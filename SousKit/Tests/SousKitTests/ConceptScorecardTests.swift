@@ -59,14 +59,6 @@ struct ConceptScorecardTests {
         Recipe(title: title, servings: servings, ingredientsText: lines)
     }
 
-    private func info(kcal: Double) -> NutritionInfo {
-        NutritionInfo(
-            kcal: kcal, proteinG: 0, fatG: 0, saturatedFatG: 0, carbsG: 0, sugarG: 0,
-            fiberG: 0, sodiumMg: 0, vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0,
-            vitaminEMg: 0, calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
-        )
-    }
-
     /// Values off a packet, as the local-answer form writes them.
     private func ownValues(_ name: String, kcal: Double) -> LocalAnswer {
         LocalAnswer(name: name, values: info(kcal: kcal), valuesSource: "Packung")

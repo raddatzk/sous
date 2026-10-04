@@ -78,6 +78,6 @@ struct LibraryWipe {
         await RecipeSpotlight.replaceAll(with: remaining)
         await calendarMirror?.syncIfEnabled()
         session.forgetEverything()
-        await timers.stopAll()
+        timers.stopAll()
     }
 }

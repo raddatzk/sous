@@ -6,7 +6,7 @@ import Foundation
 /// An answer is offered while it is unshared or changed since it was shared,
 /// and only for what the catalog does not already answer:
 /// - a "zählt wie" or an own word, while the catalog does not know the name
-///   (it falls silent then anyway, R3);
+///   (it falls silent then anyway);
 /// - own values or weights for a catalog word, where they differ from the
 ///   catalog's;
 /// - an own product, while the catalog has no product of that name.
@@ -15,7 +15,7 @@ import Foundation
 /// the household's purchase, and a generic word never becomes a public alias
 /// of a brand (§3 I).
 ///
-/// The household's overrides (phase 7d) are offered as proposals: each
+/// The household's overrides are offered as proposals: each
 /// spelling the catalog lacks as a spelling of its word, and an aisle or
 /// parent that differs from the catalog's as the word's own item. A word
 /// only the household knows carries its aisle and parent on its item. A
@@ -96,7 +96,7 @@ public enum CatalogSharing {
         return offers
     }
 
-    /// The overrides of a catalog word, as proposals (phase 7d).
+    /// The overrides of a catalog word, as proposals.
     static func overrideOffers(for answer: LocalAnswer, catalog: IngredientCatalog, usage: CatalogUsage) -> [Offer] {
         guard answer.hasOverrides,
               let word = answer.catalogID.flatMap(catalog.ingredient(forID:))
@@ -152,7 +152,7 @@ public enum CatalogSharing {
             weights: [String: LocalAnswer.Weight] = answer.weights
         ) -> Offer {
             // A word only the household knows carries its own aisle and
-            // parent along (phase 7d).
+            // parent along.
             let ownWord = kind == .countsAs || kind == .word
             let item = CatalogSubmission.Item(
                 kind: kind,

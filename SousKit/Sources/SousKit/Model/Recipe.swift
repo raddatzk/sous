@@ -211,16 +211,7 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     public func ingredientGroups(
         scaledToServings targetServings: Int? = nil
     ) -> [(group: String?, ingredients: [RecipeIngredient])] {
-        var order: [String?] = []
-        var buckets: [String?: [RecipeIngredient]] = [:]
-        for ingredient in scaledIngredients(toServings: targetServings ?? servings) {
-            if buckets[ingredient.group] == nil {
-                order.append(ingredient.group)
-                buckets[ingredient.group] = []
-            }
-            buckets[ingredient.group]?.append(ingredient)
-        }
-        return order.map { ($0, buckets[$0] ?? []) }
+        Self.bucketed(scaledIngredients(toServings: targetServings ?? servings), by: \.group)
     }
 
     /// Steps grouped by their heading, in the order they appear.
@@ -228,14 +219,20 @@ public struct Recipe: Identifiable, Codable, Hashable, Sendable {
     /// Numbering restarts within each group — a heading in the instructions
     /// starts a new sequence, the way Mela treats it.
     public var stepGroups: [(group: String?, steps: [RecipeStep])] {
+        Self.bucketed(steps, by: \.group)
+    }
+
+    /// `elements` bucketed by their heading, the buckets in the order their
+    /// heading first appears.
+    private static func bucketed<Element>(
+        _ elements: [Element], by group: (Element) -> String?
+    ) -> [(String?, [Element])] {
         var order: [String?] = []
-        var buckets: [String?: [RecipeStep]] = [:]
-        for step in steps {
-            if buckets[step.group] == nil {
-                order.append(step.group)
-                buckets[step.group] = []
-            }
-            buckets[step.group]?.append(step)
+        var buckets: [String?: [Element]] = [:]
+        for element in elements {
+            let key = group(element)
+            if buckets[key] == nil { order.append(key) }
+            buckets[key, default: []].append(element)
         }
         return order.map { ($0, buckets[$0] ?? []) }
     }

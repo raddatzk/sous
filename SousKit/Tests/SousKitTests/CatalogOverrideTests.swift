@@ -59,7 +59,7 @@ struct CatalogOverrideTests {
     private static func shoppingKeys(_ text: String, _ applied: LocalAnswerSet.Applied) -> [String] {
         let recipe = Recipe(title: "Test", servings: 1, ingredientsText: text)
         return ShoppingListBuilder.build(
-            from: [(recipe: recipe, servings: 1)], catalog: applied.catalog, resolve: { _ in nil }
+            from: recipe, servings: 1, selecting: nil, catalog: applied.catalog, resolve: { _ in nil }
         ).demands.map(\.key)
     }
 
@@ -345,7 +345,6 @@ struct CatalogOverrideLibraryTests {
         let broetchen = try #require(catalog.catalog.ingredient(for: "Brötchen"))
         #expect(catalog.checkSpelling("Semmel", for: broetchen) == .alreadyKnown)
         #expect(catalog.checkSpelling("Schrippe", for: broetchen) == .new)
-        #expect(catalog.displayNameChoices(for: broetchen).contains("Semmel"))
 
         #expect(await catalog.saveOverrides(
             of: broetchen, category: .frozen, parentID: nil, spellings: ["Schrippe"], displayName: "Semmel"

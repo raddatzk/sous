@@ -6,17 +6,17 @@ DerivedData/
 .DS_Store
 xcuserdata/
 
-# Python bytecode from running the Scripts/nutrition pipeline
+# Python bytecode from running the scripts under Scripts/
 __pycache__/
 
-# Konzeptdokumente: aus der History entfernt, lokal behalten
+# Concept documents: removed from the history, kept locally
 INGREDIENTS-*.md
 SHARING-CONCEPT.md
 
-# Persönliche Rezeptsammlung, 46 MB
+# A personal recipe collection, 46 MB
 Rezepte.melarecipes
 
-# Der JetBrains-Arbeitsbereich, pro Rechner wie xcuserdata/ darüber
+# The JetBrains workspace, per machine like xcuserdata/ above
 .idea/
 
 # The data compiler's own environment (Scripts/hooks/pre-commit uses it)

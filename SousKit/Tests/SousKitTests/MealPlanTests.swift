@@ -24,16 +24,6 @@ struct MealPlanTests {
         #expect(first.day == second.day)
     }
 
-    @Test("A week has seven consecutive days")
-    func weekDays() {
-        let days = monday.weekDays
-
-        #expect(days.count == 7)
-        #expect(days == days.sorted())
-        #expect(Calendar.current.dateComponents([.day], from: days[0], to: days[6]).day == 6)
-    }
-
-
     @Test("Entries come back for the days they were planned on", arguments: StoreBackend.allCases)
     func storeAndFetch(_ backend: StoreBackend) async throws {
         let store = try makeStore(backend)
@@ -203,7 +193,6 @@ struct MealPlanLibraryTests {
         await plan.add(recipe, to: Date(), servings: 6)
 
         #expect(plan.plan(for: Date())[0].entry.servings == 6)
-        #expect(plan.plannedRecipes.first?.servings == 6)
     }
 
     @Test("Servings on an already-planned meal can be changed, without duplicating it", arguments: StoreBackend.allCases)
@@ -238,23 +227,6 @@ struct MealPlanLibraryTests {
         // Otherwise the recipe would sit past the end, invisible.
         #expect(plan.days.contains(farOff.startOfDay))
         #expect(plan.plan(for: farOff).count == 1)
-    }
-
-    @Test("A stretch of days can be read on its own, for shopping", arguments: StoreBackend.allCases)
-    func plannedRecipesInRange(_ backend: StoreBackend) async throws {
-        let (plan, recipes) = try makeLibrary(backend)
-        let today = Recipe(title: "Heute", servings: 2)
-        let later = Recipe(title: "Später", servings: 2)
-        try await recipes.save(today)
-        try await recipes.save(later)
-
-        let inThreeDays = try #require(Calendar.current.date(byAdding: .day, value: 3, to: Date()))
-        await plan.add(today, to: Date())
-        await plan.add(later, to: inThreeDays)
-
-        let nextTwoDays = try #require(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
-        #expect(plan.plannedRecipes(from: Date(), through: nextTwoDays).map(\.recipe.title) == ["Heute"])
-        #expect(plan.plannedRecipes(from: Date(), through: inThreeDays).count == 2)
     }
 
     @Test("An accepted proposal is written in one go: pool meals move, new picks appear", arguments: StoreBackend.allCases)
@@ -355,7 +327,7 @@ struct MealPlanPoolTests {
         await library.add(recipe, to: nil)
 
         #expect(library.pool.count == 1)
-        #expect(library.pool.first?.isInPool == true)
+        #expect(library.pool.first?.day == nil)
         #expect(library.entries.isEmpty)
         #expect(library.pooledMeals.first?.recipe?.title == "Linsensuppe")
     }
@@ -391,17 +363,22 @@ struct MealPlanPoolTests {
         #expect(library.entries.isEmpty)
         #expect(library.pool.map(\.id) == [entry.id])
     }
+}
 
-    @Test("The shopping list can take the pool as it is", arguments: StoreBackend.allCases)
-    func shoppingFromPool(_ backend: StoreBackend) async throws {
-        let (library, recipes) = try makeLibrary(backend)
-        await library.add(try await saved("Linsensuppe", in: recipes), to: nil, servings: 4)
-        await library.add(try await saved("Rührei", in: recipes), to: nil)
+fileprivate extension Date {
+    /// The seven days of the week this date falls in, for filling a week
+    /// of the plan.
+    var weekDays: [Date] {
+        let calendar = Calendar.current
+        guard let interval = calendar.dateInterval(of: .weekOfYear, for: self) else {
+            return [startOfDay]
+        }
+        return (0..<7).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: interval.start)?.startOfDay
+        }
+    }
 
-        let planned = library.pooledRecipes
-        #expect(planned.count == 2)
-        #expect(planned.first { $0.recipe.title == "Linsensuppe" }?.servings == 4)
-        // A day range never reaches the pool, however wide it is.
-        #expect(library.plannedRecipes(from: .distantPast, through: .distantFuture).isEmpty)
+    func addingWeeks(_ count: Int) -> Date {
+        Calendar.current.date(byAdding: .weekOfYear, value: count, to: self) ?? self
     }
 }

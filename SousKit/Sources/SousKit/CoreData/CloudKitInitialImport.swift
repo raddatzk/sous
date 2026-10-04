@@ -46,7 +46,6 @@ public final class CloudKitInitialImport {
     @ObservationIgnored private var tracker: Tracker
     @ObservationIgnored private var observer: (any NSObjectProtocol)?
     @ObservationIgnored private var quietTimeout: Task<Void, Never>?
-    @ObservationIgnored private var waiters: [CheckedContinuation<Void, Never>] = []
     @ObservationIgnored private var arrivalWaiters: [CheckedContinuation<Void, Never>] = []
     /// A failure followed by a late success must not run the reload twice.
     @ObservationIgnored private var isSettling = false
@@ -113,12 +112,6 @@ public final class CloudKitInitialImport {
         beforeSettling = work
     }
 
-    /// Returns once the screens no longer wait — at once where they never did.
-    public func waitUntilSettled() async {
-        guard isWaiting else { return }
-        await withCheckedContinuation { waiters.append($0) }
-    }
-
     /// Returns once the first import has arrived — at once where it already
     /// has, and never in a launch where it does not come.
     public func waitUntilArrived() async {
@@ -174,9 +167,6 @@ public final class CloudKitInitialImport {
         Task {
             await beforeSettling?()
             isWaiting = false
-            let waiting = waiters
-            waiters = []
-            for waiter in waiting { waiter.resume() }
         }
     }
 

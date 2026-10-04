@@ -1,20 +1,5 @@
 import Foundation
 
-/// One stored picture.
-public struct RecipeImage: Identifiable, Sendable, Hashable {
-    public let id: UUID
-    public let recipeID: UUID
-    public let data: Data
-    public let thumbnail: Data
-
-    public init(id: UUID = UUID(), recipeID: UUID, data: Data, thumbnail: Data) {
-        self.id = id
-        self.recipeID = recipeID
-        self.data = data
-        self.thumbnail = thumbnail
-    }
-}
-
 /// Storage for recipe pictures, separate from the recipe itself.
 ///
 /// Images live in their own rows rather than inside the recipe aggregate:

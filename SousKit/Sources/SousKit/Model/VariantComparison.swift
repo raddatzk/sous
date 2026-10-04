@@ -39,13 +39,6 @@ public struct VariantComparison: Hashable, Sendable {
         public let ingredients: [UUID: RecipeIngredient]
 
         public var id: String { key }
-
-        /// Whether this is a plain presence difference — someone has it,
-        /// someone does not — as opposed to everyone having it in a
-        /// different amount.
-        public func isMissing(from member: Recipe) -> Bool {
-            ingredients[member.id] == nil
-        }
     }
 
     /// The versions being compared, in creation order.
@@ -91,8 +84,12 @@ public struct VariantComparison: Hashable, Sendable {
         var shared = 0
         for key in order {
             let present = lines[key] ?? [:]
+            // Amounts are held against each other as written. Deliberately
+            // literal: 1 kg and 1000 g are two different ways of writing an
+            // ingredient list, and a screen about what the cook changed
+            // should say so rather than quietly equate them.
             let agrees = present.count == members.count
-                && Set(present.values.map(Amount.init)).count == 1
+                && Set(present.values.map(\.quantity)).count == 1
             if agrees {
                 shared += 1
                 continue
@@ -100,21 +97,5 @@ public struct VariantComparison: Hashable, Sendable {
             rows.append(Row(key: key, title: titles[key] ?? key, ingredients: present))
         }
         return VariantComparison(members: members, rows: rows, sharedCount: shared)
-    }
-
-    /// An amount as written, reduced to the parts two lines can be held
-    /// against each other by.
-    ///
-    /// Deliberately literal: 1 kg and 1000 g are two different ways of
-    /// writing an ingredient list, and a screen about what the cook changed
-    /// should say so rather than quietly equate them.
-    private struct Amount: Hashable {
-        let quantity: Quantity?
-        let phrase: String?
-
-        init(_ ingredient: RecipeIngredient) {
-            quantity = ingredient.quantity
-            phrase = ingredient.unquantifiedPhrase?.phrase
-        }
     }
 }
