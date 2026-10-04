@@ -20,6 +20,7 @@ struct SousApp: App {
     @State private var mealPlan: MealPlanLibrary
     @State private var shopping: ShoppingLibrary
     @State private var catalog: IngredientCatalogLibrary
+    @State private var promptTemplates: PromptTemplateLibrary
     @State private var nutrition: NutritionLibrary
     @State private var dinnerPlanner: DinnerPlannerLibrary
     /// Which section is showing — app state, so an App Intent can steer it.
@@ -83,6 +84,8 @@ struct SousApp: App {
             let images = CoreDataRecipeImageStore(container: coreData)
             let localAnswers = CoreDataLocalAnswerStore(container: coreData)
             let householdIngredients = CoreDataHouseholdIngredientStore(container: coreData)
+            let promptLibrary = PromptTemplateLibrary(store: CoreDataPromptTemplateStore(container: coreData))
+            _promptTemplates = State(initialValue: promptLibrary)
             let plan = CoreDataMealPlanStore(container: coreData)
             let shoppingStore = CoreDataShoppingListStore(container: coreData)
 
@@ -139,6 +142,7 @@ struct SousApp: App {
             // arrived; the remote-change loop would get there a second later,
             // and the empty state would flash in between.
             madeImport.onSettling {
+                await promptLibrary.reload()
                 await recipeLibrary.reload()
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
@@ -169,6 +173,7 @@ struct SousApp: App {
             // (INGREDIENTS-DATA §3 B).
             let madeSwitcher = HouseholdSwitcher(households: households) {
                 await nutritionLibrary.householdDidChange()
+                await promptLibrary.reload()
                 await recipeLibrary.reload()
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
@@ -293,6 +298,7 @@ struct SousApp: App {
             // nutrition cache needs no call — its key carries a fingerprint
             // of the answers, so the next lookup misses by itself.
             await catalog.reload()
+            await promptTemplates.reload()
             await library.reload()
             await mealPlan.reload()
             await shopping.reload()
@@ -529,6 +535,7 @@ struct SousApp: App {
                 .environment(mealPlan)
                 .environment(shopping)
                 .environment(catalog)
+                .environment(promptTemplates)
                 .environment(nutrition)
                 .environment(dinnerPlanner)
                 .environment(timers)

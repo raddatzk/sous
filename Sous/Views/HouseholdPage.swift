@@ -107,6 +107,11 @@ struct HouseholdPage: View {
                 if let calendarMirror {
                     HouseholdCalendarSection(mirror: calendarMirror, householdID: id, name: standing.name)
                 }
+                Section {
+                    NavigationLink("KI-Prompts") { PromptTemplatesView() }
+                } footer: {
+                    Text("Vorlagen für „Mit KI bearbeiten“, die alle im Haushalt nutzen.")
+                }
                 HouseholdDataSection(progress: $progress) { await reload() }
             }
         }

@@ -14,6 +14,7 @@ struct RecipeDetailView: View {
     /// Read for the ingredient lines: which of them the app knows a word for
     /// decides what tapping it opens.
     @Environment(IngredientCatalogLibrary.self) private var catalog
+    @Environment(PromptTemplateLibrary.self) private var promptTemplates
     /// The way to the shopping list — where there is one. Optional because
     /// this page is also shown as a sheet out of the Mac's cook window,
     /// which is a window of its own and carries no section to switch.
@@ -81,6 +82,9 @@ struct RecipeDetailView: View {
     @State private var isReadingStepReferences = false
     @State private var isOptimizing = false
     @State private var isConfirmingReset = false
+    @State private var isConfirmingUndo = false
+    /// The request of the AI edit being set up, which opens its sheet.
+    @State private var aiRequest: RecipeAIEditSheet.Request?
     /// "Original": the recipe as imported, where an optimization changed it.
     @State private var showsOriginal = false
     @State private var export: RecipeExport?
@@ -342,6 +346,18 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isOptimizing) {
             RecipeOptimizationSheet(recipe: recipe)
+        }
+        .sheet(item: $aiRequest) { request in
+            RecipeAIEditSheet(recipe: recipe, request: request)
+        }
+        .sousConfirmation(
+            "Letzte KI-Änderung zurücknehmen?",
+            isPresented: $isConfirmingUndo,
+            message: "Das Rezept steht wieder so da, wie es vor der letzten Änderung durch die KI war. Änderungen, die du seitdem gemacht hast, gehen dabei verloren."
+        ) {
+            Button("Zurücknehmen", role: .destructive) {
+                Task { await library.undoReplacement(recipe) }
+            }
         }
         .sousConfirmation(
             "Auf Original zurücksetzen?",
@@ -1431,6 +1447,24 @@ struct RecipeDetailView: View {
                 if !recipe.ingredients.isEmpty, optimizationChat != .off, !recipe.isDeleted {
                     Button("Für Sous optimieren", systemImage: "wand.and.stars") {
                         isOptimizing = true
+                    }
+                }
+                if !recipe.ingredients.isEmpty, optimizationChat != .off, !recipe.isDeleted {
+                    Menu("Mit KI bearbeiten", systemImage: "sparkles") {
+                        ForEach(promptTemplates.all) { template in
+                            Button(template.title) {
+                                aiRequest = RecipeAIEditSheet.Request(title: template.title, text: template.text)
+                            }
+                        }
+                        Divider()
+                        Button("Eigene Änderung …", systemImage: "square.and.pencil") {
+                            aiRequest = RecipeAIEditSheet.Request(title: "Mit KI bearbeiten", text: nil)
+                        }
+                    }
+                }
+                if recipe.original?.previous != nil, !recipe.isDeleted {
+                    Button("Letzte KI-Änderung zurücknehmen", systemImage: "arrow.uturn.backward.circle") {
+                        isConfirmingUndo = true
                     }
                 }
                 // Only where the optimization changed something: otherwise
