@@ -115,5 +115,7 @@ jobs:
               --title "$(jq -r .title ../result.json)" --body "$(jq -r .body ../result.json)")
             say "$message"$'\n\n'"$url"
           else
-            say "Neu gebaut auf dem aktuellen main: $url"
+            # Rebuilt (another category, a newer main): the text follows the change.
+            gh pr edit "$url" --title "$(jq -r .title ../result.json)" --body "$(jq -r .body ../result.json)"
+            say "Neu gebaut auf dem aktuellen main. $message"$'\n\n'"$url"
           fi

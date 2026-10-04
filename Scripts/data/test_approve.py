@@ -57,6 +57,7 @@ class ApproveTests(unittest.TestCase):
         self.assertIn("„Kokosnussmilch“ als Schreibweise von Kokosmilch", result["title"])
         self.assertIn("owner/inbox#7", result["body"])
         self.assertNotIn("1 EL", result["body"])  # no line of a household's recipe
+        self.assertNotIn("Hinweise von compile.py", result["body"])  # main's own warnings stay out
         text = (self.data / "ingredients/kokosmilch.yaml").read_text(encoding="utf-8")
         self.assertIn("    - Kokosnussmilch\n", text)
         words = {w["name"]: w for w in json.loads((self.resources / "kitchen_words.json").read_text())}
@@ -73,21 +74,21 @@ class ApproveTests(unittest.TestCase):
         self.assertIn("raeuchertofu-natur", (self.data / "released-ids.txt").read_text(encoding="utf-8"))
 
     def test_a_new_word_needs_its_category_and_has_no_values(self):
-        waiting = self.run_issue(issue("Gochujang", [{"kind": "unknown", "reports": 1}], ["kat:gewürze"]))
+        waiting = self.run_issue(issue("Trollpaste", [{"kind": "unknown", "reports": 1}], ["kat:gewürze"]))
         self.assertEqual(waiting["status"], "waiting")
-        missing = self.run_issue(issue("Gochujang", [{"kind": "unknown", "reports": 1}], ["neues-wort"]))
+        missing = self.run_issue(issue("Trollpaste", [{"kind": "unknown", "reports": 1}], ["neues-wort"]))
         self.assertEqual(missing["status"], "refused")
         self.assertIn("kat:", missing["message"])
 
-        result = self.run_issue(issue("Gochujang", [{"kind": "unknown", "reports": 1}], ["neues-wort", "kat:gewürze"]))
+        result = self.run_issue(issue("Trollpaste", [{"kind": "unknown", "reports": 1}], ["neues-wort", "kat:gewürze"]))
         self.assertEqual(result["status"], "changed", result["message"])
         self.assertEqual(
-            (self.data / "ingredients/gochujang.yaml").read_text(encoding="utf-8"),
-            "- id: gochujang\n  name: Gochujang\n  category: spices\n  nutrition: without\n"
+            (self.data / "ingredients/trollpaste.yaml").read_text(encoding="utf-8"),
+            "- id: trollpaste\n  name: Trollpaste\n  category: spices\n  nutrition: without\n"
             f"  via: {approve.WORD_VIA}\n")
         self.assertGreater(len(approve.WORD_VIA), 20)  # BundledDataTests wants a reason
         curation = json.loads((self.resources / "curation.json").read_text(encoding="utf-8"))
-        self.assertIn("Gochujang", json.dumps(curation, ensure_ascii=False))
+        self.assertIn("Trollpaste", json.dumps(curation, ensure_ascii=False))
 
     def test_values_are_left_for_the_curator(self):
         answer = counts_as("kokosmilch", "Kokosmilch", values={"kcal": 90}, source="Dose",
@@ -116,7 +117,7 @@ class ApproveTests(unittest.TestCase):
                                  ["als-alias"]), "uneins")
 
     def test_no_target_no_alias(self):
-        self.assertRefused(issue("Gochujang", [{"kind": "unknown", "reports": 1}], ["als-sorte"]), "kein Wort")
+        self.assertRefused(issue("Trollpaste", [{"kind": "unknown", "reports": 1}], ["als-sorte"]), "kein Wort")
 
     def test_two_approvals_at_once_are_refused(self):
         self.assertRefused(issue("Kokosnussmilch", [counts_as("kokosmilch", "Kokosmilch")], ["als-alias", "als-sorte"]),
@@ -129,7 +130,7 @@ class ApproveTests(unittest.TestCase):
         self.assertRefused(issue("Tomate, passiert", [counts_as("tomate", "Tomate")], ["als-sorte"]), "Komma")
 
     def test_an_unknown_category_is_refused(self):
-        self.assertRefused(issue("Gochujang", [{"kind": "unknown", "reports": 1}], ["neues-wort", "kat:unbekannt"]),
+        self.assertRefused(issue("Trollpaste", [{"kind": "unknown", "reports": 1}], ["neues-wort", "kat:unbekannt"]),
                            "Unbekannte Kategorie")
 
     def test_a_change_that_does_not_compile_is_rolled_back(self):

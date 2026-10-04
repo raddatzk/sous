@@ -20,14 +20,14 @@ struct IngredientCatalogLibraryTests {
 
         let unknown = library.unknownIngredients(in: """
         300 g Tomaten
-        2 EL Gochujang
+        2 EL Trollpaste
         1 Portion \(RecipeLink.markdown(title: "Naan", id: UUID()))
-        1 TL Sumach
-        2 EL Gochujang
+        1 TL Elfenkraut
+        2 EL Trollpaste
         """)
 
         // Tomaten is known, the link is a recipe, and the repeat is folded.
-        #expect(unknown == ["Gochujang", "Sumach"])
+        #expect(unknown == ["Trollpaste", "Elfenkraut"])
     }
 
     @Test("Household fields leave the shipped word whole, alias units included",

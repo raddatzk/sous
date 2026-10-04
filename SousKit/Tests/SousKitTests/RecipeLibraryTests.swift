@@ -341,9 +341,9 @@ struct RecipeLibraryUnknownIngredientTests {
     @Test("A recipe names the ingredients the catalog does not know")
     func unknownIngredientsAreNamed() async throws {
         let (library, _) = try await makeLibrary()
-        let recipe = Recipe(title: "Kimchi-Suppe", servings: 2, ingredientsText: "300 g Tomaten\n2 EL Gochujang")
+        let recipe = Recipe(title: "Trollsuppe", servings: 2, ingredientsText: "300 g Tomaten\n2 EL Trollpaste")
 
-        #expect(library.unknownIngredients(in: recipe) == ["Gochujang"])
+        #expect(library.unknownIngredients(in: recipe) == ["Trollpaste"])
     }
 
     @Test("A recipe the catalog fully recognizes names none")
@@ -357,10 +357,10 @@ struct RecipeLibraryUnknownIngredientTests {
     @Test("A local answer makes the name known — the line reads, nothing is asked")
     func aLocalAnswerMakesTheNameKnown() async throws {
         let (library, catalog) = try await makeLibrary()
-        let recipe = Recipe(title: "Kimchi-Suppe", servings: 2, ingredientsText: "2 EL Gochujang")
+        let recipe = Recipe(title: "Trollsuppe", servings: 2, ingredientsText: "2 EL Trollpaste")
         let paste = try #require(catalog.catalog.ingredient(for: "Tomatenmark"))
 
-        await catalog.count("Gochujang", as: paste)
+        await catalog.count("Trollpaste", as: paste)
 
         #expect(library.unknownIngredients(in: recipe).isEmpty)
     }

@@ -179,6 +179,12 @@ def apply(action: str, args: Dict[str, Any], name: str, data: Path, resources: P
     title, summary and commit message. On a refusal Data/ is left as it was."""
     if "," in name or "(" in name or ")" in name:
         raise Refusal(f"„{name}“ enthält Komma oder Klammer; als Katalogname bitte von Hand anlegen.")
+    try:
+        # What compile.py warns about already, so the pull request names only
+        # what this change adds.
+        _, known_warnings, _ = data_compiler.compile_data(data, resources)
+    except DataError as error:
+        raise Refusal(f"Der Katalog auf main kompiliert schon vorher nicht:\n```\n{error}\n```")
     dataset = data_compiler.load_dataset(data, resources)
     by_spelling = {normalize(s): w for w in dataset.words for s in w.spellings}
     known = by_spelling.get(normalize(name))
@@ -251,7 +257,8 @@ def apply(action: str, args: Dict[str, Any], name: str, data: Path, resources: P
     for file_name, text in outputs.items():
         (resources / file_name).write_text(text, encoding="utf-8")
     (data / "released-ids.txt").write_text(released, encoding="utf-8")
-    return {"title": title, "summary": summary, "commit": commit, "warnings": "\n".join(warnings)}
+    added = [w for w in warnings if w not in known_warnings]
+    return {"title": title, "summary": summary, "commit": commit, "warnings": "\n".join(added)}
 
 
 def leftovers(block: Dict[str, Any]) -> List[str]:
