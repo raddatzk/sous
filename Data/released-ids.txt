@@ -157,6 +157,7 @@ knoblauchpulver
 knollensellerie
 kochschinken
 kohlrabi
+kokoscreme
 kokosmilch
 kokosmilch-fettarm
 kokosnuss

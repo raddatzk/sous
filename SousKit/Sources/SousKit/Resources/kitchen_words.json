@@ -1158,6 +1158,15 @@
   "category": "vegetables"
  },
  {
+  "id": "kokoscreme",
+  "name": "Kokoscreme",
+  "aliases": [
+   "dicke Kokosmilch",
+   "Kokossahne"
+  ],
+  "parent": "Kokosmilch"
+ },
+ {
   "id": "kokosmilch",
   "name": "Kokosmilch",
   "aliases": [],
@@ -1171,7 +1180,8 @@
    "Light Kokosmilch",
    "Kokosmilch fettreduziert",
    "fettarme Kokosmilch",
-   "fettreduzierte Kokosmilch"
+   "fettreduzierte Kokosmilch",
+   "dünne Kokosmilch"
   ],
   "parent": "Kokosmilch"
  },

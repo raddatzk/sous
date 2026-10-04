@@ -460,8 +460,8 @@ struct CatalogOverrideLibraryTests {
         let shopping = ShoppingLibrary(store: stores.shopping, recipeStore: stores.recipes, catalogLibrary: catalog)
         await catalog.reload()
         let kokosmilch = try #require(catalog.catalog.ingredient(for: "Kokosmilch"))
-        #expect(await catalog.count("dünne Kokosmilch", as: kokosmilch))
-        let thin = try #require(catalog.catalog.ingredient(for: "dünne Kokosmilch"))
+        #expect(await catalog.count("halbfette Kokosmilch", as: kokosmilch))
+        let thin = try #require(catalog.catalog.ingredient(for: "halbfette Kokosmilch"))
         #expect(await catalog.saveOverrides(
             of: thin, category: nil, parentID: kokosmilch.catalogID, spellings: [], displayName: nil
         ))
@@ -470,10 +470,10 @@ struct CatalogOverrideLibraryTests {
         #expect(answer.parentID == "kokosmilch")
         #expect(answer.baseline == nil)
 
-        await shopping.add(Recipe(title: "Curry", servings: 2, ingredientsText: "200 ml dünne Kokosmilch\n200 ml Kokosmilch"))
-        #expect(Set(shopping.items.map(\.name)) == ["dünne Kokosmilch", "Kokosmilch"])
+        await shopping.add(Recipe(title: "Curry", servings: 2, ingredientsText: "200 ml halbfette Kokosmilch\n200 ml Kokosmilch"))
+        #expect(Set(shopping.items.map(\.name)) == ["halbfette Kokosmilch", "Kokosmilch"])
         await catalog.setShoppingPreferences(store: "Asia-Markt", note: nil, name: "Kokosmilch")
-        let item = try #require(shopping.items.first { $0.name == "dünne Kokosmilch" })
+        let item = try #require(shopping.items.first { $0.name == "halbfette Kokosmilch" })
         #expect(shopping.preferredStore(of: item) == "Asia-Markt")
     }
 }

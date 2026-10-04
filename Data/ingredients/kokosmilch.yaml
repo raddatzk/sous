@@ -18,6 +18,7 @@
         - Kokosmilch fettreduziert
         - fettarme Kokosmilch
         - fettreduzierte Kokosmilch
+        - dünne Kokosmilch
       density:
         gramsPerMl: 0.99
         note: 'Mehr Wasser als die Vollfettdose: 12 % Fett statt 21,9 %. Zwischen Wasser (1,0)
@@ -54,3 +55,11 @@
       via: Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit
         12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm
         — siehe community.json Z000002.
+    # Der feste, fette Teil der Dose, in Rezepten oft "dicke Kokosmilch" neben "dünner".
+    # Das BLS führt keine eigene Zeile; bis ein Etikett da ist, rechnet sie wie ihre
+    # Stamm-Zutat Kokosmilch (H154000), also eher zu mager.
+    - id: kokoscreme
+      name: Kokoscreme
+      aliases:
+        - dicke Kokosmilch
+        - Kokossahne
