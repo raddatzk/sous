@@ -3,14 +3,14 @@ import SwiftUI
 
 /// What the app says the first time it is opened.
 ///
-/// Six pages, and every one of them either does something or names the place
-/// where it is done: a welcome that only describes the app is a page a cook
-/// taps through without reading. So the last page carries the import and the
-/// editor, the steps page the choice of chat, and the household page the
-/// invitation itself — the same controls the settings offer, not pointers to
-/// them. The ingredients page has nothing to press, so it shows instead: one
-/// line run through the app's own catalog and nutrition tables, stage by
-/// stage.
+/// Seven pages, and every one of them either does something or names the
+/// place where it is done: a welcome that only describes the app is a page a
+/// cook taps through without reading. So the last page carries the import and
+/// the editor, the optimization page the choice of chat, and the household
+/// page the invitation itself — the same controls the settings offer, not
+/// pointers to them. The ingredients page has nothing to press, so it shows
+/// instead: one line run through the app's own catalog and nutrition tables,
+/// stage by stage. The cooking page names the button that starts it.
 ///
 /// A paging scroll view rather than a `TabView(.page)`, because that style is
 /// iOS only and the Mac would be left with a welcome it cannot leave. The
@@ -26,13 +26,15 @@ struct OnboardingView: View {
     @State private var step: Step = .welcome
     @State private var journeyStage: IngredientJourneyStage = .reading
 
-    /// The six pages: what the app is, what it does with a recipe once it
-    /// has one, what becomes of each ingredient line, how a step learns its
-    /// ingredients, who else is cooking — and last, bringing recipes in.
+    /// The seven pages: what the app is, what it does with a recipe once it
+    /// has one, what becomes of each ingredient line, cooking along, how a
+    /// chat brings a recipe into shape, who else is cooking — and last,
+    /// bringing recipes in.
     ///
     /// The ingredients page follows planning because it is the why of
     /// planning's last sentence: the list can add things up only because
-    /// every line was found in the catalog.
+    /// every line was found in the catalog. Cooking comes before the
+    /// optimization, which says what the cook mode gains from it.
     ///
     /// Importing is last because its two buttons close the welcome: put it
     /// anywhere earlier and the pages behind it are never seen.
@@ -40,6 +42,7 @@ struct OnboardingView: View {
         case welcome
         case planning
         case ingredients
+        case cooking
         case steps
         case household
         case recipes
@@ -48,6 +51,7 @@ struct OnboardingView: View {
             switch self {
             case .welcome: "fork.knife"
             case .recipes: "book.closed"
+            case .cooking: "frying.pan"
             case .steps: "sparkles"
             case .planning: "calendar"
             case .ingredients: "carrot"
@@ -59,6 +63,7 @@ struct OnboardingView: View {
             switch self {
             case .welcome: "Willkommen bei Sous"
             case .recipes: "Rezepte hineinbringen"
+            case .cooking: "Kochen"
             case .steps: "Für Sous optimieren"
             case .planning: "Planen und einkaufen"
             case .ingredients: "Aus einer Zeile wird mehr"
@@ -71,7 +76,8 @@ struct OnboardingView: View {
             case .welcome:
                 """
                 Deine Rezepte, der Plan für die Woche und die Einkaufsliste \
-                dazu — auf allen deinen Geräten.
+                dazu — auf allen deinen Geräten. Die Suche findet ein Rezept \
+                nach Namen und filtert nach Zutaten, die du da hast.
                 """
             case .recipes:
                 """
@@ -79,27 +85,38 @@ struct OnboardingView: View {
                 schreib eins selbst. Aus Safari teilst du eine Seite direkt \
                 an Sous.
                 """
+            case .cooking:
+                """
+                „Kochen“ führt Schritt für Schritt durchs Rezept. Hak ab, was \
+                bereitliegt, starte Timer direkt aus dem Text und koch auf \
+                einem anderen Gerät weiter, wo du aufgehört hast.
+                """
             case .steps:
                 """
-                Ein Chat, den du schon nutzt, bringt die Zutaten in eine \
-                feste Form und sagt, welche Zutat in welchen Schritt gehört: \
-                Sous kopiert die Frage zum Rezept, du fügst sie dort ein und \
-                die Antwort zurück. Dann zeigt der Kochmodus bei jedem \
-                Schritt, was er braucht, und rechnet Mengen im Text mit. Ohne \
-                KI geht es auch — dann ordnest du von Hand zu. Zu finden im \
-                Menü eines Rezepts.
+                Ein Chat, den du schon nutzt, bringt ein Rezept in Form: \
+                Zutaten so geschrieben, dass Sous jede erkennt, und zu jedem \
+                Schritt die Zutaten, die er braucht — dann rechnet der \
+                Kochmodus Mengen im Text mit. Wörter, die Sous noch nicht \
+                kennt, schlägt er für deinen Haushalt vor. Sous kopiert die \
+                Frage, du fügst sie dort ein und die Antwort zurück; du \
+                wählst, was davon gilt, und das Original bleibt erhalten. \
+                Ohne KI ordnest du Schritte von Hand zu. Zu finden im Menü \
+                eines Rezepts.
                 """
             case .planning:
                 """
-                Leg Rezepte auf die Tage der Woche — oder lass Sous \
-                vorschlagen, was es geben könnte. Was geplant ist, steht \
-                zusammengezählt auf der Einkaufsliste.
+                Leg Rezepte auf die Tage der Woche — oder lass dir mit \
+                „Vorschlagen“ Abende zusammenstellen, die zusammen ausgewogen \
+                sind. Was geplant ist, steht zusammengezählt auf der \
+                Einkaufsliste.
                 """
             case .ingredients:
                 """
                 Jede Zutat im Rezept findet Sous in seinem Zutatenkatalog \
                 wieder. Das sortiert die Einkaufsliste und rechnet die \
-                Nährwerte.
+                Nährwerte. Nennt ihr etwas anders oder kauft ein bestimmtes \
+                Produkt, bringst du es dem Katalog für euren Haushalt bei — \
+                unter \(Self.catalogPlace).
                 """
             case .household:
                 """
@@ -109,6 +126,16 @@ struct OnboardingView: View {
                 Einstellungen.
                 """
             }
+        }
+
+        /// Where the catalog opens: the Mac has no "Mehr" menu on the list,
+        /// and keeps it in the menu bar instead.
+        private static var catalogPlace: String {
+            #if os(macOS)
+            "Bibliothek › Zutatenkatalog"
+            #else
+            "Rezepte › Mehr › Zutatenkatalog"
+            #endif
         }
 
         var isLast: Bool { self == Step.allCases.last }
@@ -202,9 +229,9 @@ struct OnboardingView: View {
         .multilineTextAlignment(.center)
     }
 
-    /// What each page can do, which for two of them is nothing: the welcome
-    /// has nothing to offer yet, and planning has nothing to plan before a
-    /// recipe exists.
+    /// What each page can do, which for three of them is nothing: the welcome
+    /// has nothing to offer yet, and planning and cooking have nothing to
+    /// work on before a recipe exists.
     @ViewBuilder
     private func actions(for step: Step) -> some View {
         switch step {
@@ -252,7 +279,7 @@ struct OnboardingView: View {
                 isPlaying: self.step == .ingredients
             )
             .multilineTextAlignment(.leading)
-        case .welcome, .planning:
+        case .welcome, .planning, .cooking:
             EmptyView()
         }
     }
@@ -280,7 +307,7 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    /// Where in the six the cook is. Decorative, so it is hidden from
+    /// Where in the seven the cook is. Decorative, so it is hidden from
     /// VoiceOver — which reads the page's own heading instead.
     private var dots: some View {
         HStack(spacing: 8) {
