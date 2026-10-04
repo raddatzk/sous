@@ -707,6 +707,27 @@ public final class RecipeLibrary {
         return true
     }
 
+    /// "Auf Original zurücksetzen": the recipe reads as it arrived again —
+    /// its ingredients, instructions and notes back from the original. The
+    /// step references go with the optimized text they were read against;
+    /// the original stays kept, so the recipe can be optimized again, and the
+    /// household's answers stay, as they are about names, not this recipe.
+    ///
+    /// `false` where there is nothing to go back to: no original, or the
+    /// recipe already reads like it.
+    @discardableResult
+    public func resetToOriginal(_ recipe: Recipe) async -> Bool {
+        guard var current = await self.recipe(id: recipe.id),
+              let original = current.original, !original.matches(current)
+        else { return false }
+        current.ingredientsText = original.ingredientsText
+        current.instructionsText = original.instructionsText
+        current.notes = original.notes
+        current.stepReferences = nil
+        await save(current)
+        return true
+    }
+
     /// A variant the optimization proposed for a group of alternatives, born
     /// in `recipe`'s variant group (one is made, titled after the recipe, if
     /// it has none). It starts without step references.

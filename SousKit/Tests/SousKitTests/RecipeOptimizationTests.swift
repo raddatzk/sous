@@ -70,6 +70,8 @@ struct RecipeOptimizationTests {
         #expect(prompt.contains("S2: Knoblauch würfeln"))
         #expect(prompt.contains("Notizen:\nDazu passt Reis."))
         #expect(prompt.contains("\"einordnung\""))
+        // A state is preparation, not noise (v5).
+        #expect(prompt.contains("\"100 g Butter, weich\""))
     }
 
     // MARK: - Structure
@@ -581,5 +583,18 @@ struct RecipeOriginalTests {
         // Asked about a text that has changed since: refused.
         older.ingredientsText = "1 Dose Tomaten - (400 g)"
         #expect(await library.applyOptimization(applied, to: older) == false)
+
+        // Back to the original: the text as it arrived, no references, the
+        // original kept for the next optimization.
+        var referenced = optimized
+        referenced.stepReferences = .empty(for: optimized)
+        await library.save(referenced)
+        #expect(await library.resetToOriginal(optimized))
+        let reset = try #require(await library.recipe(id: older.id))
+        #expect(reset.ingredientsText == "1 Dose Tomaten - (400 g)")
+        #expect(reset.stepReferences == nil)
+        #expect(reset.original == optimized.original)
+        // Nothing left to go back to.
+        #expect(await library.resetToOriginal(reset) == false)
     }
 }

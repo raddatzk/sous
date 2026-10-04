@@ -100,6 +100,11 @@ struct IngredientCatalogView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
+                    if let words = filedUnder[ingredient.key] {
+                        Label("lokal: " + words.joined(separator: ", "), systemImage: "house")
+                            .font(.caption)
+                            .foregroundStyle(.tint)
+                    }
                 }
                 Spacer(minLength: 8)
                 if let kcal {
@@ -129,16 +134,28 @@ struct IngredientCatalogView: View {
         return matches.filter { keys.contains($0.key) }.sorted { $0.name < $1.name }
     }
 
+    /// What the search finds. A household word filed under its target is
+    /// found as that target, where it is shown.
     private var matches: [CatalogIngredient] {
-        searchText.isEmpty
-            ? catalog.catalog.ingredients
-            : catalog.catalog.search(searchText, limit: 200, requiresEveryWord: true)
+        guard !searchText.isEmpty else { return catalog.catalog.ingredients }
+        var seen: Set<String> = []
+        return catalog.catalog.search(searchText, limit: 200, requiresEveryWord: true)
+            .compactMap { match in
+                guard let target = catalog.filingTarget(of: match.name) else { return match }
+                return catalog.catalog.ingredient(for: target)
+            }
+            .filter { seen.insert($0.key).inserted }
     }
 
-    /// Matching ingredients, grouped by category in aisle order.
+    /// The household's words filed under the word they count as, by its key.
+    private var filedUnder: [String: [String]] { catalog.filedWords }
+
+    /// Matching ingredients, grouped by category in aisle order — without the
+    /// household's own products (on top) and the words filed under another.
     private var groups: [(category: IngredientCategory, ingredients: [CatalogIngredient])] {
         let own = Set(catalog.ownProducts.map(\.writtenKey))
-        return Dictionary(grouping: matches.filter { !own.contains($0.key) }, by: \.category)
+        let filed = Set(filedUnder.values.joined().map(IngredientCatalog.normalize))
+        return Dictionary(grouping: matches.filter { !own.contains($0.key) && !filed.contains($0.key) }, by: \.category)
             .map { (category: $0.key, ingredients: $0.value.sorted { $0.name < $1.name }) }
             .sorted { $0.category.aisleOrder < $1.category.aisleOrder }
     }
@@ -170,6 +187,8 @@ struct IngredientDetailView: View {
     @State private var hasLoaded = false
     /// Set while the local-answer form is open over this one.
     @State private var isEditingLocalAnswer = false
+    /// A household word filed under this one, opened to change or remove.
+    @State private var teaching: IngredientTeaching?
     @State private var isConfirmingRemoval = false
     /// Which of the entry's state variants is on screen — BLS lists many
     /// foods raw and cooked separately, and a figure must say which it is.
@@ -200,6 +219,7 @@ struct IngredientDetailView: View {
                     }
                 }
             }
+            .ingredientTeaching($teaching)
             .sheet(isPresented: $isEditingLocalAnswer) {
                 LocalAnswerForm(name: ingredient.name, existing: localAnswer)
             }
@@ -307,12 +327,24 @@ struct IngredientDetailView: View {
                 }
                 Button("Lokale Angabe entfernen", role: .destructive) { isConfirmingRemoval = true }
             } else {
+                // A word the catalog knows takes a product; the form's list
+                // offers the household's own and a new one.
+                if catalog.catalogKnows(ingredient.name), ingredient.product == nil {
+                    Button("Produkt wählen …") { isEditingLocalAnswer = true }
+                }
                 Button("Lokale Angabe …") { isEditingLocalAnswer = true }
+            }
+            ForEach(catalog.filedWords[ingredient.key] ?? [], id: \.self) { word in
+                Button {
+                    teaching = IngredientTeaching(name: word)
+                } label: {
+                    LabeledContent("„\(word)“", value: "zählt hierzu")
+                }
             }
         } header: {
             Text("Lokal")
         } footer: {
-            Text("Eigene Werte von der Packung, eigene Gewichte oder ein Produkt – nur für diesen Haushalt, und sie gehen dem Katalog vor.")
+            Text("Eigene Werte von der Packung, eigene Gewichte oder ein Produkt – nur für diesen Haushalt, und sie gehen dem Katalog vor. Darunter die Wörter des Haushalts, die wie diese Zutat zählen.")
         }
     }
 
@@ -568,5 +600,33 @@ struct IngredientDetailView: View {
 
     private func mass(_ grams: Double) -> String {
         Self.nutrients.string(grams, in: .grams)
+    }
+}
+
+extension IngredientCatalogLibrary {
+    /// The household's words that count as (or chose) another word and were
+    /// added to the catalog for it — "dünne Kokosmilch" zählt wie Kokosmilch
+    /// — by the target's key. The catalog view shows them under the target
+    /// rather than as rows of their own (phase 7c); the shopping list keeps
+    /// each its own row (R2). Own products and words of their own stand alone.
+    var filedWords: [String: [String]] {
+        var filed: [String: [String]] = [:]
+        for answer in localAnswers.answers {
+            guard let target = filingTarget(of: answer.name) else { continue }
+            filed[IngredientCatalog.normalize(target), default: []].append(answer.name)
+        }
+        return filed.mapValues { $0.sorted { $0.localizedStandardCompare($1) == .orderedAscending } }
+    }
+
+    /// The name of the word `name` is filed under, where it is a household
+    /// word counting as another.
+    func filingTarget(of name: String) -> String? {
+        guard let answer = localAnswer(for: name), !answer.isLocalProduct,
+              IngredientCatalog.normalize(answer.name) == IngredientCatalog.normalize(name),
+              !catalogKnows(answer.name),
+              localTrace(for: answer.name)?.status == .applied,
+              let targetID = answer.targetID
+        else { return nil }
+        return targetName(for: targetID)
     }
 }

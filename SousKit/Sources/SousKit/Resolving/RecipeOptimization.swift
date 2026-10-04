@@ -480,21 +480,21 @@ extension RecipeOptimization {
 
 // MARK: - The prompt
 
-/// Builds the optimization prompt (v4) and reads the answer. See
+/// Builds the optimization prompt (v5) and reads the answer. See
 /// ``RecipeOptimization``.
 ///
 /// The one AI action on a recipe (phase 7b): the lines in the fixed form and
 /// the step references in one answer, offered whether or not the recipe was
 /// optimized before — on an optimized one the lines stay and the references
 /// are made anew. v4 adds the household proposals for names that stay
-/// unknown.
+/// unknown; v5 says a state ("weich", "zimmerwarm") is preparation, not noise.
 ///
 /// The step references it asks for are the same references as v2's, read by
 /// the same reader and stamped with the same fingerprint scheme — only over
 /// the new text. That is why this prompt's version is its own: answers to
 /// v2 stay current, and nothing becomes stale by this prompt existing.
 public enum RecipeOptimizationPrompt {
-    static let version = "v4"
+    static let version = "v5"
 
     static let rules = """
     Du bereitest ein deutsches Rezept für die Koch-App Sous vor. Eine Antwort, \
@@ -511,6 +511,12 @@ public enum RecipeOptimizationPrompt {
     schälen und fein reiben.") direkt vor dem ersten Schritt, der ihn verwendet. \
     Sagt es ein Schritt schon ("den geriebenen Ingwer dazugeben"), kommt kein \
     Schritt dazu.
+    - Ein Zustand ist Zubereitung, kein Störtext: "100 g Butter, weich" wird \
+    "100 g Butter" mit "zubereitung": "weich", und Teil B bekommt einen Schritt \
+    "Butter rechtzeitig aus dem Kühlschrank nehmen, damit sie weich wird." als \
+    ersten Schritt. Ebenso "zimmerwarm", "kalt", "aufgetaut", "geschmolzen" \
+    ("Butter schmelzen." direkt vor dem Schritt, der sie verwendet). Sagt ein \
+    Schritt es schon, kommt kein Schritt dazu.
     - Alternativen kommen in die Notizen. "1,5 TL Kreuzkümmel, gemahlen - \
     (ersatzweise Zimtpulver)" wird "1,5 TL Kreuzkümmel, gemahlen" mit "notiz": \
     "Statt Kreuzkümmel geht auch Zimtpulver." Ebenso Beispiele ("Nudeln, z. B. \

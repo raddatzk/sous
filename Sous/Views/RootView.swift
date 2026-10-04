@@ -380,6 +380,12 @@ struct RootView: View {
         // holds the same three entries and nothing else: an offer with
         // nothing behind it.
         .tabViewStyle(.tabBarOnly)
+        // Selecting the search tab is searching. Left `.automatic`, iOS 27
+        // draws the search tab as a fourth ordinary tab inside the bar and
+        // never shows the field (1.333, the cook's phone and the simulator
+        // alike); asked for explicitly, it is the circle beside the bar again
+        // and opens straight into the field.
+        .tabViewSearchActivation(.searchTabSelection)
         // The way back to the hob, docked to the tab bar the way Musik
         // docks its player: it floats with the bar and takes no height from
         // the tabs, instead of the hand-made capsule that used to sit above

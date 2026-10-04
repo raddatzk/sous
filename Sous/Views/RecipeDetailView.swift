@@ -80,6 +80,7 @@ struct RecipeDetailView: View {
     @State private var isPlanning = false
     @State private var isReadingStepReferences = false
     @State private var isOptimizing = false
+    @State private var isConfirmingReset = false
     /// "Original": the recipe as imported, where an optimization changed it.
     @State private var showsOriginal = false
     @State private var export: RecipeExport?
@@ -341,6 +342,18 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $isOptimizing) {
             RecipeOptimizationSheet(recipe: recipe)
+        }
+        .sousConfirmation(
+            "Auf Original zurücksetzen?",
+            isPresented: $isConfirmingReset,
+            message: "Zutaten, Zubereitung und Notizen stehen wieder so da, wie das Rezept importiert wurde. Die Zuordnung der Schritte entfällt; optimieren lässt es sich jederzeit neu."
+        ) {
+            Button("Zurücksetzen", role: .destructive) {
+                Task {
+                    await library.resetToOriginal(recipe)
+                    showsOriginal = false
+                }
+            }
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -1418,6 +1431,13 @@ struct RecipeDetailView: View {
                 if !recipe.ingredients.isEmpty, stepReferencesChat != .off, !recipe.isDeleted {
                     Button("Für Sous optimieren", systemImage: "wand.and.stars") {
                         isOptimizing = true
+                    }
+                }
+                // Only where the optimization changed something: otherwise
+                // the recipe already reads as it arrived.
+                if changedOriginal != nil, !recipe.isDeleted {
+                    Button("Auf Original zurücksetzen", systemImage: "arrow.uturn.backward") {
+                        isConfirmingReset = true
                     }
                 }
                 if !recipe.isDeleted {

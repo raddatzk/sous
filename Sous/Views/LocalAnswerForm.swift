@@ -27,24 +27,37 @@ struct LocalAnswerForm: View {
     /// Whether the form keeps an own product rather than answers a name.
     private let isOwnProduct: Bool
 
+    /// What the fields started as, so only a change counts as one.
+    private let initialDraft: Draft
+    /// Told the saved product's name — a new product made from a name's
+    /// "Neues Produkt …", which that name then chooses.
+    private let onSaved: ((String) -> Void)?
+
     @State private var draft: Draft
     @State private var targetQuery = ""
     @State private var isWriting = false
+    @State private var isCreatingProduct = false
 
     /// The answer about `name`; an own product opens as one.
     init(name: String, existing: LocalAnswer?) {
         self.name = name
         self.existing = existing
         isOwnProduct = existing?.isLocalProduct ?? false
-        _draft = State(initialValue: Draft(existing ?? LocalAnswer(name: name)))
+        initialDraft = Draft(existing ?? LocalAnswer(name: name))
+        onSaved = nil
+        _draft = State(initialValue: initialDraft)
     }
 
-    /// A new own product — "Produkt hinzufügen" in the catalog.
-    init(newProduct: Void) {
+    /// A new own product — "Produkt hinzufügen" in the catalog, or "Neues
+    /// Produkt …" from a name's form, counting like `like` until its label
+    /// is in.
+    init(newProduct: Void, like: String? = nil, onSaved: ((String) -> Void)? = nil) {
         name = ""
         existing = nil
         isOwnProduct = true
-        _draft = State(initialValue: Draft(LocalAnswer(name: "")))
+        initialDraft = Draft(LocalAnswer(name: "", targetID: like))
+        self.onSaved = onSaved
+        _draft = State(initialValue: initialDraft)
     }
 
     /// The units a weight can be given for. Mass and the litre stay out — a
@@ -58,7 +71,7 @@ struct LocalAnswerForm: View {
     /// name it does not (§3 B); for a known one, a target is a brand choice.
     private var catalogKnowsName: Bool { !isOwnProduct && catalog.catalogKnows(name) }
 
-    private var hasChanges: Bool { draft != Draft(existing ?? LocalAnswer(name: name)) }
+    private var hasChanges: Bool { draft != initialDraft }
 
     /// An own product needs a name and a brand; a name's answer, nothing.
     private var canSave: Bool {
@@ -110,7 +123,11 @@ struct LocalAnswerForm: View {
                             isOwnProduct: isOwnProduct,
                             isProductChoice: catalogKnowsName || chosenTargetIsProduct
                         )
-                        write { await catalog.saveLocalAnswer(answer) }
+                        write {
+                            if await catalog.saveLocalAnswer(answer), isOwnProduct {
+                                onSaved?(answer.name.trimmingCharacters(in: .whitespacesAndNewlines))
+                            }
+                        }
                     }
                     .disabled(!hasChanges || !canSave || isWriting)
                 }
@@ -118,6 +135,25 @@ struct LocalAnswerForm: View {
         }
         .interactiveDismissDisabled(hasChanges)
         .sousSheetSizing(.form)
+        .sheet(isPresented: $isCreatingProduct) {
+            LocalAnswerForm(newProduct: (), like: newProductLike) { productName in
+                let key = IngredientCatalog.normalize(productName)
+                draft.targetID = catalog.ownProducts.first { $0.writtenKey == key }?.key
+            }
+        }
+    }
+
+    /// What a product made from this name counts like until its label is
+    /// in: the name's own catalog word, or the generic word it counts as.
+    private var newProductLike: String? {
+        if let word = catalog.catalogWithoutLocalAnswers.ingredient(writtenAs: name),
+           word.product == nil, let id = word.catalogID {
+            return id
+        }
+        guard let targetID = draft.targetID, !LocalAnswer.isKey(targetID),
+              catalog.catalog.ingredient(forID: targetID)?.product == nil
+        else { return nil }
+        return targetID
     }
 
     // MARK: - Sections
@@ -169,6 +205,9 @@ struct LocalAnswerForm: View {
                         .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
+                }
+                if !isOwnProduct {
+                    Button("Neues Produkt …", systemImage: "plus") { isCreatingProduct = true }
                 }
             }
         } header: {
