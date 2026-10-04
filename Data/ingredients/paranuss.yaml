@@ -1,0 +1,10 @@
+- id: paranuss
+  name: Paranuss
+  aliases:
+    - Paranüsse
+    - Paranusskerne
+  category: nuts
+  nutrition:
+    unspecified: [H180100]
+  candidates: [H180610]
+  via: BLS-Name "Paranuss"

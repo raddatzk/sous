@@ -1,0 +1,16 @@
+- id: cranberry
+  name: Cranberry
+  aliases:
+    - Cranberries
+  category: fruit
+  nutrition:
+    raw: [F407100]
+  via: BLS-Name "Moosbeere roh" — die Moosbeere ist die Cranberry
+  varieties:
+    - id: getrocknete-cranberries
+      name: Getrocknete Cranberries
+      aliases:
+        - Getrocknete Cranberry
+      nutrition:
+        unspecified: [F414400]
+      via: BLS-Name "Cranberries getrocknet, gezuckert" — so werden sie verkauft

@@ -9,3 +9,12 @@
     cooked: [C133032]
     unspecified: [C133000]
   via: BLS-Gruppe "Hafer Flocken"
+  varieties:
+    - id: zarte-haferflocken
+      name: Zarte Haferflocken
+      aliases:
+        - Haferflocken zart
+    - id: kernige-haferflocken
+      name: Kernige Haferflocken
+      aliases:
+        - Haferflocken kernig

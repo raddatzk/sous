@@ -1,0 +1,23 @@
+- id: zwieback
+  name: Zwieback
+  category: bakery
+  nutrition:
+    unspecified:
+      - code: Z-zwieback
+        name: Rusk, slice, wheat
+        source: Ciqual 2020 (Anses), Nr. 7400 „Rusk, slice, wheat“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 404
+          proteinG: 9.76
+          fatG: 6.16
+          saturatedFatG: 2.49
+          carbsG: 74.4
+          sugarG: 5.28
+          fiberG: 4.34
+          sodiumMg: 616
+          calciumMg: 29.3
+          ironMg: 1.9
+          magnesiumMg: 33.8
+          potassiumMg: 175
+  via: Das BLS führt keinen Zwieback; Ciqual 2020 (Anses), inline übernommen.

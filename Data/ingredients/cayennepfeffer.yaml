@@ -1,5 +1,7 @@
 - id: cayennepfeffer
   name: Cayennepfeffer
+  aliases:
+    - Cayenne
   category: spices
   nutrition: without
   via: Gemahlener Cayennepfeffer fehlt im BLS. Die frische Schote gibt es („Pfefferschote“,

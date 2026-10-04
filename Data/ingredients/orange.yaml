@@ -4,8 +4,22 @@
     - Orangen
     - Apfelsine
     - Apfelsinen
+    - Orangenschale
+    - Orangenabrieb
   category: fruit
   measures: {Stk.: 180}
   nutrition:
     raw: [F603100]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: blutorange
+      name: Blutorange
+      aliases:
+        - Blutorangen
+    - id: orangensaft
+      name: Orangensaft
+      category: drinks
+      nutrition:
+        unspecified: [F603600]
+      candidates: [F603700]
+      via: BLS-Name "Orangensaft"; der Nektar ist nur Kandidat

@@ -1,5 +1,7 @@
 - id: senf
   name: Senf
+  aliases:
+    - Mostrich
   category: canned
   nutrition:
     unspecified: [R132000]
@@ -8,5 +10,20 @@
   varieties:
     - id: dijonsenf
       name: Dijonsenf
+      aliases:
+        - Dijon Senf
     - id: mittelscharfer-senf
       name: Mittelscharfer Senf
+    - id: suesser-senf
+      name: Süßer Senf
+      aliases:
+        - Weißwurstsenf
+      nutrition:
+        unspecified: [R135000]
+      via: BLS-Name "Senf süß"
+    - id: scharfer-senf
+      name: Scharfer Senf
+    - id: koerniger-senf
+      name: Körniger Senf
+      aliases:
+        - grober Senf

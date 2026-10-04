@@ -2,8 +2,17 @@
   name: Speisestärke
   aliases:
     - Maisstärke
+    - Stärke
   category: grains
   density: 0.6
   nutrition:
     unspecified: [C446000, C216000, K230000]
   via: BLS-Gruppe "Mais Stärke"
+  varieties:
+    - id: kartoffelstaerke
+      name: Kartoffelstärke
+      aliases:
+        - Kartoffelmehl
+      nutrition:
+        unspecified: [K230000]
+      via: BLS-Name "Kartoffelstärke (Kartoffelmehl)"

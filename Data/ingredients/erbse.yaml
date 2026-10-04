@@ -9,3 +9,17 @@
     cooked: [G760132, G760152, G760182, G760162]
   candidates: [G760200, G760232, G760252, G760262, G760282, G760400, G760432, G760902]
   via: BLS-Gruppe "Erbse grün"
+  varieties:
+    - id: schaelerbsen
+      name: Schälerbsen
+      aliases:
+        - Spalterbsen
+        - Gelbe Erbsen
+        - Trockenerbsen
+        - getrocknete Erbsen
+      category: legumes
+      nutrition:
+        unspecified: [G760400]
+        cooked: [G760432]
+      via: 'BLS "Erbse reif": getrocknete, geschälte Erbsen für Erbsensuppe und Dal, trocken
+        abgewogen; ein Vielfaches der grünen Erbse.'

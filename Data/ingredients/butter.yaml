@@ -1,5 +1,9 @@
 - id: butter
   name: Butter
+  aliases:
+    - Süßrahmbutter
+    - Sauerrahmbutter
+    - Markenbutter
   category: dairy
   measures: {Pck.: 250}
   nutrition:
@@ -9,3 +13,19 @@
   varieties:
     - id: kraeuterbutter
       name: Kräuterbutter
+      nutrition:
+        unspecified: [Q656000]
+      via: BLS-Zeile "Knoblauchbutter/Kräuterbutter"; erbte bisher die reine Butter
+    - id: knoblauchbutter
+      name: Knoblauchbutter
+      nutrition:
+        unspecified: [Q656000]
+      via: BLS-Zeile "Knoblauchbutter/Kräuterbutter"
+    - id: gesalzene-butter
+      name: Gesalzene Butter
+      aliases:
+        - Salzbutter
+        - Meersalzbutter
+      nutrition:
+        unspecified: [Q6A4000]
+      via: BLS-Zeile "Butter gesalzen"

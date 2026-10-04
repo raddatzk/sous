@@ -1,0 +1,33 @@
+- id: brezel
+  name: Brezel
+  aliases:
+    - Laugenbrezel
+    - Breze
+    - Brezen
+    - Brezn
+  category: bakery
+  nutrition:
+    unspecified:
+      - code: Z-brezel
+        name: Pretzels, soft
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169064 „Pretzels, soft“,
+          gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 338
+          proteinG: 8.2
+          fatG: 3.1
+          saturatedFatG: 0.695
+          sugarG: 0.25
+          fiberG: 1.7
+          sodiumMg: 203
+          vitaminAMcg: 0
+          vitaminCMg: 0
+          vitaminDMcg: 0
+          vitaminEMg: 0.54
+          calciumMg: 23
+          ironMg: 3.92
+          magnesiumMg: 21
+          potassiumMg: 88
+  via: Laugengebäck führt das BLS nicht; die weiche Brezel in USDA SR Legacy entspricht der
+    Laugenbrezel, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe
+    eingerechnet); die stehen deshalb nicht in der Zeile.

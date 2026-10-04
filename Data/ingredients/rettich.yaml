@@ -1,7 +1,14 @@
 - id: rettich
   name: Rettich
+  aliases:
+    - Radi
   category: vegetables
   nutrition:
     raw: [G680100]
     cooked: [G680152]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: daikon
+      name: Daikon
+      aliases:
+        - Daikonrettich

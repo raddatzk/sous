@@ -1,5 +1,8 @@
 - id: fusilli
   name: Fusilli
+  aliases:
+    - Spirelli
+    - Spiralnudeln
   category: grains
   nutrition:
     raw: [E401000]

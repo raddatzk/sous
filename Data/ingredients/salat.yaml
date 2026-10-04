@@ -10,7 +10,55 @@
       name: Blattsalat
     - id: kopfsalat
       name: Kopfsalat
+      aliases:
+        - Häuptelsalat
+        - Häuptlsalat
       measures:
         Stk.:
           grams: 300
           note: Ein Kopf, geputzt.
+    - id: eisbergsalat
+      name: Eisbergsalat
+      aliases:
+        - Eissalat
+      nutrition:
+        raw: [G103100]
+      via: BLS "Eisbergsalat roh".
+    - id: pfluecksalat
+      name: Pflücksalat
+      aliases:
+        - Schnittsalat
+      nutrition:
+        raw: [G108100]
+      via: BLS "Schnittsalat/Pflücksalat, roh"; Lollo und Eichblatt sind Pflücksalate.
+      varieties:
+        - id: lollo-rosso
+          name: Lollo Rosso
+        - id: lollo-bianco
+          name: Lollo Bianco
+        - id: eichblattsalat
+          name: Eichblattsalat
+    - id: radicchio
+      name: Radicchio
+      nutrition:
+        raw: [G106100]
+      via: BLS "Radicchio roh".
+    - id: endivie
+      name: Endivie
+      aliases:
+        - Endiviensalat
+        - Escariol
+      nutrition:
+        raw: [G102100]
+      via: BLS "Endivie/Escariol, roh".
+      varieties:
+        - id: frisee
+          name: Frisée
+          aliases:
+            - Friséesalat
+    - id: zuckerhutsalat
+      name: Zuckerhutsalat
+      nutrition:
+        raw: [G109100]
+      via: BLS "Zuckerhutsalat roh". Das nackte "Zuckerhut" heißt mancherorts Spitzkohl und
+        bleibt deshalb weg.

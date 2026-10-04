@@ -1,0 +1,27 @@
+- id: kerbel
+  name: Kerbel
+  aliases:
+    - frischer Kerbel
+  category: herbs
+  nutrition:
+    raw:
+      - code: Z-kerbel
+        name: Chervil, fresh
+        source: Ciqual 2020 (Anses), Nr. 11002 „Chervil, fresh“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 39.9
+          proteinG: 3.72
+          fatG: 0.6
+          saturatedFatG: 0.22
+          carbsG: 3.63
+          sugarG: 0.6
+          fiberG: 2.55
+          sodiumMg: 10
+          vitaminCMg: 37
+          vitaminEMg: 2.9
+          calciumMg: 273
+          ironMg: 1.6
+          magnesiumMg: 34
+          potassiumMg: 597
+  via: Das BLS führt Kerbel nicht. Ciqual 2020 (Anses) führt das frische Kraut als „Chervil,
+    fresh“, inline übernommen.

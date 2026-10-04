@@ -4,7 +4,17 @@
     - Semmel
     - Semmeln
     - Brotchen
+    - Schrippe
+    - Schrippen
+    - Rundstück
+    - Rundstücke
+    - Weckle
   category: bakery
   nutrition:
     unspecified: [B511000]
   via: BLS-Gruppe "Weizenbrötchen"
+  varieties:
+    - id: laugenbroetchen
+      name: Laugenbrötchen
+      aliases:
+        - Laugensemmel

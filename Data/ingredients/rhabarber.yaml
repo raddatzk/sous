@@ -1,0 +1,9 @@
+- id: rhabarber
+  name: Rhabarber
+  aliases:
+    - Rhabarberstange
+    - Rhabarberstangen
+  category: fruit
+  nutrition:
+    raw: [F081100]
+  via: BLS-Name "Rhabarber roh"; das BLS führt ihn beim Obst

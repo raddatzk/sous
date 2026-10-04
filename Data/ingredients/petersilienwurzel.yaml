@@ -1,0 +1,11 @@
+- id: petersilienwurzel
+  name: Petersilienwurzel
+  aliases:
+    - Petersilienwurzeln
+    - Wurzelpetersilie
+  category: vegetables
+  nutrition:
+    raw: [G670100]
+    cooked: [G670132]
+  candidates: [G670400]
+  via: 'BLS-Gruppe "Wurzelpetersilie": die Wurzel, nicht das Kraut.'

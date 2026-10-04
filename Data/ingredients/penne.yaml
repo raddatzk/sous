@@ -1,5 +1,7 @@
 - id: penne
   name: Penne
+  aliases:
+    - Penne rigate
   category: grains
   nutrition:
     raw: [E401000]

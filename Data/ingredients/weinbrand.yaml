@@ -1,0 +1,14 @@
+- id: weinbrand
+  name: Weinbrand
+  aliases:
+    - Brandy
+  category: drinks
+  nutrition:
+    unspecified: [P620000]
+  via: BLS-Name "Weinbrand/Brandy"
+  varieties:
+    - id: cognac
+      name: Cognac
+      nutrition:
+        unspecified: [P610000]
+      via: BLS-Name "Cognac"

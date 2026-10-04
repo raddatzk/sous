@@ -1,0 +1,8 @@
+- id: kresse
+  name: Kresse
+  aliases:
+    - Gartenkresse
+  category: herbs
+  nutrition:
+    raw: [G280100]
+  via: BLS-Name „Gartenkresse roh“

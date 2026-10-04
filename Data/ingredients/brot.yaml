@@ -1,5 +1,7 @@
 - id: brot
   name: Brot
+  aliases:
+    - Mischbrot
   category: bakery
   nutrition:
     unspecified: [B271000]
@@ -11,3 +13,12 @@
       name: Sauerteigbrot
     - id: vollkornbrot
       name: Vollkornbrot
+    - id: roggenbrot
+      name: Roggenbrot
+    - id: weissbrot
+      name: Weißbrot
+      nutrition:
+        unspecified: [B781200]
+      candidates: [B314000]
+      via: Weizenbrot führt das BLS nur als "Weizenbaguette" — derselbe helle Weizenteig;
+        der Stamm rechnet mit Roggenmischbrot. Toastbrot als Kandidat.

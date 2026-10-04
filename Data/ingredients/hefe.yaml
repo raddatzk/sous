@@ -1,5 +1,8 @@
 - id: hefe
   name: Hefe
+  aliases:
+    - Germ
+    - Backhefe
   category: baking
   measures:
     Pck.:
@@ -11,8 +14,17 @@
   varieties:
     - id: frischhefe
       name: Frischhefe
+      aliases:
+        - frische Hefe
     - id: trockenhefe
       name: Trockenhefe
+      aliases:
+        - Trockenbackhefe
+        - Trockengerm
+      measures:
+        Pck.:
+          grams: 7
+          note: Ein Päckchen Trockenhefe.
       nutrition:
         unspecified: [R458000]
       via: Erbte bisher „Backhefe frisch“ mit 128 kcal; getrocknet sind es 334. Das BLS nennt

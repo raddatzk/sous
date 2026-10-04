@@ -4,6 +4,9 @@
     - Chilischote
     - Chilischoten
     - Peperoni
+    - Pfefferschote
+    - Pfefferschoten
+    - Pfefferoni
   category: vegetables
   measures: {Stk.: 8}
   nutrition:
@@ -24,3 +27,19 @@
       aliases:
         - rote Chilis
         - rote Chilischote
+    - id: jalapeno
+      name: Jalapeño
+      aliases:
+        - Jalapeños
+        - Jalapeno
+        - Jalapenos
+    - id: habanero
+      name: Habanero
+      aliases:
+        - Habaneros
+    - id: thai-chili
+      name: Thai-Chili
+      aliases:
+        - Thai-Chilis
+        - Bird's Eye Chili
+        - Bird's Eye Chilis

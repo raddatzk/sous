@@ -1,0 +1,9 @@
+- id: sherry
+  name: Sherry
+  aliases:
+    - Trockener Sherry
+  category: drinks
+  nutrition:
+    unspecified: [P461000]
+  candidates: [P462000, P463000, P464000]
+  via: BLS-Name "Sherry dry" — trocken wie meist zum Kochen; die süßeren sind Kandidaten

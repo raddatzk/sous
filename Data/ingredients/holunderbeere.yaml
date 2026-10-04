@@ -1,0 +1,11 @@
+- id: holunderbeere
+  name: Holunderbeere
+  aliases:
+    - Holunderbeeren
+    - Fliederbeere
+    - Fliederbeeren
+  category: fruit
+  nutrition:
+    raw: [F406100]
+  via: BLS-Name "Holunderbeere roh"; Fliederbeere ist das norddeutsche Wort. Holunderblüten
+    sind etwas anderes

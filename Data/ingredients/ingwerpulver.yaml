@@ -1,0 +1,29 @@
+- id: ingwerpulver
+  name: Ingwerpulver
+  aliases:
+    - gemahlener Ingwer
+    - Ingwer gemahlen
+  category: spices
+  nutrition:
+    unspecified:
+      - code: Z-ingwerpulver
+        name: Ginger, powder
+        source: Ciqual 2020 (Anses), Nr. 11006 „Ginger, powder“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 335
+          proteinG: 8.98
+          fatG: 4.24
+          saturatedFatG: 2.6
+          carbsG: 58.3
+          sugarG: 3.39
+          fiberG: 14.1
+          sodiumMg: 27
+          vitaminCMg: 0.7
+          vitaminDMcg: 0
+          vitaminEMg: 0
+          calciumMg: 114
+          ironMg: 19.8
+          magnesiumMg: 214
+          potassiumMg: 1320
+  via: Das BLS führt nur frischen Ingwer (R211200); gemahlen ist er getrocknet und ein anderes
+    Lebensmittel je Gramm. Ciqual 2020 (Anses) führt ihn als „Ginger, powder“, inline übernommen.

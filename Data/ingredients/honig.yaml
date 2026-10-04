@@ -8,3 +8,11 @@
   nutrition:
     unspecified: [S120000]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: akazienhonig
+      name: Akazienhonig
+    - id: waldhonig
+      name: Waldhonig
+      nutrition:
+        unspecified: [S122000]
+      via: BLS-Name "Honigtauhonig (Waldhonig)" — weniger Wasser, mehr Energie als Blütenhonig

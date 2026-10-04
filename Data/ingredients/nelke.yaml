@@ -3,8 +3,31 @@
   aliases:
     - Nelken
     - Gewürznelken
+    - Gewürznelke
+    - Nelkenpulver
+    - gemahlene Nelken
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-nelke
+        name: Cloves
+        source: Ciqual 2020 (Anses), Nr. 11052 „Cloves“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 335
+          proteinG: 5.97
+          fatG: 13
+          saturatedFatG: 3.95
+          carbsG: 31.6
+          sugarG: 2.38
+          fiberG: 33.9
+          sodiumMg: 277
+          vitaminCMg: 0.2
+          vitaminDMcg: 0
+          vitaminEMg: 8.82
+          calciumMg: 632
+          ironMg: 11.8
+          magnesiumMg: 259
+          potassiumMg: 1020
+  via: Das BLS führt Gewürznelken nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+    2020 (Anses) führt es als „Cloves“ (die getrockneten Knospen); diese Zeile ist inline
+    übernommen.

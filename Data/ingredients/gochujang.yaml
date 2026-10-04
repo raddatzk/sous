@@ -1,5 +1,9 @@
 - id: gochujang
   name: Gochujang
+  aliases:
+    - Gochujang-Paste
   category: canned
   nutrition: without
-  via: Aus geteilten Anpassungen übernommen; noch ohne BLS-Zuordnung
+  via: Koreanische Chilipaste aus Klebreis und Sojabohnen. Weder das BLS noch Ciqual noch
+    USDA SR Legacy führen sie, und Sambal Oelek ist ohne Reis und Zucker ein anderes Lebensmittel;
+    bis eine lizenzierte Quelle sie hat, bewusst ohne.

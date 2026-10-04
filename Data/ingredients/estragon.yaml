@@ -1,7 +1,22 @@
 - id: estragon
   name: Estragon
+  aliases:
+    - frischer Estragon
+    - Estragonblätter
   category: herbs
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    raw:
+      - code: Z-estragon
+        name: Tarragon, fresh
+        source: Ciqual 2020 (Anses), Nr. 11092 „Tarragon, fresh“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 44
+          proteinG: 3.8
+          saturatedFatG: 0.6
+          carbsG: 4.1
+          sugarG: 1.2
+          fiberG: 6.2
+  via: Das BLS führt Estragon nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz
+    meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es
+    als „Tarragon, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.

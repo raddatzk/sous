@@ -4,7 +4,38 @@
     - Bockshornkleesamen
     - Bockshornkleesaat
   category: spices
-  nutrition: without
-  via: Das BLS führt Bockshornklee nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz,
-    das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte
-    als geratene.
+  nutrition:
+    unspecified:
+      - code: Z-bockshornklee
+        name: Fenugreek, seed
+        source: Ciqual 2020 (Anses), Nr. 11077 „Fenugreek, seed“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 350
+          proteinG: 27.1
+          fatG: 6.41
+          saturatedFatG: 1.46
+          carbsG: 33.8
+          sugarG: 8.7
+          fiberG: 24.6
+          sodiumMg: 67
+          vitaminCMg: 3
+          vitaminDMcg: 0
+          calciumMg: 176
+          ironMg: 33.5
+          magnesiumMg: 191
+          potassiumMg: 770
+  via: Das BLS führt Bockshornkleesamen nicht — in allen 3.983 Zeilen keine Entsprechung.
+    Ciqual 2020 (Anses) führt es als „Fenugreek, seed“ (die getrockneten Samen, wie ein Rezept
+    sie meint); diese Zeile ist inline übernommen.
+  varieties:
+    - id: bockshornkleeblaetter
+      name: Bockshornkleeblätter
+      aliases:
+        - getrocknete Bockshornkleeblätter
+        - Kasoori Methi
+        - Kasuri Methi
+      nutrition: without
+      via: Die getrockneten Blätter (Butter Chicken & Co.) sind ein anderes Erzeugnis als
+        die Samen. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen
+        sie; daher bewusst ohne Werte statt der Samenwerte des Elterneintrags.

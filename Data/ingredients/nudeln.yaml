@@ -30,6 +30,7 @@
       name: Udon-Nudeln
       aliases:
         - Udon
+        - Udon Nudeln
     - id: vollkornnudeln
       name: Vollkornnudeln
       aliases:
@@ -38,3 +39,139 @@
         raw: [E510000]
         cooked: [E500032]
       via: BLS-Name, in die Küchenliste übernommen
+    - id: reisnudeln
+      name: Reisnudeln
+      aliases:
+        - Reisbandnudeln
+      nutrition:
+        raw: [C559000]
+        cooked: [C559032]
+      via: BLS-Name "Reisnudeln"
+    - id: glasnudeln
+      name: Glasnudeln
+      nutrition:
+        raw:
+          - code: Z-glasnudeln-raw
+            name: Soy vermicelli or soy noodle, dried
+            source: Ciqual 2020 (Anses), Nr. 9902 „Soy vermicelli or soy noodle, dried“, Licence
+              Ouverte / CC BY 4.0
+            per100g:
+              kcal: 344
+              fatG: 0.14
+              saturatedFatG: 0
+              carbsG: 84.7
+              sugarG: 1.38
+              fiberG: 1.6
+              sodiumMg: 15.6
+              calciumMg: 25.2
+              magnesiumMg: 9.6
+              potassiumMg: 13.2
+        cooked:
+          - code: Z-glasnudeln-cooked
+            name: Soy noodle, cooked, unsalted
+            source: Ciqual 2020 (Anses), Nr. 9903 „Soy noodle, cooked, unsalted“, Licence
+              Ouverte / CC BY 4.0
+            per100g:
+              kcal: 61.2
+              fatG: 0.1
+              carbsG: 14.4
+              fiberG: 0.8
+              sodiumMg: 2.5
+              calciumMg: 14.2
+              magnesiumMg: 2.9
+              potassiumMg: 1.2
+      via: Glasnudeln (aus Mungbohnenstärke) führt das BLS nicht. Ciqual nennt sie wie der
+        französische Handel „vermicelles de soja“; inline übernommen, trocken und gekocht.
+        Eiweiß gibt Ciqual nur als „< 0,57“ an, es fehlt deshalb.
+    - id: mie-nudeln
+      name: Mie-Nudeln
+      aliases:
+        - Mie Nudeln
+      nutrition:
+        raw: [E432000]
+        cooked: [E432032]
+      via: 'Mie-Nudeln sind Weizennudeln mit Ei: BLS-Gruppe "Eierteigwaren".'
+    - id: soba-nudeln
+      name: Soba-Nudeln
+      aliases:
+        - Soba
+        - Buchweizennudeln
+      nutrition:
+        raw:
+          - code: Z-soba-nudeln-raw
+            name: Noodles, japanese, soba, dry
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168906 „Noodles,
+              japanese, soba, dry“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 336
+              proteinG: 14.38
+              fatG: 0.71
+              saturatedFatG: 0.136
+              sodiumMg: 792
+              vitaminAMcg: 0
+              vitaminCMg: 0
+              vitaminDMcg: 0
+              calciumMg: 35
+              ironMg: 2.7
+              magnesiumMg: 95
+              potassiumMg: 252
+        cooked:
+          - code: Z-soba-nudeln-cooked
+            name: Noodles, japanese, soba, cooked
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168907 „Noodles,
+              japanese, soba, cooked“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 99
+              proteinG: 5.06
+              fatG: 0.1
+              saturatedFatG: 0.019
+              sodiumMg: 60
+              vitaminAMcg: 0
+              vitaminCMg: 0
+              vitaminDMcg: 0
+              calciumMg: 4
+              ironMg: 0.48
+              magnesiumMg: 9
+              potassiumMg: 35
+      via: Buchweizennudeln führt das BLS nicht; USDA SR Legacy hat sie trocken und gekocht,
+        inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet);
+        die stehen deshalb nicht in der Zeile.
+    - id: ramen-nudeln
+      name: Ramen-Nudeln
+    - id: eiernudeln
+      name: Eiernudeln
+      nutrition:
+        raw: [E432000]
+        cooked: [E432032]
+      via: BLS-Gruppe "Eierteigwaren"
+    - id: spaetzle
+      name: Spätzle
+      aliases:
+        - Eierspätzle
+        - Knöpfle
+      nutrition:
+        raw: [E432000, E438000]
+        cooked: [E432032, E438032]
+      via: 'Spätzle sind Eierteigwaren: getrocknet "Eierteigwaren", frisch aus dem Kühlregal
+        "Eier-Frischteigwaren" als Alternative.'
+    - id: makkaroni
+      name: Makkaroni
+      aliases:
+        - Maccheroni
+        - Macaroni
+    - id: farfalle
+      name: Farfalle
+      aliases:
+        - Schmetterlingsnudeln
+    - id: linguine
+      name: Linguine
+    - id: hoernchennudeln
+      name: Hörnchennudeln
+      aliases:
+        - Hörnli
+    - id: suppennudeln
+      name: Suppennudeln
+      aliases:
+        - Fadennudeln
+    - id: cannelloni
+      name: Cannelloni

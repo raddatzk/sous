@@ -1,0 +1,33 @@
+- id: kraeuter
+  name: Kräuter
+  aliases:
+    - frische Kräuter
+    - gemischte Kräuter
+    - gehackte Kräuter
+    - Gartenkräuter
+  category: herbs
+  nutrition:
+    raw:
+      - code: Z-kraeuter
+        name: Herbs, fresh (average)
+        source: Ciqual 2020 (Anses), Nr. 11080 „Herbs, fresh (average)“, Licence Ouverte /
+          CC BY 4.0
+        per100g:
+          kcal: 49.4
+          proteinG: 3.58
+          fatG: 0.8
+          saturatedFatG: 0.2
+          carbsG: 4.15
+          sugarG: 1.99
+          fiberG: 5.64
+          sodiumMg: 34.7
+          vitaminCMg: 103
+          vitaminDMcg: 0
+          vitaminEMg: 2.23
+          calciumMg: 218
+          ironMg: 6.06
+          magnesiumMg: 56.7
+          potassiumMg: 508
+  via: Das unbestimmte Wort für gemischte frische Kräuter („2 EL gehackte Kräuter“). Das BLS
+    führt keinen Durchschnitt; Ciqual 2020 (Anses) führt ihn als „Herbs, fresh (average)“,
+    inline übernommen.

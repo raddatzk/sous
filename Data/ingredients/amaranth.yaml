@@ -1,0 +1,10 @@
+- id: amaranth
+  name: Amaranth
+  aliases:
+    - Amarant
+  category: grains
+  nutrition:
+    raw: [C335000]
+    cooked: [C335032]
+  candidates: [C530100]
+  via: BLS-Gruppe "Amaranth"; gepufft als Kandidat

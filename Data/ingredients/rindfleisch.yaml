@@ -9,3 +9,53 @@
     cooked: [U284132, U284162, U211162]
   candidates: [U912000, U931100]
   via: kuratierte Auswahl
+  varieties:
+    - id: roastbeef
+      name: Roastbeef
+      aliases:
+        - Rumpsteak
+        - Beiried
+      nutrition:
+        raw: [U221100]
+        cooked: [U221162]
+      via: BLS-Gruppe "Rind Roastbeef (Rücken)"; Beiried ist das österreichische Wort dafür
+    - id: entrecote
+      name: Entrecôte
+      aliases:
+        - Entrecote
+        - Ribeye
+        - Rib-Eye-Steak
+      nutrition:
+        raw: [U235100]
+        cooked: [U235162, U235142, U235132]
+      via: BLS-Gruppe "Rind Hochrippe", aus der das Entrecôte geschnitten wird
+    - id: rinderbrust
+      name: Rinderbrust
+      aliases:
+        - Brisket
+      nutrition:
+        raw: [U255100]
+        cooked: [U255142, U255132, U255162]
+      via: BLS-Gruppe "Rind Brustkern/Mittelbrust"
+    - id: rindergulasch
+      name: Rindergulasch
+      nutrition:
+        raw: [U151100]
+        cooked: [U151142, U151182]
+      via: BLS-Gruppe "Rind Gulasch (Bug)"
+    - id: rinderroulade
+      name: Rinderroulade
+      aliases:
+        - Rinderrouladen
+      nutrition:
+        raw: [U163100]
+        cooked: [U163142, U163182]
+      via: BLS-Gruppe "Rind Roulade (Oberschale)"
+    - id: tafelspitz
+      name: Tafelspitz
+    - id: ochsenschwanz
+      name: Ochsenschwanz
+      nutrition:
+        raw: [U109100]
+        cooked: [U109142, U109182]
+      via: BLS-Gruppe "Rind Ochsenschwanz"

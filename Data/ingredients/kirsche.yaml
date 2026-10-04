@@ -2,8 +2,24 @@
   name: Kirsche
   aliases:
     - Kirschen
+    - Süßkirsche
+    - Süßkirschen
   category: fruit
   nutrition:
     raw: [F211100]
     cooked: [F211152]
   via: BLS-Gruppe "Süßkirsche"
+  varieties:
+    - id: sauerkirsche
+      name: Sauerkirsche
+      aliases:
+        - Sauerkirschen
+        - Schattenmorelle
+        - Schattenmorellen
+        - Weichsel
+        - Weichseln
+      nutrition:
+        raw: [F212100]
+        cooked: [F212152]
+      via: BLS-Gruppe "Sauerkirsche"; Schattenmorelle ist die gängige Sorte, Weichsel das
+        österreichische Wort

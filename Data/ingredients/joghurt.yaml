@@ -2,6 +2,7 @@
   name: Joghurt
   aliases:
     - Vollmilchjoghurt
+    - Jogurt
   category: dairy
   density: 1.03
   nutrition:
@@ -13,5 +14,46 @@
   varieties:
     - id: griechischer-joghurt
       name: Griechischer Joghurt
+      aliases:
+        - Joghurt nach griechischer Art
+      nutrition:
+        unspecified: [M141500]
+      via: BLS-Zeile "Sahnejoghurt mind. 10 % Fett"; Joghurt griechischer Art hat im Laden
+        10 % Fett und erbte bisher den Joghurt mit 3,5 %
     - id: naturjoghurt
       name: Naturjoghurt
+      aliases:
+        - Joghurt natur
+    - id: tuerkischer-joghurt
+      name: Türkischer Joghurt
+      nutrition:
+        unspecified: [M141500]
+      via: BLS-Zeile "Sahnejoghurt mind. 10 % Fett"; türkischer Joghurt hat wie der griechische
+        10 % Fett
+    - id: fettarmer-joghurt
+      name: Fettarmer Joghurt
+      aliases:
+        - Joghurt 1,5 %
+      nutrition:
+        unspecified: [M141200]
+      via: BLS-Zeile "Joghurt fettarm, mind. 1,5 % bis max. 1,8 % Fett"
+    - id: magerjoghurt
+      name: Magerjoghurt
+      nutrition:
+        unspecified: [M141100]
+      via: BLS-Zeile "Joghurt aus entrahmter Milch, max. 0,5 % Fett"
+    - id: schafjoghurt
+      name: Schafjoghurt
+      aliases:
+        - Schafmilchjoghurt
+      nutrition:
+        unspecified: [M149500]
+      via: BLS-Zeile "Schafjoghurt"
+    - id: labneh
+      name: Labneh
+      aliases:
+        - Labne
+      nutrition: without
+      via: Abgetropfter Joghurt aus der levantinischen Küche, deutlich fester und fetter als
+        Joghurt. Weder BLS noch Ciqual 2025 noch USDA FoodData Central (SR Legacy, Foundation,
+        FNDDS) führen ihn; die Werte des Joghurts zu erben wäre falsch.

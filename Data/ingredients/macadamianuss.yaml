@@ -1,0 +1,11 @@
+- id: macadamianuss
+  name: Macadamianuss
+  aliases:
+    - Macadamianüsse
+    - Macadamia
+    - Macadamiakerne
+  category: nuts
+  nutrition:
+    unspecified: [H190100]
+  candidates: [H190600, H190700]
+  via: BLS-Name "Macadamianuss"

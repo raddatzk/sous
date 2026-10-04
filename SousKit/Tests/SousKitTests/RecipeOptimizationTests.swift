@@ -203,14 +203,14 @@ struct RecipeOptimizationTests {
     func typos() throws {
         let recipe = Recipe(
             title: "Kuchen",
-            ingredientsText: "100 g Cachewkerne\n50 g Margarine\n2 EL Kürbiskernöl\n1 Chiabatta",
+            ingredientsText: "100 g Cachewkerne\n50 g Margarine\n2 EL Kürbiskernöl\n1 Fokaccia",
             instructionsText: "Backen."
         )
         let optimization = try read(answer(lines: [
             #"{"zeile": 1, "neu": [{"nr": 1, "text": "100 g Cashewkerne", "zutat": "Cashew"}], "tippfehler": {"falsch": "Cachewkerne", "richtig": "Cashewkerne"}}"#,
             #"{"zeile": 2, "neu": [{"nr": 2, "text": "50 g Mandarine"}], "tippfehler": {"falsch": "Margarine", "richtig": "Mandarine"}}"#,
             #"{"zeile": 3, "neu": [{"nr": 3, "text": "2 EL Kürbiskerne"}]}"#,
-            #"{"zeile": 4, "neu": [{"nr": 4, "text": "1 Ciabatta"}], "tippfehler": {"falsch": "Chiabatta", "richtig": "Ciabatta"}}"#,
+            #"{"zeile": 4, "neu": [{"nr": 4, "text": "1 Focaccia"}], "tippfehler": {"falsch": "Fokaccia", "richtig": "Focaccia"}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
 
         let cashew = optimization.lines[0]
@@ -225,8 +225,8 @@ struct RecipeOptimizationTests {
         #expect(optimization.lines[1].isRefused)
         // Undeclared, two edits: a new word.
         #expect(optimization.lines[2].issues.contains(.newWord("Kürbiskerne")))
-        // One edit, but the catalog does not know Ciabatta: not offered.
-        #expect(optimization.lines[3].issues.contains(.typoDoesNotResolve("Ciabatta")))
+        // One edit, but the catalog does not know Focaccia: not offered.
+        #expect(optimization.lines[3].issues.contains(.typoDoesNotResolve("Focaccia")))
 
         #expect(TypoDistance.edits("chiabatta", "ciabatta") == 1)
         #expect(TypoDistance.edits("margarine", "mandarine") == 2)
@@ -442,22 +442,22 @@ struct RecipeOptimizationTests {
     func classification() throws {
         let recipe = Recipe(
             title: "Bowl",
-            ingredientsText: "200 g Tempeh-Streifen\n100 g Babyspinat\n1 Handvoll Curryblätter",
+            ingredientsText: "200 g Lupinen-Schnetzel\n100 g Babyspinat\n1 Handvoll Curryblätter",
             instructionsText: "Alles anbraten."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "200 g Tempeh-Streifen"}], "einordnung": {"name": "Tempeh-Streifen", "art": "sorte", "ziel": "Tempeh"}}"#,
+            #"{"zeile": 1, "neu": [{"nr": 1, "text": "200 g Lupinen-Schnetzel"}], "einordnung": {"name": "Lupinen-Schnetzel", "art": "sorte", "ziel": "Lupine"}}"#,
             #"{"zeile": 2, "neu": [{"nr": 2, "text": "100 g Babyspinat"}], "einordnung": {"name": "Babyspinat", "art": "sorte", "ziel": "Spinat"}}"#,
             #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 Handvoll Curryblätter"}], "einordnung": {"name": "Curryblätter", "art": "neu", "ziel": null}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         // Babyspinat and Curryblätter are known to the catalog.
-        #expect(optimization.classifications.map(\.name) == ["Tempeh-Streifen"])
-        let tempeh = try #require(optimization.classifications.first)
-        #expect(tempeh.kind == .variety)
-        #expect(tempeh.target == IngredientCatalog.bundled.ingredient(for: "Tempeh")?.name)
-        // The catalog has no Tempeh to count as: a word of its own, then.
-        #expect(tempeh.target == nil)
-        #expect(tempeh.proposal == .word)
+        #expect(optimization.classifications.map(\.name) == ["Lupinen-Schnetzel"])
+        let lupine = try #require(optimization.classifications.first)
+        #expect(lupine.kind == .variety)
+        #expect(lupine.target == IngredientCatalog.bundled.ingredient(for: "Lupine")?.name)
+        // The catalog has no Lupine to count as: a word of its own, then.
+        #expect(lupine.target == nil)
+        #expect(lupine.proposal == .word)
     }
 
     @Test("A name that stays unknown comes with a household proposal that makes its line read")

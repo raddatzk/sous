@@ -1,0 +1,33 @@
+- id: pesto
+  name: Pesto
+  aliases:
+    - Pesto Genovese
+    - Basilikumpesto
+  category: canned
+  nutrition:
+    unspecified:
+      - code: Z-pesto
+        name: Sauce, pesto, prepacked
+        source: Ciqual 2020 (Anses), Nr. 11179 „Sauce, pesto, prepacked“, Licence Ouverte
+          / CC BY 4.0
+        per100g:
+          kcal: 370
+          proteinG: 3.94
+          fatG: 35.4
+          saturatedFatG: 4.39
+          carbsG: 6.6
+          sugarG: 3.2
+          fiberG: 2.5
+          sodiumMg: 1060
+          vitaminCMg: 92.6
+          vitaminEMg: 17.9
+          calciumMg: 150
+          ironMg: 0.59
+          magnesiumMg: 36
+          potassiumMg: 200
+  via: Das BLS führt kein Pesto; Ciqual 2020 (Anses) „Sauce, pesto, prepacked“, inline übernommen.
+  varieties:
+    - id: pesto-rosso
+      name: Pesto rosso
+      aliases:
+        - rotes Pesto

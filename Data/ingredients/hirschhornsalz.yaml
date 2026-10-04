@@ -1,0 +1,6 @@
+- id: hirschhornsalz
+  name: Hirschhornsalz
+  category: baking
+  nutrition:
+    unspecified: [R421200]
+  via: BLS-Name "Hirschhornsalz (Ammoniumhydrogencarbonat, E 503)"

@@ -7,3 +7,11 @@
     raw: [F516100]
   candidates: [F516400, F516902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: getrocknete-mango
+      name: Getrocknete Mango
+      aliases:
+        - Mango getrocknet
+      nutrition:
+        unspecified: [F516400]
+      via: BLS-Name "Mango getrocknet"

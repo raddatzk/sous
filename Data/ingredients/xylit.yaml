@@ -1,0 +1,9 @@
+- id: xylit
+  name: Xylit
+  aliases:
+    - Birkenzucker
+    - Xylitol
+  category: baking
+  nutrition:
+    unspecified: [S163000]
+  via: BLS-Name "Xylit Pulver (E 967)"

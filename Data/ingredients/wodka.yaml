@@ -1,0 +1,6 @@
+- id: wodka
+  name: Wodka
+  category: drinks
+  nutrition:
+    unspecified: [P712000]
+  via: BLS-Name "Wodka"

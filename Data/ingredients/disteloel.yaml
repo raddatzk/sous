@@ -1,0 +1,9 @@
+- id: disteloel
+  name: Distelöl
+  aliases:
+    - Safloröl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q340000]
+  via: BLS-Name "Distelöl/Safloröl"

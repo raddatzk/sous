@@ -1,0 +1,11 @@
+- id: maracuja
+  name: Maracuja
+  aliases:
+    - Maracujas
+    - Passionsfrucht
+    - Passionsfrüchte
+  category: fruit
+  nutrition:
+    raw: [F508100]
+  candidates: [F508600]
+  via: BLS-Name "Maracuja/Passionsfrucht, roh"

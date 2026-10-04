@@ -1,0 +1,9 @@
+- id: grapefruit
+  name: Grapefruit
+  aliases:
+    - Grapefruits
+  category: fruit
+  nutrition:
+    raw: [F604100]
+  candidates: [F604600]
+  via: BLS-Name "Grapefruit roh"

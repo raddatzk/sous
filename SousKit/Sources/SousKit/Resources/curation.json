@@ -2,9 +2,32 @@
  "note": "Küchenwort → SBLS-Codes. Diese Datei IST die Handarbeit, die vor dieser Pipeline-Version nur als fertige Zahlen in nutrition.json lag und die ein Neulauf zerstört hätte: die 120 kuratierten Namen, für die ein reiner Namensabgleich keinen BLS-Treffer findet. Sie ist Eingabe, nicht Ausgabe — ein Neulauf liest sie und kann sie nicht überschreiben. Seit der Listentrennung ist sie vollständig: die 57 Wörter, deren Codes vorher nur aus dem Namensabgleich des Builds fielen, stehen jetzt hier. Der Build leitet keine Zuordnung mehr her.",
  "targetOrder": "Innerhalb eines Zustands ist der ERSTE Code die Basis (die Zahlen, die die App zeigt); die weiteren sind Kandidaten für den Picker aus Phase 4. Gemittelt wird nichts mehr (Entscheidung O2). `candidates` sind weitere Zeilen, die dasselbe Wort meinen können: der Picker bietet sie an, gerechnet wird nie mit ihnen.",
  "words": {
+  "Adzukibohnen": {
+   "targets": {
+    "unspecified": [
+     "Z-adzukibohnen-unspecified"
+    ],
+    "cooked": [
+     "Z-adzukibohnen-cooked"
+    ]
+   },
+   "via": "Das BLS und Ciqual führen keine Adzukibohnen. Trocken: USDA SR Legacy \"Beans, adzuki, mature seeds, raw\" (FDC 173727); gekocht: dieselben ohne Salz gekocht (FDC 173728). USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
+  },
+  "Agar-Agar": {
+   "targets": {
+    "unspecified": [
+     "Z-agar-agar"
+    ]
+   },
+   "via": "Das BLS führt Agar-Agar nicht; Ciqual hat es ohne Energie. USDA SR Legacy, getrocknet, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
   "Agavendicksaft": {
-   "withoutValues": true,
-   "via": "Das BLS führt keinen Agavendicksaft. Ahornsirup wäre der nächste Nachbar, ist aber ein anderer Zucker — die Zuordnung gehört dem Koch, nicht der Kuratierung."
+   "targets": {
+    "unspecified": [
+     "Z-agavendicksaft"
+    ]
+   },
+   "via": "Das BLS führt keinen Agavendicksaft, und Ahornsirup ist ein anderer Zucker. Ciqual hat ihn (31089), aber ohne Energie; USDA SR Legacy nennt sie, daher diese Zeile inline. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
   },
   "Ahornsirup": {
    "targets": {
@@ -22,6 +45,28 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Amaranth": {
+   "targets": {
+    "raw": [
+     "C335000"
+    ],
+    "cooked": [
+     "C335032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Amaranth\"; gepufft als Kandidat",
+   "candidates": [
+    "C530100"
+   ]
+  },
+  "Amaretto": {
+   "targets": {
+    "unspecified": [
+     "P540100"
+    ]
+   },
+   "via": "BLS-Name \"Mandellikör\""
+  },
   "Ananas": {
    "targets": {
     "cooked": [
@@ -32,6 +77,14 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Anis": {
+   "targets": {
+    "unspecified": [
+     "Z-anis"
+    ]
+   },
+   "via": "Das BLS führt Anis nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR Legacy, gemeinfrei) führt die getrockneten Samen als „Spices, anise seed“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. Sternanis ist ein anderes Gewürz (eigener Eintrag)."
   },
   "Apfel": {
    "targets": {
@@ -58,6 +111,26 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Apfelsaft": {
+   "targets": {
+    "unspecified": [
+     "F110600"
+    ]
+   },
+   "via": "BLS-Name \"Apfelsaft\"; der Nektar ist nur Kandidat",
+   "candidates": [
+    "F110700"
+   ]
+  },
+  "Appenzeller": {
+   "targets": {
+    "unspecified": [
+     "M301700",
+     "M301300"
+    ]
+   },
+   "via": "BLS-Zeile \"Appenzeller mind. 50 % Fett i. Tr.\"; fast doppelt so salzig wie Bergkäse, daher eigene Zeile statt Vererbung"
   },
   "Aprikose": {
    "targets": {
@@ -93,6 +166,15 @@
     "G410902"
    ]
   },
+  "Artischockenherzen": {
+   "targets": {
+    "cooked": [
+     "G410902",
+     "G410702"
+    ]
+   },
+   "via": "BLS \"Artischocke Konserve, abgetropft\": aus Dose oder Glas, also gegart; in Öl eingelegte als Alternative."
+  },
   "Aubergine": {
    "targets": {
     "cooked": [
@@ -112,6 +194,55 @@
     "G510702"
    ]
   },
+  "Augenbohnen": {
+   "targets": {
+    "unspecified": [
+     "H702100"
+    ],
+    "cooked": [
+     "H702132",
+     "H702902"
+    ]
+   },
+   "via": "BLS-Gruppe \"Augenbohne reif\"."
+  },
+  "Auster": {
+   "targets": {
+    "raw": [
+     "T780100"
+    ],
+    "cooked": [
+     "T780152",
+     "T780182",
+     "T780162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Europäische Auster\""
+  },
+  "Austernpilz": {
+   "targets": {
+    "raw": [
+     "K740100"
+    ],
+    "cooked": [
+     "K740152",
+     "K740182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Austernpilz\".",
+   "candidates": [
+    "K740400",
+    "K740432"
+   ]
+  },
+  "Austernsauce": {
+   "targets": {
+    "unspecified": [
+     "Z-austernsauce"
+    ]
+   },
+   "via": "Weder BLS noch Ciqual führen Austernsauce; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
   "Avocado": {
    "targets": {
     "raw": [
@@ -119,6 +250,14 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Avocadoöl": {
+   "targets": {
+    "unspecified": [
+     "Z-avocadooel"
+    ]
+   },
+   "via": "Das BLS führt Avocadoöl nicht; Ciqual-Zeile"
   },
   "Backpulver": {
    "targets": {
@@ -143,6 +282,22 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Balsamicocreme": {
+   "withoutValues": true,
+   "via": "Eingekochter, gesüßter Balsamico; keine Zeile in BLS, Ciqual oder USDA SR Legacy, und die Werte des Essigs wären viel zu niedrig"
+  },
+  "Bambussprossen": {
+   "targets": {
+    "raw": [
+     "H610100"
+    ],
+    "cooked": [
+     "H610902",
+     "H610132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Bambussprossen\"; meist aus Dose oder Glas, abgetropft und damit gegart."
   },
   "Banane": {
    "targets": {
@@ -212,6 +367,22 @@
     "F134902"
    ]
   },
+  "Bitterschokolade": {
+   "targets": {
+    "unspecified": [
+     "S570000"
+    ]
+   },
+   "via": "BLS-Name \"Bitterschokolade\""
+  },
+  "Blanchierte Mandeln": {
+   "targets": {
+    "unspecified": [
+     "H210200"
+    ]
+   },
+   "via": "BLS-Name \"Mandel süß, blanchiert\""
+  },
   "Blaubeere": {
    "targets": {
     "cooked": [
@@ -250,8 +421,27 @@
    "via": "BLS-Gruppe \"Blätterteig eifrei\""
   },
   "Bockshornklee": {
+   "targets": {
+    "unspecified": [
+     "Z-bockshornklee"
+    ]
+   },
+   "via": "Das BLS führt Bockshornkleesamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fenugreek, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
+  },
+  "Bockshornkleeblätter": {
    "withoutValues": true,
-   "via": "Das BLS führt Bockshornklee nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Die getrockneten Blätter (Butter Chicken & Co.) sind ein anderes Erzeugnis als die Samen. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen sie; daher bewusst ohne Werte statt der Samenwerte des Elterneintrags."
+  },
+  "Bockwurst": {
+   "targets": {
+    "cooked": [
+     "W211132"
+    ],
+    "unspecified": [
+     "W211100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Bockwurst\""
   },
   "Bohne": {
    "targets": {
@@ -279,6 +469,34 @@
     "G880402"
    ]
   },
+  "Bohnenkraut": {
+   "targets": {
+    "unspecified": [
+     "Z-bohnenkraut"
+    ]
+   },
+   "via": "Das BLS führt Bohnenkraut nicht. Ciqual 2020 (Anses) führt das getrocknete als „Savory, dried“, inline übernommen; so steht es meist im Regal und im Rezept."
+  },
+  "Borlottibohnen": {
+   "targets": {
+    "unspecified": [
+     "H739400"
+    ],
+    "cooked": [
+     "H740132",
+     "H740902"
+    ]
+   },
+   "via": "Das BLS führt Borlotti nicht eigens; sie sind eine Gartenbohne (Phaseolus vulgaris), deshalb \"Gartenbohne reif\"."
+  },
+  "Branntweinessig": {
+   "targets": {
+    "unspecified": [
+     "R122000"
+    ]
+   },
+   "via": "BLS-Name \"Branntweinessig\""
+  },
   "Bratwurst": {
    "targets": {
     "cooked": [
@@ -303,6 +521,25 @@
    },
    "via": "BLS-Gruppe \"Zucker braun (Kandisfarin/Rohzucker)\""
   },
+  "Brennnessel": {
+   "targets": {
+    "raw": [
+     "G261100"
+    ],
+    "cooked": [
+     "G261132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Brennnessel\": die jungen Blätter."
+  },
+  "Brezel": {
+   "targets": {
+    "unspecified": [
+     "Z-brezel"
+    ]
+   },
+   "via": "Laugengebäck führt das BLS nicht; die weiche Brezel in USDA SR Legacy entspricht der Laugenbrezel, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
   "Brokkoli": {
    "targets": {
     "cooked": [
@@ -316,6 +553,21 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Brombeere": {
+   "targets": {
+    "raw": [
+     "F303100"
+    ],
+    "cooked": [
+     "F303152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Brombeere\"",
+   "candidates": [
+    "F413100",
+    "F303400"
+   ]
   },
   "Brot": {
    "targets": {
@@ -333,6 +585,29 @@
    },
    "via": "BLS-Gruppe \"Weizenbrötchen\""
   },
+  "Buchweizen": {
+   "targets": {
+    "raw": [
+     "C322000"
+    ],
+    "cooked": [
+     "C320032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Buchweizen\"; Grieß und Grütze als Kandidaten",
+   "candidates": [
+    "C326000",
+    "C327000"
+   ]
+  },
+  "Buchweizenmehl": {
+   "targets": {
+    "unspecified": [
+     "C424000"
+    ]
+   },
+   "via": "BLS-Name \"Buchweizen Mehl\""
+  },
   "Bulgur": {
    "targets": {
     "raw": [
@@ -343,6 +618,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Bulgur (Hartweizen)\""
+  },
+  "Burrata": {
+   "targets": {
+    "unspecified": [
+     "Z-burrata"
+    ]
+   },
+   "via": "Der BLS führt keine Burrata; Ciqual-Zeile. Mit Sahne gefüllt, halb so viel Eiweiß wie Mozzarella."
   },
   "Butter": {
    "targets": {
@@ -400,6 +683,14 @@
    },
    "via": "BLS-Gruppe \"Cashewkern\""
   },
+  "Cashewmus": {
+   "targets": {
+    "unspecified": [
+     "F960800"
+    ]
+   },
+   "via": "BLS-Name \"Cashewnussmus\""
+  },
   "Cayennepfeffer": {
    "withoutValues": true,
    "via": "Gemahlener Cayennepfeffer fehlt im BLS. Die frische Schote gibt es („Pfefferschote“, siehe Chili); gemahlen und getrocknet ist sie ein anderes Lebensmittel je Gramm."
@@ -447,6 +738,19 @@
    },
    "via": "BLS-Gruppe \"Chia-Samen\""
   },
+  "Chicorée": {
+   "targets": {
+    "raw": [
+     "G101100"
+    ],
+    "cooked": [
+     "G101152",
+     "G101182",
+     "G101162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Chicoree\"; roh als Salat, gedünstet oder gebraten als Gemüse."
+  },
   "Chili": {
    "targets": {
     "raw": [
@@ -469,12 +773,46 @@
    ]
   },
   "Chiliflocken": {
+   "targets": {
+    "unspecified": [
+     "Z-chiliflocken"
+    ]
+   },
+   "via": "Getrocknete Chiliflocken führt das BLS nicht; die frische Schote („Pfefferschote“, siehe Chili) wiegt getrocknet ein Vielfaches je Gramm. Flocken und Pulver sind getrocknete rote Chili wie gemahlener Cayennepfeffer — USDA führt „crushed red pepper“ unter derselben Zeile wie Cayenne —, daher Ciqual 2020 (Anses) „Cayenne pepper“, inline übernommen."
+  },
+  "Chinakohl": {
+   "targets": {
+    "raw": [
+     "G321100"
+    ],
+    "cooked": [
+     "G321132",
+     "G321152",
+     "G321182",
+     "G321162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Chinakohl\"."
+  },
+  "Chinkiang-Essig": {
    "withoutValues": true,
-   "via": "Getrocknete Chiliflocken führt das BLS nicht. Die frische Schote gibt es („Pfefferschote“, siehe Chili), aber getrocknet wiegt sie ein Vielfaches je Gramm — die frische Zeile hier einzusetzen wäre der größere Fehler."
+   "via": "Chinesischer Schwarzessig aus Klebreis, gesüßt und gewürzt; keine Zeile in BLS, Ciqual oder USDA SR Legacy"
   },
   "Chorizo": {
-   "withoutValues": true,
-   "via": "Das BLS führt keine Chorizo. Die spanische Rohwurst ist von den geführten Brühwürsten weit genug entfernt, dass eine Ersatzzeile mehr behaupten würde als sie weiß."
+   "targets": {
+    "unspecified": [
+     "Z-chorizo"
+    ]
+   },
+   "via": "Das BLS führt keine Chorizo. Ciqual-Zeile \"Chorizo\" (englisch \"Spicy pork sausage with red pepper\"), die allgemeine Zeile für die spanische Paprika-Rohwurst; Ciqual führt daneben die luftgetrocknete Wurst (30316) und die Aufschnittware (30317)."
+  },
+  "Ciabatta": {
+   "targets": {
+    "unspecified": [
+     "B781200"
+    ]
+   },
+   "via": "Ein italienisches Weizenbrot; das BLS führt Weizenbrot nur als \"Weizenbaguette\", denselben Teig."
   },
   "Clementine": {
    "targets": {
@@ -483,6 +821,14 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Cognac": {
+   "targets": {
+    "unspecified": [
+     "P610000"
+    ]
+   },
+   "via": "BLS-Name \"Cognac\""
   },
   "Couscous": {
    "targets": {
@@ -495,6 +841,14 @@
    },
    "via": "BLS-Gruppe \"Couscous (Hartweizen)\""
   },
+  "Cranberry": {
+   "targets": {
+    "raw": [
+     "F407100"
+    ]
+   },
+   "via": "BLS-Name \"Moosbeere roh\" — die Moosbeere ist die Cranberry"
+  },
   "Creme fraiche": {
    "targets": {
     "unspecified": [
@@ -505,15 +859,19 @@
   },
   "Curryblätter": {
    "withoutValues": true,
-   "via": "Das BLS führt Curryblätter nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Curryblätter; in allen 3.983 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
   },
   "Currypaste": {
    "withoutValues": true,
-   "via": "Das BLS führt keine Currypaste — in allen 3.983 Zeilen keine Entsprechung. Die Pasten im Handel unterscheiden sich stark in Öl, Zucker und Salz, also lieber keine Werte als geratene; ein Produkt mit Etikett kann später eine eigene Zeile bekommen."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Currypaste. Die Pasten im Handel unterscheiden sich stark in Öl, Zucker und Salz, also lieber keine Werte als geratene; ein Produkt mit Etikett kann später eine eigene Zeile bekommen."
   },
   "Currypulver": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-currypulver"
+    ]
+   },
+   "via": "Das BLS führt Currypulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Curry, powder“ (die Gewürzmischung als Pulver); diese Zeile ist inline übernommen."
   },
   "Dattel": {
    "targets": {
@@ -526,9 +884,39 @@
     "F504400"
    ]
   },
+  "Desodoriertes Kokosöl": {
+   "targets": {
+    "unspecified": [
+     "Q550100"
+    ]
+   },
+   "via": "BLS-Name \"Kokosöl desodoriert\""
+  },
+  "Dicke Bohne": {
+   "targets": {
+    "raw": [
+     "G730100"
+    ],
+    "cooked": [
+     "G730132",
+     "G730232"
+    ]
+   },
+   "via": "BLS-Gruppe \"Dicke Bohne unreif\": die frischen oder tiefgekühlten Kerne, wie sie ein Rezept meint. Die getrocknete reife Bohne (H750100, für Ful) steht unter den Kandidaten.",
+   "candidates": [
+    "G730200",
+    "G730902",
+    "H750100",
+    "H750132"
+   ]
+  },
   "Dill": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-dill"
+    ]
+   },
+   "via": "Das BLS führt Dill nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Dill, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Dinkel": {
    "targets": {
@@ -541,6 +929,49 @@
    },
    "via": "Das BLS führt Dinkel nur gemahlen; der Vollkornschrot ist das ganze Korn, nur zerkleinert, und hat je 100 g dieselben Werte"
   },
+  "Dinkelgrieß": {
+   "targets": {
+    "unspecified": [
+     "C238000"
+    ],
+    "cooked": [
+     "C238032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Dinkel Grieß\""
+  },
+  "Dinkelmehl": {
+   "targets": {
+    "unspecified": [
+     "C234000"
+    ]
+   },
+   "via": "BLS-Name \"Dinkel Mehl, Type 630\" — die übliche Dinkelmehltype; erbte bisher Weizenmehl Type 405"
+  },
+  "Dinkelmehl Type 1050": {
+   "targets": {
+    "unspecified": [
+     "C234200"
+    ]
+   },
+   "via": "BLS-Name \"Dinkel Mehl, Type 1050\""
+  },
+  "Dinkelvollkornmehl": {
+   "targets": {
+    "unspecified": [
+     "C235000"
+    ]
+   },
+   "via": "BLS-Name \"Dinkel Vollkornmehl\""
+  },
+  "Distelöl": {
+   "targets": {
+    "unspecified": [
+     "Q340000"
+    ]
+   },
+   "via": "BLS-Name \"Distelöl/Safloröl\""
+  },
   "Edamame": {
    "targets": {
     "raw": [
@@ -551,6 +982,16 @@
    "candidates": [
     "G750902"
    ]
+  },
+  "Edamer": {
+   "targets": {
+    "unspecified": [
+     "M401500",
+     "M401600",
+     "M401400"
+    ]
+   },
+   "via": "BLS-Gruppe \"Edamer\"; im Laden meist 40 % Fett i. Tr., deutlich magerer als Gouda 48 %"
   },
   "Ei": {
    "targets": {
@@ -565,6 +1006,73 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Eierlikör": {
+   "targets": {
+    "unspecified": [
+     "P546000"
+    ]
+   },
+   "via": "BLS-Name \"Eierlikör\""
+  },
+  "Eiernudeln": {
+   "targets": {
+    "raw": [
+     "E432000"
+    ],
+    "cooked": [
+     "E432032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Eierteigwaren\""
+  },
+  "Eisbergsalat": {
+   "targets": {
+    "raw": [
+     "G103100"
+    ]
+   },
+   "via": "BLS \"Eisbergsalat roh\"."
+  },
+  "Endivie": {
+   "targets": {
+    "raw": [
+     "G102100"
+    ]
+   },
+   "via": "BLS \"Endivie/Escariol, roh\"."
+  },
+  "Enoki": {
+   "targets": {
+    "raw": [
+     "Z-enoki"
+    ]
+   },
+   "via": "BLS und Ciqual führen Enoki nicht. Werte aus USDA SR Legacy \"Mushrooms, enoki, raw\" (FDC 169382); die neuere Foundation-Zeile (FDC 2003600) nennt weniger Nährstoffe. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
+  },
+  "Entenei": {
+   "targets": {
+    "raw": [
+     "E131100"
+    ],
+    "cooked": [
+     "E131132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Entenei\"; fetter als Hühnerei"
+  },
+  "Entrecôte": {
+   "targets": {
+    "raw": [
+     "U235100"
+    ],
+    "cooked": [
+     "U235162",
+     "U235142",
+     "U235132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Hochrippe\", aus der das Entrecôte geschnitten wird"
   },
   "Erbse": {
    "targets": {
@@ -619,6 +1127,14 @@
     "H810100"
    ]
   },
+  "Erdnussmus": {
+   "targets": {
+    "unspecified": [
+     "H110800"
+    ]
+   },
+   "via": "BLS-Name \"Erdnussmus\" — reines Mus, anders als die Erdnusscreme"
+  },
   "Erdnussöl": {
    "targets": {
     "unspecified": [
@@ -626,6 +1142,14 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Espresso": {
+   "targets": {
+    "unspecified": [
+     "Z-espresso"
+    ]
+   },
+   "via": "Das BLS führt nur Filterkaffee; Espresso ist deutlich konzentrierter. USDA-Zeile. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
   },
   "Essig": {
    "targets": {
@@ -638,8 +1162,12 @@
    "via": "Sortengetrennt (Weißwein-, Rotwein-, Apfelessig) sind eigene Sorten; das nackte Wort ist der Weinessig"
   },
   "Estragon": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-estragon"
+    ]
+   },
+   "via": "Das BLS führt Estragon nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Tarragon, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Feige": {
    "targets": {
@@ -676,8 +1204,12 @@
    "via": "BLS-Gruppe \"Gemüsefenchel\""
   },
   "Fenchelsamen": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-fenchelsamen"
+    ]
+   },
+   "via": "Das BLS führt Fenchelsamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fennel, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
   },
   "Feta": {
    "targets": {
@@ -687,9 +1219,47 @@
    },
    "via": "BLS-Gruppe \"Feta mind. 45 % Fett i. Tr.\""
   },
+  "Fettarme Milch": {
+   "targets": {
+    "unspecified": [
+     "M111200",
+     "M113200"
+    ]
+   },
+   "via": "BLS-Zeile \"Milch fettarm, frisch, 1,5 % Fett, pasteurisiert\""
+  },
+  "Fettarmer Joghurt": {
+   "targets": {
+    "unspecified": [
+     "M141200"
+    ]
+   },
+   "via": "BLS-Zeile \"Joghurt fettarm, mind. 1,5 % bis max. 1,8 % Fett\""
+  },
   "Filoteig": {
-   "withoutValues": true,
-   "via": "Das BLS führt keinen Filo- oder Yufkateig. Blätterteig steht daneben und ist etwas anderes; lieber offen als falsch zugeordnet."
+   "targets": {
+    "raw": [
+     "Z-filoteig"
+    ]
+   },
+   "via": "Das BLS führt keinen Filo- oder Yufkateig; Blätterteig ist etwas anderes. Die Werte sind Ciqual 2020 Nr. 23445 \"Phyllo or filo dough, raw\", der rohe Teig aus der Packung."
+  },
+  "Fischfond": {
+   "targets": {
+    "unspecified": [
+     "X4A1000",
+     "X412463"
+    ]
+   },
+   "via": "BLS-Name \"Fischbrühe\""
+  },
+  "Fischsauce": {
+   "targets": {
+    "unspecified": [
+     "Z-fischsauce"
+    ]
+   },
+   "via": "Das BLS führt keine Fischsauce; Ciqual 2020 (Anses), inline übernommen."
   },
   "Fladenbrot": {
    "targets": {
@@ -725,6 +1295,10 @@
     "T422600"
    ]
   },
+  "Frisches Lorbeerblatt": {
+   "withoutValues": true,
+   "via": "Frische Blätter enthalten viel Wasser und wiegen je Gramm nur einen Bruchteil der getrockneten; mit deren Werten zu rechnen wäre falsch, und keine lizenzierte Datenbank (BLS, Ciqual, USDA) führt frischen Lorbeer. Daher bewusst ohne Werte."
+  },
   "Frischkäse": {
    "targets": {
     "unspecified": [
@@ -736,6 +1310,14 @@
     "M7A1600",
     "M7B1600"
    ]
+  },
+  "Fruchtaufstrich": {
+   "targets": {
+    "unspecified": [
+     "S131100"
+    ]
+   },
+   "via": "BLS-Name \"Fruchtaufstrich\" — weniger Zucker als Konfitüre"
   },
   "Frühlingszwiebel": {
    "targets": {
@@ -771,9 +1353,17 @@
    },
    "via": "kuratierte Auswahl"
   },
+  "Fünf-Gewürze-Pulver": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen das chinesische Fünf-Gewürze-Pulver; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung."
+  },
+  "Galgant": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual noch USDA SR Legacy führen Galgant. Ingwer ist eine andere Pflanze mit anderem Gehalt; lieber offen als falsch zugeordnet."
+  },
   "Garam Masala": {
    "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Garam Masala; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung (Ciquals „Mix of 4 spices“ ist das französische Quatre épices)."
   },
   "Garnele": {
    "targets": {
@@ -798,6 +1388,17 @@
     "T936182"
    ]
   },
+  "Geflügelbratwurst": {
+   "targets": {
+    "cooked": [
+     "W223182"
+    ],
+    "unspecified": [
+     "W223100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Geflügelbratwurst\""
+  },
   "Gehackte Tomaten": {
    "targets": {
     "unspecified": [
@@ -805,6 +1406,38 @@
     ]
    },
    "via": "BLS-Gruppe \"Tomate geschält, Konserve\""
+  },
+  "Gelatine": {
+   "targets": {
+    "unspecified": [
+     "R468000"
+    ]
+   },
+   "via": "BLS-Name \"Gelatine/Speisegelatine\""
+  },
+  "Gemahlene Haselnüsse": {
+   "targets": {
+    "unspecified": [
+     "H130400"
+    ]
+   },
+   "via": "BLS-Name \"Haselnuss gemahlen\""
+  },
+  "Gemahlene Mandeln": {
+   "targets": {
+    "unspecified": [
+     "H210400"
+    ]
+   },
+   "via": "BLS-Name \"Mandel süß, gemahlen\""
+  },
+  "Gemahlener Mohn": {
+   "targets": {
+    "unspecified": [
+     "H450400"
+    ]
+   },
+   "via": "BLS-Name \"Mohn gemahlen\""
   },
   "Gemüsebrühe": {
    "targets": {
@@ -814,6 +1447,30 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Gerösteter Sesam": {
+   "targets": {
+    "unspecified": [
+     "H420610"
+    ]
+   },
+   "via": "BLS-Name \"Sesam geröstet ohne Fett\""
+  },
+  "Gesalzene Butter": {
+   "targets": {
+    "unspecified": [
+     "Q6A4000"
+    ]
+   },
+   "via": "BLS-Zeile \"Butter gesalzen\""
+  },
+  "Gesalzene Erdnüsse": {
+   "targets": {
+    "unspecified": [
+     "H110700"
+    ]
+   },
+   "via": "BLS-Name \"Erdnuss geröstet, gesalzen\""
+  },
   "Geschroteter Leinsamen": {
    "targets": {
     "unspecified": [
@@ -821,6 +1478,92 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Getrocknete Aprikosen": {
+   "targets": {
+    "unspecified": [
+     "F201400"
+    ]
+   },
+   "via": "BLS-Name \"Aprikose getrocknet\"; Softaprikosen sind weniger stark getrocknet, das BLS trennt sie nicht"
+  },
+  "Getrocknete Birnen": {
+   "targets": {
+    "unspecified": [
+     "F130400"
+    ]
+   },
+   "via": "BLS-Name \"Birne getrocknet\"; Kletzen ist das österreichisch-bairische Wort dafür"
+  },
+  "Getrocknete Cranberries": {
+   "targets": {
+    "unspecified": [
+     "F414400"
+    ]
+   },
+   "via": "BLS-Name \"Cranberries getrocknet, gezuckert\" — so werden sie verkauft"
+  },
+  "Getrocknete Feigen": {
+   "targets": {
+    "unspecified": [
+     "F505400"
+    ]
+   },
+   "via": "BLS-Name \"Feige getrocknet\""
+  },
+  "Getrocknete Mango": {
+   "targets": {
+    "unspecified": [
+     "F516400"
+    ]
+   },
+   "via": "BLS-Name \"Mango getrocknet\""
+  },
+  "Getrocknete Minze": {
+   "targets": {
+    "unspecified": [
+     "Z-getrocknete-minze"
+    ]
+   },
+   "via": "Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte je Gramm. Ciqual 2020 (Anses) führt es als „Mint, dried“, inline übernommen. Türkische und levantinische Rezepte nennen sie oft ausdrücklich."
+  },
+  "Getrocknete Petersilie": {
+   "targets": {
+    "unspecified": [
+     "G250400"
+    ]
+   },
+   "via": "BLS-Name „Petersilienblatt getrocknet“"
+  },
+  "Getrocknete Pflaumen": {
+   "targets": {
+    "unspecified": [
+     "F220400"
+    ]
+   },
+   "via": "BLS-Name \"Pflaume getrocknet\""
+  },
+  "Getrocknete Shiitake": {
+   "targets": {
+    "unspecified": [
+     "K724400"
+    ],
+    "cooked": [
+     "K724432"
+    ]
+   },
+   "via": "BLS \"Shiitakepilz getrocknet\": trocken abgewogen, eingeweicht ist der gekochte Zustand."
+  },
+  "Getrocknete Steinpilze": {
+   "targets": {
+    "unspecified": [
+     "K718400"
+    ],
+    "cooked": [
+     "K718432"
+    ]
+   },
+   "via": "BLS \"Steinpilz getrocknet\": ein Rezept wiegt die trockenen Pilze ab, eingeweicht ist der gekochte Zustand."
   },
   "Getrocknete Tomaten": {
    "targets": {
@@ -833,6 +1576,93 @@
     "G560400",
     "G569902"
    ]
+  },
+  "Getrocknete Äpfel": {
+   "targets": {
+    "unspecified": [
+     "F110400"
+    ]
+   },
+   "via": "BLS-Name \"Apfel getrocknet\""
+  },
+  "Getrockneter Dill": {
+   "targets": {
+    "unspecified": [
+     "Z-getrockneter-dill"
+    ]
+   },
+   "via": "Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte je Gramm. USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, dill weed, dried“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile."
+  },
+  "Getrockneter Rosmarin": {
+   "targets": {
+    "unspecified": [
+     "Z-getrockneter-rosmarin"
+    ]
+   },
+   "via": "Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte je Gramm. Ciqual 2020 (Anses) führt es als „Rosemary, dried“, inline übernommen."
+  },
+  "Getrockneter Salbei": {
+   "targets": {
+    "unspecified": [
+     "Z-getrockneter-salbei"
+    ]
+   },
+   "via": "Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte je Gramm. Ciqual 2020 (Anses) führt es als „Sage, dried“, inline übernommen."
+  },
+  "Getrockneter Thymian": {
+   "targets": {
+    "unspecified": [
+     "Z-getrockneter-thymian"
+    ]
+   },
+   "via": "Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte je Gramm. Ciqual 2020 (Anses) führt es als „Thyme, dried“, inline übernommen."
+  },
+  "Getrocknetes Basilikum": {
+   "targets": {
+    "unspecified": [
+     "R231000"
+    ]
+   },
+   "via": "BLS-Name „Basilikum getrocknet“ — bisher nur Kandidat des frischen Basilikums, mit dem er je Gramm fast zehnmal so viel Energie hat."
+  },
+  "Gewürzgurke": {
+   "targets": {
+    "unspecified": [
+     "G520802"
+    ]
+   },
+   "via": "BLS \"Gurke gesäuert (Gewürzgurke) abgetropft\": aus dem Glas, mit eigenen Werten.",
+   "candidates": [
+    "G891202",
+    "G891102"
+   ]
+  },
+  "Gezuckerte Kondensmilch": {
+   "targets": {
+    "unspecified": [
+     "M181400"
+    ]
+   },
+   "via": "BLS-Zeile \"Kondensmilch mind. 8 % Fett, gezuckert\"; die Tube oder Dose für Desserts, vietnamesischen Kaffee, Dulce de leche"
+  },
+  "Glasnudeln": {
+   "targets": {
+    "raw": [
+     "Z-glasnudeln-raw"
+    ],
+    "cooked": [
+     "Z-glasnudeln-cooked"
+    ]
+   },
+   "via": "Glasnudeln (aus Mungbohnenstärke) führt das BLS nicht. Ciqual nennt sie wie der französische Handel „vermicelles de soja“; inline übernommen, trocken und gekocht. Eiweiß gibt Ciqual nur als „< 0,57“ an, es fehlt deshalb."
+  },
+  "Glukosesirup": {
+   "targets": {
+    "unspecified": [
+     "S151000"
+    ]
+   },
+   "via": "BLS-Name \"Glukosesirup maltosehaltig\""
   },
   "Gnocchi": {
    "targets": {
@@ -850,7 +1680,7 @@
   },
   "Gochujang": {
    "withoutValues": true,
-   "via": "Aus geteilten Anpassungen übernommen; noch ohne BLS-Zuordnung"
+   "via": "Koreanische Chilipaste aus Klebreis und Sojabohnen. Weder das BLS noch Ciqual noch USDA SR Legacy führen sie, und Sambal Oelek ist ohne Reis und Zucker ein anderes Lebensmittel; bis eine lizenzierte Quelle sie hat, bewusst ohne."
   },
   "Gorgonzola": {
    "targets": {
@@ -880,6 +1710,44 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Grapefruit": {
+   "targets": {
+    "raw": [
+     "F604100"
+    ]
+   },
+   "via": "BLS-Name \"Grapefruit roh\"",
+   "candidates": [
+    "F604600"
+   ]
+  },
+  "Graupen": {
+   "targets": {
+    "raw": [
+     "C148000"
+    ],
+    "cooked": [
+     "C148032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Gerste Graupen\""
+  },
+  "Graved Lachs": {
+   "targets": {
+    "unspecified": [
+     "T411800"
+    ]
+   },
+   "via": "BLS-Zeile \"Graved Lachs\"; gebeizt und roh gegessen, wie Räucherlachs nur in einem Zustand"
+  },
+  "Griechischer Joghurt": {
+   "targets": {
+    "unspecified": [
+     "M141500"
+    ]
+   },
+   "via": "BLS-Zeile \"Sahnejoghurt mind. 10 % Fett\"; Joghurt griechischer Art hat im Laden 10 % Fett und erbte bisher den Joghurt mit 3,5 %"
+  },
   "Grieß": {
    "targets": {
     "cooked": [
@@ -890,6 +1758,28 @@
     ]
    },
    "via": "BLS-Gruppe \"Hartweizen Grieß\""
+  },
+  "Griffiges Mehl": {
+   "targets": {
+    "unspecified": [
+     "C215000"
+    ]
+   },
+   "via": "Griffiges (doppelgriffiges) Mehl ist grob gemahlener Weizen, im BLS \"Weizen Dunst\""
+  },
+  "Grüne Oliven": {
+   "targets": {
+    "unspecified": [
+     "H510802",
+     "H510900",
+     "H511900"
+    ]
+   },
+   "via": "BLS \"Oliven grün, gesäuert, abgetropft\"; gefüllte als Alternativen."
+  },
+  "Grüner Pfeffer": {
+   "withoutValues": true,
+   "via": "Grüner Pfeffer kommt meist in Lake eingelegt ins Rezept und ist dann ein ganz anderes Lebensmittel je Gramm als getrockneter schwarzer. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen ihn; daher bewusst ohne Werte statt der des Elterneintrags."
   },
   "Grünkern": {
    "targets": {
@@ -921,6 +1811,10 @@
    "candidates": [
     "G322200"
    ]
+  },
+  "Guanciale": {
+   "withoutValues": true,
+   "via": "Luftgetrocknete Schweinebacke, fast reines Fett. Weder BLS noch Ciqual 2025 noch USDA SR Legacy führen sie; die Werte des Bauchspecks zu erben würde die Energie etwa halbieren."
   },
   "Gurke": {
    "targets": {
@@ -975,6 +1869,22 @@
    },
    "via": "BLS-Gruppe \"Hafer Flocken\""
   },
+  "Hafermehl": {
+   "targets": {
+    "unspecified": [
+     "C233000"
+    ]
+   },
+   "via": "BLS-Name \"Hafer Mehl\""
+  },
+  "Halbfettquark": {
+   "targets": {
+    "unspecified": [
+     "M713300"
+    ]
+   },
+   "via": "BLS-Zeile \"Speisequark Halbfettstufe, 20 % Fett i. Tr.\""
+  },
   "Halloumi": {
    "targets": {
     "cooked": [
@@ -988,6 +1898,22 @@
    },
    "via": "BLS-Gruppe \"Halloumi Grillkäse\""
   },
+  "Hanfsamen": {
+   "targets": {
+    "unspecified": [
+     "Z-hanfsamen"
+    ]
+   },
+   "via": "Das BLS führt Hanfsamen nicht, Ciqual 2020 auch nicht; USDA-Zeile der geschälten Samen, wie sie fürs Kochen verkauft werden. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
+  },
+  "Harissa": {
+   "targets": {
+    "unspecified": [
+     "Z-harissa"
+    ]
+   },
+   "via": "Nordafrikanische Chilipaste mit Öl und Kreuzkümmel; das BLS hat sie nicht, und Sambal Oelek ist ohne Öl ein anderes Lebensmittel. Ciqual 2020 (Anses), inline übernommen; Energie und Zucker gibt Ciqual nicht an, sie fehlen deshalb."
+  },
   "Haselnuss": {
    "targets": {
     "unspecified": [
@@ -999,6 +1925,22 @@
     "H130400",
     "H130610"
    ]
+  },
+  "Haselnussmus": {
+   "targets": {
+    "unspecified": [
+     "H130800"
+    ]
+   },
+   "via": "BLS-Name \"Haselnussmus\""
+  },
+  "Haselnussöl": {
+   "targets": {
+    "unspecified": [
+     "Q140000"
+    ]
+   },
+   "via": "BLS-Name \"Haselnussöl\""
   },
   "Hefe": {
    "targets": {
@@ -1033,6 +1975,14 @@
     "F3B2902"
    ]
   },
+  "Hirschhornsalz": {
+   "targets": {
+    "unspecified": [
+     "R421200"
+    ]
+   },
+   "via": "BLS-Name \"Hirschhornsalz (Ammoniumhydrogencarbonat, E 503)\""
+  },
   "Hirse": {
    "targets": {
     "raw": [
@@ -1048,6 +1998,14 @@
     "C432000"
    ]
   },
+  "Hoisinsauce": {
+   "targets": {
+    "unspecified": [
+     "Z-hoisinsauce"
+    ]
+   },
+   "via": "Weder BLS noch Ciqual führen Hoisinsauce; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
   "Hokkaido": {
    "targets": {
     "raw": [
@@ -1061,6 +2019,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Kürbis Hokkaido (C. maxima)\""
+  },
+  "Holunderbeere": {
+   "targets": {
+    "raw": [
+     "F406100"
+    ]
+   },
+   "via": "BLS-Name \"Holunderbeere roh\"; Fliederbeere ist das norddeutsche Wort. Holunderblüten sind etwas anderes"
   },
   "Honig": {
    "targets": {
@@ -1092,6 +2058,19 @@
    },
    "via": "BLS-Gruppe \"Hähnchen Brustfilet\""
   },
+  "Hähnchenoberschenkel": {
+   "targets": {
+    "raw": [
+     "V4A5100"
+    ],
+    "cooked": [
+     "V4A5182",
+     "V4A5162",
+     "V4A5142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hähnchen Oberschenkel, mit Haut\""
+  },
   "Hähnchenschenkel": {
    "targets": {
     "raw": [
@@ -1109,6 +2088,19 @@
    },
    "via": "kuratierte Auswahl"
   },
+  "Hähnchenunterschenkel": {
+   "targets": {
+    "raw": [
+     "V4B5100"
+    ],
+    "cooked": [
+     "V4B5182",
+     "V4B5162",
+     "V4B5142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Hähnchen Unterschenkel, mit Haut\"; deutlich magerer als der Oberschenkel"
+  },
   "Hühnerbrühe": {
    "targets": {
     "unspecified": [
@@ -1117,6 +2109,15 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Hüttenkäse": {
+   "targets": {
+    "unspecified": [
+     "M711300",
+     "M711100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Körniger Frischkäse\"; im Laden meist 20 % Fett i. Tr."
+  },
   "Ingwer": {
    "targets": {
     "raw": [
@@ -1124,6 +2125,38 @@
     ]
    },
    "via": "BLS-Gruppe \"Ingwer/Ingwerwurzel\""
+  },
+  "Ingwerpulver": {
+   "targets": {
+    "unspecified": [
+     "Z-ingwerpulver"
+    ]
+   },
+   "via": "Das BLS führt nur frischen Ingwer (R211200); gemahlen ist er getrocknet und ein anderes Lebensmittel je Gramm. Ciqual 2020 (Anses) führt ihn als „Ginger, powder“, inline übernommen."
+  },
+  "Instantkaffee": {
+   "targets": {
+    "unspecified": [
+     "Z-instantkaffee"
+    ]
+   },
+   "via": "Das Pulver, nicht das Getränk; das BLS hat es nicht. USDA-Zeile. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
+  },
+  "Italienische Kräuter": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen die italienische Kräutermischung; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung. Ciquals „Provence herbs, dried“ gehört zu den Kräutern der Provence."
+  },
+  "Jakobsmuschel": {
+   "targets": {
+    "raw": [
+     "T793100"
+    ],
+    "cooked": [
+     "T793182",
+     "T793162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Pilgermuschel/Jakobsmuschel\""
   },
   "Jasminreis": {
    "targets": {
@@ -1218,6 +2251,18 @@
    },
    "via": "BLS-Gruppe \"Kaffee (Getränk)\""
   },
+  "Kaffeesahne": {
+   "targets": {
+    "unspecified": [
+     "M171500"
+    ]
+   },
+   "via": "BLS-Zeile \"Kaffeesahne mind. 10 % Fett\""
+  },
+  "Kaffirlimettenblätter": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Kaffirlimettenblätter; ein Würzblatt, das blattweise ins Essen geht und meist wieder heraus, also lieber keine Werte als geratene."
+  },
   "Kakao": {
    "targets": {
     "unspecified": [
@@ -1226,9 +2271,51 @@
    },
    "via": "BLS-Gruppe \"Kakaopulver stark entölt\""
   },
+  "Kaki": {
+   "targets": {
+    "raw": [
+     "F507100"
+    ]
+   },
+   "via": "BLS-Name \"Kaki roh\""
+  },
+  "Kalbsfond": {
+   "targets": {
+    "unspecified": [
+     "X411563"
+    ]
+   },
+   "via": "BLS-Name \"Kalbsbrühe\""
+  },
+  "Kalbshackfleisch": {
+   "targets": {
+    "raw": [
+     "U030100"
+    ],
+    "cooked": [
+     "U030182",
+     "U030162",
+     "U030132",
+     "U030142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kalb Hackfleisch\""
+  },
+  "Kapern": {
+   "targets": {
+    "unspecified": [
+     "G012902"
+    ]
+   },
+   "via": "BLS-Name \"Kapern gesäuert, abgetropft\""
+  },
   "Kardamom": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-kardamom"
+    ]
+   },
+   "via": "Das BLS führt Kardamom nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cardamom, powder“ (das gemahlene Gewürz); diese Zeile ist inline übernommen."
   },
   "Karotte": {
    "targets": {
@@ -1283,6 +2370,39 @@
     "K120264"
    ]
   },
+  "Kartoffelstärke": {
+   "targets": {
+    "unspecified": [
+     "K230000"
+    ]
+   },
+   "via": "BLS-Name \"Kartoffelstärke (Kartoffelmehl)\""
+  },
+  "Kassler": {
+   "targets": {
+    "unspecified": [
+     "U522700",
+     "U622700"
+    ]
+   },
+   "via": "BLS-Zeile \"Schwein Stielkotelett, Kochpökelware, geräuchert\" — so wird Kassler hergestellt. Es ist gepökelt und vorgegart; eine eigene gegarte Zeile führt der BLS nicht."
+  },
+  "Kecap Manis": {
+   "targets": {
+    "unspecified": [
+     "Z-kecap-manis"
+    ]
+   },
+   "via": "Die indonesische süße Sojasauce ist zu rund 40 % Zucker und darf die Werte der salzigen nicht erben. Das BLS hat sie nicht; Ciqual 2020 (Anses) „Soy sauce, with sugar, prepacked“, inline übernommen. Energie und Kohlenhydrate gibt Ciqual nicht an, Fett nur als „< 0,5“; sie fehlen deshalb."
+  },
+  "Kerbel": {
+   "targets": {
+    "raw": [
+     "Z-kerbel"
+    ]
+   },
+   "via": "Das BLS führt Kerbel nicht. Ciqual 2020 (Anses) führt das frische Kraut als „Chervil, fresh“, inline übernommen."
+  },
   "Ketchup": {
    "targets": {
     "unspecified": [
@@ -1301,6 +2421,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Kichererbse reif\""
+  },
+  "Kichererbsenmehl": {
+   "targets": {
+    "unspecified": [
+     "H720400"
+    ]
+   },
+   "via": "BLS-Name \"Kichererbsenmehl\""
   },
   "Kidneybohnen": {
    "targets": {
@@ -1323,6 +2451,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Süßkirsche\""
+  },
+  "Kirschwasser": {
+   "targets": {
+    "unspecified": [
+     "P752100"
+    ]
+   },
+   "via": "BLS-Name \"Obstbrand/Obstwasser\" — Kirschwasser ist ein Obstbrand"
   },
   "Kiwi": {
    "targets": {
@@ -1362,6 +2498,14 @@
     "G491802"
    ]
   },
+  "Knoblauchbutter": {
+   "targets": {
+    "unspecified": [
+     "Q656000"
+    ]
+   },
+   "via": "BLS-Zeile \"Knoblauchbutter/Kräuterbutter\""
+  },
   "Knoblauchpulver": {
    "targets": {
     "unspecified": [
@@ -1386,6 +2530,29 @@
    "candidates": [
     "G660802"
    ]
+  },
+  "Kochbanane": {
+   "targets": {
+    "raw": [
+     "F545100"
+    ],
+    "cooked": [
+     "F545132",
+     "F545152",
+     "F545162",
+     "F545182",
+     "F545142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kochbanane\"; stärkereich, nicht wie die Obstbanane"
+  },
+  "Kochsahne": {
+   "targets": {
+    "unspecified": [
+     "Z-kochsahne"
+    ]
+   },
+   "via": "Der BLS führt keine Sahne zwischen 10 und 30 % Fett. Kochsahne hat meist 15 %; die Ciqual-Zeile für flüssige Sahne mit 12–20 % Fett trifft das."
   },
   "Kohlrabi": {
    "targets": {
@@ -1433,6 +2600,14 @@
    },
    "via": "BLS-Gruppe \"Kokos Fruchtfleisch, geraspelt, getrocknet\""
   },
+  "Kokoswasser": {
+   "targets": {
+    "unspecified": [
+     "H151000"
+    ]
+   },
+   "via": "BLS-Name \"Kokoswasser (Fruchtwasser)\""
+  },
   "Kokosöl": {
    "targets": {
     "unspecified": [
@@ -1441,17 +2616,103 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Kondensmilch": {
+   "targets": {
+    "unspecified": [
+     "M182400",
+     "M182500",
+     "M182300"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kondensmilch\"; ungezuckert, die Dose im Laden hat meist 7,5 oder 10 % Fett"
+  },
   "Koriander": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-koriander"
+    ]
+   },
+   "via": "Das BLS führt Koriandergrün nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Coriander, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Koriandersamen": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-koriandersamen"
+    ]
+   },
+   "via": "Das BLS führt Koriandersamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Coriander, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
+  },
+  "Korinthe": {
+   "targets": {
+    "unspecified": [
+     "F840300"
+    ]
+   },
+   "via": "BLS-Name \"Korinthe (Weinbeere getrocknet)\""
+  },
+  "Kresse": {
+   "targets": {
+    "raw": [
+     "G280100"
+    ]
+   },
+   "via": "BLS-Name „Gartenkresse roh“"
   },
   "Kreuzkümmel": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-kreuzkuemmel"
+    ]
+   },
+   "via": "Das BLS führt Kreuzkümmel nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cumin, seed“ (die getrockneten Samen, wie ein Rezept sie meint (gemahlen hat er dieselben Werte je Gramm)); diese Zeile ist inline übernommen."
+  },
+  "Kräuter": {
+   "targets": {
+    "raw": [
+     "Z-kraeuter"
+    ]
+   },
+   "via": "Das unbestimmte Wort für gemischte frische Kräuter („2 EL gehackte Kräuter“). Das BLS führt keinen Durchschnitt; Ciqual 2020 (Anses) führt ihn als „Herbs, fresh (average)“, inline übernommen."
+  },
+  "Kräuter der Provence": {
+   "targets": {
+    "unspecified": [
+     "Z-kraeuter-der-provence"
+    ]
+   },
+   "via": "Das BLS führt die Mischung nicht. Ciqual 2020 (Anses) führt sie getrocknet als „Provence herbs, dried“, inline übernommen."
+  },
+  "Kräuterbutter": {
+   "targets": {
+    "unspecified": [
+     "Q656000"
+    ]
+   },
+   "via": "BLS-Zeile \"Knoblauchbutter/Kräuterbutter\"; erbte bisher die reine Butter"
+  },
+  "Kräuteressig": {
+   "targets": {
+    "unspecified": [
+     "R124000"
+    ]
+   },
+   "via": "BLS-Name \"Kräuteressig\""
+  },
+  "Kräutersalz": {
+   "targets": {
+    "unspecified": [
+     "R115000"
+    ]
+   },
+   "via": "BLS-Name „Gewürzsalz/Kräutersalz“"
+  },
+  "Kräuterseitling": {
+   "targets": {
+    "raw": [
+     "Z-kraeuterseitling"
+    ]
+   },
+   "via": "Das BLS führt den Kräuterseitling nicht (nur den Austernpilz, eine andere Art). Werte aus USDA Foundation Foods \"Mushroom, king oyster\" (FDC 2003599), roh. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
   },
   "Kurkuma": {
    "withoutValues": true,
@@ -1464,6 +2725,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Zartbitter-/Halbbitter-Kuvertüre\""
+  },
+  "Kümmel": {
+   "targets": {
+    "unspecified": [
+     "Z-kuemmel"
+    ]
+   },
+   "via": "Das BLS führt Kümmel nicht. Ciqual 2020 (Anses) führt die getrockneten Samen als „Caraway, seed“, inline übernommen. Kümmel ist Carum carvi, nicht Kreuzkümmel (eigener Eintrag)."
   },
   "Kürbis": {
    "targets": {
@@ -1505,6 +2774,10 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Labneh": {
+   "withoutValues": true,
+   "via": "Abgetropfter Joghurt aus der levantinischen Küche, deutlich fester und fetter als Joghurt. Weder BLS noch Ciqual 2025 noch USDA FoodData Central (SR Legacy, Foundation, FNDDS) führen ihn; die Werte des Joghurts zu erben wäre falsch."
+  },
   "Lachs": {
    "targets": {
     "cooked": [
@@ -1533,6 +2806,14 @@
     "T824900"
    ]
   },
+  "Lachsschinken": {
+   "targets": {
+    "unspecified": [
+     "W443000"
+    ]
+   },
+   "via": "BLS-Zeile \"Lachsschinken, Rohpökelware, geräuchert\""
+  },
   "Lammfleisch": {
    "targets": {
     "raw": [
@@ -1544,6 +2825,29 @@
     "W139100",
     "W149100"
    ]
+  },
+  "Lammhackfleisch": {
+   "targets": {
+    "raw": [
+     "Z-lammhackfleisch-raw"
+    ],
+    "cooked": [
+     "Z-lammhackfleisch-cooked"
+    ]
+   },
+   "via": "Der BLS führt kein Lammhack. USDA SR Legacy \"Lamb, ground\", roh und gegrillt; USDA gibt Kohlenhydrate nur als Differenz mit den Ballaststoffen an, daher ohne carbsG."
+  },
+  "Lammkotelett": {
+   "targets": {
+    "raw": [
+     "U727100"
+    ],
+    "cooked": [
+     "U727182",
+     "U727162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Lamm Kotelett\"; mit Fettrand fast doppelt so energiereich wie Muskelfleisch"
   },
   "Lauch": {
    "targets": {
@@ -1558,6 +2862,24 @@
     ]
    },
    "via": "BLS-Gruppe \"Porree/Lauch\""
+  },
+  "Leberkäse": {
+   "targets": {
+    "cooked": [
+     "W233082",
+     "W233062",
+     "W233032"
+    ],
+    "unspecified": [
+     "W233000",
+     "W256100"
+    ]
+   },
+   "via": "BLS-Gruppe \"Fleischkäse einfach, fein/Original Bayerischer Leberkäse fein\"; der bayerische Leberkäse enthält keine Leber"
+  },
+  "Lebkuchengewürz": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Lebkuchengewürz; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung. USDAs „pumpkin pie spice“ ist eine andere Mischung."
   },
   "Leinsamen": {
    "targets": {
@@ -1577,6 +2899,21 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Liebstöckel": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Liebstöckel; ein Kraut, das in Blättern und Stielen ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Limabohnen": {
+   "targets": {
+    "raw": [
+     "G780400"
+    ],
+    "cooked": [
+     "G780432"
+    ]
+   },
+   "via": "BLS \"Limabohne (Butterbohne, Mondbohne) reif\"."
   },
   "Limette": {
    "targets": {
@@ -1600,9 +2937,50 @@
    },
    "via": "BLS-Gruppe \"Linse reif\""
   },
+  "Litschi": {
+   "targets": {
+    "raw": [
+     "F515100"
+    ]
+   },
+   "via": "BLS-Name \"Litschi roh\""
+  },
   "Lorbeerblatt": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-lorbeerblatt"
+    ]
+   },
+   "via": "Das BLS führt Lorbeer nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt die getrockneten Blätter als „Bay, leaves“; diese Zeile ist inline übernommen."
+  },
+  "Macadamianuss": {
+   "targets": {
+    "unspecified": [
+     "H190100"
+    ]
+   },
+   "via": "BLS-Name \"Macadamianuss\"",
+   "candidates": [
+    "H190600",
+    "H190700"
+   ]
+  },
+  "Magerjoghurt": {
+   "targets": {
+    "unspecified": [
+     "M141100"
+    ]
+   },
+   "via": "BLS-Zeile \"Joghurt aus entrahmter Milch, max. 0,5 % Fett\""
+  },
+  "Magermilch": {
+   "targets": {
+    "unspecified": [
+     "M111100",
+     "M113100"
+    ]
+   },
+   "via": "BLS-Zeile \"Milch entrahmt, frisch, höchstens 0,1 % Fett, pasteurisiert\""
   },
   "Mais": {
    "targets": {
@@ -1623,6 +3001,38 @@
     "C443000",
     "C446000"
    ]
+  },
+  "Maiskeimöl": {
+   "targets": {
+    "unspecified": [
+     "Q260000"
+    ]
+   },
+   "via": "BLS-Name \"Maiskeimöl\""
+  },
+  "Maismehl": {
+   "targets": {
+    "unspecified": [
+     "C443000"
+    ]
+   },
+   "via": "BLS-Name \"Mais Mehl\""
+  },
+  "Maistortilla": {
+   "targets": {
+    "unspecified": [
+     "Z-maistortilla"
+    ]
+   },
+   "via": "Das BLS führt nur die Weizentortilla. Die mexikanische Maistortilla aus Masa harina hat ein Viertel weniger Energie; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
+  "Majoran": {
+   "targets": {
+    "unspecified": [
+     "Z-majoran"
+    ]
+   },
+   "via": "Das BLS führt Majoran nicht. Ohne Zusatz meint ein Rezept den getrockneten, gerebelten; Ciqual 2020 (Anses) führt ihn als „Marjoram, dried“, inline übernommen."
   },
   "Mandarine": {
    "targets": {
@@ -1673,6 +3083,43 @@
     "F516902"
    ]
   },
+  "Mangold": {
+   "targets": {
+    "raw": [
+     "G230100"
+    ],
+    "cooked": [
+     "G230132",
+     "G230152",
+     "G230142",
+     "G230182",
+     "G230162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mangold\"; \"Krautstiel\" ist das Schweizer Wort."
+  },
+  "Maniok": {
+   "targets": {
+    "raw": [
+     "K410100"
+    ],
+    "cooked": [
+     "K410432"
+    ]
+   },
+   "via": "BLS-Gruppe \"Maniok/Cassava\": die Knolle, nicht die Stärke."
+  },
+  "Maracuja": {
+   "targets": {
+    "raw": [
+     "F508100"
+    ]
+   },
+   "via": "BLS-Name \"Maracuja/Passionsfrucht, roh\"",
+   "candidates": [
+    "F508600"
+   ]
+  },
   "Margarine": {
    "targets": {
     "unspecified": [
@@ -1706,6 +3153,30 @@
    },
    "via": "BLS-Name \"Edelkastanie/Marone\""
   },
+  "Marsala": {
+   "targets": {
+    "unspecified": [
+     "Z-marsala"
+    ]
+   },
+   "via": "Das BLS führt Marsala nicht; Ciqual-Zeile"
+  },
+  "Marzipan": {
+   "targets": {
+    "unspecified": [
+     "S420000"
+    ]
+   },
+   "via": "BLS-Name \"Marzipan\""
+  },
+  "Marzipanrohmasse": {
+   "targets": {
+    "unspecified": [
+     "S421000"
+    ]
+   },
+   "via": "BLS-Name \"Marzipan Rohmasse\""
+  },
   "Mascarpone": {
    "targets": {
     "unspecified": [
@@ -1714,6 +3185,10 @@
    },
    "via": "BLS-Gruppe \"Mascarpone mind. 80 % Fett i. Tr.\""
   },
+  "Matcha": {
+   "withoutValues": true,
+   "via": "Das Pulver wird mitgegessen, ist also nicht der Aufguss; keine Zeile in BLS, Ciqual oder USDA SR Legacy"
+  },
   "Mayonnaise": {
    "targets": {
     "unspecified": [
@@ -1721,6 +3196,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Mayonnaise (Fertigprodukt)\""
+  },
+  "Medjool-Dattel": {
+   "targets": {
+    "raw": [
+     "Z-medjool-dattel"
+    ]
+   },
+   "via": "Weiche, halbgetrocknete Sorte; das BLS hat nur frische und getrocknete Datteln allgemein. Zeile aus USDA SR Legacy. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
   },
   "Meersalz": {
    "targets": {
@@ -1755,6 +3238,28 @@
    },
    "via": "Wasser- und Honigmelone sind eigene Sorten; das nackte Wort ist die Honigmelone"
   },
+  "Merguez": {
+   "targets": {
+    "cooked": [
+     "Z-merguez-cooked"
+    ],
+    "unspecified": [
+     "Z-merguez-unspecified"
+    ]
+   },
+   "via": "Nordafrikanische Würstchen aus Rind und Lamm/Hammel, scharf gewürzt; der BLS führt sie nicht. Ciqual-Zeilen \"Merguez, boeuf et mouton\", roh als Ware und gegart."
+  },
+  "Mie-Nudeln": {
+   "targets": {
+    "raw": [
+     "E432000"
+    ],
+    "cooked": [
+     "E432032"
+    ]
+   },
+   "via": "Mie-Nudeln sind Weizennudeln mit Ei: BLS-Gruppe \"Eierteigwaren\"."
+  },
   "Miesmuschel": {
    "targets": {
     "cooked": [
@@ -1788,9 +3293,57 @@
     "M114200"
    ]
   },
+  "Milchpulver": {
+   "targets": {
+    "unspecified": [
+     "M882000",
+     "M884000"
+    ]
+   },
+   "via": "BLS-Zeile \"Vollmilchpulver\""
+  },
   "Minze": {
+   "targets": {
+    "raw": [
+     "Z-minze"
+    ]
+   },
+   "via": "Das BLS führt Minze nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Mint, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+  },
+  "Mirabelle": {
+   "targets": {
+    "raw": [
+     "F224100"
+    ],
+    "cooked": [
+     "F224152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mirabelle\""
+  },
+  "Mirin": {
    "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "via": "Süßer japanischer Reiswein zum Würzen, viel Zucker; keine Zeile in BLS, Ciqual oder USDA SR Legacy, und die Sake-Werte wären zu niedrig"
+  },
+  "Mischpilze": {
+   "targets": {
+    "raw": [
+     "K750100"
+    ],
+    "cooked": [
+     "K750152",
+     "K750182",
+     "K750162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mischpilze\", meist aus der Tiefkühltruhe.",
+   "candidates": [
+    "K750200",
+    "K750252",
+    "K750282",
+    "K750400",
+    "K750902"
+   ]
   },
   "Miso": {
    "targets": {
@@ -1799,6 +3352,14 @@
     ]
    },
    "via": "BLS-Name \"Miso/Sojabohnenpaste\""
+  },
+  "Mohn": {
+   "targets": {
+    "unspecified": [
+     "H450100"
+    ]
+   },
+   "via": "BLS-Name \"Mohn\""
   },
   "Mozzarella": {
    "targets": {
@@ -1811,6 +3372,25 @@
     "M0A1000"
    ]
   },
+  "Mu-Err": {
+   "targets": {
+    "unspecified": [
+     "Z-mu-err"
+    ]
+   },
+   "via": "Getrocknet aus dem Asialaden; BLS und Ciqual führen sie nicht. Werte aus USDA SR Legacy \"Fungi, Cloud ears, dried\" (FDC 168581), trocken abgewogen. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
+  },
+  "Mungbohnen": {
+   "targets": {
+    "unspecified": [
+     "H770100"
+    ],
+    "cooked": [
+     "H770132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Mungbohne reif\": die getrockneten Bohnen, trocken abgewogen."
+  },
   "Muschel": {
    "targets": {
     "raw": [
@@ -1822,9 +3402,21 @@
    },
    "via": "BLS-Gruppe \"Miesmuschel\""
   },
+  "Muskatblüte": {
+   "targets": {
+    "unspecified": [
+     "Z-muskatbluete"
+    ]
+   },
+   "via": "Der Samenmantel der Muskatnuss, ein eigenes Gewürz. Weder BLS noch Ciqual führen ihn; USDA FoodData Central (SR Legacy, gemeinfrei) als „Spices, mace, ground“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile."
+  },
   "Muskatnuss": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-muskatnuss"
+    ]
+   },
+   "via": "Das BLS führt Muskatnuss nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Nutmeg“ (die Nuss als Gewürz); diese Zeile ist inline übernommen."
   },
   "Naan": {
    "targets": {
@@ -1834,9 +3426,33 @@
    },
    "via": "BLS-Gruppe \"Weizenfladenbrot\""
   },
+  "Nashi-Birne": {
+   "targets": {
+    "raw": [
+     "Z-nashi-birne"
+    ]
+   },
+   "via": "Das BLS führt die Asiatische Birne nicht; Zeile aus USDA SR Legacy. Gegart gibt es keine Zeile. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
+  },
   "Natron": {
-   "withoutValues": true,
-   "via": "Backtriebmittel, kein Lebensmittel im Sinne des BLS — und trägt in verwendeter Menge nichts bei. Backpulver steht im Katalog (R421100), ist aber ein anderer Stoff und deshalb bewusst nicht eingesetzt."
+   "targets": {
+    "unspecified": [
+     "Z-natron"
+    ]
+   },
+   "via": "Natron (Natriumhydrogencarbonat) führt das BLS nicht. Energie trägt es nicht bei, aber gut ein Viertel seines Gewichts ist Natrium — ein Teelöffel bringt so viel Natrium wie gut 3 g Salz. Ciqual 2020 (Anses) „Sodium bicarbonate“, inline übernommen. Backpulver (R421100) ist ein anderer Stoff und bewusst nicht eingesetzt."
+  },
+  "Naturreis": {
+   "targets": {
+    "raw": [
+     "C351000"
+    ],
+    "cooked": [
+     "C351032",
+     "C351082"
+    ]
+   },
+   "via": "BLS-Gruppe \"Reis unpoliert\" — erbte bisher den polierten Reis des Stamms; ungeschält hat er mehr Ballaststoffe (4 statt 2,5 g) und viermal so viel Fett."
   },
   "Nektarine": {
    "targets": {
@@ -1850,8 +3466,29 @@
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
   "Nelke": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-nelke"
+    ]
+   },
+   "via": "Das BLS führt Gewürznelken nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cloves“ (die getrockneten Knospen); diese Zeile ist inline übernommen."
+  },
+  "Netzmelone": {
+   "targets": {
+    "raw": [
+     "F532100"
+    ]
+   },
+   "via": "BLS-Name \"Netzmelone/Cantaloupmelone, roh\""
+  },
+  "Nitritpökelsalz": {
+   "targets": {
+    "unspecified": [
+     "R118000",
+     "R118100"
+    ]
+   },
+   "via": "BLS-Name „Nitritpökelsalz“; jodiert als Alternative"
   },
   "Nori": {
    "targets": {
@@ -1871,6 +3508,34 @@
     ]
    },
    "via": "kuratierte Auswahl"
+  },
+  "Ochsenschwanz": {
+   "targets": {
+    "raw": [
+     "U109100"
+    ],
+    "cooked": [
+     "U109142",
+     "U109182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Ochsenschwanz\""
+  },
+  "Okra": {
+   "targets": {
+    "raw": [
+     "G530100"
+    ],
+    "cooked": [
+     "G530132",
+     "G530152",
+     "G530142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Okra\".",
+   "candidates": [
+    "G530902"
+   ]
   },
   "Olive": {
    "targets": {
@@ -1897,9 +3562,32 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Orangeat": {
+   "targets": {
+    "unspecified": [
+     "R381100"
+    ]
+   },
+   "via": "BLS-Name \"Orangeat\""
+  },
+  "Orangensaft": {
+   "targets": {
+    "unspecified": [
+     "F603600"
+    ]
+   },
+   "via": "BLS-Name \"Orangensaft\"; der Nektar ist nur Kandidat",
+   "candidates": [
+    "F603700"
+   ]
+  },
   "Oregano": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-oregano"
+    ]
+   },
+   "via": "Das BLS führt Oregano nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept den getrockneten (frischen gibt es selten); Ciqual 2020 (Anses) führt ihn als „Oregano, dried“, inline übernommen."
   },
   "Pak Choi": {
    "targets": {
@@ -1916,7 +3604,22 @@
   },
   "Pandanblatt": {
    "withoutValues": true,
-   "via": "Das BLS führt Pandanblätter nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Pandanblätter; in allen 3.983 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Paneer": {
+   "withoutValues": true,
+   "via": "Indischer gepresster Frischkäse. Weder BLS noch Ciqual 2025 noch USDA SR Legacy/Foundation führen ihn; die FNDDS-Zeile \"Cheese, paneer\" (FDC 2705740) ist aus eingedickter Vollmilch gerechnet und behält 22 g Milchzucker, den echter Paneer mit der Molke verliert — unbrauchbar. Die Werte des Frischkäses zu erben wäre falsch (zu wenig Eiweiß)."
+  },
+  "Papaya": {
+   "targets": {
+    "raw": [
+     "F517100"
+    ]
+   },
+   "via": "BLS-Name \"Papaya roh\"",
+   "candidates": [
+    "F517400"
+   ]
   },
   "Paprika": {
    "targets": {
@@ -1946,8 +3649,36 @@
    "via": "kuratierte Auswahl"
   },
   "Paprikapulver": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-paprikapulver"
+    ]
+   },
+   "via": "Das BLS führt Paprikapulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile."
+  },
+  "Paranuss": {
+   "targets": {
+    "unspecified": [
+     "H180100"
+    ]
+   },
+   "via": "BLS-Name \"Paranuss\"",
+   "candidates": [
+    "H180610"
+   ]
+  },
+  "Parboiled Reis": {
+   "targets": {
+    "raw": [
+     "C359000"
+    ],
+    "cooked": [
+     "C359032",
+     "C359042",
+     "C359082"
+    ]
+   },
+   "via": "BLS-Gruppe \"Reis parboiled, poliert\""
   },
   "Parmaschinken": {
    "targets": {
@@ -1994,6 +3725,25 @@
     "G640142"
    ]
   },
+  "Pecorino": {
+   "targets": {
+    "unspecified": [
+     "Z-pecorino"
+    ]
+   },
+   "via": "Der BLS führt keinen Pecorino; Ciqual-Zeile für Schafskäse-Pecorino. Mit 1890 mg Natrium fast dreimal so salzig wie Parmesan."
+  },
+  "Pekannuss": {
+   "targets": {
+    "unspecified": [
+     "H160100"
+    ]
+   },
+   "via": "BLS-Name \"Pekannuss\"",
+   "candidates": [
+    "H160600"
+   ]
+  },
   "Penne": {
    "targets": {
     "raw": [
@@ -2005,6 +3755,14 @@
    },
    "via": "kuratierte Auswahl"
   },
+  "Pesto": {
+   "targets": {
+    "unspecified": [
+     "Z-pesto"
+    ]
+   },
+   "via": "Das BLS führt kein Pesto; Ciqual 2020 (Anses) „Sauce, pesto, prepacked“, inline übernommen."
+  },
   "Petersilie": {
    "targets": {
     "raw": [
@@ -2012,6 +3770,20 @@
     ]
    },
    "via": "BLS-Gruppe \"Petersilienblatt\""
+  },
+  "Petersilienwurzel": {
+   "targets": {
+    "raw": [
+     "G670100"
+    ],
+    "cooked": [
+     "G670132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Wurzelpetersilie\": die Wurzel, nicht das Kraut.",
+   "candidates": [
+    "G670400"
+   ]
   },
   "Pfeffer": {
    "targets": {
@@ -2070,6 +3842,22 @@
     "F22A902"
    ]
   },
+  "Pflücksalat": {
+   "targets": {
+    "raw": [
+     "G108100"
+    ]
+   },
+   "via": "BLS \"Schnittsalat/Pflücksalat, roh\"; Lollo und Eichblatt sind Pflücksalate."
+  },
+  "Physalis": {
+   "targets": {
+    "raw": [
+     "F552100"
+    ]
+   },
+   "via": "BLS-Name \"Kapstachelbeere/Physalis, roh\""
+  },
   "Pilz": {
    "targets": {
     "raw": [
@@ -2084,6 +3872,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Champignon\""
+  },
+  "Piment": {
+   "targets": {
+    "unspecified": [
+     "Z-piment"
+    ]
+   },
+   "via": "Das BLS führt Piment nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR Legacy, gemeinfrei) führt das gemahlene Gewürz als „Spices, allspice, ground“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. Ganz oder gemahlen sind es dieselben Beeren."
   },
   "Pinienkerne": {
    "targets": {
@@ -2125,6 +3921,38 @@
    },
    "via": "BLS-Gruppe \"Polenta (Maisgrieß mit Wasser, Fett und Salz) gekocht\""
   },
+  "Pomelo": {
+   "targets": {
+    "raw": [
+     "F605100"
+    ]
+   },
+   "via": "BLS-Name \"Pampelmuse/Pomelo, roh\"; \"Pampelmuse\" sagt der Alltag auch zur Grapefruit, darum kein Alias"
+  },
+  "Portwein": {
+   "targets": {
+    "unspecified": [
+     "P431000"
+    ]
+   },
+   "via": "BLS-Name \"Portwein\""
+  },
+  "Pottasche": {
+   "targets": {
+    "unspecified": [
+     "R421300"
+    ]
+   },
+   "via": "BLS-Name \"Pottasche (99 % Kaliumcarbonat, E 501)\""
+  },
+  "Preiselbeere": {
+   "targets": {
+    "raw": [
+     "F401100"
+    ]
+   },
+   "via": "BLS-Name \"Preiselbeere roh\""
+  },
   "Puddingpulver": {
    "targets": {
     "unspecified": [
@@ -2152,6 +3980,14 @@
    },
    "via": "BLS-Gruppe \"Speisequark Magerstufe, Magerquark < 10 % Fett i. Tr.\""
   },
+  "Queso fresco": {
+   "targets": {
+    "unspecified": [
+     "Z-queso-fresco"
+    ]
+   },
+   "via": "Mexikanischer Frischkäse, krümelig und salzig; der BLS führt ihn nicht, USDA SR Legacy schon. USDA gibt Kohlenhydrate nur als Differenz mit den Ballaststoffen an, daher ohne carbsG."
+  },
   "Quinoa": {
    "targets": {
     "raw": [
@@ -2167,6 +4003,34 @@
     "C118122",
     "C530200"
    ]
+  },
+  "Quitte": {
+   "targets": {
+    "raw": [
+     "F140100"
+    ],
+    "cooked": [
+     "F140132",
+     "F140152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Quitte\""
+  },
+  "Raclettekäse": {
+   "targets": {
+    "unspecified": [
+     "M307700"
+    ]
+   },
+   "via": "BLS-Zeile \"Raclettekäse mind. 45 % Fett i. Tr.\"; das nackte Wort Raclette ist auch das Gericht und steht deshalb nicht als Schreibweise da"
+  },
+  "Radicchio": {
+   "targets": {
+    "raw": [
+     "G106100"
+    ]
+   },
+   "via": "BLS \"Radicchio roh\"."
   },
   "Radieschen": {
    "targets": {
@@ -2186,6 +4050,10 @@
     ]
    },
    "via": "BLS-Gruppe \"Rapsöl/Rüböl\""
+  },
+  "Ras el Hanout": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Ras el Hanout; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung."
   },
   "Reis": {
    "targets": {
@@ -2216,6 +4084,44 @@
     "C532000"
    ]
   },
+  "Reismehl": {
+   "targets": {
+    "unspecified": [
+     "C453000"
+    ]
+   },
+   "via": "BLS-Name \"Reis Mehl\""
+  },
+  "Reisnudeln": {
+   "targets": {
+    "raw": [
+     "C559000"
+    ],
+    "cooked": [
+     "C559032"
+    ]
+   },
+   "via": "BLS-Name \"Reisnudeln\""
+  },
+  "Reiswein": {
+   "targets": {
+    "unspecified": [
+     "Z-reiswein"
+    ]
+   },
+   "via": "Das BLS führt keinen Reiswein; Ciqual-Zeile \"Saké ou alcool de riz\""
+  },
+  "Reneklode": {
+   "targets": {
+    "raw": [
+     "F225100"
+    ],
+    "cooked": [
+     "F225152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Reineclaude\"; Ringlotte ist das österreichische Wort"
+  },
   "Rettich": {
    "targets": {
     "raw": [
@@ -2227,6 +4133,14 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Rhabarber": {
+   "targets": {
+    "raw": [
+     "F081100"
+    ]
+   },
+   "via": "BLS-Name \"Rhabarber roh\"; das BLS führt ihn beim Obst"
+  },
   "Ricotta": {
    "targets": {
     "unspecified": [
@@ -2234,6 +4148,54 @@
     ]
    },
    "via": "BLS-Gruppe \"Ricotta, Molkeneiweißkäse, mind. 45 % Fett i. Tr.\""
+  },
+  "Rinderbrust": {
+   "targets": {
+    "raw": [
+     "U255100"
+    ],
+    "cooked": [
+     "U255142",
+     "U255132",
+     "U255162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Brustkern/Mittelbrust\""
+  },
+  "Rinderbrühe": {
+   "targets": {
+    "unspecified": [
+     "X412053"
+    ]
+   },
+   "via": "BLS-Name \"Rinderkraftbrühe\"",
+   "candidates": [
+    "X413663"
+   ]
+  },
+  "Rindergulasch": {
+   "targets": {
+    "raw": [
+     "U151100"
+    ],
+    "cooked": [
+     "U151142",
+     "U151182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Gulasch (Bug)\""
+  },
+  "Rinderroulade": {
+   "targets": {
+    "raw": [
+     "U163100"
+    ],
+    "cooked": [
+     "U163142",
+     "U163182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Roulade (Oberschale)\""
   },
   "Rindfleisch": {
    "targets": {
@@ -2253,6 +4215,17 @@
     "U931100"
    ]
   },
+  "Rindsbratwurst": {
+   "targets": {
+    "cooked": [
+     "W222782"
+    ],
+    "unspecified": [
+     "W222700"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rindsbratwurst\""
+  },
   "Risottoreis": {
    "targets": {
     "raw": [
@@ -2263,6 +4236,62 @@
     ]
    },
    "via": "kuratierte Auswahl"
+  },
+  "Roastbeef": {
+   "targets": {
+    "raw": [
+     "U221100"
+    ],
+    "cooked": [
+     "U221162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rind Roastbeef (Rücken)\"; Beiried ist das österreichische Wort dafür"
+  },
+  "Roggenmehl": {
+   "targets": {
+    "unspecified": [
+     "C223300",
+     "C223200"
+    ]
+   },
+   "via": "BLS-Gruppe \"Roggen Mehl\": Type 1150, die übliche Haushaltstype, vor Type 997; die übrigen Typen als Kandidaten",
+   "candidates": [
+    "C223100",
+    "C223400",
+    "C223600"
+   ]
+  },
+  "Roggenvollkornmehl": {
+   "targets": {
+    "unspecified": [
+     "C221000"
+    ]
+   },
+   "via": "BLS-Name \"Roggen Vollkornmehl\""
+  },
+  "Roher Schinken": {
+   "targets": {
+    "unspecified": [
+     "U682700",
+     "U681700"
+    ]
+   },
+   "via": "BLS-Zeile \"Schwein Rohschinken, mit Fettrand, Rohpökelware, geräuchert\"; ohne Fettrand als Alternative"
+  },
+  "Romanesco": {
+   "targets": {
+    "raw": [
+     "G350100"
+    ],
+    "cooked": [
+     "G350132",
+     "G350152",
+     "G350162",
+     "G350182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Romanesco\": eine eigene Kohlsorte mit eigenen Zeilen, deshalb nicht die Werte des Blumenkohls."
   },
   "Rosenkohl": {
    "targets": {
@@ -2290,8 +4319,24 @@
    "via": "BLS-Gruppe \"Rosine/Sultanine (Weinbeere getrocknet)\""
   },
   "Rosmarin": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-rosmarin"
+    ]
+   },
+   "via": "Das BLS führt Rosmarin nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Rosemary, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+  },
+  "Rostbratwurst": {
+   "targets": {
+    "cooked": [
+     "W222682",
+     "W222632"
+    ],
+    "unspecified": [
+     "W222600"
+    ]
+   },
+   "via": "BLS-Gruppe \"Rostbratwurst\"; feiner und magerer als die grobe Bratwurst"
   },
   "Rote Bete": {
    "targets": {
@@ -2377,6 +4422,14 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Räucherforelle": {
+   "targets": {
+    "unspecified": [
+     "T422600"
+    ]
+   },
+   "via": "BLS-Zeile \"Forelle geräuchert\"; verzehrfertig, daher nur ein Zustand"
+  },
   "Räucherlachs": {
    "targets": {
     "unspecified": [
@@ -2397,8 +4450,12 @@
    "via": "BLS-Gruppe \"Römischer Salat/Romanasalat\""
   },
   "Safran": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-safran"
+    ]
+   },
+   "via": "Das BLS führt Safran nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Saffron“ (die getrockneten Fäden); diese Zeile ist inline übernommen."
   },
   "Sahne": {
    "targets": {
@@ -2411,6 +4468,32 @@
     "G898200"
    ]
   },
+  "Sahnefestiger": {
+   "targets": {
+    "unspecified": [
+     "R434000"
+    ]
+   },
+   "via": "BLS-Name \"Sahnestandmittel\""
+  },
+  "Sahnequark": {
+   "targets": {
+    "unspecified": [
+     "M713500"
+    ]
+   },
+   "via": "BLS-Zeile \"Speisequark Fettstufe, 40 % Fett i. Tr.\"; so wird der Quark mit 40 % im Laden verkauft"
+  },
+  "Salami": {
+   "targets": {
+    "unspecified": [
+     "W140000",
+     "W142000",
+     "W141100"
+    ]
+   },
+   "via": "BLS-Zeile \"Salami\"; als Rohwurst wird sie roh gegessen oder auf der Pizza mitgebacken, eine gegarte Zeile führt der BLS nicht"
+  },
   "Salat": {
    "targets": {
     "raw": [
@@ -2420,8 +4503,12 @@
    "via": "BLS-Gruppe \"Kopfsalat\""
   },
   "Salbei": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-salbei"
+    ]
+   },
+   "via": "Das BLS führt Salbei nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Sage, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Salz": {
    "targets": {
@@ -2431,6 +4518,14 @@
     ]
    },
    "via": "Meersalz ist eine eigene Sorte; das nackte Wort ist das Speisesalz"
+  },
+  "Salzgurke": {
+   "targets": {
+    "unspecified": [
+     "G890702"
+    ]
+   },
+   "via": "BLS \"Salzgurke/Salzdillgurke, milchsauer fermentiert\": milchsauer statt in Essig, andere Werte als die Gewürzgurke."
   },
   "Sambal Oelek": {
    "targets": {
@@ -2457,6 +4552,37 @@
     "T104702"
    ]
   },
+  "Sardellenfilet": {
+   "targets": {
+    "unspecified": [
+     "T104702",
+     "T104400"
+    ]
+   },
+   "via": "BLS-Zeile \"Sardelle in Öl, Konserve, abgetropft\"; die eingelegten Filets aus dem Glas haben fast fünfzigmal so viel Natrium wie frische Sardellen"
+  },
+  "Sauerampfer": {
+   "targets": {
+    "raw": [
+     "G263100"
+    ],
+    "cooked": [
+     "G263132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sauerampfer\"."
+  },
+  "Sauerkirsche": {
+   "targets": {
+    "raw": [
+     "F212100"
+    ],
+    "cooked": [
+     "F212152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Sauerkirsche\"; Schattenmorelle ist die gängige Sorte, Weichsel das österreichische Wort"
+  },
   "Saure Sahne": {
    "targets": {
     "unspecified": [
@@ -2464,6 +4590,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Sauerrahm/Saure Sahne, mind. 10 % Fett\""
+  },
+  "Schafjoghurt": {
+   "targets": {
+    "unspecified": [
+     "M149500"
+    ]
+   },
+   "via": "BLS-Zeile \"Schafjoghurt\""
   },
   "Schalotte": {
    "targets": {
@@ -2478,6 +4612,16 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Schichtkäse": {
+   "targets": {
+    "unspecified": [
+     "M712300",
+     "M712200",
+     "M712500"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schichtkäse\"; die 20-%-Stufe ist die übliche"
+  },
   "Schinken": {
    "targets": {
     "unspecified": [
@@ -2490,6 +4634,30 @@
     "W291100",
     "W850200"
    ]
+  },
+  "Schinkenspeck": {
+   "targets": {
+    "cooked": [
+     "W410482",
+     "W410462",
+     "W410432"
+    ],
+    "unspecified": [
+     "W410400"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Schinkenspeck, Rohpökelware, geräuchert\"; mager, ein Zehntel des Fetts von Bauchspeck"
+  },
+  "Schlangenbohne": {
+   "targets": {
+    "raw": [
+     "Z-schlangenbohne-raw"
+    ],
+    "cooked": [
+     "Z-schlangenbohne-cooked"
+    ]
+   },
+   "via": "BLS und Ciqual führen die Spargelbohne nicht, und sie liegt deutlich über der grünen Bohne (47 statt 28 kcal). Werte aus USDA SR Legacy \"Yardlong bean\", roh (FDC 169222) und gekocht ohne Salz (FDC 169223). USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
   },
   "Schmand": {
    "targets": {
@@ -2535,6 +4703,14 @@
     "S580000"
    ]
   },
+  "Schokoladenpuddingpulver": {
+   "targets": {
+    "unspecified": [
+     "R481200"
+    ]
+   },
+   "via": "BLS-Name \"Puddingpulver Schokolade, ungezuckert\""
+  },
   "Schwarze Bohnen": {
    "targets": {
     "raw": [
@@ -2546,6 +4722,17 @@
    },
    "via": "kuratierte Auswahl"
   },
+  "Schwarze Johannisbeere": {
+   "targets": {
+    "raw": [
+     "F323100"
+    ],
+    "cooked": [
+     "F323152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Johannisbeere schwarz\""
+  },
   "Schwarze Oliven": {
    "targets": {
     "unspecified": [
@@ -2556,7 +4743,45 @@
   },
   "Schwarzkümmel": {
    "withoutValues": true,
-   "via": "Das BLS führt Schwarzkümmel nicht — in allen 3.983 Zeilen keine Entsprechung. Ein Gewürz, das in Prisen, Löffeln oder einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Schwarzkümmel (Nigella sativa); in BLS-Zeilen keine Entsprechung. Ein Gewürz, das in Prisen und Löffeln ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Schwarzwurzel": {
+   "targets": {
+    "raw": [
+     "G650100"
+    ],
+    "cooked": [
+     "G650132",
+     "G650152",
+     "G650142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwarzwurzel\".",
+   "candidates": [
+    "G650200",
+    "G650232",
+    "G650902"
+   ]
+  },
+  "Schwarzwälder Schinken": {
+   "targets": {
+    "unspecified": [
+     "W442000"
+    ]
+   },
+   "via": "BLS-Zeile \"Schwarzwälder Schinken, Rohpökelware, geräuchert\""
+  },
+  "Schweinebauch": {
+   "targets": {
+    "raw": [
+     "U642100"
+    ],
+    "cooked": [
+     "U642162",
+     "U642132"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Bauch (wie gewachsen)\""
   },
   "Schweinefleisch": {
    "targets": {
@@ -2576,6 +4801,96 @@
     "U950100"
    ]
   },
+  "Schweinegulasch": {
+   "targets": {
+    "raw": [
+     "U554100"
+    ],
+    "cooked": [
+     "U554142",
+     "U554182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Gulasch (Restbug)\""
+  },
+  "Schweinehackfleisch": {
+   "targets": {
+    "raw": [
+     "U020100"
+    ],
+    "cooked": [
+     "U020182",
+     "U020162",
+     "U020132",
+     "U020142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Hackfleisch\""
+  },
+  "Schweinekotelett": {
+   "targets": {
+    "raw": [
+     "U522100",
+     "U622100"
+    ],
+    "cooked": [
+     "U522182",
+     "U522162",
+     "U622142"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Stielkotelett\""
+  },
+  "Schweinenacken": {
+   "targets": {
+    "raw": [
+     "U532100"
+    ],
+    "cooked": [
+     "U532182",
+     "U532162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Kammsteak\""
+  },
+  "Schweineschulter": {
+   "targets": {
+    "raw": [
+     "U571100",
+     "U574100"
+    ],
+    "cooked": [
+     "U571162",
+     "U574162"
+    ]
+   },
+   "via": "BLS-Zeile \"Schwein Bratenfleisch (Bug mit Fett und Schwarte)\"; ohne Schwarte als Alternative"
+  },
+  "Schweinshaxe": {
+   "targets": {
+    "raw": [
+     "U693100",
+     "U672100"
+    ],
+    "cooked": [
+     "U693162",
+     "U693132",
+     "U672162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Schwein Hintereisbein/Hinterhaxe\", frisch; das gepökelte Eisbein ist ein anderes Erzeugnis"
+  },
+  "Schälerbsen": {
+   "targets": {
+    "unspecified": [
+     "G760400"
+    ],
+    "cooked": [
+     "G760432"
+    ]
+   },
+   "via": "BLS \"Erbse reif\": getrocknete, geschälte Erbsen für Erbsensuppe und Dal, trocken abgewogen; ein Vielfaches der grünen Erbse."
+  },
   "Seidentofu": {
    "targets": {
     "raw": [
@@ -2586,6 +4901,14 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Seitan": {
+   "targets": {
+    "unspecified": [
+     "C558000"
+    ]
+   },
+   "via": "BLS \"Fleischersatz glutenhaltig (Seitan)\". Das Glutenpulver, aus dem man ihn selbst macht, ist ein anderes Erzeugnis (C551000)."
   },
   "Sellerie": {
    "targets": {
@@ -2621,8 +4944,28 @@
    ]
   },
   "Senfkörner": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "unspecified": [
+     "Z-senfkoerner"
+    ]
+   },
+   "via": "Das BLS führt Senfsaat nicht, Ciqual auch nicht (nur fertigen Senf). USDA FoodData Central (SR Legacy, gemeinfrei) führt „Spices, mustard seed, ground“; ganz oder gemahlen sind es dieselben Samen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile, statt eine andere Größe einzutragen."
+  },
+  "Senföl": {
+   "targets": {
+    "unspecified": [
+     "Z-senfoel"
+    ]
+   },
+   "via": "Das BLS und Ciqual führen Senföl nicht; USDA-Zeile. Das Öl der indischen und bengalischen Küche, nicht das ätherische Senföl. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen."
+  },
+  "Serranoschinken": {
+   "targets": {
+    "unspecified": [
+     "Z-serranoschinken"
+    ]
+   },
+   "via": "Erbte bisher den Kochschinken (904 mg Natrium, 130 kcal). Der BLS führt keinen Serrano; Ciqual-Zeile \"Jambon sec Serrano\"."
   },
   "Sesam": {
    "targets": {
@@ -2642,6 +4985,61 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Sherry": {
+   "targets": {
+    "unspecified": [
+     "P461000"
+    ]
+   },
+   "via": "BLS-Name \"Sherry dry\" — trocken wie meist zum Kochen; die süßeren sind Kandidaten",
+   "candidates": [
+    "P462000",
+    "P463000",
+    "P464000"
+   ]
+  },
+  "Shiitake": {
+   "targets": {
+    "raw": [
+     "K724100"
+    ],
+    "cooked": [
+     "K724152",
+     "K724182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Shiitakepilz\".",
+   "candidates": [
+    "K724902"
+   ]
+  },
+  "Shimeji": {
+   "targets": {
+    "raw": [
+     "Z-shimeji"
+    ]
+   },
+   "via": "Das BLS führt Buchenpilze nicht. Werte aus USDA Foundation Foods \"Mushroom, beech\" (FDC 2003603), roh. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
+  },
+  "Silberzwiebel": {
+   "targets": {
+    "unspecified": [
+     "G488802"
+    ]
+   },
+   "via": "BLS \"Silberzwiebel gesäuert, abgetropft\": aus dem Glas, mit eigenen Werten."
+  },
+  "Soba-Nudeln": {
+   "targets": {
+    "raw": [
+     "Z-soba-nudeln-raw"
+    ],
+    "cooked": [
+     "Z-soba-nudeln-cooked"
+    ]
+   },
+   "via": "Buchweizennudeln führt das BLS nicht; USDA SR Legacy hat sie trocken und gekocht, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
   },
   "Sojadrink": {
    "targets": {
@@ -2672,6 +5070,27 @@
     ]
    },
    "via": "BLS-Gruppe \"Sojasauce/Sojasoße\""
+  },
+  "Sojasprossen": {
+   "targets": {
+    "raw": [
+     "H650100",
+     "H620100"
+    ],
+    "cooked": [
+     "H650902",
+     "H620902"
+    ]
+   },
+   "via": "Was hierzulande als \"Sojasprossen\" verkauft wird, sind fast immer Mungbohnenkeimlinge; deshalb BLS \"Mungbohnensprossen\" vor \"Sojabohnensprossen\". Glas und Dose sind abgetropft und gegart."
+  },
+  "Sojaöl": {
+   "targets": {
+    "unspecified": [
+     "Q270000"
+    ]
+   },
+   "via": "BLS-Name \"Sojaöl\""
   },
   "Sonnenblumenkerne": {
    "targets": {
@@ -2774,6 +5193,38 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Spätzle": {
+   "targets": {
+    "raw": [
+     "E432000",
+     "E438000"
+    ],
+    "cooked": [
+     "E432032",
+     "E438032"
+    ]
+   },
+   "via": "Spätzle sind Eierteigwaren: getrocknet \"Eierteigwaren\", frisch aus dem Kühlregal \"Eier-Frischteigwaren\" als Alternative."
+  },
+  "Sriracha": {
+   "targets": {
+    "unspecified": [
+     "Z-sriracha"
+    ]
+   },
+   "via": "Weder BLS noch Ciqual führen Sriracha; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
+  "Stachelbeere": {
+   "targets": {
+    "raw": [
+     "F305100"
+    ],
+    "cooked": [
+     "F305152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Stachelbeere\""
+  },
   "Staudensellerie": {
    "targets": {
     "raw": [
@@ -2789,6 +5240,50 @@
    "candidates": [
     "G220142"
    ]
+  },
+  "Steckrübe": {
+   "targets": {
+    "raw": [
+     "G611100"
+    ],
+    "cooked": [
+     "G611132",
+     "G611152"
+    ]
+   },
+   "via": "BLS-Gruppe \"Kohlrübe/Steckrübe\"; \"Wruke\" sagt man im Nordosten, \"Bodenkohlrabi\" in der Schweiz."
+  },
+  "Steinpilz": {
+   "targets": {
+    "raw": [
+     "K718100"
+    ],
+    "cooked": [
+     "K718152",
+     "K718182",
+     "K718162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Steinpilz\".",
+   "candidates": [
+    "K718902"
+   ]
+  },
+  "Steinsalz": {
+   "targets": {
+    "unspecified": [
+     "R111100"
+    ]
+   },
+   "via": "BLS-Name „Steinsalz“"
+  },
+  "Sternanis": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Sternanis (Illicium verum); die Zeilen für Anis (Pimpinella anisum) sind eine andere Pflanze. Ein Gewürz, das sternweise ins Essen geht und meist wieder heraus, also lieber keine Werte als geratene."
+  },
+  "Sumach": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Sumach; ein Gewürz, das in Prisen und Löffeln ins Essen geht, also lieber keine Werte als geratene."
   },
   "Suppengrün": {
    "targets": {
@@ -2807,6 +5302,18 @@
     "G093432"
    ]
   },
+  "Szechuanpfeffer": {
+   "withoutValues": true,
+   "via": "Kein Pfeffer im botanischen Sinn (Zanthoxylum-Schalen), aber im Regal und im Rezept neben ihm. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen ihn; daher bewusst ohne Werte statt der des schwarzen Pfeffers."
+  },
+  "Süßer Senf": {
+   "targets": {
+    "unspecified": [
+     "R135000"
+    ]
+   },
+   "via": "BLS-Name \"Senf süß\""
+  },
   "Süßkartoffel": {
    "targets": {
     "raw": [
@@ -2819,6 +5326,14 @@
     ]
    },
    "via": "BLS-Gruppe \"Batate/Süßkartoffel\""
+  },
+  "Tacoschalen": {
+   "targets": {
+    "unspecified": [
+     "Z-tacoschalen"
+    ]
+   },
+   "via": "Frittierte, gebogene Maistortillas; das BLS hat sie nicht. USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
   },
   "Tagliatelle": {
    "targets": {
@@ -2855,6 +5370,14 @@
    },
    "via": "BLS-Gruppe \"Schwarztee (Getränk)\""
   },
+  "Tempeh": {
+   "targets": {
+    "cooked": [
+     "Z-tempeh-cooked"
+    ]
+   },
+   "via": "Das BLS führt kein Tempeh. Ciqual (20917) und USDA (174272) heißen beide schlicht \"Tempeh\" – ein Ergänzungsname darf aber nie selbst zum Küchenwort werden. Deshalb nur die gegarte Zeile, USDA SR Legacy \"Tempeh, cooked\" (FDC 172467); Tempeh wird ohnehin gebraten. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen."
+  },
   "Thunfisch": {
    "targets": {
     "cooked": [
@@ -2869,9 +5392,29 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Thunfisch im eigenen Saft": {
+   "targets": {
+    "unspecified": [
+     "T121902"
+    ]
+   },
+   "via": "BLS-Zeile \"Thunfisch im eigenen Saft, Konserve, abgetropft\"; die Dose ist schon gegart, daher nur ein Zustand"
+  },
+  "Thunfisch in Öl": {
+   "targets": {
+    "unspecified": [
+     "T121702"
+    ]
+   },
+   "via": "BLS-Zeile \"Thunfisch in Öl, Konserve, abgetropft\"; die Dose ist schon gegart, daher nur ein Zustand"
+  },
   "Thymian": {
-   "withoutValues": true,
-   "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+   "targets": {
+    "raw": [
+     "Z-thymian"
+    ]
+   },
+   "via": "Das BLS führt Thymian nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Thyme, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Tiefkühlerbsen": {
    "targets": {
@@ -2942,6 +5485,19 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Topinambur": {
+   "targets": {
+    "raw": [
+     "K430100"
+    ],
+    "cooked": [
+     "K430132",
+     "K430182",
+     "K430162"
+    ]
+   },
+   "via": "BLS-Gruppe \"Topinambur/Erdartischocke\"."
+  },
   "Tortellini": {
    "targets": {
     "cooked": [
@@ -2980,6 +5536,22 @@
    },
    "via": "BLS-Gruppe \"Weintraube\""
   },
+  "Traubenkernöl": {
+   "targets": {
+    "unspecified": [
+     "Q330000"
+    ]
+   },
+   "via": "BLS-Name \"Traubenkernöl\""
+  },
+  "Traubenzucker": {
+   "targets": {
+    "unspecified": [
+     "S115100"
+    ]
+   },
+   "via": "BLS-Name \"Traubenzucker (Dextrose/Glukose)\""
+  },
   "Trockenhefe": {
    "targets": {
     "unspecified": [
@@ -2988,9 +5560,25 @@
    },
    "via": "Erbte bisher „Backhefe frisch“ mit 128 kcal; getrocknet sind es 334. Das BLS nennt sie „Backhefe getrocknet (Trockenbackhefe)“ — kein Küchenwort steckt in diesem Namen, deshalb hat keine Suche sie je erreicht."
   },
+  "Türkischer Joghurt": {
+   "targets": {
+    "unspecified": [
+     "M141500"
+    ]
+   },
+   "via": "BLS-Zeile \"Sahnejoghurt mind. 10 % Fett\"; türkischer Joghurt hat wie der griechische 10 % Fett"
+  },
   "Vanille": {
    "withoutValues": true,
-   "via": "Das BLS führt keine Vanille als Gewürz, nur Vanillezucker (S114000) und Vanillinzucker. Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es hier früher geschah, wäre falscher als keine Werte."
+   "via": "Das BLS führt keine Vanille als Gewürz, nur Vanillezucker (S114000) und Vanillinzucker. Ciqual 2020 führt „Vanilla, pod“ (Nr. 11057), aber ohne einen einzigen Wert; USDA nur Extrakte. Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es hier früher geschah, wäre falscher als keine Werte."
+  },
+  "Vanilleextrakt": {
+   "targets": {
+    "unspecified": [
+     "Z-vanilleextrakt"
+    ]
+   },
+   "via": "Ein anderes Erzeugnis als die Schote: in Alkohol ausgezogen, daher die Energie. Ciqual 2020 (Anses) führt es als „Vanilla, alcoholic extract“, inline übernommen."
   },
   "Vanillezucker": {
    "targets": {
@@ -2999,6 +5587,21 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Venusmuschel": {
+   "targets": {
+    "raw": [
+     "T797100"
+    ],
+    "cooked": [
+     "T797132",
+     "T797182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Venusmuschel\"",
+   "candidates": [
+    "T797902"
+   ]
   },
   "Vollkornmehl": {
    "targets": {
@@ -3021,6 +5624,25 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Vollkornspaghetti": {
+   "targets": {
+    "raw": [
+     "E510000"
+    ],
+    "cooked": [
+     "E500032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Vollkornteigwaren eifrei\", wie Vollkornnudeln"
+  },
+  "Vollmilchkuvertüre": {
+   "targets": {
+    "unspecified": [
+     "S539900"
+    ]
+   },
+   "via": "Das BLS führt Kuvertüre nur zartbitter; die Vollmilchkuvertüre rechnet mit \"Vollmilchschokolade\""
+  },
   "Vollmilchschokolade": {
    "targets": {
     "unspecified": [
@@ -3031,6 +5653,46 @@
    "candidates": [
     "C532100"
    ]
+  },
+  "Wacholderbeeren": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Wacholderbeeren; ein Gewürz, das in einzelnen Beeren ins Essen geht, also lieber keine Werte als geratene."
+  },
+  "Wachsbohne": {
+   "targets": {
+    "raw": [
+     "G720100"
+    ],
+    "cooked": [
+     "G720132",
+     "G720232"
+    ]
+   },
+   "via": "BLS-Gruppe \"Wachsbohne\": die gelbe Gartenbohne hat eigene Zeilen.",
+   "candidates": [
+    "G720200",
+    "G720802",
+    "G720902"
+   ]
+  },
+  "Walderdbeere": {
+   "targets": {
+    "raw": [
+     "F409100"
+    ],
+    "cooked": [
+     "F301152"
+    ]
+   },
+   "via": "BLS-Name \"Wald-Erdbeere roh\"; gedünstet führt das BLS nur die Gartenerdbeere"
+  },
+  "Waldhonig": {
+   "targets": {
+    "unspecified": [
+     "S122000"
+    ]
+   },
+   "via": "BLS-Name \"Honigtauhonig (Waldhonig)\" — weniger Wasser, mehr Energie als Blütenhonig"
   },
   "Walnuss": {
    "targets": {
@@ -3043,6 +5705,14 @@
     "H120400",
     "H120610"
    ]
+  },
+  "Walnussöl": {
+   "targets": {
+    "unspecified": [
+     "Q310000"
+    ]
+   },
+   "via": "BLS-Name \"Walnussöl\""
   },
   "Wasser": {
    "targets": {
@@ -3060,6 +5730,44 @@
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
   },
+  "Weichweizengrieß": {
+   "targets": {
+    "unspecified": [
+     "C218000"
+    ],
+    "cooked": [
+     "C218032"
+    ]
+   },
+   "via": "BLS-Gruppe \"Weichweizen Grieß\" — der Grieß für Grießbrei und Nockerl; der Stamm rechnet mit Hartweizengrieß"
+  },
+  "Weinbrand": {
+   "targets": {
+    "unspecified": [
+     "P620000"
+    ]
+   },
+   "via": "BLS-Name \"Weinbrand/Brandy\""
+  },
+  "Weizenmehl Type 1050": {
+   "targets": {
+    "unspecified": [
+     "C213200"
+    ]
+   },
+   "via": "BLS-Name \"Weizen Mehl, Type 1050\" — dunkler ausgemahlen, mit mehr Eiweiß und Ballaststoffen als Type 405"
+  },
+  "Weißbrot": {
+   "targets": {
+    "unspecified": [
+     "B781200"
+    ]
+   },
+   "via": "Weizenbrot führt das BLS nur als \"Weizenbaguette\" — derselbe helle Weizenteig; der Stamm rechnet mit Roggenmischbrot. Toastbrot als Kandidat.",
+   "candidates": [
+    "B314000"
+   ]
+  },
   "Weiße Bohnen": {
    "targets": {
     "raw": [
@@ -3070,6 +5778,30 @@
     ]
    },
    "via": "kuratierte Auswahl"
+  },
+  "Weiße Kuvertüre": {
+   "targets": {
+    "unspecified": [
+     "S580000"
+    ]
+   },
+   "via": "Das BLS führt Kuvertüre nur zartbitter; die weiße rechnet mit \"Schokolade weiß\""
+  },
+  "Weiße Schokolade": {
+   "targets": {
+    "unspecified": [
+     "S580000"
+    ]
+   },
+   "via": "BLS-Name \"Schokolade weiß\""
+  },
+  "Weißer Pfeffer": {
+   "targets": {
+    "unspecified": [
+     "Z-weisser-pfeffer"
+    ]
+   },
+   "via": "Das BLS führt nur schwarzen Pfeffer. Weißer ist die geschälte Beere, mit deutlich anderen Mineralstoffwerten; Ciqual 2020 (Anses) führt ihn als „White pepper, powder“, inline übernommen."
   },
   "Weißkohl": {
    "targets": {
@@ -3101,6 +5833,45 @@
     "P231000"
    ]
   },
+  "Weißwurst": {
+   "targets": {
+    "cooked": [
+     "W224032",
+     "W224082"
+    ],
+    "unspecified": [
+     "W224000"
+    ]
+   },
+   "via": "BLS-Gruppe \"Münchner Weißwurst\""
+  },
+  "Wildfond": {
+   "targets": {
+    "unspecified": [
+     "X411363"
+    ]
+   },
+   "via": "BLS-Name \"Wildbrühe\"",
+   "candidates": [
+    "X412363"
+   ]
+  },
+  "Wildreis": {
+   "targets": {
+    "raw": [
+     "C353100"
+    ],
+    "cooked": [
+     "C353132",
+     "C353182"
+    ]
+   },
+   "via": "BLS-Gruppe \"Wildreis\" — die Samen eines Wassergrases, mit deutlich mehr Eiweiß als Reis (13 statt 8 g); die Reismischung mit Wildreis steht als Kandidat daneben.",
+   "candidates": [
+    "C354100",
+    "C354132"
+   ]
+  },
   "Wirsing": {
    "targets": {
     "raw": [
@@ -3115,6 +5886,22 @@
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
   },
+  "Wodka": {
+   "targets": {
+    "unspecified": [
+     "P712000"
+    ]
+   },
+   "via": "BLS-Name \"Wodka\""
+  },
+  "Worcestersauce": {
+   "targets": {
+    "unspecified": [
+     "Z-worcestersauce"
+    ]
+   },
+   "via": "Weder BLS noch Ciqual führen Worcestersauce; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der Zeile."
+  },
   "Wurst": {
    "targets": {
     "cooked": [
@@ -3128,9 +5915,53 @@
    },
    "via": "BLS-Gruppe \"Fleischwurst\""
   },
+  "Xylit": {
+   "targets": {
+    "unspecified": [
+     "S163000"
+    ]
+   },
+   "via": "BLS-Name \"Xylit Pulver (E 967)\""
+  },
+  "Za'atar": {
+   "withoutValues": true,
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Za'atar; die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als die einer anderen Mischung."
+  },
+  "Zartbitterschokolade": {
+   "targets": {
+    "unspecified": [
+     "S560000"
+    ]
+   },
+   "via": "BLS-Name \"Zartbitter-/Halbbitterschokolade\" — erbte bisher die allgemeine \"Schokolade\""
+  },
+  "Ziegenfrischkäse": {
+   "targets": {
+    "unspecified": [
+     "M7A1600"
+    ]
+   },
+   "via": "BLS-Zeile \"Frischkäse aus Ziegenmilch, Natur, mind. 45 % Fett i. Tr.\""
+  },
+  "Ziegenmilch": {
+   "targets": {
+    "unspecified": [
+     "M021000"
+    ]
+   },
+   "via": "BLS-Zeile \"Ziegenmilch mind. 3 % Fett\""
+  },
   "Zimt": {
    "withoutValues": true,
    "via": "Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal), also lieber keine Werte als falsche."
+  },
+  "Zitronat": {
+   "targets": {
+    "unspecified": [
+     "R381200"
+    ]
+   },
+   "via": "BLS-Name \"Zitronat/Sukkade\""
   },
   "Zitrone": {
    "targets": {
@@ -3142,6 +5973,14 @@
     ]
    },
    "via": "BLS-Namensabgleich, einmalig festgeschrieben"
+  },
+  "Zitronengras": {
+   "targets": {
+    "raw": [
+     "Z-zitronengras"
+    ]
+   },
+   "via": "Das BLS führt Zitronengras nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR Legacy, gemeinfrei) führt die frischen Stängel als „Lemon grass (citronella), raw“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an und für Zitronengras keine Ballaststoffe — deshalb fehlen beide in dieser Zeile."
   },
   "Zucchini": {
    "targets": {
@@ -3169,6 +6008,32 @@
     "S112000"
    ]
   },
+  "Zuckerhutsalat": {
+   "targets": {
+    "raw": [
+     "G109100"
+    ]
+   },
+   "via": "BLS \"Zuckerhutsalat roh\". Das nackte \"Zuckerhut\" heißt mancherorts Spitzkohl und bleibt deshalb weg."
+  },
+  "Zuckermais": {
+   "targets": {
+    "raw": [
+     "G570100"
+    ],
+    "cooked": [
+     "G570132",
+     "G570902",
+     "G570232",
+     "G570172"
+    ]
+   },
+   "via": "BLS-Gruppe \"Zuckermais\": der Gemüsemais aus Dose und Tiefkühltruhe. Das Wurzelwort zeigt auf das Getreide \"Mais\" (C341…), dessen Trockenwert ein Vielfaches ist.",
+   "candidates": [
+    "G570200",
+    "G570802"
+   ]
+  },
   "Zwetschge": {
    "targets": {
     "cooked": [
@@ -3179,6 +6044,14 @@
     ]
    },
    "via": "BLS-Name, in die Küchenliste übernommen"
+  },
+  "Zwieback": {
+   "targets": {
+    "unspecified": [
+     "Z-zwieback"
+    ]
+   },
+   "via": "Das BLS führt keinen Zwieback; Ciqual 2020 (Anses), inline übernommen."
   },
   "Zwiebel": {
    "targets": {

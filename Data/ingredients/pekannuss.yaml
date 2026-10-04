@@ -1,0 +1,12 @@
+- id: pekannuss
+  name: Pekannuss
+  aliases:
+    - Pekannüsse
+    - Pekannusskerne
+    - Pecannuss
+    - Pecannüsse
+  category: nuts
+  nutrition:
+    unspecified: [H160100]
+  candidates: [H160600]
+  via: BLS-Name "Pekannuss"

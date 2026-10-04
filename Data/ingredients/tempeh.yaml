@@ -1,0 +1,24 @@
+- id: tempeh
+  name: Tempeh
+  category: plantBased
+  nutrition:
+    cooked:
+      - code: Z-tempeh-cooked
+        name: Tempeh, cooked
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 172467 „Tempeh, cooked“,
+          gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 195
+          proteinG: 19.91
+          fatG: 11.38
+          saturatedFatG: 3.4
+          sodiumMg: 14
+          vitaminDMcg: 0
+          calciumMg: 96
+          ironMg: 2.13
+          magnesiumMg: 77
+          potassiumMg: 401
+  via: Das BLS führt kein Tempeh. Ciqual (20917) und USDA (174272) heißen beide schlicht "Tempeh"
+    – ein Ergänzungsname darf aber nie selbst zum Küchenwort werden. Deshalb nur die gegarte
+    Zeile, USDA SR Legacy "Tempeh, cooked" (FDC 172467); Tempeh wird ohnehin gebraten. USDA
+    nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.

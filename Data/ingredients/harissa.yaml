@@ -1,0 +1,27 @@
+- id: harissa
+  name: Harissa
+  aliases:
+    - Harissapaste
+  category: canned
+  nutrition:
+    unspecified:
+      - code: Z-harissa
+        name: Harissa (hot spicy sauce), prepacked
+        source: Ciqual 2020 (Anses), Nr. 11112 „Harissa (hot spicy sauce), prepacked“, Licence
+          Ouverte / CC BY 4.0
+        per100g:
+          proteinG: 2.72
+          fatG: 2.9
+          saturatedFatG: 0.47
+          carbsG: 7.3
+          fiberG: 5.1
+          sodiumMg: 1120
+          vitaminCMg: 31.9
+          vitaminEMg: 6.1
+          calciumMg: 78.1
+          ironMg: 3.1
+          magnesiumMg: 47.2
+          potassiumMg: 710
+  via: Nordafrikanische Chilipaste mit Öl und Kreuzkümmel; das BLS hat sie nicht, und Sambal
+    Oelek ist ohne Öl ein anderes Lebensmittel. Ciqual 2020 (Anses), inline übernommen; Energie
+    und Zucker gibt Ciqual nicht an, sie fehlen deshalb.

@@ -204,13 +204,13 @@ struct ShoppingLibraryTests {
         await shopping.addItem("1 kg Kartoffeln, festkochend")
         // One it does not know stays as typed, in the bare name's aisle —
         // and apart from the plain onion.
-        await shopping.addItem("Zwiebel, weiß")
+        await shopping.addItem("Zwiebel, gelb")
         await shopping.addItem("Zwiebel")
 
         let names = shopping.items.map(\.name)
-        #expect(Set(names) == ["Rote Zwiebel", "Festkochende Kartoffeln", "Zwiebel, weiß", "Zwiebel"])
-        let white = try #require(shopping.items.first { $0.name == "Zwiebel, weiß" })
-        #expect(white.category == .vegetables)
+        #expect(Set(names) == ["Rote Zwiebel", "Festkochende Kartoffeln", "Zwiebel, gelb", "Zwiebel"])
+        let yellow = try #require(shopping.items.first { $0.name == "Zwiebel, gelb" })
+        #expect(yellow.category == .vegetables)
         let potatoes = try #require(shopping.items.first { $0.name == "Festkochende Kartoffeln" })
         #expect(potatoes.quantities == [Quantity(1, .kilogram)])
     }

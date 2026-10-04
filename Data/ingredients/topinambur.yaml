@@ -1,0 +1,10 @@
+- id: topinambur
+  name: Topinambur
+  aliases:
+    - Erdartischocke
+    - Erdartischocken
+  category: vegetables
+  nutrition:
+    raw: [K430100]
+    cooked: [K430132, K430182, K430162]
+  via: BLS-Gruppe "Topinambur/Erdartischocke".

@@ -11,7 +11,26 @@
   varieties:
     - id: gemahlene-mandeln
       name: Gemahlene Mandeln
+      aliases:
+        - Mandeln gemahlen
+        - Geriebene Mandeln
+      nutrition:
+        unspecified: [H210400]
+      via: BLS-Name "Mandel süß, gemahlen"
     - id: mandelblaettchen
       name: Mandelblättchen
       aliases:
         - gehobelte Mandeln
+    - id: blanchierte-mandeln
+      name: Blanchierte Mandeln
+      aliases:
+        - Geschälte Mandeln
+        - Mandeln geschält
+        - Mandeln blanchiert
+      nutrition:
+        unspecified: [H210200]
+      via: BLS-Name "Mandel süß, blanchiert"
+    - id: mandelstifte
+      name: Mandelstifte
+      aliases:
+        - Stiftmandeln

@@ -3,6 +3,7 @@
   aliases:
     - Sojasoße
     - Soja Sauce
+    - Shoyu
   category: canned
   density: 1.2
   nutrition:
@@ -13,3 +14,33 @@
       name: Dunkle Sojasauce
       aliases:
         - dunkle Sojasoße
+    - id: helle-sojasauce
+      name: Helle Sojasauce
+      aliases:
+        - helle Sojasoße
+    - id: tamari
+      name: Tamari
+    - id: kecap-manis
+      name: Kecap Manis
+      aliases:
+        - Ketjap Manis
+        - süße Sojasauce
+        - süße Sojasoße
+      nutrition:
+        unspecified:
+          - code: Z-kecap-manis
+            name: Soy sauce, with sugar, prepacked
+            source: Ciqual 2020 (Anses), Nr. 11216 „Soy sauce, with sugar, prepacked“, Licence
+              Ouverte / CC BY 4.0
+            per100g:
+              proteinG: 2.88
+              sugarG: 39.5
+              sodiumMg: 2760
+              calciumMg: 18
+              ironMg: 0.62
+              magnesiumMg: 17
+              potassiumMg: 410
+      via: Die indonesische süße Sojasauce ist zu rund 40 % Zucker und darf die Werte der
+        salzigen nicht erben. Das BLS hat sie nicht; Ciqual 2020 (Anses) „Soy sauce, with
+        sugar, prepacked“, inline übernommen. Energie und Kohlenhydrate gibt Ciqual nicht
+        an, Fett nur als „< 0,5“; sie fehlen deshalb.

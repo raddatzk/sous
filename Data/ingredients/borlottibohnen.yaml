@@ -1,0 +1,17 @@
+- id: borlottibohnen
+  name: Borlottibohnen
+  aliases:
+    - Borlotti
+    - Borlottibohne
+  category: legumes
+  measures:
+    Dose:
+      grams: 250
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    unspecified: [H739400]
+    cooked: [H740132, H740902]
+  via: Das BLS führt Borlotti nicht eigens; sie sind eine Gartenbohne (Phaseolus vulgaris),
+    deshalb "Gartenbohne reif".

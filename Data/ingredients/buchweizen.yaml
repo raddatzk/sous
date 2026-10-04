@@ -1,0 +1,10 @@
+- id: buchweizen
+  name: Buchweizen
+  aliases:
+    - Buchweizenkörner
+  category: grains
+  nutrition:
+    raw: [C322000]
+    cooked: [C320032]
+  candidates: [C326000, C327000]
+  via: BLS-Gruppe "Buchweizen"; Grieß und Grütze als Kandidaten

@@ -4,3 +4,20 @@
   nutrition:
     unspecified: [P163000]
   via: BLS-Gruppe "Pilsner Bier"
+  varieties:
+    - id: pils
+      name: Pils
+      aliases:
+        - Pilsner
+        - Pilsener
+        - Pilsner Bier
+    - id: dunkles-bier
+      name: Dunkles Bier
+      aliases:
+        - Dunkelbier
+    - id: weissbier
+      name: Weißbier
+      aliases:
+        - Weizenbier
+        - Hefeweizen
+        - Hefeweißbier

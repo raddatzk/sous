@@ -1,0 +1,6 @@
+- id: kapern
+  name: Kapern
+  category: canned
+  nutrition:
+    unspecified: [G012902]
+  via: BLS-Name "Kapern gesäuert, abgetropft"

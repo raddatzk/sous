@@ -1,5 +1,8 @@
 - id: fladenbrot
   name: Fladenbrot
+  aliases:
+    - Pide
+    - türkisches Fladenbrot
   category: bakery
   measures: {Stk.: 400}
   nutrition:

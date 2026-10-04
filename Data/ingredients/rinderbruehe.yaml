@@ -1,0 +1,13 @@
+- id: rinderbruehe
+  name: Rinderbrühe
+  aliases:
+    - Rinderfond
+    - Rinderbouillon
+    - Fleischbrühe
+    - Rindsuppe
+    - Rindssuppe
+  category: canned
+  nutrition:
+    unspecified: [X412053]
+  candidates: [X413663]
+  via: BLS-Name "Rinderkraftbrühe"

@@ -1,5 +1,7 @@
 - id: rotwein
   name: Rotwein
+  aliases:
+    - Trockener Rotwein
   category: drinks
   density: 0.99
   nutrition:

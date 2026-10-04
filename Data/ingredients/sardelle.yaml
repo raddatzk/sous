@@ -9,3 +9,12 @@
     raw: [T104100]
   candidates: [T104400, T104702]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: sardellenfilet
+      name: Sardellenfilet
+      aliases:
+        - Anchovisfilet
+      nutrition:
+        unspecified: [T104702, T104400]
+      via: BLS-Zeile "Sardelle in Öl, Konserve, abgetropft"; die eingelegten Filets aus dem
+        Glas haben fast fünfzigmal so viel Natrium wie frische Sardellen

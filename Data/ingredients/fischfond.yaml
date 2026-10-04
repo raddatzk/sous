@@ -1,0 +1,8 @@
+- id: fischfond
+  name: Fischfond
+  aliases:
+    - Fischbrühe
+  category: canned
+  nutrition:
+    unspecified: [X4A1000, X412463]
+  via: BLS-Name "Fischbrühe"

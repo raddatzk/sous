@@ -8,9 +8,36 @@
   varieties:
     - id: vollmilchschokolade
       name: Vollmilchschokolade
+      aliases:
+        - Milchschokolade
       nutrition:
         unspecified: [S539900]
       candidates: [C532100]
       via: BLS-Namensabgleich, einmalig festgeschrieben
     - id: zartbitterschokolade
       name: Zartbitterschokolade
+      aliases:
+        - Halbbitterschokolade
+        - dunkle Schokolade
+        - Blockschokolade
+        - Kochschokolade
+      nutrition:
+        unspecified: [S560000]
+      via: BLS-Name "Zartbitter-/Halbbitterschokolade" — erbte bisher die allgemeine "Schokolade"
+    - id: bitterschokolade
+      name: Bitterschokolade
+      aliases:
+        - Edelbitterschokolade
+      nutrition:
+        unspecified: [S570000]
+      via: BLS-Name "Bitterschokolade"
+    - id: weisse-schokolade
+      name: Weiße Schokolade
+      nutrition:
+        unspecified: [S580000]
+      via: BLS-Name "Schokolade weiß"
+    - id: schokotropfen
+      name: Schokotropfen
+      aliases:
+        - Schokodrops
+        - Schokoladentropfen

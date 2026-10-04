@@ -17,3 +17,29 @@
         raw: [T792100]
       candidates: [T792182, T792200, T792232, T792282, T792702, T832900]
       via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: venusmuschel
+      name: Venusmuschel
+      aliases:
+        - Venusmuscheln
+        - Vongole
+      nutrition:
+        raw: [T797100]
+        cooked: [T797132, T797182]
+      candidates: [T797902]
+      via: BLS-Gruppe "Venusmuschel"
+    - id: jakobsmuschel
+      name: Jakobsmuschel
+      aliases:
+        - Jakobsmuscheln
+      nutrition:
+        raw: [T793100]
+        cooked: [T793182, T793162]
+      via: BLS-Gruppe "Pilgermuschel/Jakobsmuschel"
+    - id: auster
+      name: Auster
+      aliases:
+        - Austern
+      nutrition:
+        raw: [T780100]
+        cooked: [T780152, T780182, T780162]
+      via: BLS-Gruppe "Europäische Auster"

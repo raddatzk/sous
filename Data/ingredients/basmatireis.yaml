@@ -1,5 +1,8 @@
 - id: basmatireis
   name: Basmatireis
+  aliases:
+    - Basmati
+    - Basmati Reis
   category: grains
   nutrition:
     raw: [C352000]

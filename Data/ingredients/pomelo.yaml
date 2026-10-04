@@ -1,0 +1,9 @@
+- id: pomelo
+  name: Pomelo
+  aliases:
+    - Pomelos
+  category: fruit
+  nutrition:
+    raw: [F605100]
+  via: BLS-Name "Pampelmuse/Pomelo, roh"; "Pampelmuse" sagt der Alltag auch zur Grapefruit,
+    darum kein Alias

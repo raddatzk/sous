@@ -1,0 +1,16 @@
+- id: augenbohnen
+  name: Augenbohnen
+  aliases:
+    - Augenbohne
+    - Schwarzaugenbohnen
+  category: legumes
+  measures:
+    Dose:
+      grams: 250
+      state: cooked
+      note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
+        und abgetropft heißt gekocht.'
+  nutrition:
+    unspecified: [H702100]
+    cooked: [H702132, H702902]
+  via: BLS-Gruppe "Augenbohne reif".

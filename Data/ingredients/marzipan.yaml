@@ -1,0 +1,15 @@
+- id: marzipan
+  name: Marzipan
+  category: baking
+  nutrition:
+    unspecified: [S420000]
+  via: BLS-Name "Marzipan"
+  varieties:
+    - id: marzipanrohmasse
+      name: Marzipanrohmasse
+      aliases:
+        - Rohmarzipan
+        - Marzipan Rohmasse
+      nutrition:
+        unspecified: [S421000]
+      via: BLS-Name "Marzipan Rohmasse"

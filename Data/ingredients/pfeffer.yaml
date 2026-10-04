@@ -1,5 +1,9 @@
 - id: pfeffer
   name: Pfeffer
+  aliases:
+    - Pfeffer aus der Mühle
+    - gemahlener Pfeffer
+    - frisch gemahlener Pfeffer
   category: spices
   nutrition:
     unspecified: [R258100]
@@ -7,9 +11,62 @@
   varieties:
     - id: pfefferkoerner
       name: Pfefferkörner
+      aliases:
+        - Pfefferkorn
+        - schwarze Pfefferkörner
     - id: rosa-pfeffer
       name: Rosa Pfeffer
       aliases:
         - rosa Pfefferbeeren
     - id: schwarzer-pfeffer
       name: Schwarzer Pfeffer
+      aliases:
+        - schwarzer Pfeffer aus der Mühle
+        - frisch gemahlener schwarzer Pfeffer
+        - gemahlener schwarzer Pfeffer
+    - id: weisser-pfeffer
+      name: Weißer Pfeffer
+      aliases:
+        - gemahlener weißer Pfeffer
+        - weiße Pfefferkörner
+      nutrition:
+        unspecified:
+          - code: Z-weisser-pfeffer
+            name: White pepper, powder
+            source: Ciqual 2020 (Anses), Nr. 11019 „White pepper, powder“, Licence Ouverte
+              / CC BY 4.0
+            per100g:
+              kcal: 310
+              proteinG: 11.4
+              fatG: 2.11
+              saturatedFatG: 0.63
+              carbsG: 48.3
+              fiberG: 26.2
+              sodiumMg: 5
+              vitaminCMg: 21
+              vitaminDMcg: 0
+              calciumMg: 265
+              ironMg: 14.3
+              magnesiumMg: 90
+              potassiumMg: 73
+      via: Das BLS führt nur schwarzen Pfeffer. Weißer ist die geschälte Beere, mit deutlich
+        anderen Mineralstoffwerten; Ciqual 2020 (Anses) führt ihn als „White pepper, powder“,
+        inline übernommen.
+    - id: gruener-pfeffer
+      name: Grüner Pfeffer
+      aliases:
+        - grüne Pfefferkörner
+      nutrition: without
+      via: Grüner Pfeffer kommt meist in Lake eingelegt ins Rezept und ist dann ein ganz anderes
+        Lebensmittel je Gramm als getrockneter schwarzer. Weder BLS noch Ciqual 2020 noch
+        USDA FoodData Central (SR Legacy) führen ihn; daher bewusst ohne Werte statt der des
+        Elterneintrags.
+    - id: szechuanpfeffer
+      name: Szechuanpfeffer
+      aliases:
+        - Sichuanpfeffer
+        - Szetschuanpfeffer
+      nutrition: without
+      via: Kein Pfeffer im botanischen Sinn (Zanthoxylum-Schalen), aber im Regal und im Rezept
+        neben ihm. Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen
+        ihn; daher bewusst ohne Werte statt der des schwarzen Pfeffers.

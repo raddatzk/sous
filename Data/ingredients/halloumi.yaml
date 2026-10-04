@@ -1,5 +1,7 @@
 - id: halloumi
   name: Halloumi
+  aliases:
+    - Hellim
   category: dairy
   nutrition:
     cooked: [M524582, M524562, M524572]

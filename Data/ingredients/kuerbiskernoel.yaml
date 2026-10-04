@@ -1,5 +1,8 @@
 - id: kuerbiskernoel
   name: Kürbiskernöl
+  aliases:
+    - Kernöl
+    - Steirisches Kürbiskernöl
   category: oils
   nutrition:
     unspecified: [Q250000]

@@ -1,5 +1,7 @@
 - id: nektarine
   name: Nektarine
+  aliases:
+    - Nektarinen
   category: fruit
   nutrition:
     cooked: [F202152]

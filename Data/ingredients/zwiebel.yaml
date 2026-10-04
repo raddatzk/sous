@@ -26,3 +26,19 @@
         raw: [G480100]
         cooked: [G480132, G480152, G480182, G480162, G480072]
       via: BLS-Gruppe "Speisezwiebel"
+    - id: weisse-zwiebel
+      name: Weiße Zwiebel
+      aliases:
+        - Weiße Zwiebeln
+    - id: perlzwiebel
+      name: Perlzwiebel
+      aliases:
+        - Perlzwiebeln
+    - id: silberzwiebel
+      name: Silberzwiebel
+      aliases:
+        - Silberzwiebeln
+      category: canned
+      nutrition:
+        unspecified: [G488802]
+      via: 'BLS "Silberzwiebel gesäuert, abgetropft": aus dem Glas, mit eigenen Werten.'

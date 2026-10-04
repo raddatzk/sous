@@ -4,9 +4,15 @@
     - Zitronen
     - Zitronensaft
     - Zitronenschale
+    - Zitronenabrieb
   category: fruit
   measures: {Stk.: 100}
   nutrition:
     raw: [F601100]
     unspecified: [F601600]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: yuzu
+      name: Yuzu
+      aliases:
+        - Yuzusaft

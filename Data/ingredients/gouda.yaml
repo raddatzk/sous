@@ -1,7 +1,16 @@
 - id: gouda
   name: Gouda
+  aliases:
+    - Goudakäse
   category: dairy
   nutrition:
     unspecified: [M402600]
   candidates: [M402400, M402500]
   via: BLS-Gruppe "Gouda 48 % Fett i. Tr."
+  varieties:
+    - id: edamer
+      name: Edamer
+      nutrition:
+        unspecified: [M401500, M401600, M401400]
+      via: BLS-Gruppe "Edamer"; im Laden meist 40 % Fett i. Tr., deutlich magerer als Gouda
+        48 %

@@ -3,9 +3,31 @@
   aliases:
     - Koriandergrün
     - frischer Koriander
+    - Korianderblätter
   category: herbs
   measures: {Bund: 25, Handvoll: 10}
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    raw:
+      - code: Z-koriander
+        name: Coriander, fresh
+        source: Ciqual 2020 (Anses), Nr. 11094 „Coriander, fresh“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 22.3
+          proteinG: 2.13
+          fatG: 0.52
+          saturatedFatG: 0.014
+          carbsG: 0.87
+          sugarG: 0.87
+          fiberG: 2.8
+          sodiumMg: 46
+          vitaminCMg: 27
+          vitaminDMcg: 0
+          vitaminEMg: 2.5
+          calciumMg: 67
+          ironMg: 1.77
+          magnesiumMg: 26
+          potassiumMg: 521
+  via: Das BLS führt Koriandergrün nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne
+    Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses)
+    führt es als „Coriander, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.

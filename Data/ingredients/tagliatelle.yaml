@@ -1,7 +1,14 @@
 - id: tagliatelle
   name: Tagliatelle
+  aliases:
+    - Bandnudeln
   category: grains
   nutrition:
     raw: [E432000]
     cooked: [E432032]
   via: kuratierte Auswahl
+  varieties:
+    - id: pappardelle
+      name: Pappardelle
+    - id: fettuccine
+      name: Fettuccine

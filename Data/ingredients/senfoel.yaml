@@ -1,0 +1,26 @@
+- id: senfoel
+  name: Senföl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified:
+      - code: Z-senfoel
+        name: Oil, mustard
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 172337 „Oil, mustard“,
+          gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 884
+          proteinG: 0
+          fatG: 100
+          saturatedFatG: 11.582
+          fiberG: 0
+          sodiumMg: 0
+          vitaminAMcg: 0
+          vitaminCMg: 0
+          calciumMg: 0
+          ironMg: 0
+          magnesiumMg: 0
+          potassiumMg: 0
+  via: 'Das BLS und Ciqual führen Senföl nicht; USDA-Zeile. Das Öl der indischen und bengalischen
+    Küche, nicht das ätherische Senföl. Kohlenhydrate weggelassen: USDA rechnet sie nur „by
+    difference“, Ballaststoffe eingeschlossen.'

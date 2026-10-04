@@ -8,3 +8,19 @@
   nutrition:
     unspecified: [R125000]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: heller-balsamico
+      name: Heller Balsamico
+      aliases:
+        - Balsamico bianco
+        - Weißer Balsamico
+        - Heller Balsamicoessig
+        - Weißer Balsamicoessig
+    - id: balsamicocreme
+      name: Balsamicocreme
+      aliases:
+        - Crema di Balsamico
+        - Balsamico-Glasur
+      nutrition: without
+      via: Eingekochter, gesüßter Balsamico; keine Zeile in BLS, Ciqual oder USDA SR Legacy,
+        und die Werte des Essigs wären viel zu niedrig

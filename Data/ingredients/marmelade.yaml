@@ -6,3 +6,15 @@
   nutrition:
     unspecified: [S135000]
   via: BLS-Gruppe "Marmelade (hergestellt aus Zitrusfrüchten)"
+  varieties:
+    - id: aprikosenkonfituere
+      name: Aprikosenkonfitüre
+      aliases:
+        - Aprikosenmarmelade
+        - Marillenmarmelade
+        - Marillenkonfitüre
+    - id: fruchtaufstrich
+      name: Fruchtaufstrich
+      nutrition:
+        unspecified: [S131100]
+      via: BLS-Name "Fruchtaufstrich" — weniger Zucker als Konfitüre

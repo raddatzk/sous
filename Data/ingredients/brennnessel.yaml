@@ -1,0 +1,10 @@
+- id: brennnessel
+  name: Brennnessel
+  aliases:
+    - Brennnesseln
+    - Brennnesselblätter
+  category: vegetables
+  nutrition:
+    raw: [G261100]
+    cooked: [G261132]
+  via: 'BLS-Gruppe "Brennnessel": die jungen Blätter.'

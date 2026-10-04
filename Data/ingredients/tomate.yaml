@@ -2,6 +2,7 @@
   name: Tomate
   aliases:
     - Tomaten
+    - Paradeiser
   category: vegetables
   measures: {Stk.: 90}
   nutrition:
@@ -24,3 +25,5 @@
       name: Strauchtomate
       aliases:
         - Strauchtomaten
+        - Rispentomate
+        - Rispentomaten

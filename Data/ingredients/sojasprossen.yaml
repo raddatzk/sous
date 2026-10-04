@@ -1,0 +1,13 @@
+- id: sojasprossen
+  name: Sojasprossen
+  aliases:
+    - Mungbohnensprossen
+    - Mungosprossen
+    - Bohnensprossen
+  category: vegetables
+  nutrition:
+    raw: [H650100, H620100]
+    cooked: [H650902, H620902]
+  via: Was hierzulande als "Sojasprossen" verkauft wird, sind fast immer Mungbohnenkeimlinge;
+    deshalb BLS "Mungbohnensprossen" vor "Sojabohnensprossen". Glas und Dose sind abgetropft
+    und gegart.

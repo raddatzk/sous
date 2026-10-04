@@ -1,0 +1,29 @@
+- id: sriracha
+  name: Sriracha
+  aliases:
+    - Sriracha-Sauce
+    - Sriracha Sauce
+  category: canned
+  nutrition:
+    unspecified:
+      - code: Z-sriracha
+        name: Sauce, hot chile, sriracha
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171186 „Sauce, hot chile,
+          sriracha“, gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 93
+          proteinG: 1.93
+          fatG: 0.93
+          sugarG: 15.11
+          fiberG: 2.2
+          sodiumMg: 2124
+          vitaminAMcg: 129
+          vitaminCMg: 26.9
+          vitaminEMg: 4.8
+          calciumMg: 18
+          ironMg: 1.64
+          magnesiumMg: 16
+          potassiumMg: 321
+  via: Weder BLS noch Ciqual führen Sriracha; USDA SR Legacy, inline übernommen. USDA nennt
+    Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht
+    in der Zeile.

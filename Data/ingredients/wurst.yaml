@@ -5,3 +5,45 @@
     cooked: [W234032, W234062, W234082]
     unspecified: [W234000]
   via: BLS-Gruppe "Fleischwurst"
+  varieties:
+    - id: fleischwurst
+      name: Fleischwurst
+      aliases:
+        - Lyoner
+    - id: wiener-wuerstchen
+      name: Wiener Würstchen
+      aliases:
+        - Wiener
+        - Wienerle
+        - Wienerli
+        - Frankfurter Würstchen
+        - Frankfurter
+    - id: bockwurst
+      name: Bockwurst
+      nutrition:
+        cooked: [W211132]
+        unspecified: [W211100]
+      via: BLS-Gruppe "Bockwurst"
+    - id: weisswurst
+      name: Weißwurst
+      aliases:
+        - Münchner Weißwurst
+      nutrition:
+        cooked: [W224032, W224082]
+        unspecified: [W224000]
+      via: BLS-Gruppe "Münchner Weißwurst"
+    - id: leberkaese
+      name: Leberkäse
+      aliases:
+        - Fleischkäse
+      nutrition:
+        cooked: [W233082, W233062, W233032]
+        unspecified: [W233000, W256100]
+      via: BLS-Gruppe "Fleischkäse einfach, fein/Original Bayerischer Leberkäse fein"; der
+        bayerische Leberkäse enthält keine Leber
+    - id: salami
+      name: Salami
+      nutrition:
+        unspecified: [W140000, W142000, W141100]
+      via: BLS-Zeile "Salami"; als Rohwurst wird sie roh gegessen oder auf der Pizza mitgebacken,
+        eine gegarte Zeile führt der BLS nicht

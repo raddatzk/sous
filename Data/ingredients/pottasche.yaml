@@ -1,0 +1,6 @@
+- id: pottasche
+  name: Pottasche
+  category: baking
+  nutrition:
+    unspecified: [R421300]
+  via: BLS-Name "Pottasche (99 % Kaliumcarbonat, E 501)"

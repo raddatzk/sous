@@ -2,6 +2,7 @@
   name: Milch
   aliases:
     - Frischmilch
+    - Kuhmilch
   category: dairy
   density: 1.03
   nutrition:
@@ -11,3 +12,58 @@
   varieties:
     - id: vollmilch
       name: Vollmilch
+    - id: fettarme-milch
+      name: Fettarme Milch
+      density: 1.03
+      nutrition:
+        unspecified: [M111200, M113200]
+      via: BLS-Zeile "Milch fettarm, frisch, 1,5 % Fett, pasteurisiert"
+    - id: magermilch
+      name: Magermilch
+      aliases:
+        - Entrahmte Milch
+      density: 1.03
+      nutrition:
+        unspecified: [M111100, M113100]
+      via: BLS-Zeile "Milch entrahmt, frisch, höchstens 0,1 % Fett, pasteurisiert"
+    - id: laktosefreie-milch
+      name: Laktosefreie Milch
+      density: 1.03
+    - id: ziegenmilch
+      name: Ziegenmilch
+      density: 1.03
+      nutrition:
+        unspecified: [M021000]
+      via: BLS-Zeile "Ziegenmilch mind. 3 % Fett"
+    - id: kondensmilch
+      name: Kondensmilch
+      aliases:
+        - Dosenmilch
+        - Büchsenmilch
+      density:
+        gramsPerMl: 1.07
+        note: 'USDA FoodData Central, SR Legacy, FDC ID 171276: 1 cup = 252 g.'
+      nutrition:
+        unspecified: [M182400, M182500, M182300]
+      via: BLS-Gruppe "Kondensmilch"; ungezuckert, die Dose im Laden hat meist 7,5 oder 10
+        % Fett
+    - id: gezuckerte-kondensmilch
+      name: Gezuckerte Kondensmilch
+      density:
+        gramsPerMl: 1.29
+        note: 'USDA FoodData Central, SR Legacy, FDC ID 171275: 1 cup = 306 g.'
+      nutrition:
+        unspecified: [M181400]
+      via: BLS-Zeile "Kondensmilch mind. 8 % Fett, gezuckert"; die Tube oder Dose für Desserts,
+        vietnamesischen Kaffee, Dulce de leche
+    - id: milchpulver
+      name: Milchpulver
+      aliases:
+        - Vollmilchpulver
+        - Trockenmilch
+      density:
+        gramsPerMl: 0.54
+        note: 'USDA FoodData Central, SR Legacy, FDC ID 170876: 1 cup = 128 g.'
+      nutrition:
+        unspecified: [M882000, M884000]
+      via: BLS-Zeile "Vollmilchpulver"

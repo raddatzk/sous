@@ -1,7 +1,57 @@
 - id: salbei
   name: Salbei
+  aliases:
+    - frischer Salbei
+    - Salbeiblatt: {unit: Blatt}
+    - Salbeiblätter: {unit: Blatt}
   category: herbs
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    raw:
+      - code: Z-salbei
+        name: Sage, fresh
+        source: Ciqual 2020 (Anses), Nr. 11069 „Sage, fresh“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 36.7
+          proteinG: 4
+          carbsG: 0.97
+          sugarG: 0.3
+          fiberG: 7
+          sodiumMg: 11.1
+          vitaminEMg: 1.46
+          calciumMg: 230
+          ironMg: 4.6
+          magnesiumMg: 54
+          potassiumMg: 510
+  via: Das BLS führt Salbei nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz
+    meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es
+    als „Sage, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.
+  varieties:
+    - id: getrockneter-salbei
+      name: Getrockneter Salbei
+      aliases:
+        - Salbei getrocknet
+      category: spices
+      nutrition:
+        unspecified:
+          - code: Z-getrockneter-salbei
+            name: Sage, dried
+            source: Ciqual 2020 (Anses), Nr. 11037 „Sage, dried“, Licence Ouverte / CC BY
+              4.0
+            per100g:
+              kcal: 320
+              proteinG: 10.6
+              fatG: 12.8
+              saturatedFatG: 7.03
+              carbsG: 20.4
+              sugarG: 1.71
+              fiberG: 40.3
+              sodiumMg: 11
+              vitaminCMg: 32.4
+              vitaminDMcg: 0
+              vitaminEMg: 7.48
+              calciumMg: 1650
+              ironMg: 28.1
+              magnesiumMg: 428
+              potassiumMg: 1070
+      via: Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte
+        je Gramm. Ciqual 2020 (Anses) führt es als „Sage, dried“, inline übernommen.

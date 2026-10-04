@@ -1,0 +1,7 @@
+- id: haselnussoel
+  name: Haselnussöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q140000]
+  via: BLS-Name "Haselnussöl"

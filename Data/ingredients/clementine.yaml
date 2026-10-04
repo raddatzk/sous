@@ -1,5 +1,9 @@
 - id: clementine
   name: Clementine
+  aliases:
+    - Clementinen
+    - Klementine
+    - Klementinen
   category: fruit
   nutrition:
     raw: [F607100]

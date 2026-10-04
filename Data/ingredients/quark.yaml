@@ -2,6 +2,7 @@
   name: Quark
   aliases:
     - Speisequark
+    - Topfen
   category: dairy
   nutrition:
     unspecified: [M713100]
@@ -9,3 +10,27 @@
   varieties:
     - id: magerquark
       name: Magerquark
+      aliases:
+        - Magertopfen
+    - id: halbfettquark
+      name: Halbfettquark
+      aliases:
+        - Quark 20 %
+      nutrition:
+        unspecified: [M713300]
+      via: BLS-Zeile "Speisequark Halbfettstufe, 20 % Fett i. Tr."
+    - id: sahnequark
+      name: Sahnequark
+      aliases:
+        - Quark 40 %
+      nutrition:
+        unspecified: [M713500]
+      via: BLS-Zeile "Speisequark Fettstufe, 40 % Fett i. Tr."; so wird der Quark mit 40 %
+        im Laden verkauft
+    - id: skyr
+      name: Skyr
+    - id: schichtkaese
+      name: Schichtkäse
+      nutrition:
+        unspecified: [M712300, M712200, M712500]
+      via: BLS-Gruppe "Schichtkäse"; die 20-%-Stufe ist die übliche

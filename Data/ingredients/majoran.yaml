@@ -1,0 +1,32 @@
+- id: majoran
+  name: Majoran
+  aliases:
+    - getrockneter Majoran
+    - Majoran getrocknet
+    - gerebelter Majoran
+    - Majoran gerebelt
+  category: spices
+  nutrition:
+    unspecified:
+      - code: Z-majoran
+        name: Marjoram, dried
+        source: Ciqual 2020 (Anses), Nr. 11034 „Marjoram, dried“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 276
+          proteinG: 12.7
+          fatG: 7.04
+          saturatedFatG: 0.53
+          carbsG: 20.3
+          sugarG: 4.09
+          fiberG: 40.3
+          sodiumMg: 77
+          vitaminCMg: 51.4
+          vitaminDMcg: 0
+          vitaminEMg: 1.69
+          calciumMg: 1990
+          ironMg: 82.7
+          magnesiumMg: 346
+          potassiumMg: 1520
+  via: Das BLS führt Majoran nicht. Ohne Zusatz meint ein Rezept den getrockneten, gerebelten;
+    Ciqual 2020 (Anses) führt ihn als „Marjoram, dried“, inline übernommen.

@@ -2,6 +2,7 @@
   name: Weiße Bohnen
   aliases:
     - Cannellini
+    - Cannellinibohnen
   category: legumes
   measures:
     Dose:
@@ -13,3 +14,18 @@
     raw: [H742100]
     cooked: [H742132]
   via: kuratierte Auswahl
+  varieties:
+    - id: limabohnen
+      name: Limabohnen
+      aliases:
+        - Limabohne
+        - Butterbohnen
+        - Mondbohnen
+      nutrition:
+        raw: [G780400]
+        cooked: [G780432]
+      via: BLS "Limabohne (Butterbohne, Mondbohne) reif".
+    - id: riesenbohnen
+      name: Riesenbohnen
+      aliases:
+        - Gigantes

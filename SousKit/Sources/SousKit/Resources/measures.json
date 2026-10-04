@@ -82,6 +82,14 @@
    "assumption": true
   },
   {
+   "name": "Augenbohnen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
+  },
+  {
    "name": "Avocado",
    "unit": "Stk.",
    "grams": 150,
@@ -118,10 +126,25 @@
    "assumption": true
   },
   {
+   "name": "Blattgelatine",
+   "unit": "Blatt",
+   "grams": 1.7,
+   "assumption": true,
+   "note": "Sechs Blatt wiegen 10 g."
+  },
+  {
    "name": "Blumenkohl",
    "unit": "Stk.",
    "grams": 600,
    "assumption": true
+  },
+  {
+   "name": "Borlottibohnen",
+   "unit": "Dose",
+   "grams": 250,
+   "assumption": true,
+   "note": "Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich, und abgetropft heißt gekocht.",
+   "state": "cooked"
   },
   {
    "name": "Brokkoli",
@@ -210,10 +233,38 @@
    "note": "Die übliche 400-g-Dose; der Saft gehört dazu."
   },
   {
+   "name": "Gelatine",
+   "unit": "Blatt",
+   "grams": 1.7,
+   "assumption": true,
+   "note": "Sechs Blatt wiegen 10 g und ersetzen ein Päckchen gemahlene Gelatine."
+  },
+  {
+   "name": "Gemahlene Gelatine",
+   "unit": "Pck.",
+   "grams": 9,
+   "assumption": true,
+   "note": "Ein Beutel, für 500 ml Flüssigkeit."
+  },
+  {
+   "name": "Geschälte Tomaten",
+   "unit": "Dose",
+   "grams": 400,
+   "assumption": true,
+   "note": "Die übliche 400-g-Dose; der Saft gehört dazu."
+  },
+  {
    "name": "Getrocknete Tomaten",
    "unit": "Handvoll",
    "grams": 30,
    "assumption": true
+  },
+  {
+   "name": "Grüne Oliven",
+   "unit": "Glas",
+   "grams": 170,
+   "assumption": true,
+   "note": "Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft."
   },
   {
    "name": "Gurke",
@@ -490,6 +541,13 @@
    "assumption": true
   },
   {
+   "name": "Sahnefestiger",
+   "unit": "Pck.",
+   "grams": 8,
+   "assumption": true,
+   "note": "Ein Päckchen für 250 ml Sahne."
+  },
+  {
    "name": "Salat",
    "unit": "Handvoll",
    "grams": 30,
@@ -585,10 +643,30 @@
    "assumption": true
   },
   {
+   "name": "Trockenhefe",
+   "unit": "Pck.",
+   "grams": 7,
+   "assumption": true,
+   "note": "Ein Päckchen Trockenhefe."
+  },
+  {
    "name": "Vanillezucker",
    "unit": "Pck.",
    "grams": 8,
    "assumption": true
+  },
+  {
+   "name": "Vanillinzucker",
+   "unit": "Pck.",
+   "grams": 8,
+   "assumption": true
+  },
+  {
+   "name": "Wachtelei",
+   "unit": "Stk.",
+   "grams": 9,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 172191: 1 egg = 9 g."
   },
   {
    "name": "Walnuss",
@@ -659,6 +737,11 @@
    "assumption": true
   },
   {
+   "name": "Avocadoöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Balsamico",
    "gramsPerMl": 1.06,
    "assumption": true
@@ -669,13 +752,34 @@
    "assumption": true
   },
   {
+   "name": "Distelöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Essig",
    "gramsPerMl": 1.01,
    "assumption": true
   },
   {
+   "name": "Fettarme Milch",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Gezuckerte Kondensmilch",
+   "gramsPerMl": 1.29,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 171275: 1 cup = 306 g."
+  },
+  {
    "name": "Haferflocken",
    "gramsPerMl": 0.4,
+   "assumption": true
+  },
+  {
+   "name": "Haselnussöl",
+   "gramsPerMl": 0.92,
    "assumption": true
   },
   {
@@ -715,6 +819,27 @@
    "assumption": true
   },
   {
+   "name": "Kondensmilch",
+   "gramsPerMl": 1.07,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 171276: 1 cup = 252 g."
+  },
+  {
+   "name": "Laktosefreie Milch",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Magermilch",
+   "gramsPerMl": 1.03,
+   "assumption": true
+  },
+  {
+   "name": "Maiskeimöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Mehl",
    "gramsPerMl": 0.55,
    "assumption": true,
@@ -729,6 +854,12 @@
    "name": "Milch",
    "gramsPerMl": 1.03,
    "assumption": true
+  },
+  {
+   "name": "Milchpulver",
+   "gramsPerMl": 0.54,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 170876: 1 cup = 128 g."
   },
   {
    "name": "Olivenöl",
@@ -776,6 +907,11 @@
    "assumption": true
   },
   {
+   "name": "Senföl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Sesamöl",
    "gramsPerMl": 0.92,
    "assumption": true
@@ -783,6 +919,11 @@
   {
    "name": "Sojasauce",
    "gramsPerMl": 1.2,
+   "assumption": true
+  },
+  {
+   "name": "Sojaöl",
+   "gramsPerMl": 0.92,
    "assumption": true
   },
   {
@@ -801,13 +942,28 @@
    "assumption": true
   },
   {
+   "name": "Traubenkernöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Vollkornmehl",
    "gramsPerMl": 0.6,
    "assumption": true
   },
   {
+   "name": "Walnussöl",
+   "gramsPerMl": 0.92,
+   "assumption": true
+  },
+  {
    "name": "Weißwein",
    "gramsPerMl": 0.99,
+   "assumption": true
+  },
+  {
+   "name": "Ziegenmilch",
+   "gramsPerMl": 1.03,
    "assumption": true
   },
   {

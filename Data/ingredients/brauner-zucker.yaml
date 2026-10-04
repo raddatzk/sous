@@ -6,3 +6,11 @@
   nutrition:
     unspecified: [S112000]
   via: BLS-Gruppe "Zucker braun (Kandisfarin/Rohzucker)"
+  varieties:
+    - id: rohrohrzucker
+      name: Rohrohrzucker
+    - id: muscovado
+      name: Muscovado
+      aliases:
+        - Muscovadozucker
+        - Mascobado

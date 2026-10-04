@@ -1,0 +1,9 @@
+- id: quitte
+  name: Quitte
+  aliases:
+    - Quitten
+  category: fruit
+  nutrition:
+    raw: [F140100]
+    cooked: [F140132, F140152]
+  via: BLS-Gruppe "Quitte"

@@ -11,6 +11,18 @@
   varieties:
     - id: dinkelmehl
       name: Dinkelmehl
+      aliases:
+        - Dinkelmehl Type 630
+      nutrition:
+        unspecified: [C234000]
+      via: BLS-Name "Dinkel Mehl, Type 630" — die übliche Dinkelmehltype; erbte bisher Weizenmehl
+        Type 405
+      varieties:
+        - id: dinkelmehl-type-1050
+          name: Dinkelmehl Type 1050
+          nutrition:
+            unspecified: [C234200]
+          via: BLS-Name "Dinkel Mehl, Type 1050"
     - id: mehl-type-405
       name: Mehl Type 405
     - id: mehl-type-550
@@ -19,6 +31,58 @@
       name: Weizenmehl
       aliases:
         - Weizenmehl Type 405
+        - Weißmehl
+        - glattes Mehl
       varieties:
         - id: weizenmehl-type-550
           name: Weizenmehl Type 550
+        - id: weizenmehl-type-1050
+          name: Weizenmehl Type 1050
+          aliases:
+            - Mehl Type 1050
+          nutrition:
+            unspecified: [C213200]
+          via: BLS-Name "Weizen Mehl, Type 1050" — dunkler ausgemahlen, mit mehr Eiweiß und
+            Ballaststoffen als Type 405
+    - id: griffiges-mehl
+      name: Griffiges Mehl
+      aliases:
+        - doppelgriffiges Mehl
+        - Spätzlemehl
+      nutrition:
+        unspecified: [C215000]
+      via: Griffiges (doppelgriffiges) Mehl ist grob gemahlener Weizen, im BLS "Weizen Dunst"
+    - id: roggenmehl
+      name: Roggenmehl
+      aliases:
+        - Roggenmehl Type 1150
+      nutrition:
+        unspecified: [C223300, C223200]
+      candidates: [C223100, C223400, C223600]
+      via: 'BLS-Gruppe "Roggen Mehl": Type 1150, die übliche Haushaltstype, vor Type 997;
+        die übrigen Typen als Kandidaten'
+    - id: buchweizenmehl
+      name: Buchweizenmehl
+      nutrition:
+        unspecified: [C424000]
+      via: BLS-Name "Buchweizen Mehl"
+    - id: reismehl
+      name: Reismehl
+      nutrition:
+        unspecified: [C453000]
+      via: BLS-Name "Reis Mehl"
+    - id: maismehl
+      name: Maismehl
+      nutrition:
+        unspecified: [C443000]
+      via: BLS-Name "Mais Mehl"
+    - id: hafermehl
+      name: Hafermehl
+      nutrition:
+        unspecified: [C233000]
+      via: BLS-Name "Hafer Mehl"
+    - id: kichererbsenmehl
+      name: Kichererbsenmehl
+      nutrition:
+        unspecified: [H720400]
+      via: BLS-Name "Kichererbsenmehl"

@@ -1,0 +1,10 @@
+- id: brombeere
+  name: Brombeere
+  aliases:
+    - Brombeeren
+  category: fruit
+  nutrition:
+    raw: [F303100]
+    cooked: [F303152]
+  candidates: [F413100, F303400]
+  via: BLS-Gruppe "Brombeere"

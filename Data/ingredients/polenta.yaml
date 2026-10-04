@@ -2,6 +2,8 @@
   name: Polenta
   aliases:
     - Maisgrieß
+    - Polentagrieß
+    - Bramata
   category: grains
   nutrition:
     cooked: [C526062, C526082]

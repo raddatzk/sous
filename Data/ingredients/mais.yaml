@@ -2,6 +2,7 @@
   name: Mais
   aliases:
     - Maiskolben
+    - Kukuruz
   category: vegetables
   measures:
     Dose:
@@ -13,3 +14,20 @@
     raw: [C341000]
   candidates: [C341162, C346000, C346032, C347000, C347032, C443000, C446000]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: zuckermais
+      name: Zuckermais
+      aliases:
+        - Gemüsemais
+        - Maiskörner
+      nutrition:
+        raw: [G570100]
+        cooked: [G570132, G570902, G570232, G570172]
+      candidates: [G570200, G570802]
+      via: 'BLS-Gruppe "Zuckermais": der Gemüsemais aus Dose und Tiefkühltruhe. Das Wurzelwort
+        zeigt auf das Getreide "Mais" (C341…), dessen Trockenwert ein Vielfaches ist.'
+      varieties:
+        - id: babymais
+          name: Babymais
+          aliases:
+            - Mini-Maiskolben

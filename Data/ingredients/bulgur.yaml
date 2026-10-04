@@ -1,5 +1,7 @@
 - id: bulgur
   name: Bulgur
+  aliases:
+    - Bulghur
   category: grains
   nutrition:
     raw: [C119100]

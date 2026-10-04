@@ -1,0 +1,9 @@
+- id: chicoree
+  name: Chicorée
+  aliases:
+    - Chicoree
+  category: vegetables
+  nutrition:
+    raw: [G101100]
+    cooked: [G101152, G101182, G101162]
+  via: BLS-Gruppe "Chicoree"; roh als Salat, gedünstet oder gebraten als Gemüse.

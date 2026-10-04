@@ -2,6 +2,7 @@
   name: Petersilie
   aliases:
     - frische Petersilie
+    - Petersilienblätter
   category: herbs
   measures: {Bund: 30, Stiel: 2, Handvoll: 10}
   nutrition:
@@ -12,3 +13,15 @@
       name: Glatte Petersilie
       aliases:
         - frische glatte Petersilie
+        - Blattpetersilie
+        - italienische Petersilie
+    - id: krause-petersilie
+      name: Krause Petersilie
+    - id: getrocknete-petersilie
+      name: Getrocknete Petersilie
+      aliases:
+        - Petersilie getrocknet
+      category: spices
+      nutrition:
+        unspecified: [G250400]
+      via: BLS-Name „Petersilienblatt getrocknet“

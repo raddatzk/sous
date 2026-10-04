@@ -3,6 +3,8 @@
   aliases:
     - Speisesalz
     - Tafelsalz
+    - Jodsalz
+    - grobes Salz
   category: spices
   density: 1.2
   nutrition:
@@ -16,6 +18,35 @@
         - Schwarzsalz
     - id: meersalz
       name: Meersalz
+      aliases:
+        - grobes Meersalz
       nutrition:
         unspecified: [R112000]
       via: BLS-Namensabgleich, einmalig festgeschrieben
+      varieties:
+        - id: fleur-de-sel
+          name: Fleur de Sel
+        - id: meersalzflocken
+          name: Meersalzflocken
+          aliases:
+            - Salzflocken
+    - id: steinsalz
+      name: Steinsalz
+      nutrition:
+        unspecified: [R111100]
+      via: BLS-Name „Steinsalz“
+      varieties:
+        - id: himalayasalz
+          name: Himalayasalz
+    - id: kraeutersalz
+      name: Kräutersalz
+      nutrition:
+        unspecified: [R115000]
+      via: BLS-Name „Gewürzsalz/Kräutersalz“
+    - id: nitritpoekelsalz
+      name: Nitritpökelsalz
+      aliases:
+        - Pökelsalz
+      nutrition:
+        unspecified: [R118000, R118100]
+      via: BLS-Name „Nitritpökelsalz“; jodiert als Alternative

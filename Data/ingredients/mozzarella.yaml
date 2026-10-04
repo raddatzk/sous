@@ -1,5 +1,7 @@
 - id: mozzarella
   name: Mozzarella
+  aliases:
+    - Fior di Latte
   category: dairy
   nutrition:
     unspecified: [M032100]
@@ -8,7 +10,32 @@
   varieties:
     - id: bueffelmozzarella
       name: Büffelmozzarella
+      aliases:
+        - Mozzarella di Bufala
     - id: mini-mozzarella
       name: Mini-Mozzarella
       aliases:
         - Mozzarella-Kugeln
+    - id: burrata
+      name: Burrata
+      nutrition:
+        unspecified:
+          - code: Z-burrata
+            name: Burrata, from cow's milk
+            source: Ciqual 2025 (Anses), Nr. 12072 „Burrata, from cow's milk“, Licence Ouverte
+              / CC BY 4.0
+            per100g:
+              kcal: 259
+              proteinG: 10.8
+              fatG: 23.4
+              saturatedFatG: 15.4
+              carbsG: 0.93
+              sugarG: 0.55
+              fiberG: 0
+              sodiumMg: 213
+              vitaminAMcg: 239
+              calciumMg: 208
+              magnesiumMg: 9.55
+              potassiumMg: 35.3
+      via: Der BLS führt keine Burrata; Ciqual-Zeile. Mit Sahne gefüllt, halb so viel Eiweiß
+        wie Mozzarella.

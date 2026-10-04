@@ -7,3 +7,14 @@
   nutrition:
     unspecified: [C211000, C221000, C235000]
   via: BLS-Gruppe "Weizen Vollkornmehl"
+  varieties:
+    - id: dinkelvollkornmehl
+      name: Dinkelvollkornmehl
+      nutrition:
+        unspecified: [C235000]
+      via: BLS-Name "Dinkel Vollkornmehl"
+    - id: roggenvollkornmehl
+      name: Roggenvollkornmehl
+      nutrition:
+        unspecified: [C221000]
+      via: BLS-Name "Roggen Vollkornmehl"

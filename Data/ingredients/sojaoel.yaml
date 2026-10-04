@@ -1,0 +1,7 @@
+- id: sojaoel
+  name: Sojaöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q270000]
+  via: BLS-Name "Sojaöl"

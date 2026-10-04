@@ -1,5 +1,7 @@
 - id: spitzkohl
   name: Spitzkohl
+  aliases:
+    - Spitzkraut
   category: vegetables
   measures: {Stk.: 800}
   nutrition:

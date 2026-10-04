@@ -1,0 +1,9 @@
+- id: chinakohl
+  name: Chinakohl
+  aliases:
+    - Pekingkohl
+  category: vegetables
+  nutrition:
+    raw: [G321100]
+    cooked: [G321132, G321152, G321182, G321162]
+  via: BLS-Gruppe "Chinakohl".
