@@ -67,7 +67,10 @@ public final class RecipeLibrary {
     /// filters rather than as words.
     public private(set) var activeFilters: [RecipeFilter] = []
 
-    private var reloadTask: Task<Void, Never>?
+    /// The debounced reload a change of search or filter scheduled, if one
+    /// is pending. Readable within the module so a test can wait for the
+    /// reload itself instead of for a span of time.
+    private(set) var reloadTask: Task<Void, Never>?
 
     public init(
         store: any RecipeStore,

@@ -173,19 +173,20 @@ struct RecipeLibraryTests {
         await library.save(Recipe(title: "Zucchinipfanne"))
 
         library.searchText = "L"
+        let first = try #require(library.reloadTask)
         library.searchText = "Li"
         library.searchText = "Linsen"
-        // Still the unfiltered result: nothing has been reloaded yet.
+        // Still the unfiltered result: nothing has been reloaded yet, and
+        // each keystroke called off the reload the one before it scheduled.
         #expect(library.recipes.count == 2)
+        #expect(first.isCancelled)
 
-        // Asked for rather than waited out. The reload is debounced by 150 ms
-        // and then has a store round trip to make, and a fixed sleep turns
-        // that into a bet on how loaded the machine is — which is what made
-        // this the suite's flakiest test. The ceiling is generous because it
-        // is only ever reached when something is actually broken.
-        try await untilTrue(within: .seconds(5)) {
-            library.recipes.map(\.title) == ["Linsensuppe"]
-        }
+        // The pending reload itself is waited for, not a span of time. Even
+        // polling with a five-second ceiling failed now and then: with the
+        // whole suite running in parallel, the main actor was busy for longer
+        // than that before the debounced reload got its turn.
+        let last = try #require(library.reloadTask)
+        await last.value
         #expect(library.recipes.map(\.title) == ["Linsensuppe"])
     }
 
@@ -229,22 +230,6 @@ struct RecipeLibraryTests {
         #expect(await library.filterSuggestions(
             for: "Hauptg", applied: [], catalog: .bundled, limit: 4
         ).map(\.count) == [2])
-    }
-}
-
-/// Waits for `condition` to hold, polling rather than sleeping a fixed span.
-///
-/// For assertions about work that is debounced or handed to another task:
-/// the thing under test has a deadline, the test should not also have a
-/// guess at one.
-@MainActor
-private func untilTrue(
-    within limit: Duration, poll: Duration = .milliseconds(10), _ condition: () -> Bool
-) async throws {
-    let deadline = ContinuousClock.now + limit
-    while ContinuousClock.now < deadline {
-        if condition() { return }
-        try await Task.sleep(for: poll)
     }
 }
 
