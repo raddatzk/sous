@@ -8,6 +8,8 @@
       note: 'Eine 400-g-Dose, abgetropft: das Abtropfgewicht ist bei allen Marken etwa gleich,
         und abgetropft heißt gekocht.'
   nutrition:
-    raw: [H742100]
-    cooked: [H742132]
-  via: kuratierte Auswahl
+    raw: [H739400]
+    cooked: [H740132, H740902]
+  via: 'BLS "Gartenbohne reif": Schwarze Bohnen sind wie Kidneybohnen Phaseolus vulgaris,
+    aber nicht Kidneybohnen; bisher zeigte das Wort auf deren Zeilen (H742…). Trocken die
+    reife Gartenbohne, gekocht die gekochte, die Dose abgetropft als Alternative.'

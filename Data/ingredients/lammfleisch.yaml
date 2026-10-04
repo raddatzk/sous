@@ -11,8 +11,11 @@
   category: meat
   nutrition:
     raw: [U807000]
+    cooked: [U867142, U867162, U817162, U867132]
   candidates: [W139100, W149100]
-  via: BLS-Gruppe "Lamm Muskelfleisch"
+  via: BLS-Gruppe "Lamm Muskelfleisch" für roh. Gegart führt das BLS kein Muskelfleisch, wohl
+    aber die gleich magere Schulter (roh 121 statt 116 kcal) geschmort, gebraten und gekocht
+    und die Nuss gebraten; geschmort vorn, wie Keule und Schulter meist ins Rezept kommen.
   varieties:
     - id: lammkotelett
       name: Lammkotelett

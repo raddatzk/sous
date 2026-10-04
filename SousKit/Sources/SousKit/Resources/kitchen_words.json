@@ -315,10 +315,6 @@
   "id": "bergkaese",
   "name": "Bergkäse",
   "aliases": [
-   "Emmentaler",
-   "Gruyere",
-   "Gruyère",
-   "Greyerzer",
    "Alpkäse"
   ],
   "category": "dairy"
@@ -1045,9 +1041,7 @@
   "aliases": [
    "Eier",
    "Hühnerei",
-   "Hühnereier",
-   "Eigelb",
-   "Eiweiß"
+   "Hühnereier"
   ],
   "category": "dairy"
  },
@@ -1070,12 +1064,35 @@
   "parent": "Nudeln"
  },
  {
+  "id": "eigelb",
+  "name": "Eigelb",
+  "aliases": [
+   "Eidotter",
+   "Dotter"
+  ],
+  "parent": "Ei"
+ },
+ {
   "id": "eisbergsalat",
   "name": "Eisbergsalat",
   "aliases": [
    "Eissalat"
   ],
   "parent": "Salat"
+ },
+ {
+  "id": "eiweiss",
+  "name": "Eiweiß",
+  "aliases": [
+   "Eiklar"
+  ],
+  "parent": "Ei"
+ },
+ {
+  "id": "emmentaler",
+  "name": "Emmentaler",
+  "aliases": [],
+  "parent": "Bergkäse"
  },
  {
   "id": "endivie",
@@ -1117,8 +1134,7 @@
   "id": "erbse",
   "name": "Erbse",
   "aliases": [
-   "Erbsen",
-   "Zuckerschoten"
+   "Erbsen"
   ],
   "category": "vegetables"
  },
@@ -1135,12 +1151,19 @@
   "name": "Erdnuss",
   "aliases": [
    "Erdnüsse",
-   "Erdnussbutter",
    "Erdnusskerne",
    "Aschantinuss",
    "Aschantinüsse"
   ],
   "category": "nuts"
+ },
+ {
+  "id": "erdnussbutter",
+  "name": "Erdnussbutter",
+  "aliases": [
+   "Erdnusscreme"
+  ],
+  "parent": "Erdnuss"
  },
  {
   "id": "erdnussmus",
@@ -1321,6 +1344,14 @@
    "Bachforelle"
   ],
   "category": "fish"
+ },
+ {
+  "id": "frische-dattel",
+  "name": "Frische Dattel",
+  "aliases": [
+   "Frische Datteln"
+  ],
+  "parent": "Dattel"
  },
  {
   "id": "frische-kurkuma",
@@ -1531,13 +1562,24 @@
   "id": "gemuesebruehe",
   "name": "Gemüsebrühe",
   "aliases": [
-   "Gemüsebrühe Pulver",
    "Brühe",
    "Gemüsefond",
    "glutenfreie Gemüsebrühe",
    "Gemüsebouillon"
   ],
   "category": "canned"
+ },
+ {
+  "id": "gemuesebruehpulver",
+  "name": "Gemüsebrühpulver",
+  "aliases": [
+   "Gemüsebrühe Pulver",
+   "Gemüsebrühwürfel",
+   "Brühpulver",
+   "Brühwürfel",
+   "gekörnte Brühe"
+  ],
+  "parent": "Gemüsebrühe"
  },
  {
   "id": "gemuesezwiebel",
@@ -1905,6 +1947,15 @@
   "parent": "Mehl"
  },
  {
+  "id": "gruyere",
+  "name": "Gruyère",
+  "aliases": [
+   "Gruyere",
+   "Greyerzer"
+  ],
+  "parent": "Bergkäse"
+ },
+ {
   "id": "gruene-bohne",
   "name": "Grüne Bohne",
   "aliases": [
@@ -2035,7 +2086,6 @@
   "id": "hackfleisch",
   "name": "Hackfleisch",
   "aliases": [
-   "Rinderhack",
    "Gemischtes Hack",
    "Hack",
    "Faschiertes",
@@ -2315,6 +2365,15 @@
    "Hühnerbouillon"
   ],
   "category": "canned"
+ },
+ {
+  "id": "huehnerbruehpulver",
+  "name": "Hühnerbrühpulver",
+  "aliases": [
+   "Hühnerbrühe Pulver",
+   "Hühnerbrühwürfel"
+  ],
+  "parent": "Hühnerbrühe"
  },
  {
   "id": "huettenkaese",
@@ -3982,8 +4041,7 @@
   "name": "Paprikapulver",
   "aliases": [
    "Paprika edelsüß",
-   "Paprikapulver edelsüß",
-   "Rosenpaprika"
+   "Paprikapulver edelsüß"
   ],
   "category": "spices"
  },
@@ -4272,6 +4330,15 @@
   "category": "fruit"
  },
  {
+  "id": "popcornmais",
+  "name": "Popcornmais",
+  "aliases": [
+   "Puffmais"
+  ],
+  "category": "grains",
+  "parent": "Mais"
+ },
+ {
   "id": "portwein",
   "name": "Portwein",
   "aliases": [],
@@ -4502,10 +4569,31 @@
   "category": "canned"
  },
  {
+  "id": "rinderbruehpulver",
+  "name": "Rinderbrühpulver",
+  "aliases": [
+   "Rinderbrühe Pulver",
+   "Rinderbrühwürfel",
+   "Fleischbrühe Pulver",
+   "Fleischbrühwürfel"
+  ],
+  "parent": "Rinderbrühe"
+ },
+ {
   "id": "rindergulasch",
   "name": "Rindergulasch",
   "aliases": [],
   "parent": "Rindfleisch"
+ },
+ {
+  "id": "rinderhackfleisch",
+  "name": "Rinderhackfleisch",
+  "aliases": [
+   "Rinderhack",
+   "Rinderfaschiertes",
+   "Hackfleisch vom Rind"
+  ],
+  "parent": "Hackfleisch"
  },
  {
   "id": "rinderroulade",
@@ -4986,7 +5074,8 @@
   "name": "Scharfes Paprikapulver",
   "aliases": [
    "Paprikapulver scharf",
-   "Paprikapulver rosenscharf"
+   "Paprikapulver rosenscharf",
+   "Rosenpaprika"
   ],
   "parent": "Paprikapulver"
  },
@@ -6444,6 +6533,19 @@
    "Maiskörner"
   ],
   "parent": "Mais"
+ },
+ {
+  "id": "zuckerschote",
+  "name": "Zuckerschote",
+  "aliases": [
+   "Zuckerschoten",
+   "Kaiserschote",
+   "Kaiserschoten",
+   "Zuckererbse",
+   "Zuckererbsen",
+   "Kefen"
+  ],
+  "parent": "Erbse"
  },
  {
   "id": "zwetschge",

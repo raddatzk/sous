@@ -1,7 +1,6 @@
 - id: gemuesebruehe
   name: Gemüsebrühe
   aliases:
-    - Gemüsebrühe Pulver
     - Brühe
     - Gemüsefond
     - glutenfreie Gemüsebrühe
@@ -10,3 +9,20 @@
   nutrition:
     unspecified: [X416243]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: gemuesebruehpulver
+      name: Gemüsebrühpulver
+      aliases:
+        - Gemüsebrühe Pulver
+        - Gemüsebrühwürfel
+        - Brühpulver
+        - Brühwürfel
+        - gekörnte Brühe
+      nutrition:
+        unspecified: [R821000]
+      candidates: [R810000]
+      via: BLS "Gemüse Bouillon/Brühe/Suppe (Brühwürfel, Pulver)". „Gemüsebrühe Pulver“ war
+        eine Schreibweise der fertigen Brühe und rechnete mit 4 kcal und 268 mg Natrium je
+        100 g statt mit 195 kcal und 20,7 g Natrium. Ein eigenes Erzeugnis im Regal, daher
+        Sorte. Brühwürfel und gekörnte Brühe ohne Sorte meinen dasselbe; das allgemeine „Bouillon
+        (Brühwürfel, Pulver)“ (R810000) hat dieselben Werte.

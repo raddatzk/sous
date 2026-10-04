@@ -2,7 +2,6 @@
   name: Erbse
   aliases:
     - Erbsen
-    - Zuckerschoten
   category: vegetables
   nutrition:
     raw: [G760100]
@@ -23,3 +22,18 @@
         cooked: [G760432]
       via: 'BLS "Erbse reif": getrocknete, geschälte Erbsen für Erbsensuppe und Dal, trocken
         abgewogen; ein Vielfaches der grünen Erbse.'
+    - id: zuckerschote
+      name: Zuckerschote
+      aliases:
+        - Zuckerschoten
+        - Kaiserschote
+        - Kaiserschoten
+        - Zuckererbse
+        - Zuckererbsen
+        - Kefen
+      nutrition:
+        raw: [G761100]
+        cooked: [G761032, G761152, G761232, G761252]
+      candidates: [G761200]
+      via: 'BLS-Gruppe "Zuckererbse": die ganze Schote, 38 kcal roh statt der 80 der grünen
+        Erbse. Bisher eine Schreibweise der Erbse; ein anderes Gemüse im Regal, daher Sorte.'

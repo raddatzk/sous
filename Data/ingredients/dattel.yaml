@@ -5,17 +5,28 @@
     - entsteinte Dattel
     - entsteinte Datteln
   category: fruit
+  measures:
+    Stk.:
+      grams: 7
+      note: 'USDA FoodData Central, SR Legacy, FDC ID 171726 „Dates, deglet noor“: 1 date,
+        pitted = 7,1 g.'
   nutrition:
-    raw: [F504100]
-  candidates: [F504400]
-  via: BLS-Namensabgleich, einmalig festgeschrieben
+    unspecified: [F504400]
+  via: 'BLS "Dattel getrocknet": im deutschen Rezept sind Datteln fast immer die getrockneten
+    aus der Packung. Bisher rechnete das Wort mit frischen (F504100, 140 statt 356 kcal);
+    die stehen jetzt als eigene Sorte da.'
   varieties:
     - id: medjool-dattel
       name: Medjool-Dattel
       aliases:
         - Medjool-Datteln
+      measures:
+        Stk.:
+          grams: 24
+          note: 'USDA FoodData Central, SR Legacy, FDC ID 168191 „Dates, medjool“: 1 date,
+            pitted = 24 g.'
       nutrition:
-        raw:
+        unspecified:
           - code: Z-medjool-dattel
             name: Dates, medjool
             source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168191 „Dates, medjool“,
@@ -37,3 +48,11 @@
       via: 'Weiche, halbgetrocknete Sorte; das BLS hat nur frische und getrocknete Datteln
         allgemein. Zeile aus USDA SR Legacy. Kohlenhydrate weggelassen: USDA rechnet sie nur
         „by difference“, Ballaststoffe eingeschlossen.'
+    - id: frische-dattel
+      name: Frische Dattel
+      aliases:
+        - Frische Datteln
+      nutrition:
+        raw: [F504100]
+      via: 'BLS "Dattel roh": die frische Frucht, seltener im Rezept als die getrocknete,
+        die das Wurzelwort meint.'

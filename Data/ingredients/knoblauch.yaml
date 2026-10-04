@@ -1,7 +1,7 @@
 - id: knoblauch
   name: Knoblauch
   aliases:
-    - Knoblauchzehe: {unit: Zehe}   # "2 Knoblauchzehen" = 2 Zehen Knoblauch
+    - Knoblauchzehe: {unit: Zehe}
     - Knoblauchzehen: {unit: Zehe}
   category: vegetables
   measures:
@@ -13,4 +13,5 @@
     raw: [G490100]
   candidates: [G490042, G490200, G490232, G490242, G490252, G490262, G490282, G490400, G490500,
     G491702, G491802]
-  via: BLS-Namensabgleich, einmalig festgeschrieben
+  via: 'BLS-Namensabgleich, einmalig festgeschrieben. Die Schreibweise „Knoblauchzehe“ bringt
+    die Einheit Zehe mit: „2 Knoblauchzehen“ sind 2 Zehen Knoblauch.'

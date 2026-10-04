@@ -124,6 +124,13 @@ class ApproveTests(unittest.TestCase):
                            "Mehrere Freigaben")
 
     def test_a_file_that_does_not_round_trip_is_left_alone(self):
+        # Every shipped file round-trips (RoundTripTests), so the comment that
+        # would be lost is written into this copy.
+        path = self.data / "ingredients/knoblauch.yaml"
+        path.write_text(path.read_text(encoding="utf-8").replace(
+            "    - Knoblauchzehe: {unit: Zehe}\n",
+            "    - Knoblauchzehe: {unit: Zehe}   # \"2 Knoblauchzehen\" = 2 Zehen Knoblauch\n", 1),
+            encoding="utf-8")
         self.assertRefused(issue("Knofi", [counts_as("knoblauch", "Knoblauch")], ["als-alias"]), "verlustfrei")
 
     def test_a_name_with_a_comma_is_refused(self):
@@ -140,11 +147,11 @@ class ApproveTests(unittest.TestCase):
 
 
 class RoundTripTests(unittest.TestCase):
-    def test_every_ingredient_file_but_one_writes_back_byte_for_byte(self):
+    def test_every_ingredient_file_writes_back_byte_for_byte(self):
         differing = [p.name for p in sorted((data_compiler.DATA / "ingredients").glob("*.yaml"))
                      if approve.dump(approve.yaml.safe_load(p.read_text(encoding="utf-8")))
                      != p.read_text(encoding="utf-8")]
-        self.assertLessEqual(differing, ["knoblauch.yaml"])
+        self.assertEqual(differing, [])
 
 
 if __name__ == "__main__":

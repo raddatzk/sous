@@ -183,6 +183,13 @@
    "assumption": true
   },
   {
+   "name": "Dattel",
+   "unit": "Stk.",
+   "grams": 7,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 171726 „Dates, deglet noor“: 1 date, pitted = 7,1 g."
+  },
+  {
    "name": "Dill",
    "unit": "Bund",
    "grams": 25,
@@ -200,6 +207,20 @@
    "grams": 55,
    "assumption": true,
    "note": "Größe M, ohne Schale."
+  },
+  {
+   "name": "Eigelb",
+   "unit": "Stk.",
+   "grams": 17,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 172184: das Eigelb eines großen Eis (etwa Größe M) wiegt 17 g."
+  },
+  {
+   "name": "Eiweiß",
+   "unit": "Stk.",
+   "grams": 33,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 172183: das Eiweiß eines großen Eis (etwa Größe M) wiegt 33 g."
   },
   {
    "name": "Fenchel",
@@ -287,9 +308,9 @@
   {
    "name": "Hefe",
    "unit": "Pck.",
-   "grams": 7,
+   "grams": 21,
    "assumption": true,
-   "note": "Ein Päckchen Trockenhefe."
+   "note": "Ein Päckchen Trockenhefe (7 g) ersetzt einen halben Würfel Frischhefe; gerechnet als 21 g Frischhefe, mit deren Werten. „Trockenhefe“ rechnet 7 g getrocknete."
   },
   {
    "name": "Hokkaido",
@@ -422,6 +443,13 @@
    "unit": "Handvoll",
    "grams": 30,
    "assumption": true
+  },
+  {
+   "name": "Medjool-Dattel",
+   "unit": "Stk.",
+   "grams": 24,
+   "assumption": true,
+   "note": "USDA FoodData Central, SR Legacy, FDC ID 168191 „Dates, medjool“: 1 date, pitted = 24 g."
   },
   {
    "name": "Mehl",

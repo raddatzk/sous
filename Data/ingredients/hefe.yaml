@@ -6,11 +6,15 @@
   category: baking
   measures:
     Pck.:
-      grams: 7
-      note: Ein Päckchen Trockenhefe.
+      grams: 21
+      note: Ein Päckchen Trockenhefe (7 g) ersetzt einen halben Würfel Frischhefe; gerechnet
+        als 21 g Frischhefe, mit deren Werten. „Trockenhefe“ rechnet 7 g getrocknete.
   nutrition:
     unspecified: [R459000]
-  via: BLS-Gruppe "Backhefe frisch (Frischbackhefe)"
+  via: BLS-Gruppe "Backhefe frisch (Frischbackhefe)". Das Päckchen hieß hier bisher 7 g, gerechnet
+    mit den Werten der frischen Hefe — Gramm der trockenen mit Werten der frischen. Ohne eigenes
+    Maß fiele „1 Pck. Hefe“ auf die allgemeine Packung (250 g) zurück, daher das Päckchen
+    als die Menge Frischhefe, die es ersetzt.
   varieties:
     - id: frischhefe
       name: Frischhefe

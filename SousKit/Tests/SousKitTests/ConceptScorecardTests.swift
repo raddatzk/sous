@@ -107,7 +107,7 @@ struct ConceptScorecardTests {
     ///
     /// **Changed in phase 6b:** the label values are a local answer (§3 B).
     /// "Bewusst ohne" is the catalog's answer, not the cook's — see
-    /// ``zimtOhneWerte()``.
+    /// ``vanilleOhneWerte()``.
     @Test("500 g veganes Hackfleisch — on the list at once, a named gap until the packet answers")
     func veganesHackfleisch() async throws {
         let stack = try stack()
@@ -130,13 +130,14 @@ struct ConceptScorecardTests {
     }
 
     /// The other half of the same case: "ohne Werte" is an answer, and an
-    /// answer must not count as a defect. Zimt ships that way — the BLS has
-    /// no cinnamon row, and the catalog says so (CATALOG D).
-    @Test("1 TL Zimt — the catalog's 'ohne Werte' is an answer, not a defect")
-    func zimtOhneWerte() async throws {
+    /// answer must not count as a defect. Vanille ships that way — no
+    /// licensed source has the pod, and the catalog says so (CATALOG D).
+    /// (Zimt was the example until Ciqual gave it a row.)
+    @Test("1 Vanilleschote — the catalog's 'ohne Werte' is an answer, not a defect")
+    func vanilleOhneWerte() async throws {
         let stack = try stack()
         await stack.nutrition.ensureLoaded()
-        let recipe = self.recipe("Milchreis", "1 TL Zimt")
+        let recipe = self.recipe("Milchreis", "1 Vanilleschote")
 
         let settled = try #require(await stack.nutrition.nutrition(for: recipe))
         #expect(settled.coverage.defects.isEmpty)

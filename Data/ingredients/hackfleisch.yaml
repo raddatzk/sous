@@ -1,7 +1,6 @@
 - id: hackfleisch
   name: Hackfleisch
   aliases:
-    - Rinderhack
     - Gemischtes Hack
     - Hack
     - Faschiertes
@@ -14,6 +13,17 @@
     cooked: [U050132, U050162, U050182]
   via: BLS-Gruppe "Rind/Schwein, Hackfleisch gemischt"
   varieties:
+    - id: rinderhackfleisch
+      name: Rinderhackfleisch
+      aliases:
+        - Rinderhack
+        - Rinderfaschiertes
+        - Hackfleisch vom Rind
+      nutrition:
+        raw: [U010100]
+        cooked: [U010182, U010162, U010132, U010142]
+      via: BLS-Gruppe "Rind Hackfleisch". „Rinderhack“ war eine Schreibweise des gemischten
+        Hackfleischs; reines Rinderhack ist ein anderes Erzeugnis im Regal und magerer.
     - id: schweinehackfleisch
       name: Schweinehackfleisch
       aliases:
