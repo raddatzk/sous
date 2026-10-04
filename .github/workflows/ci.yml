@@ -101,12 +101,39 @@ jobs:
           brew install xcodegen xcbeautify
           xcodegen generate
 
+      # A change of the catalog alone — Data/, the compiled resources, the
+      # scripts that compile and publish them — cannot break the apps' build,
+      # but it can break the tests that read the bundled data (a word that was
+      # an "unknown" example, the scorecard). So the tests always run, and
+      # the two app builds, five of the job's seven minutes, only when
+      # anything else changed. Steps, not jobs: the required check stays
+      # `build`, and a skipped step still lets it pass.
+      - name: Only the catalog changed?
+        id: scope
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "catalog_only=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          git fetch -q --depth=1 origin "$BASE"
+          changed=$(git diff --name-only "$BASE" HEAD)
+          echo "$changed"
+          other=$(echo "$changed" | grep -vE '^(Data/|SousKit/Sources/SousKit/Resources/[^/]+\.json$|Scripts/data/)' || true)
+          if [ -n "$changed" ] && [ -z "$other" ]; then
+            echo "catalog_only=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Only the catalog changed: SousKit is tested, the apps are not built."
+          else
+            echo "catalog_only=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Test SousKit
         working-directory: SousKit
         run: swift test
 
       # Simulator destination, so no signing identity is needed at all.
       - name: Build for iOS
+        if: steps.scope.outputs.catalog_only != 'true'
         run: |
           set -o pipefail
           xcodebuild build \
@@ -118,6 +145,7 @@ jobs:
         shell: bash
 
       - name: Build for macOS
+        if: steps.scope.outputs.catalog_only != 'true'
         run: |
           set -o pipefail
           xcodebuild build \
