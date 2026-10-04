@@ -769,15 +769,43 @@ struct RecipeDetailView: View {
     /// the question does not come back because a step was reworded.
     @ViewBuilder
     private func nutritionTagBanner(_ tag: NutritionTag) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Label("Kategorie „\(tag.categoryName)“?", systemImage: "tag")
-                    .font(.subheadline.weight(.medium))
-                Text(tag.reason)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+        // Beside each other where the card is wide enough for the sentence
+        // and both buttons on one line; otherwise the text on top and the
+        // buttons under it — squeezed into one row, a long name like
+        // "proteinreich" broke mid-word and "Übernehmen" wrapped.
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 12) {
+                nutritionTagText(tag)
+                Spacer(minLength: 8)
+                nutritionTagButtons(tag)
             }
-            Spacer()
+            VStack(alignment: .leading, spacing: 12) {
+                nutritionTagText(tag)
+                nutritionTagButtons(tag)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
+    }
+
+    private func nutritionTagText(_ tag: NutritionTag) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Label {
+                Text("Kategorie „\(tag.categoryName)“?")
+            } icon: {
+                Image(systemName: "tag").foregroundStyle(.tint)
+            }
+            .font(.subheadline.weight(.semibold))
+            Text(tag.reason)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func nutritionTagButtons(_ tag: NutritionTag) -> some View {
+        HStack(spacing: 8) {
             Button("Nein") {
                 answer(tag) { await library.declineNutritionTag(tag, for: recipe) }
             }
@@ -787,8 +815,9 @@ struct RecipeDetailView: View {
             }
             .buttonStyle(.borderedProminent)
         }
-        .padding(14)
-        .background(Color.sousSurface, in: .rect(cornerRadius: SousStyle.fieldRadius))
+        .controlSize(.small)
+        .lineLimit(1)
+        .fixedSize()
     }
 
     @ViewBuilder
