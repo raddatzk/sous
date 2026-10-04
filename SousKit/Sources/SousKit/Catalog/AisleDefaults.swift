@@ -4,14 +4,15 @@ import Foundation
 ///
 /// `IngredientCategory` is one enum doing two jobs — it names what kind of
 /// food something is *and* orders a shopping list into a route through a shop.
-/// This phase deliberately leaves that as it is (see the pipeline README,
-/// "Group and aisle"): what becomes data is the *mapping*, so widening or
-/// re-routing the source's taxonomy is an edit to `aisles.json` rather than a
-/// change to an enum the shopping list, the catalog browser and the category
-/// manager all read.
+/// That stays as it is (see the pipeline README, "Group and aisle"): what is
+/// data is the *mapping*, so widening or re-routing the source's taxonomy is
+/// an edit to `aisles.json` rather than a change to an enum the shopping list,
+/// the catalog browser and the category manager all read.
 ///
-/// The finer per-row assignment lives in `bls.json`; this is the fallback for
-/// anything that arrives with only a group letter.
+/// The pipeline applies the mapping: every row of `bls.json` arrives with its
+/// aisle already set, so the app reads none of this at run time. The file is
+/// still part of every data set, and loaded with it, so a set without it is
+/// refused like any other incomplete one.
 public struct AisleDefaults: Sendable {
     public struct Group: Codable, Hashable, Sendable {
         public var group: String
@@ -27,24 +28,15 @@ public struct AisleDefaults: Sendable {
     }
 
     public private(set) var groups: [Group]
-    private var byGroup: [String: IngredientCategory]
 
     public init(groups: [Group]) {
         self.groups = groups
-        byGroup = groups.reduce(into: [:]) { result, group in
-            result[group.group] = group.category
-        }
     }
-
-    public func category(forGroup group: String) -> IngredientCategory? { byGroup[group] }
 
     /// `aisles.json`.
     init(json: Data) throws {
         self.init(groups: try JSONDecoder().decode(File.self, from: json).groups)
     }
-
-    /// The table of the data set this process runs on.
-    public static var current: AisleDefaults { DataSet.current.aisles }
 
     /// The table shipped with the app.
     public static var bundled: AisleDefaults { DataSet.bundled.aisles }

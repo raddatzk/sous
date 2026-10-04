@@ -5,7 +5,7 @@ import Synchronization
 /// tables the app derives from them, and the manifest that names them.
 ///
 /// The app ships one set in its bundle. Newer ones arrive later, fetched and
-/// staged in a ``DataSetStore`` (INGREDIENTS-DATA §5, phase 9). Which set a
+/// staged in a ``DataSetStore``. Which set a
 /// process runs on is decided once, the first time anything reads
 /// ``current``, and never changes while the process lives: every table the
 /// app holds is derived from it, and a catalog swapped under a running app

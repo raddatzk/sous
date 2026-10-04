@@ -113,8 +113,8 @@ struct VariantComparisonTests {
         let comparison = VariantComparison.make(of: [meat, vegetarian])
         let mince = try! #require(comparison.rows.first { $0.title == "Hackfleisch" })
 
-        #expect(!mince.isMissing(from: meat))
-        #expect(mince.isMissing(from: vegetarian))
+        #expect(mince.ingredients[meat.id] != nil)
+        #expect(mince.ingredients[vegetarian.id] == nil)
         #expect(mince.ingredients[meat.id]?.quantity?.amount == 400)
     }
 
@@ -130,7 +130,7 @@ struct VariantComparisonTests {
         // Both write it; neither is missing it. What differs is the amount,
         // handed over as written rather than judged.
         let row = comparison.rows[0]
-        #expect(!row.isMissing(from: full))
+        #expect(row.ingredients[full.id] != nil)
         #expect(row.ingredients[full.id]?.quantity?.amount == 2)
         #expect(row.ingredients[mild.id]?.quantity?.amount == 1)
     }

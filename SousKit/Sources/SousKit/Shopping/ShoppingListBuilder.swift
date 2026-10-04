@@ -1,39 +1,8 @@
 import Foundation
 
-/// Turns planned recipes into a shopping capture: one plan entry per recipe,
-/// one demand per ingredient line.
+/// Turns a recipe put on the list into a shopping capture: one plan entry
+/// for the recipe, one demand per ingredient line.
 public enum ShoppingListBuilder {
-    /// How deep a chain of linked recipes is followed. A curry references its
-    /// naan, which might reference a spice mix; beyond that it is a loop or a
-    /// mistake.
-    private static let maxLinkDepth = 3
-
-    /// Builds the capture for a set of planned recipes.
-    ///
-    /// - Parameter resolve: looks up a linked recipe by id. Linked recipes
-    ///   contribute their own ingredients — "1 Portion Naan" means flour and
-    ///   yeast on the list, not a jar of naan. Their demands hang on the
-    ///   *parent's* plan entry, so the portion stepper takes them along;
-    ///   the subrecipe's title stays on them as the origin they read as.
-    public static func build(
-        from planned: [(recipe: Recipe, servings: Int)],
-        catalog: IngredientCatalog = .current,
-        resolve: (UUID) -> Recipe?
-    ) -> ShoppingCapture {
-        var capture = ShoppingCapture()
-        for entry in planned {
-            append(
-                recipe: entry.recipe,
-                servings: entry.servings,
-                selecting: nil,
-                catalog: catalog,
-                resolve: resolve,
-                into: &capture
-            )
-        }
-        return capture
-    }
-
     /// Builds the capture for one recipe, with only some of its lines on it.
     ///
     /// `selected` names lines by `RecipeIngredient.id`, which survives the
@@ -50,6 +19,12 @@ public enum ShoppingListBuilder {
     /// which is a picker that showed them and got an answer about them.
     /// Naming none of them is not the same as naming none of them on
     /// purpose, so it still means the whole naan.
+    ///
+    /// - Parameter resolve: looks up a linked recipe by id. Linked recipes
+    ///   contribute their own ingredients — "1 Portion Naan" means flour and
+    ///   yeast on the list, not a jar of naan. Their demands hang on the
+    ///   *parent's* plan entry, so the portion stepper takes them along;
+    ///   the subrecipe's title stays on them as the origin they read as.
     public static func build(
         from recipe: Recipe,
         servings: Int,
@@ -121,7 +96,7 @@ public enum ShoppingListBuilder {
             if let selected, !selected.contains(ingredient.id) { continue }
 
             // A linked recipe contributes what it is made of, not itself.
-            if depth < maxLinkDepth,
+            if depth < RecipeLink.maxDepth,
                let linkedID = RecipeLink.referencedIDs(in: ingredient.name).first,
                !seen.contains(linkedID),
                let linked = resolve(linkedID) {
@@ -134,9 +109,8 @@ public enum ShoppingListBuilder {
                     planEntryID: planEntryID,
                     selecting: childSelection(of: linked, in: selected),
                     // A naan wanted "as written" does not grow with the
-                    // curry, and neither does anything a non-scaling line
-                    // pulled in.
-                    scales: scales && portions(of: ingredient) != nil && ingredient.scalesWithServings,
+                    // curry.
+                    scales: scales && portions(of: ingredient) != nil,
                     depth: depth + 1,
                     visited: seen,
                     catalog: catalog,
@@ -210,7 +184,7 @@ public enum ShoppingListBuilder {
                 // with "3 Zehen Knoblauch" under the same heading.
                 quantity: ingredient.quantity.map { catalog.reading($0, for: written) },
                 state: ingredient.state,
-                scales: scales && ingredient.scalesWithServings && ingredient.quantity != nil
+                scales: scales && ingredient.quantity != nil
             )
         ))
     }

@@ -42,7 +42,7 @@ struct SettingsForm: View {
 
 
             Section {
-                StepReferencesChatPicker()
+                OptimizationChatPicker()
             } header: {
                 Text("Für Sous optimieren")
             } footer: {
@@ -71,12 +71,11 @@ struct SettingsForm: View {
     /// source joins BLS.
     ///
     /// Every word of it comes out of `sources.json`, which is compiled with
-    /// the data it describes (`Data/sources.yaml`). It used to be hardcoded
-    /// here — and had
-    /// gone false: it claimed the values were "zusammengefasst und
-    /// gemittelt", which is exactly the averaging decision O2 abolished in
-    /// phase 3. A licence notice that describes changes the data no longer
-    /// carries is not a detail; CC BY 4.0 asks for it to be accurate.
+    /// the data it describes (`Data/sources.yaml`), not hardcoded here: a
+    /// hardcoded notice once went false, claiming the values were
+    /// "zusammengefasst und gemittelt" after the data had stopped averaging.
+    /// A licence notice that describes changes the data no longer carries is
+    /// not a detail; CC BY 4.0 asks for it to be accurate.
     @ViewBuilder
     private var dataSources: some View {
         if let source = sources.first {

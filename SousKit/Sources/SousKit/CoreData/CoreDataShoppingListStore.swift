@@ -10,9 +10,9 @@ import Foundation
 ///
 /// What the SwiftData store has and this one does not is
 /// `migrateLegacyRowsIfNeeded`. Pre-document rows — title-keyed sources, items
-/// without an `itemID` — cannot reach this store: it is filled through the
-/// protocol, and `snapshot()` on the other side has already turned them into
-/// demands. Carrying the pass across would be code that can never run.
+/// without an `itemID` — cannot reach this store: it is filled by the store
+/// migration from the SwiftData store's `snapshot()`, which has already
+/// turned them into demands.
 public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Sendable {
     /// Below this, two portion-scaled amounts count as the same.
     private static let tolerance = 1e-6
@@ -45,8 +45,11 @@ public final class CoreDataShoppingListStore: ShoppingListStore, @unchecked Send
         try await context.perform {
             // A recipe the list already knows arrives as a re-add: its demands
             // are marked late, so the list tells what changed since check-off.
-            // A demand joining an entry already on the list is late for the
-            // same reason - see the SwiftData store for the whole note.
+            // The same goes for a demand that joins an entry already on the
+            // list (`ShoppingLibrary.add(_:lines:joining:)` sends no entry of
+            // its own and points its demands at the existing one): by
+            // definition it arrives after the dish did. Read before this
+            // capture's entries are inserted, so "existing" means existing.
             let existing = try self.planEntries()
             let knownRecipeIDs = Set(existing.compactMap(\.recipeID))
             var lateEntryIDs = Set(existing.map(\.id))

@@ -317,19 +317,13 @@ public actor SwiftDataRecipeStore: RecipeStore {
 }
 
 extension ModelContainer {
-    /// The app group the app and its share extension both read the store
-    /// from. A recipe saved from Safari has to land where the app looks.
-    public static let appGroup = SousAppGroup.identifier
-
     /// A container for the recipe schema.
     public static func sousContainer(inMemory: Bool = false) throws -> ModelContainer {
         // `cloudKitDatabase: .none` on every one of them, and it is not a
         // formality: `.automatic` is the default, so the moment the app
-        // carries an iCloud entitlement SwiftData starts mirroring this store
-        // too — and this store is the BLS catalog at 1.9 MB, its synonyms at
-        // another 800 KB, and two caches keyed to a content hash. All of it
-        // rebuildable from the app bundle, all of it charged to the cook's
-        // iCloud quota, and none of it any use on a second device. The
+        // carries an iCloud entitlement SwiftData would start mirroring this
+        // store too — a legacy store that is only read now, by the migration
+        // into Core Data, plus two caches keyed to a content hash. The
         // household's rows are the ones that sync, and they live in Core Data.
         let configuration: ModelConfiguration = if inMemory {
             ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)

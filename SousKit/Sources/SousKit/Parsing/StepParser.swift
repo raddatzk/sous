@@ -42,23 +42,6 @@ public enum StepParser {
         return result
     }
 
-    public static func text(for steps: [RecipeStep]) -> String {
-        var lines: [String] = []
-        var lastGroup: String??
-
-        for step in steps {
-            if lastGroup == nil || lastGroup! != step.group {
-                if let group = step.group {
-                    if !lines.isEmpty { lines.append("") }
-                    lines.append("# \(group)")
-                }
-                lastGroup = step.group
-            }
-            lines.append(step.text)
-        }
-        return lines.joined(separator: "\n")
-    }
-
     /// Removes "1. ", "2) " or "- " — the view numbers the steps itself, and
     /// a pasted list should not end up numbered twice.
     private static func stripListMarker(from line: String) -> String {

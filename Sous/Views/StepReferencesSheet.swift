@@ -1,23 +1,18 @@
 import SousKit
 import SwiftUI
-#if os(iOS)
-import UIKit
-#else
-import AppKit
-#endif
 
 /// Which ingredients each step takes, and which written amounts belong to
 /// which line, assigned or corrected by hand. Asking a chat is "Für Sous
-/// optimieren", which brings the references along (phase 7b: one AI action,
-/// one prompt). See ``StepReferences``.
+/// optimieren", which brings the references along (one AI action, one
+/// prompt). See ``StepReferences``.
 struct StepReferencesSheet: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(\.dismiss) private var dismiss
 
     let recipe: Recipe
 
-    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
-    private var chat: StepReferencesChat?
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var chat: OptimizationChat?
     /// What is being edited: the stored references while they still fit the
     /// recipe, or an empty start by hand. `nil` until one of those exists.
     @State private var draft: StepReferences?
@@ -113,7 +108,7 @@ struct StepReferencesSheet: View {
             ForEach(Array(recipe.steps.enumerated()), id: \.element.id) { stepIndex, step in
                 let references = draft.steps.indices.contains(stepIndex) ? draft.steps[stepIndex] : []
                 Section {
-                    Text(attributedText(for: rendition.segments(for: step)))
+                    Text(AttributedString(stepSegments: rendition.segments(for: step)))
                         .font(.callout)
 
                     ForEach(Array(references.enumerated()), id: \.offset) { index, reference in
@@ -223,101 +218,5 @@ struct StepReferencesSheet: View {
         var copy = recipe
         copy.stepReferences = references
         return copy
-    }
-
-    /// Steps carry the same inline markdown as everywhere else — a bold
-    /// phase name reads bold here too — and the amounts wear the accent.
-    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
-        var result = AttributedString()
-        for segment in segments {
-            switch segment {
-            case .text(let string):
-                result += (try? AttributedString(
-                    markdown: string,
-                    options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-                )) ?? AttributedString(string)
-            case .amount(let string):
-                var run = AttributedString(string)
-                run.foregroundColor = .sousAccent
-                result += run
-            }
-        }
-        return result
-    }
-}
-
-/// The chat the cook asks for "Für Sous optimieren" — chosen once, in the
-/// welcome or the settings, so the sheet offers one way out instead of a
-/// list of apps somebody else uses.
-///
-/// Any of them reads the same prompt; the choice only decides which one the
-/// sheet opens. The web addresses are universal links, so an installed app
-/// opens instead of the browser. "Anderer Chat" is for everything not listed
-/// — the sheet then only copies.
-///
-/// `off` is for cooks who want no AI in the app at all: the optimization is
-/// not offered, and assigning step references by hand is what is left. One setting rather than a toggle beside the choice, so
-/// "which chat" and "whether a chat" cannot contradict each other.
-enum StepReferencesChat: String, CaseIterable, Identifiable {
-    case chatGPT = "chatgpt"
-    case claude
-    case gemini
-    case leChat = "lechat"
-    case copilot
-    case other
-    case off
-
-    /// The chats, without the way out of all of them.
-    static let chats = allCases.filter { $0 != .off }
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .chatGPT: "ChatGPT"
-        case .claude: "Claude"
-        case .gemini: "Gemini"
-        case .leChat: "Le Chat"
-        case .copilot: "Copilot"
-        case .other: "Anderer Chat"
-        case .off: "Keine KI verwenden"
-        }
-    }
-
-    /// Where a new chat starts, or `nil` for one Sous does not know.
-    var url: URL? {
-        switch self {
-        case .chatGPT: URL(string: "https://chatgpt.com/")
-        case .claude: URL(string: "https://claude.ai/new")
-        case .gemini: URL(string: "https://gemini.google.com/app")
-        case .leChat: URL(string: "https://chat.mistral.ai/chat")
-        case .copilot: URL(string: "https://copilot.microsoft.com/")
-        case .other, .off: nil
-        }
-    }
-}
-
-extension SousSetting {
-    static let stepReferencesChat = "stepReferencesChat"
-}
-
-/// The choice of chat, the same control wherever it is offered. Unset until
-/// the cook picks one — a default would quietly send everybody to the same
-/// company.
-struct StepReferencesChatPicker: View {
-    @AppStorage(SousSetting.stepReferencesChat, store: .sous)
-    private var chat: StepReferencesChat?
-
-    var body: some View {
-        Picker("Chat", selection: $chat) {
-            if chat == nil {
-                Text("Nicht gewählt").tag(StepReferencesChat?.none)
-            }
-            ForEach(StepReferencesChat.chats) { option in
-                Text(option.title).tag(Optional(option))
-            }
-            Divider()
-            Text(StepReferencesChat.off.title).tag(Optional(StepReferencesChat.off))
-        }
     }
 }

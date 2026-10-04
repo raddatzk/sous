@@ -345,7 +345,9 @@ struct IngredientJourneyView: View {
     }
 
     private func detail(_ title: String, _ value: String) -> some View {
-        (Text("\(title): ").foregroundStyle(.secondary) + Text(value))
+        // Interpolated rather than added together: `Text + Text` is
+        // deprecated as of the 26 SDKs.
+        Text("\(Text("\(title): ").foregroundStyle(.secondary))\(value)")
             .font(.footnote)
     }
 

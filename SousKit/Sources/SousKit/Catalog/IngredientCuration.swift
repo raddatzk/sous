@@ -13,10 +13,6 @@ import Foundation
 /// the mapping for those words existed nowhere anybody could read or correct
 /// it — a re-run could quietly decide differently. Those 57 are written down
 /// now, and the build infers nothing.
-///
-/// The cook extends it, too: assigning a basis to an ingredient
-/// (`IngredientCatalogLibrary.setBasis`) is an entry in this same mapping,
-/// stored on the cook's side and laid over the shipped one.
 public struct IngredientCuration: Sendable {
     /// What one kitchen word means, per preparation state.
     public struct Entry: Codable, Sendable, Hashable {
@@ -86,9 +82,6 @@ public struct IngredientCuration: Sendable {
     init(json: Data) throws {
         self.init(words: try JSONDecoder().decode(File.self, from: json).words)
     }
-
-    /// The mapping of the data set this process runs on.
-    public static var current: IngredientCuration { DataSet.current.curation }
 
     /// The mapping shipped with the app.
     public static var bundled: IngredientCuration { DataSet.bundled.curation }

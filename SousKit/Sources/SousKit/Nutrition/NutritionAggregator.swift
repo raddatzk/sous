@@ -8,10 +8,6 @@ import Foundation
 /// Nothing is skipped silently: every line either contributes or is reported
 /// with the reason it could not, so the sum always says what it is based on.
 public enum NutritionAggregator {
-    /// A curry references its naan, which might reference a spice mix;
-    /// beyond that it is a loop or a mistake. Matches `ShoppingListBuilder`.
-    private static let maxLinkDepth = 3
-
     /// The nutrition for `recipe` at `servings` — the total across every
     /// portion, not per portion; the caller divides by `servings` for that —
     /// together with the per-line account of contributions and gaps.
@@ -52,7 +48,7 @@ public enum NutritionAggregator {
             // and its coverage comes along, marked with where it came from,
             // so a gap inside the naan still shows up on the curry.
             if let linkedID = RecipeLink.referencedIDs(in: ingredient.name).first {
-                guard depth < maxLinkDepth, !seen.contains(linkedID), let linked = resolve(linkedID) else {
+                guard depth < RecipeLink.maxDepth, !seen.contains(linkedID), let linked = resolve(linkedID) else {
                     lines.append(NutritionLineReport(ingredientName: displayName, outcome: .gap(.unresolvedLink)))
                     continue
                 }
@@ -99,8 +95,7 @@ public enum NutritionAggregator {
             // different food entirely — "Tomaten, Konserve" is its own row.
             let canonicalName = outsideForm ? ingredient.name : catalog.nutritionName(for: ingredient)
             let entry = nutritionCatalog.nutrition(forCanonicalName: canonicalName)
-            // The candidates ride along on every outcome, gaps included: the
-            // line with no basis is the one the picker exists for.
+            // The candidates ride along on every outcome, gaps included.
             let candidates = entry?.candidateCodes ?? []
             // Only a state the line *named* can be missed. A line that said
             // nothing is answered by the default state — "as purchased" —

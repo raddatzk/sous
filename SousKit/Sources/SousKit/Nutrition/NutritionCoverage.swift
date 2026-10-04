@@ -246,7 +246,7 @@ public struct NutritionCoverage: Codable, Hashable, Sendable {
 
     /// Whether the sum covers everything it claims to: no defects, and at
     /// least one contributing line — a sum of nothing is not a complete sum.
-    /// This gates the NRF badge (decision O1).
+    /// This gates the NRF badge.
     public var isComplete: Bool {
         defects.isEmpty && includedCount > 0
     }

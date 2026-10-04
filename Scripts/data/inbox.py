@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Files shared catalog adjustments as issues in the private inbox repository.
 
-Phase 10 of INGREDIENTS-DATA-PLAN.md, §3 D of INGREDIENTS-DATA.md. The app's
+§3 D of INGREDIENTS-DATA.md. The app's
 "Anpassungen teilen" writes `CatalogSubmission` records to the public CloudKit
 database: one per share, its `items` field a JSON list in the wire format of
 `CatalogSubmission.Item` (SousKit). Nobody but the role `Publisher` can read
@@ -15,7 +15,7 @@ them. Once a night the inbox repository's workflow runs this script, which
 
 The creator id is used for the cap and nothing else: it is never written to an
 issue. Every issue carries the accumulated reports as a machine-readable block
-(```json sous-catalog```), which phase 10b turns into a data pull request.
+(```json sous-catalog```), which approve.py turns into a data pull request.
 
 Idempotent: the block lists the record names it already counts, so a night that
 filed an issue but failed before deleting does not count a record twice.
@@ -61,11 +61,11 @@ KIND_LABELS = {
     "unknown": "neu",
     "values": "werte",
     "product": "produkt",
-    # A catalog word a household files under another aisle or parent (phase 7d).
+    # A catalog word a household files under another aisle or parent.
     "override": "einordnung",
 }
 #: kat:<label> → the category in Data/ — the app's own words for the aisles.
-#: approve.py reads a new word's category from these labels (phase 10b).
+#: approve.py reads a new word's category from these labels.
 CATEGORIES = {
     "gemüse": "vegetables",
     "obst": "fruit",
@@ -129,7 +129,7 @@ def clean_item(raw: Any) -> Optional[Dict[str, Any]]:
     target = raw.get("target")
     if isinstance(target, dict) and _text(target.get("id"), 80) and _text(target.get("name"), 80):
         item["target"] = {"id": _text(target["id"], 80), "name": _text(target["name"], 80)}
-    # Phase 7d: a household's own spelling of the target, its aisle, its parent.
+    # A household's own spelling of the target, its aisle, its parent.
     if raw.get("spelling") is True and "target" in item:
         item["spelling"] = True
     if raw.get("category") in CATEGORIES.values():

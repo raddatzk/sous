@@ -2,12 +2,11 @@ import CloudKit
 import CoreData
 import CryptoKit
 import Foundation
+import os
 
 /// Makes the Core Data container the household's library lives in, and
 /// mirrors it into iCloud.
 public enum SousPersistentContainer {
-    public static let appGroup = SousAppGroup.identifier
-
     /// The iCloud container the household's rows are mirrored into. It has to
     /// exist in the developer account; a build signed without it cannot use
     /// it, which is what `make` falls back from.
@@ -25,7 +24,7 @@ public enum SousPersistentContainer {
     public private(set) nonisolated(unsafe) static var isConfiguredForCloudKit = false
 
     /// - Parameters:
-    ///   - inMemory: for tests, and for the migration's dry run. Never
+    ///   - inMemory: for tests. Never
     ///     mirrored: a test that reached iCloud would be a test that depends
     ///     on an account.
     ///   - mirroring: whether this process talks to CloudKit at all. The app
@@ -131,11 +130,12 @@ public enum SousPersistentContainer {
             // Only once it worked: a simulator without an iCloud account
             // fails here, and a device that can reach iCloud should try again.
             defaults.set(fingerprint, forKey: initializedSchemaKey)
-            print("☁️ CloudKit schema initialized")
+            Logger(subsystem: "me.raddatz.sous", category: "cloudkit").info("CloudKit schema initialized")
         } catch {
-            // Printed rather than thrown: throwing here would send `make` into
+            // Logged rather than thrown: throwing here would send `make` into
             // its local-only fallback, and the run would look like it worked.
-            print("☁️ CloudKit schema failed: \(error)")
+            Logger(subsystem: "me.raddatz.sous", category: "cloudkit")
+                .error("CloudKit schema failed: \(error, privacy: .public)")
         }
         #endif
     }

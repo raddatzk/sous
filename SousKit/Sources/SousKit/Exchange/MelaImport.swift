@@ -84,12 +84,12 @@ public enum MelaImport: RecipeImportFormat {
     // MARK: - One recipe
 
     private static func recipe(from object: [String: Any]) -> ImportedRecipe? {
-        let title = string(object["title"])?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = RecipeFieldParsing.string(object["title"])?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let title, !title.isEmpty else { return nil }
 
-        let prep = RecipeFieldParsing.seconds(in: string(object["prepTime"]))
-        let cook = RecipeFieldParsing.seconds(in: string(object["cookTime"]))
-        let total = RecipeFieldParsing.seconds(in: string(object["totalTime"]))
+        let prep = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["prepTime"]))
+        let cook = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["cookTime"]))
+        let total = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["totalTime"]))
 
         let group = variantGroup(from: object)
         let recipe = Recipe(
@@ -97,13 +97,13 @@ public enum MelaImport: RecipeImportFormat {
             // updates the recipes instead of doubling them.
             id: identifier(for: object),
             title: title,
-            summary: nonEmpty(string(object["text"])),
-            servings: RecipeFieldParsing.servings(from: string(object["yield"])),
+            summary: RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(object["text"])),
+            servings: RecipeFieldParsing.servings(from: RecipeFieldParsing.string(object["yield"])),
             ingredientsText: lines(object["ingredients"]),
             instructionsText: lines(object["instructions"]),
             categories: categories(object["categories"]),
-            isFavorite: bool(object["favorite"]) ?? false,
-            wantToCook: bool(object["wantToCook"]) ?? false,
+            isFavorite: RecipeFieldParsing.bool(object["favorite"]) ?? false,
+            wantToCook: RecipeFieldParsing.bool(object["wantToCook"]) ?? false,
             notes: notes(from: object),
             source: source(from: object),
             prepTimeSeconds: prep,
@@ -131,9 +131,9 @@ public enum MelaImport: RecipeImportFormat {
     /// put every recipe of a broken import into a group of its own.
     private static func variantGroup(from object: [String: Any]) -> VariantGroup? {
         guard let raw = object["sousVariantGroup"] as? [String: Any],
-              let id = nonEmpty(string(raw["id"])).flatMap(UUID.init(uuidString:))
+              let id = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["id"])).flatMap(UUID.init(uuidString:))
         else { return nil }
-        let title = nonEmpty(string(raw["title"]))?
+        let title = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["title"]))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard let title, !title.isEmpty else { return nil }
         return VariantGroup(id: id, title: title)
@@ -143,7 +143,7 @@ public enum MelaImport: RecipeImportFormat {
     /// from anything Mela wrote, so a Mela import stays undecided.
     private static func suitableSlots(from object: [String: Any]) -> Set<MealSlot>? {
         guard let raw = object["sousSuitableSlots"] as? [Any] else { return nil }
-        let slots = raw.compactMap { string($0).flatMap(MealSlot.init(rawValue:)) }
+        let slots = raw.compactMap { RecipeFieldParsing.string($0).flatMap(MealSlot.init(rawValue:)) }
         return slots.isEmpty ? nil : Set(slots)
     }
 
@@ -155,23 +155,23 @@ public enum MelaImport: RecipeImportFormat {
         return RecipeOriginal(
             ingredientsText: lines(raw["ingredients"]),
             instructionsText: lines(raw["instructions"]),
-            notes: nonEmpty(string(raw["notes"]))
+            notes: RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["notes"]))
         )
     }
 
     private static func identifier(for object: [String: Any]) -> UUID {
-        if let id = nonEmpty(string(object["id"])) {
+        if let id = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(object["id"])) {
             if let uuid = UUID(uuidString: id) { return uuid }
             return StableID.make(namespace: "mela", index: 0, content: id)
         }
         // No id at all: fall back to the title, which at least keeps a second
         // import of the same file from producing a second copy.
-        let title = string(object["title"]) ?? ""
+        let title = RecipeFieldParsing.string(object["title"]) ?? ""
         return StableID.make(namespace: "mela.title", index: 0, content: title)
     }
 
     private static func source(from object: [String: Any]) -> RecipeSource {
-        guard let link = nonEmpty(string(object["link"])), let url = URL(string: link) else {
+        guard let link = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(object["link"])), let url = URL(string: link) else {
             return .manual
         }
         return RecipeSource(kind: .web, url: url, name: url.host())
@@ -182,24 +182,24 @@ public enum MelaImport: RecipeImportFormat {
     /// — parking it under notes would just leave a second, disagreeing set
     /// of numbers sitting next to the one the recipe page actually shows.
     private static func notes(from object: [String: Any]) -> String? {
-        nonEmpty(string(object["notes"]))
+        RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(object["notes"]))
     }
 
     // MARK: - Fields
 
     /// Text that may have been written as one string or as a list of lines.
     private static func lines(_ value: Any?) -> String {
-        if let text = string(value) { return text }
+        if let text = RecipeFieldParsing.string(value) { return text }
         if let array = value as? [Any] {
-            return array.compactMap { string($0) }.joined(separator: "\n")
+            return array.compactMap { RecipeFieldParsing.string($0) }.joined(separator: "\n")
         }
         return ""
     }
 
     private static func categories(_ value: Any?) -> [String] {
         let names: [String] = if let array = value as? [Any] {
-            array.compactMap { string($0) }
-        } else if let text = string(value) {
+            array.compactMap { RecipeFieldParsing.string($0) }
+        } else if let text = RecipeFieldParsing.string(value) {
             text.components(separatedBy: ",")
         } else {
             []
@@ -213,18 +213,9 @@ public enum MelaImport: RecipeImportFormat {
     /// Pictures are base64 in the file, with or without a data-URI prefix.
     private static func images(_ value: Any?) -> [Data] {
         guard let array = value as? [Any] else {
-            return string(value).flatMap { decodeImage($0) }.map { [$0] } ?? []
+            return RecipeFieldParsing.string(value).flatMap { RecipeFieldParsing.base64Data($0) }.map { [$0] } ?? []
         }
-        return array.compactMap { string($0) }.compactMap { decodeImage($0) }
-    }
-
-    private static func decodeImage(_ text: String) -> Data? {
-        var encoded = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if encoded.hasPrefix("data:"), let comma = encoded.firstIndex(of: ",") {
-            encoded = String(encoded[encoded.index(after: comma)...])
-        }
-        guard !encoded.isEmpty else { return nil }
-        return Data(base64Encoded: encoded, options: .ignoreUnknownCharacters)
+        return array.compactMap { RecipeFieldParsing.string($0) }.compactMap { RecipeFieldParsing.base64Data($0) }
     }
 
     /// Mela writes the date as a number. Which epoch it counts from depends
@@ -238,35 +229,9 @@ public enum MelaImport: RecipeImportFormat {
                 ? Date(timeIntervalSinceReferenceDate: interval)
                 : Date(timeIntervalSince1970: interval)
         }
-        if let text = string(value) {
+        if let text = RecipeFieldParsing.string(value) {
             return ISO8601DateFormatter().date(from: text)
         }
         return nil
-    }
-
-    // MARK: - Loose values
-
-    private static func string(_ value: Any?) -> String? {
-        switch value {
-        case let text as String: text
-        case let number as NSNumber: number.stringValue
-        default: nil
-        }
-    }
-
-    private static func bool(_ value: Any?) -> Bool? {
-        switch value {
-        case let flag as Bool: flag
-        case let number as NSNumber: number.boolValue
-        case let text as String: ["true", "yes", "1"].contains(text.lowercased())
-        default: nil
-        }
-    }
-
-    private static func nonEmpty(_ text: String?) -> String? {
-        guard let text = text?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
-            return nil
-        }
-        return text
     }
 }

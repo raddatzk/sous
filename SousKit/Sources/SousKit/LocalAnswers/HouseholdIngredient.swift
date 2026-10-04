@@ -8,7 +8,7 @@ import Foundation
 /// the ingredient, so a rename in a newer data set detaches nothing, and by
 /// the normalized written name otherwise. A name counted as Tofu by a local
 /// answer has no id of its own and so keeps its own fields — Tofu's pantry
-/// flag and store do not reach it (R2).
+/// flag and store do not reach it.
 ///
 /// Everything an ingredient *is* — spellings, varieties, aisle, values —
 /// belongs to the catalog and is not here.

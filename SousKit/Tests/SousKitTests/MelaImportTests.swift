@@ -5,13 +5,6 @@ import Testing
 
 @Suite("Mela import")
 struct MelaImportTests {
-    private func fixture(_ name: String) throws -> Data {
-        let url = try #require(
-            Bundle.module.url(forResource: "Fixtures/\(name)", withExtension: nil)
-        )
-        return try Data(contentsOf: url)
-    }
-
     @Test("A single recipe file carries over field by field")
     func singleRecipe() throws {
         let batch = try MelaImport.read(fixture("Tomatensalat.melarecipe"), named: "Tomatensalat.melarecipe")

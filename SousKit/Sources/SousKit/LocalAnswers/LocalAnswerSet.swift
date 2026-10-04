@@ -2,7 +2,7 @@ import CryptoKit
 import Foundation
 
 /// A household's local answers, and the precedence they are laid over the
-/// catalog with (INGREDIENTS-DATA §3 B, R2, R3).
+/// catalog with.
 ///
 /// - **"Zählt wie" is a fallback.** It applies only while the catalog does
 ///   not know the written name. Once a data update teaches the catalog the
@@ -14,7 +14,7 @@ import Foundation
 /// - **Own values and weights beat the catalog field by field**: the values
 ///   replace the basis, a weight replaces the catalog's weight for its unit
 ///   and only that unit.
-/// - **Recognition, never identity (R2).** A name the catalog does not know
+/// - **Recognition, never identity.** A name the catalog does not know
 ///   joins the household catalog as a word of its own — under the target's
 ///   aisle, with no aliases and no parent. So the strict reader knows it, the
 ///   numbers come from the target, and the shopping list still bundles
@@ -82,7 +82,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
     /// The answers laid over `base`: the catalog the household reads its
     /// recipes with, and what each answer did.
     ///
-    /// The overrides of phase 7d are laid on last, onto the catalog's words
+    /// The household's overrides are laid on last, onto the catalog's words
     /// and the household's own alike: aisle, parent, spellings and display
     /// name. Local wins — but where the catalog has moved since the
     /// household decided (``CatalogBaseline``), the place is reported in
@@ -96,7 +96,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
         var traces: [String: LocalAnswerTrace] = [:]
         var steps: [Applied.Step] = []
         /// The household's own products by their answer's key, for a name's
-        /// product choice to point at (phase 7b).
+        /// product choice to point at.
         var ownProducts: [String: CatalogIngredient] = [:]
         /// The answers with overrides, and the word each is about: a word of
         /// the base catalog, or one the answers added.
@@ -395,7 +395,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
             let subject: String
             let targetName: String?
             let answer: LocalAnswer
-            /// The household's parent for the subject (phase 7d), which a
+            /// The household's parent for the subject, which a
             /// variety without values of its own inherits from.
             var parentName: String?
             /// Only the parent speaks: a "zählt wie" the catalog silenced
@@ -429,7 +429,7 @@ public struct LocalAnswerSet: Sendable, Equatable {
         /// `like`; a name linked to an own product takes the product's entry
         /// as just computed, estimate and all.
         ///
-        /// A household's parent (phase 7d) is written onto the entry, so a
+        /// A household's parent is written onto the entry, so a
         /// variety without values of its own inherits its parent's — any
         /// depth, like a shipped one (``NutritionCatalog/nutrition(forCanonicalName:)``).
         public func nutrition(over base: NutritionCatalog) -> NutritionCatalog {
@@ -488,8 +488,8 @@ public struct LocalAnswerSet: Sendable, Equatable {
     }
 }
 
-/// One place where the catalog and a household's override part ways
-/// (phase 7d): the catalog says something else than the household at the
+/// One place where the catalog and a household's override part ways:
+/// the catalog says something else than the household at the
 /// same place, and has moved there since the household decided.
 ///
 /// Asked quietly — "Der Katalog sagt jetzt … · deine Angabe …", with
@@ -542,7 +542,7 @@ extension LocalAnswer {
 }
 
 /// What a local answer did to one name — what the detail view and the
-/// drilldown say in a quiet line, never in a prompt (R3).
+/// drilldown say in a quiet line, never in a prompt.
 public struct LocalAnswerTrace: Hashable, Sendable {
     public enum Status: Hashable, Sendable {
         /// The answer counts.

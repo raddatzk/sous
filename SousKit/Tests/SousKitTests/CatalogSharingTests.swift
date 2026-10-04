@@ -17,13 +17,6 @@ struct CatalogSharingTests {
         word("Kokosmilch", id: "kokosmilch"),
     ])
 
-    private static func info(kcal: Double, protein: Double = 0) -> NutritionInfo {
-        var info = NutritionInfo.zero
-        info.kcal = kcal
-        info.proteinG = protein
-        return info
-    }
-
     private static let nutrition = NutritionCatalog(entries: [
         CatalogNutrition(
             name: "Tofu", perHundredGrams: ["unspecified": info(kcal: 120, protein: 12)],
@@ -78,7 +71,7 @@ struct CatalogSharingTests {
     func onlyDifferences() {
         let same = LocalAnswer(
             catalogID: "tofu", name: "Tofu",
-            values: Self.info(kcal: 120.2, protein: 12), valuesSource: "BLS",
+            values: info(kcal: 120.2, protein: 12), valuesSource: "BLS",
             weights: ["Pck.": LocalAnswer.Weight(grams: 200)]
         )
         #expect(Self.offers([same]).isEmpty)
@@ -180,7 +173,7 @@ struct CatalogSharingTests {
     func wireRoundTrip() throws {
         let item = CatalogSubmission.Item(
             kind: .values, name: "Kichererbsen", catalogID: "kichererbsen",
-            values: Self.info(kcal: 120), source: "Dose, Marke X",
+            values: info(kcal: 120), source: "Dose, Marke X",
             weights: ["Dose": LocalAnswer.Weight(grams: 240, state: .cooked)]
         )
         let data = try JSONEncoder().encode(item)

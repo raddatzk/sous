@@ -4,9 +4,8 @@ import Foundation
 /// The Core Data form of a local answer (INGREDIENTS-DATA §3 B), a member of
 /// its household like every other row.
 ///
-/// Its own entity rather than new fields on `CDVocabularyEntry` (R8): the
-/// vocabulary's `isEmpty` knows only its own fields, and the curation it
-/// holds retires in phase 6b. Each part of the answer is its own attribute,
+/// Its own entity rather than new fields on the retired
+/// `CDVocabularyEntry`. Each part of the answer is its own attribute,
 /// so CloudKit merges two members' edits field by field; the values and the
 /// weights are one blob each, the shapes being dictionaries.
 @objc(CDLocalAnswer)

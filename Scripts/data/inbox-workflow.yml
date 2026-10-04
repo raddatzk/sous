@@ -1,4 +1,4 @@
-# The nightly workflow of the PRIVATE inbox repository (phase 10, R1).
+# The nightly workflow of the PRIVATE inbox repository.
 #
 # This file lives in sous only as the source to copy from: put it into the
 # inbox repository as .github/workflows/inbox.yml. It does nothing here.

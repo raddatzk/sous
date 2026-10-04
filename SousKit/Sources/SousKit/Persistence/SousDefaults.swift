@@ -8,7 +8,7 @@ extension UserDefaults {
     ///
     /// It lives here rather than beside the appearance setting that used to
     /// own it because the suite is not a view's business: it is the app
-    /// group's, which is this module's — and since phase 6 the kit itself
-    /// writes to it (see ``BundledDataMarker``).
+    /// group's, which is this module's — and the kit itself writes to it
+    /// (see ``BundledDataMarker``).
     nonisolated(unsafe) public static let sous = SousAppGroup.defaults
 }

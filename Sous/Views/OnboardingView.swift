@@ -233,7 +233,7 @@ struct OnboardingView: View {
                 .buttonStyle(.bordered)
             }
         case .steps:
-            StepReferencesChatPicker()
+            OptimizationChatPicker()
                 .pickerStyle(.menu)
                 .buttonStyle(.bordered)
         case .household:

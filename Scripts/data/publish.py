@@ -7,7 +7,7 @@
 Publishes exactly what the app bundles: the files and the manifest under
 SousKit/Sources/SousKit/Resources. It holds them against Data/ itself first —
 `compile.py --check` — and publishes nothing when they differ: a push to main
-publishes as far as production (phase 10b), so a push that skipped the
+publishes as far as production, so a push that skipped the
 compiler must not get through. In two steps (INGREDIENTS-DATA §5):
 
 1. a `DataRelease` record `release-<dataVersion>`, one asset per file in a

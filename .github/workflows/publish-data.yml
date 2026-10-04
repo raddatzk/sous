@@ -2,7 +2,7 @@
 # (INGREDIENTS-DATA §5; Data/README.md, "Publishing").
 #
 # A push to main that touches the data goes to development, where debug
-# builds read it first, and then to production (phase 10b): the cook merges a
+# builds read it first, and then to production: the cook merges a
 # data pull request, and the merge is the review. Production waits until
 # development succeeded. By hand — Actions -> Publish data -> Run workflow —
 # one environment at a time, for a retry or an emergency `--point-to`.

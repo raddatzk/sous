@@ -8,8 +8,7 @@ import Foundation
 /// none should be: the data is already structured, and a model would only
 /// add a chance of getting it wrong.
 ///
-/// Pages without that markup are not handled here. They are the case for
-/// generation from the page's text, later.
+/// Pages without that markup are not handled here.
 public enum RecipeWebImport {
     /// A recipe found in a page, with the pictures it points at.
     public struct Extracted: Sendable, Hashable {
@@ -91,8 +90,8 @@ public enum RecipeWebImport {
     /// The recipe in one schema.org object. `url` is where it was found:
     /// the page for a web import, whatever the object names for a file.
     static func extracted(from object: [String: Any], url: URL?) -> Extracted {
-        let prep = RecipeFieldParsing.seconds(in: string(object["prepTime"]))
-        let cook = RecipeFieldParsing.seconds(in: string(object["cookTime"]))
+        let prep = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["prepTime"]))
+        let cook = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["cookTime"]))
 
         let recipe = Recipe(
             title: RecipeFieldParsing.nonEmpty(text(object["name"])) ?? "Rezept",
@@ -104,7 +103,7 @@ public enum RecipeWebImport {
             source: url.map { RecipeSource(kind: .web, url: $0, name: $0.host()) } ?? .manual,
             prepTimeSeconds: prep,
             cookTimeSeconds: cook,
-            totalTimeSeconds: RecipeFieldParsing.seconds(in: string(object["totalTime"]))
+            totalTimeSeconds: RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["totalTime"]))
         )
         return Extracted(recipe: recipe, imageURLs: imageURLs(object["image"], relativeTo: url))
     }
@@ -185,8 +184,8 @@ public enum RecipeWebImport {
     /// A yield can be "4 Portionen", 4, or ["4", "4 servings"].
     private static func yield(_ value: Any?) -> String? {
         switch value {
-        case let array as [Any]: array.compactMap { string($0) }.first
-        default: string(value)
+        case let array as [Any]: array.compactMap { RecipeFieldParsing.string($0) }.first
+        default: RecipeFieldParsing.string(value)
         }
     }
 
@@ -205,14 +204,6 @@ public enum RecipeWebImport {
         case let text as String: plainText(text)
         case let number as NSNumber: number.stringValue
         case let object as [String: Any]: (object["text"] as? String).map { plainText($0) }
-        default: nil
-        }
-    }
-
-    static func string(_ value: Any?) -> String? {
-        switch value {
-        case let text as String: text
-        case let number as NSNumber: number.stringValue
         default: nil
         }
     }

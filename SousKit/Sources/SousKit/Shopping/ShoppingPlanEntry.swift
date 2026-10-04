@@ -37,9 +37,4 @@ public struct ShoppingPlanEntry: Identifiable, Hashable, Sendable {
         self.servingsCurrent = max(1, servingsCurrent ?? servingsCaptured)
         self.addedAt = addedAt
     }
-
-    /// How far the cook has turned the dial since adding.
-    public var scaleFactor: Double {
-        Double(servingsCurrent) / Double(servingsCaptured)
-    }
 }

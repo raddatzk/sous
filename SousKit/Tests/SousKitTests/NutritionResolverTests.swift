@@ -188,3 +188,32 @@ struct NutritionResolverTests {
         #expect(grams == nil)
     }
 }
+
+@Suite("Nutrition catalog assembly")
+struct NutritionCatalogAssemblyTests {
+    @Test("A word whose bases weigh the same names the same source on every build")
+    func equalWeightsPickAFixedSource() {
+        // Raw from a supplement, cooked from the BLS, equal weights: which
+        // one the word is attributed to used to follow dictionary order,
+        // which differs from one process to the next.
+        let source = BLSCatalog.Source(
+            datasetVersion: "BLS 4.0", release: "", license: "", attribution: "", changeNote: ""
+        )
+        let bls = BLSCatalog(source: source, entries: [
+            BLSEntry(code: "X1", name: "Linse roh", group: "H", category: .legumes,
+                     source: "Etikett", perHundredGrams: .zero),
+            BLSEntry(code: "X2", name: "Linse gegart", group: "H", category: .legumes,
+                     perHundredGrams: .zero),
+        ])
+        let synonyms = SynonymTable(entries: [SynonymEntry(word: "Linse", targets: [
+            SynonymTarget(code: "X2", state: .cooked, weight: 1),
+            SynonymTarget(code: "X1", state: .raw, weight: 1),
+        ])])
+
+        for _ in 0..<20 {
+            let catalog = NutritionCatalog.make(synonyms: synonyms, bls: bls, measures: MeasureTable())
+            // Raw first, in the order the states are always listed.
+            #expect(catalog.nutrition(forCanonicalName: "Linse")?.source == "Etikett")
+        }
+    }
+}

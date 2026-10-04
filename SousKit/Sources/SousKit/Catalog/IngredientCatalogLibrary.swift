@@ -115,7 +115,7 @@ public final class IngredientCatalogLibrary {
     public var catalogWithoutLocalAnswers: IngredientCatalog { dataSet.catalog }
 
     /// What a local answer says about `name` — applied, or fallen silent
-    /// since the catalog learned the name (R3). `nil` where none speaks.
+    /// since the catalog learned the name. `nil` where none speaks.
     public func localTrace(for name: String) -> LocalAnswerTrace? {
         appliedAnswers.trace(for: name)
     }
@@ -152,7 +152,7 @@ public final class IngredientCatalogLibrary {
         return target.product?.brand ?? target.name
     }
 
-    /// The household's own products (phase 7b): entries of its catalog with
+    /// The household's own products: entries of its catalog with
     /// a brand or EAN, which a name links to with a product choice.
     public var ownProducts: [LocalAnswer] {
         localAnswers.answers.filter(\.isLocalProduct)
@@ -332,8 +332,8 @@ public final class IngredientCatalogLibrary {
         }
     }
 
-    /// "Lokale Angabe entfernen" on a word the household also overrides
-    /// (phase 7d): what the answer says about numbers, products and "zählt
+    /// "Lokale Angabe entfernen" on a word the household also overrides:
+    /// what the answer says about numbers, products and "zählt
     /// wie" goes; the aisle, parent, spellings and display name of a
     /// catalog word stay, since they were said in another place. A word
     /// only the household knows goes whole — without its answer it is not
@@ -456,7 +456,7 @@ public final class IngredientCatalogLibrary {
         return await saveLocalAnswer(answer)
     }
 
-    // MARK: - Overrides (phase 7d)
+    // MARK: - Overrides
 
     /// Where the catalog has moved away from the household's overrides since
     /// it decided — "Abweichungen" on top of the catalog view, and a quiet
@@ -516,14 +516,6 @@ public final class IngredientCatalogLibrary {
         }
         if let household { return .taken(household.shownName) }
         return .new
-    }
-
-    /// The spellings `word` may be shown by: its name and every spelling it
-    /// answers to, the catalog's and the household's.
-    public func displayNameChoices(for word: CatalogIngredient) -> [String] {
-        let current = catalog.ingredient(spelledExactly: word.name).flatMap { $0.key == word.key ? $0 : nil } ?? word
-        var seen: Set<String> = []
-        return ([current.name] + current.aliases).filter { seen.insert(IngredientCatalog.normalize($0)).inserted }
     }
 
     /// Writes the household's overrides of `word` — the edit mode of the

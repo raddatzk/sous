@@ -64,12 +64,6 @@ enum SousStyle {
 }
 
 extension View {
-    /// A row of facts under the title: servings, times, categories.
-    func metaLabel() -> some View {
-        font(.footnote)
-            .foregroundStyle(.secondary)
-    }
-
     /// The box a field of chips sits in — the search field, the category
     /// field. Written once because the two are the same control doing two
     /// different jobs, and a difference in padding between them would read

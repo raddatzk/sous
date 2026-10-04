@@ -4,7 +4,7 @@ import Foundation
 /// found in, so a shopping list can be walked through a shop in order.
 ///
 /// Read tolerantly: an aisle a newer data set brings ("plantBased" was the
-/// first, phase 7d) reads as `other` in an app that does not know it yet,
+/// first) reads as `other` in an app that does not know it yet,
 /// rather than failing the whole set.
 public enum IngredientCategory: String, Codable, CaseIterable, Sendable {
     case vegetables

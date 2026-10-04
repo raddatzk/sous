@@ -172,7 +172,7 @@ public final class NutritionLibrary {
     /// Follows links a level at a time so the aggregator can resolve them —
     /// matches `ShoppingLibrary.resolveLinks(of:into:depth:)`.
     private func resolveLinks(of recipe: Recipe, into known: inout [UUID: Recipe], depth: Int = 0) async {
-        guard depth < 3 else { return }
+        guard depth < RecipeLink.maxDepth else { return }
         for id in recipe.linkedRecipeIDs where known[id] == nil {
             guard let linked = try? await recipeStore.recipe(id: id) else { continue }
             known[id] = linked

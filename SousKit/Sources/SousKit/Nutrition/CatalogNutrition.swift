@@ -145,9 +145,9 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     /// the per-basis `source` for the catalog screen, which shows one line
     /// for one ingredient.
     public var source: String
-    /// Every BLS row this ingredient could be based on, best first — what the
-    /// candidate picker lists. Carried on gaps as well as on contributions:
-    /// the line *without* a basis is the one the picker exists for.
+    /// Every BLS row this ingredient could be based on, best first. Carried
+    /// on gaps as well as on contributions; nothing on screen reads it since
+    /// the candidate picker went.
     public var candidateCodes: [String]
     /// The ingredient this one is a variety of — "Cocktailtomate" of
     /// "Tomate". Any depth, and only ever a name: a variety inherits the
@@ -300,8 +300,8 @@ public struct CatalogNutrition: Hashable, Sendable, Codable {
     }
 
     /// This product counted like `generic`: its values, weights and density,
-    /// every basis marked as an estimate (INGREDIENTS-DATA-PLAN phase 7, "a
-    /// product needs no values"). The same as a household's brand choice
+    /// every basis marked as an estimate — a product needs no values of its
+    /// own. The same as a household's brand choice
     /// lends its target, said out loud here because it is the catalog's.
     public func estimating(like generic: CatalogNutrition) -> CatalogNutrition {
         var merged = inheriting(from: generic)

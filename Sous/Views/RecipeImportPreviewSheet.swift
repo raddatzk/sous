@@ -333,7 +333,7 @@ struct ImportedRecipePage: View {
                                 .font(SousStyle.groupHeading)
                                 .foregroundStyle(.tint)
                                 .frame(minWidth: 20, alignment: .trailing)
-                            Text(attributedText(for: rendition.segments(for: step)))
+                            Text(AttributedString(stepSegments: rendition.segments(for: step)))
                         }
                     }
                 }
@@ -347,7 +347,7 @@ struct ImportedRecipePage: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Notizen")
                     .font(SousStyle.sectionHeading)
-                Text(markdown(notes))
+                Text(AttributedString(inlineMarkdown: notes))
             }
         }
     }
@@ -366,27 +366,5 @@ struct ImportedRecipePage: View {
                 Text(name).font(.footnote).foregroundStyle(.secondary)
             }
         }
-    }
-
-    private func markdown(_ text: String) -> AttributedString {
-        (try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(text)
-    }
-
-    private func attributedText(for segments: [StepAmountSegment]) -> AttributedString {
-        var result = AttributedString()
-        for segment in segments {
-            switch segment {
-            case .text(let string):
-                result += markdown(string)
-            case .amount(let string):
-                var run = AttributedString(string)
-                run.foregroundColor = .sousAccent
-                result += run
-            }
-        }
-        return result
     }
 }

@@ -6,9 +6,10 @@ public struct PlannerCandidate: Identifiable, Hashable, Sendable {
     /// pool entries are decided-on meals and seat as a constraint; the
     /// other two tiers compete on cost.
     public enum Source: Hashable, Sendable {
-        /// An undated ``MealPlanEntry`` — its identity and servings travel
-        /// with it, because seating it is moving it, not copying it.
-        case pool(entryID: UUID, servings: Int?)
+        /// An undated ``MealPlanEntry`` — its identity travels with it,
+        /// because seating it is moving it, not copying it: the entry keeps
+        /// its servings and everything else planned with it.
+        case pool(entryID: UUID)
         case wantToCook
         case collection
     }
@@ -77,7 +78,7 @@ public struct PlanRequest: Sendable {
     /// What is already decided and eaten alongside — dated dinners in the
     /// span, or the existing pool. The proposal complements this, never
     /// replaces it.
-    public var baseVector: NutritionInfo
+    public var baseMix: NutritionInfo
     /// Dishes that may not be proposed because the span already holds them.
     public var excludedDishKeys: Set<UUID>
     public var candidates: [PlannerCandidate]
@@ -92,16 +93,22 @@ public struct PlanRequest: Sendable {
 
     public init(
         seats: Seats,
-        baseVector: NutritionInfo = .zero,
+        baseMix: NutritionInfo = .zero,
         excludedDishKeys: Set<UUID> = [],
         candidates: [PlannerCandidate],
         seed: UInt64 = 0
     ) {
         self.seats = seats
-        self.baseVector = baseVector
+        self.baseMix = baseMix
         self.excludedDishKeys = excludedDishKeys
         self.candidates = candidates
         self.seed = seed
+    }
+
+    /// What `placements` add up to, eaten alongside what is already
+    /// decided — what the mix verdict is drawn from.
+    func mix(of placements: some Sequence<PlanProposal.Placement>) -> NutritionInfo {
+        placements.reduce(baseMix) { $0 + ($1.candidate.perPortion ?? .zero) }
     }
 
     var seatCount: Int {
@@ -150,7 +157,7 @@ public enum DinnerPlanner {
         let kept = proposal.placements.filter { $0.id != placement.id }
         var usedKeys = request.excludedDishKeys
         var usedRecipes = excluding
-        var mix = request.baseVector
+        var mix = request.baseMix
         var wantToCookCount = 0
         for held in kept {
             usedKeys.insert(held.candidate.dishKey)
@@ -274,7 +281,7 @@ public enum DinnerPlanner {
         let seed: UInt64
 
         init(request: PlanRequest) {
-            mix = request.baseVector
+            mix = request.baseMix
             usedKeys = request.excludedDishKeys
             seatCount = request.seatCount
             seed = request.seed
@@ -374,9 +381,6 @@ public enum DinnerPlanner {
         case .pool:
             placements = ordered.map { PlanProposal.Placement(day: nil, candidate: $0) }
         }
-        let mix = placements.reduce(request.baseVector) { partial, placement in
-            partial + (placement.candidate.perPortion ?? .zero)
-        }
-        return PlanProposal(placements: placements, summary: PlanCost.summary(of: mix))
+        return PlanProposal(placements: placements, summary: PlanCost.summary(of: request.mix(of: placements)))
     }
 }

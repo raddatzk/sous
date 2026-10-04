@@ -93,7 +93,7 @@ public enum IngredientCompletion {
 
     /// The line with the typed name replaced by the chosen ingredient,
     /// keeping the amount, the unit, and anything written after it. Written
-    /// as the household shows the word ("Semmel", phase 7d) — a spelling of
+    /// as the household shows the word ("Semmel") — a spelling of
     /// it, so the line reads as the same word.
     public static func completed(
         line: String,

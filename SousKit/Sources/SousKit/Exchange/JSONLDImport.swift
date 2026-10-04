@@ -115,7 +115,7 @@ public enum JSONLDImport: RecipeImportFormat {
     // MARK: - One recipe
 
     private static func imported(from object: [String: Any], sibling: Data?) -> ImportedRecipe {
-        let url = RecipeWebImport.string(object["url"])
+        let url = RecipeFieldParsing.string(object["url"])
             .flatMap { URL(string: $0) }
             .flatMap { $0.scheme?.hasPrefix("http") == true ? $0 : nil }
         let found = RecipeWebImport.extracted(from: object, url: url)
@@ -137,7 +137,7 @@ public enum JSONLDImport: RecipeImportFormat {
     /// pancake recipes, so the ingredients go into it too.
     private static func identifier(for object: [String: Any], recipe: Recipe) -> UUID {
         let key = ["@id", "url"].lazy
-            .compactMap { RecipeFieldParsing.nonEmpty(RecipeWebImport.string(object[$0])) }
+            .compactMap { RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(object[$0])) }
             .first
         if let key {
             return StableID.make(namespace: "jsonld", index: 0, content: key)
@@ -160,7 +160,7 @@ public enum JSONLDImport: RecipeImportFormat {
     /// schema.org dates are ISO 8601, with or without a time — and with the
     /// time zone written either way round.
     private static func date(_ value: Any?) -> Date? {
-        guard let text = RecipeFieldParsing.nonEmpty(RecipeWebImport.string(value)) else {
+        guard let text = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(value)) else {
             return nil
         }
         if let date = ISO8601DateFormatter().date(from: text) { return date }

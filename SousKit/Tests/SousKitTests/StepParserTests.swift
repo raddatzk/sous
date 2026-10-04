@@ -46,20 +46,6 @@ struct StepParserTests {
 
         #expect(steps.map(\.group) == ["Teig", "Sauce"])
     }
-
-    @Test("Steps render back to the text they came from")
-    func roundTrip() {
-        let source = """
-        # Teig
-        Mehl und Ei verrühren
-        30 Minuten ruhen lassen
-
-        # Sauce
-        Sahne erhitzen
-        """
-
-        #expect(StepParser.text(for: StepParser.parse(source)) == source)
-    }
 }
 
 extension StepParserTests {

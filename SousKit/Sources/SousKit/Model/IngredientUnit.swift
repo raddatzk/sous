@@ -183,8 +183,6 @@ public enum IngredientUnit: Hashable, Sendable {
         }
     }
 
-    public var isConvertible: Bool { baseUnitFactor != nil }
-
     /// Units that describe the same thing on a shopping list and can be
     /// added together. Spoons are deliberately absent: they measure while
     /// cooking, not while buying.

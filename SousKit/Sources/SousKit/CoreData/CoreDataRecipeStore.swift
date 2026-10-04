@@ -3,7 +3,7 @@ import Foundation
 
 /// A ``RecipeStore`` backed by Core Data.
 ///
-/// The store the household's library will actually live in. SwiftData cannot
+/// The store the household's library lives in. SwiftData cannot
 /// reach CloudKit's shared database — `ModelConfiguration.CloudKitDatabase`
 /// offers `.private(_:)` and nothing else — so an invitation of the kind Mela
 /// sends requires `NSPersistentCloudKitContainer`, and that means Core Data

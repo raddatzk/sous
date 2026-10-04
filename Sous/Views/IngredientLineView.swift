@@ -21,7 +21,7 @@ struct IngredientLineView: View {
         // Interpolated rather than added together: `Text + Text` is
         // deprecated as of the 26 SDKs, and interpolation keeps each part's
         // own styling the way the sum did.
-        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(trailingPhraseText)\(commentText)\(outsideFormText)")
+        Text("\(amountText)\(amount.isEmpty ? "" : " ")\(name)\(commentText)\(outsideFormText)")
     }
 
     /// A line outside the fixed form shows its words as written and says
@@ -41,40 +41,19 @@ struct IngredientLineView: View {
             : Text(amount).foregroundStyle(.tint).fontWeight(.medium)
     }
 
-    /// "nach Geschmack" is the amount written in words, so it wears the
-    /// amount's accent — just after the name, where it was typed.
-    private var trailingPhraseText: Text {
-        guard let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName else {
-            return Text("")
-        }
-        return provisional
-            ? Text(" \(phrase.phrase)").foregroundStyle(.secondary).fontWeight(.medium)
-            : Text(" \(phrase.phrase)").foregroundStyle(.tint).fontWeight(.medium)
-    }
-
     private var commentText: Text {
         Text(comment)
             .foregroundStyle(.secondary)
     }
 
     private var amount: String {
-        if let quantity = ingredient.quantity {
-            // The size word is part of the measure, so it wears the measure's
-            // accent: "1 kleine" tinted, "Zimtstange" plain.
-            return formatter.string(for: quantity, size: ingredient.size)
-        }
-        // "etwas Salz" — the words sit where a number would, styled like one.
-        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
-            return phrase.phrase
-        }
-        return ""
+        // The size word is part of the measure, so it wears the measure's
+        // accent: "1 kleine" tinted, "Zimtstange" plain.
+        ingredient.quantity.map { formatter.string(for: $0, size: ingredient.size) } ?? ""
     }
 
     private var name: AttributedString {
-        (try? AttributedString(
-            markdown: ingredient.name,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        )) ?? AttributedString(ingredient.name)
+        AttributedString(inlineMarkdown: ingredient.name)
     }
 
     private var comment: AttributedString {
@@ -82,5 +61,38 @@ struct IngredientLineView: View {
             return AttributedString("")
         }
         return AttributedString(" (\(preparation))")
+    }
+}
+
+// Here rather than in a file of their own because the share extension
+// compiles this file too, and its editor reads ingredient names the same way.
+extension AttributedString {
+    /// Inline markdown — a bold phase name, a linked recipe — falling back to
+    /// the raw text if it does not parse, because a half-typed emphasis
+    /// marker should not blank out a line.
+    init(inlineMarkdown text: String) {
+        self = (try? AttributedString(
+            markdown: text,
+            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
+        )) ?? AttributedString(text)
+    }
+
+    /// A step's resolved segments, concatenated into one string: the words
+    /// as inline markdown, a resolved amount in the accent color — the way
+    /// ``IngredientLineView`` sets the amount apart in the ingredient list.
+    /// One rendering for every place a step is read, so the detail page,
+    /// cook mode, the import preview and the references sheet cannot drift.
+    init(stepSegments segments: [StepAmountSegment]) {
+        self.init()
+        for segment in segments {
+            switch segment {
+            case .text(let string):
+                self += AttributedString(inlineMarkdown: string)
+            case .amount(let string):
+                var run = AttributedString(string)
+                run.foregroundColor = .sousAccent
+                self += run
+            }
+        }
     }
 }

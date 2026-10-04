@@ -27,7 +27,7 @@ public struct KitchenWords: Sendable {
         /// Other ways of writing the same thing: "Tomaten", "Marille".
         public var aliases: [String]
         /// What kind of thing it is — and where on the shopping list it goes.
-        /// Optional since a variety inherits it (catalog target, decision B):
+        /// Optional since a variety inherits it:
         /// a word with a `parent` and no `category` takes the parent's, and
         /// writing one on a variety is an override, not a requirement. A root
         /// word still needs one, and `BundledDataTests` says so.
@@ -110,9 +110,6 @@ public struct KitchenWords: Sendable {
     init(json: Data) throws {
         self.init(words: try JSONDecoder().decode([Word].self, from: json))
     }
-
-    /// The list of the data set this process runs on.
-    public static var current: KitchenWords { DataSet.current.kitchenWords }
 
     /// The list shipped with the app.
     public static var bundled: KitchenWords { DataSet.bundled.kitchenWords }

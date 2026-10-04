@@ -8,14 +8,6 @@ import Testing
 /// that decides what happens when the data has only one of the two rows.
 @Suite("Preparation states")
 struct PreparationStateTests {
-    private func info(kcal: Double) -> NutritionInfo {
-        NutritionInfo(
-            kcal: kcal, proteinG: 0, fatG: 0, saturatedFatG: 0, carbsG: 0, sugarG: 0,
-            fiberG: 0, sodiumMg: 0, vitaminAMcg: 0, vitaminCMg: 0, vitaminDMcg: 0,
-            vitaminEMg: 0, calciumMg: 0, ironMg: 0, magnesiumMg: 0, potassiumMg: 0
-        )
-    }
-
     private func basis(_ kcal: Double, _ name: String) -> NutritionBasis {
         NutritionBasis(values: info(kcal: kcal), code: name, catalogName: name)
     }
@@ -147,7 +139,7 @@ struct PreparationStateTests {
             ingredientsText: "500 g Kartoffeln\n300 g Kartoffeln, gegart"
         )
         let capture = ShoppingListBuilder.build(
-            from: [(recipe, 2)], catalog: catalog, resolve: { _ in nil }
+            from: recipe, servings: 2, selecting: nil, catalog: catalog, resolve: { _ in nil }
         )
 
         // One key, two demands: the state is carried, not bundled by.

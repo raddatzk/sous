@@ -5,8 +5,6 @@ import Foundation
 /// lifted out so the dinner planner reads the same numbers. Two readers of
 /// one table cannot drift apart on what "enough protein" means.
 struct NutrientReference: Sendable {
-    /// The word the app already uses for this nutrient in a label.
-    let label: String
     let nutrient: Nutrient
     /// Adult reference daily value, per 2000 kcal.
     let dailyValue: Double
@@ -15,6 +13,9 @@ struct NutrientReference: Sendable {
     /// of the day carries when the day exactly meets the daily value.
     var densityPer100kcal: Double { dailyValue / 20 }
 
+    /// The word the app already uses for this nutrient in a label.
+    var label: String { nutrient.label }
+
     func amount(_ nutrition: NutritionInfo) -> Double { nutrition[keyPath: nutrient.keyPath] }
 
     /// All twelve: what the NRF score needs stated before it may be shown.
@@ -22,15 +23,15 @@ struct NutrientReference: Sendable {
 
     /// The 9 nutrients to encourage — under-delivery is what costs.
     static let lowerBounds: [NutrientReference] = [
-        NutrientReference(label: "Eiweiß", nutrient: .proteinG, dailyValue: 50),
-        NutrientReference(label: "Ballaststoffe", nutrient: .fiberG, dailyValue: 28),
-        NutrientReference(label: "Vitamin A", nutrient: .vitaminAMcg, dailyValue: 900),
-        NutrientReference(label: "Vitamin C", nutrient: .vitaminCMg, dailyValue: 90),
-        NutrientReference(label: "Vitamin E", nutrient: .vitaminEMg, dailyValue: 15),
-        NutrientReference(label: "Calcium", nutrient: .calciumMg, dailyValue: 1300),
-        NutrientReference(label: "Eisen", nutrient: .ironMg, dailyValue: 18),
-        NutrientReference(label: "Magnesium", nutrient: .magnesiumMg, dailyValue: 420),
-        NutrientReference(label: "Kalium", nutrient: .potassiumMg, dailyValue: 4700),
+        NutrientReference(nutrient: .proteinG, dailyValue: 50),
+        NutrientReference(nutrient: .fiberG, dailyValue: 28),
+        NutrientReference(nutrient: .vitaminAMcg, dailyValue: 900),
+        NutrientReference(nutrient: .vitaminCMg, dailyValue: 90),
+        NutrientReference(nutrient: .vitaminEMg, dailyValue: 15),
+        NutrientReference(nutrient: .calciumMg, dailyValue: 1300),
+        NutrientReference(nutrient: .ironMg, dailyValue: 18),
+        NutrientReference(nutrient: .magnesiumMg, dailyValue: 420),
+        NutrientReference(nutrient: .potassiumMg, dailyValue: 4700),
     ]
 
     /// The 3 nutrients to limit — over-delivery is what costs.
@@ -40,8 +41,8 @@ struct NutrientReference: Sendable {
     /// in for it. This is a known, deliberate simplification versus the
     /// textbook NRF9.3 formula, not an oversight.
     static let upperBounds: [NutrientReference] = [
-        NutrientReference(label: "Gesättigte Fettsäuren", nutrient: .saturatedFatG, dailyValue: 20),
-        NutrientReference(label: "Zucker", nutrient: .sugarG, dailyValue: 50),
-        NutrientReference(label: "Natrium", nutrient: .sodiumMg, dailyValue: 2300),
+        NutrientReference(nutrient: .saturatedFatG, dailyValue: 20),
+        NutrientReference(nutrient: .sugarG, dailyValue: 50),
+        NutrientReference(nutrient: .sodiumMg, dailyValue: 2300),
     ]
 }

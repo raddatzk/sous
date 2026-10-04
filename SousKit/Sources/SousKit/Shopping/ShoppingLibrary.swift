@@ -101,7 +101,7 @@ extension Sequence where Element == ShoppingDemand {
     /// The origins these demands were written under, each named once, in the
     /// order they first appear — the one ordering both the by-recipe view and
     /// the frozen-origin grouping read titles in.
-    fileprivate var originTitlesInOrder: [String] {
+    var originTitlesInOrder: [String] {
         var seen = Set<String>()
         return compactMap { demand in
             seen.insert(demand.originTitle).inserted ? demand.originTitle : nil
@@ -152,8 +152,6 @@ public final class ShoppingLibrary {
     /// read look the same from outside, and they are not the same answer.
     public private(set) var hasLoaded = false
     public var errorMessage: String?
-    /// Set after something was added, so the interface can say what happened.
-    public var lastAddition: String?
 
     public init(
         store: any ShoppingListStore,
@@ -207,7 +205,7 @@ public final class ShoppingLibrary {
     public func add(_ recipe: Recipe, servings: Int? = nil, lines: Set<UUID>? = nil) async {
         do {
             let captured = try await capture(recipe, servings: servings ?? recipe.servings, lines: lines)
-            try await commit(captured, describing: recipe.title)
+            try await commit(captured)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -241,31 +239,7 @@ public final class ShoppingLibrary {
                     return demand
                 }
             )
-            try await commit(joined, describing: recipe.title)
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
-
-    /// Puts everything planned for a set of days on the list.
-    public func add(planned: [(recipe: Recipe, servings: Int)], describing description: String) async {
-        await add(planned, describing: description)
-    }
-
-    private func add(_ planned: [(Recipe, Int)], describing description: String) async {
-        do {
-            var known: [UUID: Recipe] = [:]
-            for entry in planned {
-                known[entry.0.id] = entry.0
-                try await resolveLinks(of: entry.0, into: &known)
-            }
-
-            let capture = ShoppingListBuilder.build(
-                from: planned.map { (recipe: $0.0, servings: $0.1) },
-                catalog: catalog
-            ) { known[$0] }
-
-            try await commit(capture, describing: description)
+            try await commit(joined)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -287,10 +261,9 @@ public final class ShoppingLibrary {
     }
 
     /// Writes a capture and lets the list catch up.
-    private func commit(_ capture: ShoppingCapture, describing description: String) async throws {
+    private func commit(_ capture: ShoppingCapture) async throws {
         try await store.add(capture)
         await reload()
-        lastAddition = description
     }
 
     /// Which lines of the planned recipes, and of what they link, are
@@ -313,7 +286,7 @@ public final class ShoppingLibrary {
 
     /// Follows links a level at a time so the builder can resolve them.
     private func resolveLinks(of recipe: Recipe, into known: inout [UUID: Recipe], depth: Int = 0) async throws {
-        guard depth < 3 else { return }
+        guard depth < RecipeLink.maxDepth else { return }
         for id in recipe.linkedRecipeIDs where known[id] == nil {
             guard let linked = try await recipeStore.recipe(id: id) else { continue }
             known[id] = linked
@@ -452,23 +425,6 @@ public final class ShoppingLibrary {
         }
     }
 
-    /// Whether `recipeID` still has anything unbought on the list.
-    ///
-    /// Not simply "is there a plan entry for it". The entry outlives the
-    /// shopping on purpose — it is what lets the same recipe added a second
-    /// time have its new demands marked as arriving late — and it is never
-    /// deleted except by taking the recipe off the list by hand. Read off the
-    /// entry alone, "already on the list" stayed true for a recipe whose last
-    /// line had been ticked off weeks ago, and stayed true after "Abgehaktes
-    /// entfernen" for one the list no longer showed anywhere at all.
-    ///
-    /// Ticked-off counts as done rather than as present: everything bought is
-    /// the errand finished, and the button that offers the list should go
-    /// back to offering it.
-    public func hasOpenDemand(forRecipe recipeID: UUID) -> Bool {
-        !openEntryIDs(ofRecipe: recipeID).isEmpty
-    }
-
     /// The entry a recipe is being carried by right now, or `nil` where the
     /// list has nothing outstanding for it.
     ///
@@ -499,6 +455,18 @@ public final class ShoppingLibrary {
     }
 
     /// The recipe's entries the list still shows something unbought under.
+    ///
+    /// Not simply "the plan entries for it". The entry outlives the shopping
+    /// on purpose — it is what lets the same recipe added a second time have
+    /// its new demands marked as arriving late — and it is never deleted
+    /// except by taking the recipe off the list by hand. Read off the entry
+    /// alone, "already on the list" stayed true for a recipe whose last line
+    /// had been ticked off weeks ago, and stayed true after "Abgehaktes
+    /// entfernen" for one the list no longer showed anywhere at all.
+    ///
+    /// Ticked-off counts as done rather than as present: everything bought is
+    /// the errand finished, and the button that offers the list should go
+    /// back to offering it.
     private func openEntryIDs(ofRecipe recipeID: UUID) -> Set<UUID> {
         let entries = Set(planEntries.filter { $0.recipeID == recipeID }.map(\.id))
         guard !entries.isEmpty else { return [] }
@@ -568,7 +536,7 @@ public final class ShoppingLibrary {
     }
 
     /// What `item` is shown as: the household's display name for its word
-    /// ("Semmel" for Brötchen, phase 7d), where the row is that word — the
+    /// ("Semmel" for Brötchen), where the row is that word — the
     /// row every spelling of it bundles into. Read when the row is drawn,
     /// like the brand: the stored name stays the identity, and a display
     /// name chosen later reaches the open list at once.
@@ -584,30 +552,21 @@ public final class ShoppingLibrary {
     private func householdChain(of item: ShoppingItem) -> [HouseholdIngredient] {
         guard let catalogLibrary else { return [] }
         let own = catalogLibrary.householdIngredient(for: item.name)
-        return [own].compactMap { $0 } + inherited(of: item).compactMap(catalogLibrary.householdIngredient(of:))
-    }
-
-    // MARK: - Varieties
-
-    /// What an item inherits from, nearest first: the ingredients it is a
-    /// variety of, all the way up.
-    ///
-    /// Only for what a variety takes over from its ancestors — which shop it
-    /// is bought in, what to know at the shelf, whether it is a staple. The
-    /// chain may be any depth (catalog target, decision A), and it is walked
-    /// whole here for the same reason category and nutrition walk it: a flag
-    /// on Pilz has to reach the braune Champignons two steps below, not stop
-    /// at Champignon. The relation used to decide the list's shape as well,
-    /// bundling varieties under a shared heading; that is gone (decision E),
-    /// because a heading summing Champignons and Pfifferlinge into "Pilz
-    /// 350 g" names a purchase nobody can make.
-    private func inherited(of item: ShoppingItem) -> [CatalogIngredient] {
-        catalog.ancestors(of: item.name)
+        // Only for what a variety takes over from its ancestors — which shop
+        // it is bought in, what to know at the shelf, whether it is a staple.
+        // The chain may be any depth, and it is walked whole for the same
+        // reason category and nutrition walk it: a flag on Pilz has to reach
+        // the braune Champignons two steps below, not stop at Champignon.
+        // The relation no longer shapes the list itself — a heading summing
+        // Champignons and Pfifferlinge into "Pilz 350 g" names a purchase
+        // nobody can make.
+        let ancestors = catalog.ancestors(of: item.name)
+        return [own].compactMap { $0 } + ancestors.compactMap(catalogLibrary.householdIngredient(of:))
     }
 
     /// The aisle `item` stands in, read now rather than when it was added:
-    /// the household's own aisle (phase 7d) or a data update moves rows that
-    /// are already on the list. An item the catalog does not know keeps the
+    /// the household's own aisle or a data update moves rows that are
+    /// already on the list. An item the catalog does not know keeps the
     /// aisle it came with.
     private func aisle(of item: ShoppingItem) -> IngredientCategory? {
         catalog.ingredient(for: item.name)?.category ?? item.category
@@ -615,7 +574,6 @@ public final class ShoppingLibrary {
 
     // MARK: - Readings
 
-    public var openItems: [ShoppingItem] { items.filter { !$0.isChecked } }
     public var checkedItems: [ShoppingItem] { items.filter(\.isChecked) }
 
     /// Whether any line came from a recipe — what makes the by-recipe view
@@ -680,7 +638,7 @@ public final class ShoppingLibrary {
         var groups: [ShoppingRecipeGroup] = []
 
         for planEntry in planEntries {
-            let rows = share(of: planEntry.id)
+            let rows = items.compactMap { $0.keeping { $0.planEntryID == planEntry.id } }
             guard !rows.isEmpty else { continue }
             groups.append(ShoppingRecipeGroup(
                 id: planEntry.id.uuidString,
@@ -697,12 +655,10 @@ public final class ShoppingLibrary {
         for item in items {
             let orphans = item.demands.filter { $0.planEntryID == nil }
             for title in orphans.originTitlesInOrder {
+                guard let row = item.keeping({ $0.planEntryID == nil && $0.originTitle == title }) else { continue }
                 if frozen[title] == nil {
                     frozenOrder.append(title)
                 }
-                var row = item
-                row.demands = orphans.filter { $0.originTitle == title }
-                row.manualQuantities = []
                 frozen[title, default: []].append(row)
             }
         }
@@ -734,19 +690,6 @@ public final class ShoppingLibrary {
         }
         return groups
     }
-
-    /// Each item's share of one plan entry, one row per item in list order.
-    private func share(of planEntryID: UUID) -> [ShoppingItem] {
-        items.compactMap { item in
-            let share = item.demands.filter { $0.planEntryID == planEntryID }
-            guard !share.isEmpty else { return nil }
-            var row = item
-            row.demands = share
-            row.manualQuantities = []
-            return row
-        }
-    }
-
 }
 
 extension ShoppingSection {

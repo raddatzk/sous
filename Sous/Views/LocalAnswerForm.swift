@@ -6,7 +6,7 @@ import SwiftUI
 /// wie" (or a product chosen for the name), own values with their source, and
 /// own weights per unit.
 ///
-/// The same form keeps an **own product** (phase 7b): an entry of the
+/// The same form keeps an **own product**: an entry of the
 /// household's catalog with name and brand, optionally EAN, label values and
 /// a word it counts like until the label is in. A name links to it by
 /// choosing it as its product; the name's own form carries no brand.

@@ -64,8 +64,8 @@ public struct NutritionCatalog: Sendable {
             // not empty, and that answer overrules anything the loop above
             // found: the marker is the curator's last word, not a hint.
             //
-            // The difference is the whole of decision D. An empty word is a
-            // question every recipe using it asks again; a word carrying
+            // The difference matters. An empty word is a question every
+            // recipe using it asks again; a word carrying
             // `deliberatelyWithout` is a settled one that stops counting as a
             // defect. Filed under `unspecified`, because "the BLS has no
             // cinnamon" is true of cinnamon in every state.
@@ -102,8 +102,10 @@ public struct NutritionCatalog: Sendable {
             else { continue }
             // The word's own line of attribution follows its basis: a word
             // resting on a supplement is shown as resting on that supplement,
-            // not on the catalog it is not in.
-            let wordSource = bases.values
+            // not on the catalog it is not in. Read in a fixed order, so equal
+            // weights go to the same basis on every launch — a dictionary's
+            // order is not.
+            let wordSource = IngredientState.displayOrder.compactMap { bases[$0.rawValue] }
                 .max { $0.weight < $1.weight }?.source ?? source
             var entry = CatalogNutrition(
                 name: word.word,

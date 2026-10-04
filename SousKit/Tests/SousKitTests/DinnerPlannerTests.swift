@@ -147,7 +147,7 @@ struct DinnerPlannerTests {
             seats: .days(days(1)),
             candidates: [
                 candidate("Traumgericht", perPortion: balanced()),
-                candidate("Pommes", source: .pool(entryID: poolEntry, servings: 2), perPortion: junk),
+                candidate("Pommes", source: .pool(entryID: poolEntry), perPortion: junk),
             ]
         )
 
@@ -161,7 +161,7 @@ struct DinnerPlannerTests {
         let request = PlanRequest(
             seats: .days(days(1)),
             candidates: [
-                candidate("Omas Rezept", source: .pool(entryID: UUID(), servings: nil), perPortion: nil)
+                candidate("Omas Rezept", source: .pool(entryID: UUID()), perPortion: nil)
             ]
         )
 
@@ -175,7 +175,7 @@ struct DinnerPlannerTests {
             seats: .days(days(1)),
             excludedDishKeys: [dish],
             candidates: [
-                candidate("Chili", source: .pool(entryID: UUID(), servings: nil), dishKey: dish, perPortion: balanced()),
+                candidate("Chili", source: .pool(entryID: UUID()), dishKey: dish, perPortion: balanced()),
                 candidate("Eintopf", perPortion: balanced()),
             ]
         )
@@ -295,7 +295,7 @@ struct DinnerPlannerTests {
         for seed: UInt64 in [1, 2, 3, 99, 12345] {
             let picked = DinnerPlanner.plan(PlanRequest(
                 seats: .days(days(2)),
-                baseVector: base,
+                baseMix: base,
                 candidates: [filler, better, marked],
                 seed: seed
             )).placements.map(\.candidate.title)
@@ -365,7 +365,7 @@ struct DinnerPlannerTests {
             seats: .days(days(2)),
             candidates: [
                 candidate("Neu", perPortion: balanced()),
-                candidate("Vorgemerkt", source: .pool(entryID: UUID(), servings: nil), perPortion: balanced()),
+                candidate("Vorgemerkt", source: .pool(entryID: UUID()), perPortion: balanced()),
             ]
         )
 

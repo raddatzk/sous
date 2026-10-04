@@ -25,10 +25,8 @@ public enum NutritionResolver {
     /// Generic per-unit-type weights for imprecise units, used only when the
     /// specific ingredient has no `unitWeightsGrams` entry of its own — always
     /// shows *something* rather than nothing, at the cost of precision.
-    ///
-    /// These used to be six literals here. They are the same six numbers, read
-    /// from `measures.json` now: a value a cook is meant to be able to correct
-    /// has no business being a compiled constant.
+    /// Read from `measures.json`: a value a cook is meant to be able to
+    /// correct has no business being a compiled constant.
     static let measures: MeasureTable = .current
 
     /// Water's density, used as the fallback for a volume amount whose

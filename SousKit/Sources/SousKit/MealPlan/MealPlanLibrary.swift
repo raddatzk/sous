@@ -280,39 +280,8 @@ public final class MealPlanLibrary {
         }
     }
 
-    /// Every recipe on the plan, paired with the servings it is planned for —
-    /// what a shopping list is built from.
-    public var plannedRecipes: [(recipe: Recipe, servings: Int)] {
-        entries.compactMap { entry in
-            guard let recipe = recipes[entry.recipeID] else { return nil }
-            return (recipe, entry.servings ?? recipe.servings)
-        }
-    }
-
     /// The pool, with each entry's recipe where it still exists.
     public var pooledMeals: [(entry: MealPlanEntry, recipe: Recipe?)] {
         pool.map { ($0, recipes[$0.recipeID]) }
-    }
-
-    /// Everything in the pool, for putting it all on the shopping list.
-    public var pooledRecipes: [(recipe: Recipe, servings: Int)] {
-        pool.compactMap { entry in
-            guard let recipe = recipes[entry.recipeID] else { return nil }
-            return (recipe, entry.servings ?? recipe.servings)
-        }
-    }
-
-    /// The recipes planned for a stretch of days, for putting a few days'
-    /// worth on the shopping list at once.
-    public func plannedRecipes(from start: Date, through end: Date) -> [(recipe: Recipe, servings: Int)] {
-        entries
-            .filter { entry in
-                guard let day = entry.day else { return false }
-                return day >= start.startOfDay && day <= end.startOfDay
-            }
-            .compactMap { entry in
-                guard let recipe = recipes[entry.recipeID] else { return nil }
-                return (recipe, entry.servings ?? recipe.servings)
-            }
     }
 }

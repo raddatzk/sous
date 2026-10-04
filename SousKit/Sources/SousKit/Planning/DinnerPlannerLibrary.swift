@@ -75,10 +75,7 @@ public final class DinnerPlannerLibrary {
     /// toggle, cheap because everything is already warmed.
     public func summary(selecting ids: Set<UUID>) -> MixSummary? {
         guard let request, case .ready(let proposal) = phase else { return nil }
-        let mix = proposal.placements
-            .filter { ids.contains($0.id) }
-            .reduce(request.baseVector) { $0 + ($1.candidate.perPortion ?? .zero) }
-        return PlanCost.summary(of: mix)
+        return PlanCost.summary(of: request.mix(of: proposal.placements.filter { ids.contains($0.id) }))
     }
 
     public func reset() {
@@ -122,9 +119,7 @@ public final class DinnerPlannerLibrary {
         // The next N dinner-less days, scanned forward from today. The
         // loaded run is 28 days deep, which is as far as a dinner plan
         // needs to look.
-        let seatDays = mealPlan.days.filter { day in
-            !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
-        }.prefix(count).map(\.self)
+        let seatDays = Array(dinnerlessDays.prefix(count))
         guard !seatDays.isEmpty, let lastDay = seatDays.last else {
             phase = .empty(.noEmptySlots)
             return
@@ -134,14 +129,14 @@ public final class DinnerPlannerLibrary {
         // dinners among it are also what the proposal has to complement.
         let span = mealPlan.days.filter { $0 <= lastDay }
         var excludedDishKeys = Set<UUID>()
-        var baseVector = NutritionInfo.zero
+        var baseMix = NutritionInfo.zero
         for day in span {
             for (entry, recipe) in mealPlan.plan(for: day) {
                 guard let recipe else { continue }
                 excludedDishKeys.insert(dishKey(of: recipe))
                 if entry.slot == .dinner,
                    let figures = await nutrition.nutrition(for: recipe) {
-                    baseVector = baseVector + figures.perPortion
+                    baseMix = baseMix + figures.perPortion
                 }
             }
         }
@@ -155,7 +150,7 @@ public final class DinnerPlannerLibrary {
             PlannerCandidate(
                 recipeID: recipe.id,
                 dishKey: dishKey(of: recipe),
-                source: .pool(entryID: entry.id, servings: entry.servings),
+                source: .pool(entryID: entry.id),
                 isWantToCook: recipe.wantToCook,
                 perPortion: nil,
                 title: recipe.title
@@ -166,7 +161,7 @@ public final class DinnerPlannerLibrary {
 
         finish(with: PlanRequest(
             seats: .days(seatDays),
-            baseVector: baseVector,
+            baseMix: baseMix,
             excludedDishKeys: excludedDishKeys,
             candidates: candidates,
             seed: seed
@@ -176,13 +171,13 @@ public final class DinnerPlannerLibrary {
     private func proposeIntoPool(count: Int, pool: [(MealPlanEntry, Recipe)]) async {
         // The pool is not a candidate source here — seating the pool into
         // the pool would be a no-op. It is what the run complements: its
-        // meals feed the base vector, its dishes are off the table.
+        // meals feed the base mix, its dishes are off the table.
         var excludedDishKeys = Set<UUID>()
-        var baseVector = NutritionInfo.zero
+        var baseMix = NutritionInfo.zero
         for (_, recipe) in pool {
             excludedDishKeys.insert(dishKey(of: recipe))
             if let figures = await nutrition.nutrition(for: recipe) {
-                baseVector = baseVector + figures.perPortion
+                baseMix = baseMix + figures.perPortion
             }
         }
         // What is already on a day is decided just as firmly as the pool —
@@ -200,7 +195,7 @@ public final class DinnerPlannerLibrary {
 
         finish(with: PlanRequest(
             seats: .pool(count: count),
-            baseVector: baseVector,
+            baseMix: baseMix,
             excludedDishKeys: excludedDishKeys,
             candidates: candidates,
             seed: seed
@@ -334,9 +329,7 @@ public final class DinnerPlannerLibrary {
                 proposal.placements[index].day = nil
             }
         case .days:
-            let seatDays = mealPlan.days.filter { day in
-                !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
-            }.prefix(proposal.placements.count)
+            let seatDays = dinnerlessDays.prefix(proposal.placements.count)
             for index in proposal.placements.indices {
                 // Fewer free evenings than rows leaves the overhang undated
                 // — those land in the Sammlung on apply, which the row says.
@@ -352,11 +345,14 @@ public final class DinnerPlannerLibrary {
     /// the plan itself does not know the proposal yet. An evening is not
     /// obliged to hold a dish, so the list runs past the proposal's size.
     public func availableDinnerDays() -> [Date] {
-        Array(
-            mealPlan.days.filter { day in
-                !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
-            }.prefix(14)
-        )
+        Array(dinnerlessDays.prefix(14))
+    }
+
+    /// The days of the loaded run without a dinner yet, in order.
+    private var dinnerlessDays: [Date] {
+        mealPlan.days.filter { day in
+            !mealPlan.plan(for: day).contains { $0.entry.slot == .dinner }
+        }
     }
 
     /// Puts one proposed dinner onto a chosen evening. A dish already
@@ -395,10 +391,7 @@ public final class DinnerPlannerLibrary {
         else { return false }
         swappedAway.insert(placement.candidate.recipeID)
         proposal.placements[index].candidate = replacement
-        let mix = proposal.placements.reduce(request.baseVector) {
-            $0 + ($1.candidate.perPortion ?? .zero)
-        }
-        proposal.summary = PlanCost.summary(of: mix)
+        proposal.summary = PlanCost.summary(of: request.mix(of: proposal.placements))
         phase = .ready(proposal)
         return true
     }
@@ -415,7 +408,7 @@ public final class DinnerPlannerLibrary {
         var placements: [(day: Date?, kind: MealPlanLibrary.PlanPlacementKind)] = []
         for placement in accepted {
             switch placement.candidate.source {
-            case .pool(let entryID, _):
+            case .pool(let entryID):
                 // Looked up fresh: the entry may have moved or died while
                 // the sheet stood open, and a stale copy would resurrect it.
                 guard let entry = mealPlan.pool.first(where: { $0.id == entryID }) else { continue }

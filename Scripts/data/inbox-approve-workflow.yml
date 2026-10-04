@@ -1,4 +1,4 @@
-# The approval workflow of the PRIVATE inbox repository (phase 10b).
+# The approval workflow of the PRIVATE inbox repository.
 #
 # This file lives in sous only as the source to copy from: put it into the
 # inbox repository as .github/workflows/approve.yml. It does nothing here.

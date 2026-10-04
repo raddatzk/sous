@@ -26,7 +26,7 @@ public struct StepTextMark: Sendable, Hashable {
         /// An amount phrase tied to an ingredient line — the same thing
         /// cook mode prints accented.
         case bound
-        /// An amount the scanner read but could not tie to any line. It
+        /// An amount the references quote without tying it to any line. It
         /// still scales with the serving count, just blindly.
         case loose
     }
@@ -45,9 +45,8 @@ public struct StepTextMark: Sendable, Hashable {
     /// The same mark with any whitespace at either edge left out, or `nil`
     /// where nothing but whitespace was there.
     ///
-    /// The scanner's spans are cut where the grammar ends, not where the ink
-    /// does — "die Hälfte der Zwiebeln" hands back "Hälfte der ", trailing
-    /// space and all. Underlining that space is a smudge, and accenting it
+    /// A quoted span can end where the words end, not where the ink does —
+    /// "Hälfte der ", trailing space and all. Underlining that space is a smudge, and accenting it
     /// shows nothing.
     func trimmed(in text: String) -> StepTextMark? {
         var lower = range.lowerBound

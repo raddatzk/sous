@@ -36,7 +36,7 @@ public enum RecipeOptimizer {
 /// against the new lines in the same answer.
 ///
 /// The model proposes; the fixed reader decides. Every line change passes
-/// the checks of INGREDIENTS-DATA §3 L or is refused, and a refused change
+/// the checks below (see "Checks") or is refused, and a refused change
 /// leaves the line as written. The model never supplies a number, a
 /// category or a parent: amounts must stand in the line already, and where a
 /// measured line loses its preparation, Sous weighs it from the catalog.
@@ -138,7 +138,7 @@ public struct RecipeOptimization: Sendable {
         public var isRefused: Bool { issues.contains(where: \.refuses) }
         public var isChanged: Bool { rewritten != [written] || note != nil }
         /// Offered ticked: a change that passed every check and asks for no
-        /// look. A typo never is (R4), nor anything with a caution.
+        /// look. A typo never is, nor anything with a caution.
         public var isPreTicked: Bool {
             isChanged && !isRefused && issues.isEmpty && typos.isEmpty && !changes.contains(.group)
         }
@@ -155,7 +155,7 @@ public struct RecipeOptimization: Sendable {
 
     /// What the model says about a name the catalog does not know.
     public struct Classification: Identifiable, Hashable, Sendable {
-        public enum Kind: String, Hashable, Sendable, CaseIterable {
+        public enum Kind: String, Hashable, Sendable {
             case alias
             case variety = "sorte"
             case new = "neu"
@@ -163,18 +163,6 @@ public struct RecipeOptimization: Sendable {
             case typo = "tippfehler"
             case household = "haushalt"
             case product = "produkt"
-
-            public var title: String {
-                switch self {
-                case .alias: "anderes Wort für"
-                case .variety: "Sorte von"
-                case .new: "neu"
-                case .wording: "Formulierung für"
-                case .typo: "Tippfehler für"
-                case .household: "Haushaltswort für"
-                case .product: "Produkt, zählt wie"
-                }
-            }
         }
 
         public var id: Int { line }
@@ -185,7 +173,7 @@ public struct RecipeOptimization: Sendable {
         public let target: String?
         /// Where the line still reads as unknown after the rewrite: the
         /// household's answer this proposes for the name, which makes the
-        /// line read as written (phase 7b). `nil` where the name is known
+        /// line read as written. `nil` where the name is known
         /// by then, or the line should have been fixed instead (a typo, a
         /// preparation word).
         public let proposal: HouseholdProposal?
@@ -399,7 +387,7 @@ extension RecipeOptimization {
             }
             steps.append((stepNumber, mapped))
         }
-        let reading = try? StepReferencesPrompt.reading(steps: steps, notes: self.notes, for: result).get()
+        let reading = try? StepReferencesPrompt.reading(steps: steps, for: result).get()
         result.stepReferences = reading?.references
         return Applied(recipe: result, reading: reading)
     }
@@ -410,7 +398,7 @@ extension RecipeOptimization {
               quantity.unit == weighing.from.unit, weighing.from.amount > 0
         else { return nil }
         let grams = weighing.grams * quantity.amount / weighing.from.amount
-        return QuantityFormatter(locale: Locale(identifier: "de_DE")).string(for: Quantity(roundedGrams(grams), .gram), size: nil)
+        return QuantityFormatter.german.string(for: Quantity(roundedGrams(grams), .gram), size: nil)
     }
 
     /// `text` with the lines at the given indices replaced — by nothing, one
@@ -480,21 +468,19 @@ extension RecipeOptimization {
 
 // MARK: - The prompt
 
-/// Builds the optimization prompt (v5) and reads the answer. See
+/// Builds the optimization prompt and reads the answer. See
 /// ``RecipeOptimization``.
 ///
-/// The one AI action on a recipe (phase 7b): the lines in the fixed form and
-/// the step references in one answer, offered whether or not the recipe was
-/// optimized before — on an optimized one the lines stay and the references
-/// are made anew. v4 adds the household proposals for names that stay
-/// unknown; v5 says a state ("weich", "zimmerwarm") is preparation, not noise.
+/// The one AI action on a recipe: the lines in the fixed form and the step
+/// references in one answer, offered whether or not the recipe was optimized
+/// before — on an optimized one the lines stay and the references are made
+/// anew.
 ///
-/// The step references it asks for are the same references as v2's, read by
-/// the same reader and stamped with the same fingerprint scheme — only over
-/// the new text. That is why this prompt's version is its own: answers to
-/// v2 stay current, and nothing becomes stale by this prompt existing.
+/// The step references it asks for are read by the same reader as
+/// ``StepReferences`` and stamped with the same fingerprint scheme — only
+/// over the new text — so nothing pasted earlier becomes stale by this
+/// prompt changing.
 public enum RecipeOptimizationPrompt {
-    static let version = "v5"
 
     static let rules = """
     Du bereitest ein deutsches Rezept für die Koch-App Sous vor. Eine Antwort, \
@@ -911,7 +897,7 @@ public enum RecipeOptimizationPrompt {
         ))
     }
 
-    // MARK: Checks (§3 L)
+    // MARK: Checks
 
     private static func check(
         _ entry: Answer.Entry,
@@ -995,7 +981,7 @@ public enum RecipeOptimizationPrompt {
                     takenFrom[compound] = word
                     continue
                 }
-                if isUnitWord(word.lowercased()) { continue }
+                if IngredientLineReader.knownUnit(word.lowercased()) != nil { continue }
                 if folded.count >= 4, let near = oldWords.first(where: { TypoDistance.edits(folded, $0) == 1 }) {
                     let wrong = words(in: written).first { fold($0) == near } ?? near
                     typos.append(.init(wrong: wrong, right: word, declared: false))
@@ -1042,7 +1028,7 @@ public enum RecipeOptimizationPrompt {
                let grams = weighedGrams(new, catalog: catalog, nutritionCatalog: nutritionCatalog),
                let length = IngredientLineReader.measure(in: rewritten[0], catalog: catalog)?.length {
                 let rounded = RecipeOptimization.roundedGrams(grams)
-                let amount = QuantityFormatter(locale: Locale(identifier: "de_DE")).string(for: Quantity(rounded, .gram), size: nil)
+                let amount = QuantityFormatter.german.string(for: Quantity(rounded, .gram), size: nil)
                 let rest = rewritten[0].dropFirst(length).trimmingCharacters(in: .whitespaces)
                 rewritten[0] = "\(amount) \(rest)"
                 weighing = .init(from: quantity, grams: rounded)
@@ -1233,11 +1219,6 @@ public enum RecipeOptimizationPrompt {
         [word] + inflectionEndings.sorted { $0.count > $1.count }.compactMap { ending in
             word.hasSuffix(ending) ? String(word.dropLast(ending.count)) : nil
         }
-    }
-
-    static func isUnitWord(_ word: String) -> Bool {
-        if case .custom = IngredientUnit(symbol: word) { return false }
-        return true
     }
 
     private static func singleLine(_ text: String) -> String {

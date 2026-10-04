@@ -20,6 +20,11 @@ public struct QuantityFormatter: Sendable {
         self.locale = locale
     }
 
+    /// German whatever the device says — for text that is compared or
+    /// hashed, or read by the model, and so has to come out the same on
+    /// every device.
+    static let german = QuantityFormatter(locale: Locale(identifier: "de_DE"))
+
     /// The measure as it appears in the ingredient list, size word and all:
     /// "300 g", "1 kleine", "3 große EL".
     ///
@@ -108,16 +113,10 @@ extension QuantityFormatter {
     /// Lives here rather than in the UI because the same line is needed for
     /// shopping lists, export, and the prompts handed to the model.
     public func string(for ingredient: RecipeIngredient) -> String {
-        var line = ""
+        var line = ingredient.name
         if let quantity = ingredient.quantity {
-            line = string(for: quantity, size: ingredient.size)
-        } else if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .beforeName {
-            // "etwas Salz" — the words sit where a number would.
-            line = phrase.phrase
-        }
-        line = line.isEmpty ? ingredient.name : "\(line) \(ingredient.name)"
-        if let phrase = ingredient.unquantifiedPhrase, phrase.placement == .afterName {
-            line += " \(phrase.phrase)"
+            let amount = string(for: quantity, size: ingredient.size)
+            if !amount.isEmpty { line = "\(amount) \(line)" }
         }
         if let preparation = ingredient.preparation, !preparation.isEmpty {
             line += " (\(preparation))"

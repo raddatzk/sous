@@ -91,9 +91,6 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
         }
     }
 
-    /// Came from no recipe at all.
-    public var isManual: Bool { demands.isEmpty }
-
     /// What was wanted in a named state, and how much of it — the concept's
     /// "Kartoffeln — 500 g + 300 g (gegart gewogen)".
     ///
@@ -117,11 +114,7 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
 
     /// Where it reads as coming from, each origin named once.
     public var originTitles: [String] {
-        var seen = Set<String>()
-        return demands.compactMap { demand in
-            guard !demand.originTitle.isEmpty, seen.insert(demand.originTitle).inserted else { return nil }
-            return demand.originTitle
-        }
+        demands.originTitlesInOrder.filter { !$0.isEmpty }
     }
 
     /// The key an ingredient name reduces to: stripped of markdown link
