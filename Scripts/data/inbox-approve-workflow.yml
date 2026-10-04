@@ -1,0 +1,119 @@
+# The approval workflow of the PRIVATE inbox repository (phase 10b).
+#
+# This file lives in sous only as the source to copy from: put it into the
+# inbox repository as .github/workflows/approve.yml. It does nothing here.
+#
+# Labelling an issue approves it (labels only, decided with the cook):
+#   als-alias             the name becomes a spelling of the word it counted as
+#   als-sorte             the name becomes a variety of that word
+#   neues-wort + kat:<k>  the name becomes a word without values in category k
+# Scripts/data/approve.py edits Data/ in a checkout of sous's main and
+# compiles; this workflow then pushes the branch inbox/<issue>-<id> and opens
+# (or updates) the pull request on sous, and says on the issue what it did.
+# Labelling again rebuilds the branch on the current main. The cook merges;
+# the merge publishes. The nightly run (inbox.yml) closes the issue once the
+# pull request is merged.
+#
+# The inbox repository needs, besides what inbox.yml needs:
+# - a GitHub App installed on raddatzk/sous only, with the repository
+#   permissions Contents: read and write, Pull requests: read and write;
+# - variable SOUS_APP_ID (the App's id) and secret SOUS_APP_PRIVATE_KEY (its
+#   private key, the .pem text).
+# A pull request opened with the App's token runs sous's CI, which one opened
+# with this repository's GITHUB_TOKEN would not.
+name: Katalog-Freigabe
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: approve-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  approve:
+    # Only the owner approves; only the labels that mean something start a run.
+    if: >-
+      github.event.sender.login == github.repository_owner &&
+      (github.event.label.name == 'als-alias' || github.event.label.name == 'als-sorte' ||
+       github.event.label.name == 'neues-wort' || startsWith(github.event.label.name, 'kat:'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: A token for sous
+        id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.SOUS_APP_ID }}
+          private-key: ${{ secrets.SOUS_APP_PRIVATE_KEY }}
+          owner: raddatzk
+          repositories: sous
+
+      - name: Check out sous
+        uses: actions/checkout@v4
+        with:
+          repository: raddatzk/sous
+          ref: main
+          path: sous
+          token: ${{ steps.app.outputs.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: sous/Scripts/data/requirements.txt
+
+      - run: pip install -r sous/Scripts/data/requirements.txt
+
+      - name: Edit and compile Data/
+        env:
+          ISSUE: ${{ toJson(github.event.issue) }}
+        run: |
+          printf '%s' "$ISSUE" > issue.json
+          python3 sous/Scripts/data/approve.py --issue issue.json --inbox "$GITHUB_REPOSITORY" --out result.json
+
+      - name: Push the branch and open the pull request
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          INBOX_TOKEN: ${{ github.token }}
+          APP_SLUG: ${{ steps.app.outputs.app-slug }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: |
+          status=$(jq -r .status result.json)
+          message=$(jq -r .message result.json)
+          say() { GH_TOKEN="$INBOX_TOKEN" gh issue comment "$NUMBER" -R "$GITHUB_REPOSITORY" --body "$1"; }
+          if [ "$status" = waiting ]; then exit 0; fi
+          if [ "$status" = refused ]; then say "$message"; exit 0; fi
+
+          branch=$(jq -r .branch result.json)
+          cd sous
+          user_id=$(gh api "/users/${APP_SLUG}%5Bbot%5D" --jq .id)
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${user_id}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add Data SousKit/Sources/SousKit/Resources
+          git commit -q -F <(jq -r .commit ../result.json)
+
+          # A label set twice, on an unchanged main, changes nothing: say nothing.
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null; then
+            git fetch -q origin "$branch"
+            if [ "$(git rev-parse "HEAD^{tree}")" = "$(git rev-parse "FETCH_HEAD^{tree}")" ] \
+               && [ "$(git rev-parse HEAD~1)" = "$(git rev-parse FETCH_HEAD~1)" ]; then
+              echo "unchanged"; exit 0
+            fi
+          fi
+          git push -q --force origin "$branch"
+
+          url=$(gh pr list -R raddatzk/sous --head "$branch" --state open --json url --jq '.[0].url // empty')
+          if [ -z "$url" ]; then
+            url=$(gh pr create -R raddatzk/sous --base main --head "$branch" \
+              --title "$(jq -r .title ../result.json)" --body "$(jq -r .body ../result.json)")
+            say "$message"$'\n\n'"$url"
+          else
+            say "Neu gebaut auf dem aktuellen main: $url"
+          fi

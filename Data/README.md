@@ -58,6 +58,19 @@ conflict, and the second one compiles again on top of the first.
 `--check --since <base>` fails when the data changed and the version did not
 grow.
 
+## Shared adjustments
+
+Households share their local answers from the app ("Anpassungen teilen"). A
+nightly workflow in a private inbox repository files them as issues, one per
+name, with the reports as a `json sous-catalog` block (`Scripts/data/inbox.py`).
+Labelling an issue there approves it — `als-alias`, `als-sorte`, or
+`neues-wort` with a `kat:<Kategorie>` — and `Scripts/data/approve.py` turns it
+into a pull request here that edits `Data/`, compiled. Only these mechanical
+cases are written; values, weights and products stay with the curator. The
+issue closes once the pull request is merged. The workflows for the inbox
+repository are kept here as `Scripts/data/inbox-workflow.yml` and
+`Scripts/data/inbox-approve-workflow.yml`.
+
 ## Publishing
 
 After a merge to `main` that touches the data, the Action *Publish data*
@@ -73,10 +86,12 @@ CloudKit container, public database:
   by id, fetch only the files whose hash changed, and use the new set from
   their next cold start.
 
-A push publishes to **development**, which debug builds read. **Production**
-is a manual run (*Run workflow* → `production`) that the GitHub environment
-`cloudkit-production` holds for approval. Each environment keeps its own
-server-to-server key as the secrets `CLOUDKIT_KEY_ID` and
+A push publishes to **development**, which debug builds read, and once that
+succeeded to **production**: the merge is the review, and what is merged for
+the catalog goes out. `publish.py` holds the resources against `Data/` itself
+first, since a direct push publishes too. *Run workflow* publishes to one
+environment by hand — a retry, or `--point-to`. Each environment keeps its
+own server-to-server key as the secrets `CLOUDKIT_KEY_ID` and
 `CLOUDKIT_PRIVATE_KEY`.
 
 **Who may write.** Both record types grant read to everyone (no iCloud
@@ -86,13 +101,15 @@ also takes a pointer or release only from that user (`CloudKitReleaseSource`)
 and only of the right type: record names are unique across all types of the
 zone, so a name taken first with any type that signed-in users may create
 would otherwise pass. That is why no other type in the public database may
-let signed-in users create records either. Core Data's types get exactly
-that by default whenever their schema is initialized in development, so
-**check the roles before every production deploy of the schema**:
+let signed-in users create records either — except `CatalogSubmission`, the
+shared adjustments, which signed-in users create and only `Publisher` reads.
+Core Data's types get a create grant by default whenever their schema is
+initialized in development, so **check the roles before every production
+deploy of the schema**:
 
 ```sh
 xcrun cktool export-schema --team-id MDQY93XVHF --container-id iCloud.me.raddatz.sous \
-  --environment development | grep -c 'GRANT CREATE TO "_icloud"'   # wants 0
+  --environment development | grep -c 'GRANT CREATE TO "_icloud"'   # wants 1: CatalogSubmission
 ```
 
 **Releases are never deleted.** `publish.py --point-to <dataVersion>` turns

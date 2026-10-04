@@ -5,8 +5,10 @@
     python3 Scripts/data/publish.py --environment development --point-to 2026100100
 
 Publishes exactly what the app bundles: the files and the manifest under
-SousKit/Sources/SousKit/Resources, which `compile.py --check` has just held
-against Data/. In two steps (INGREDIENTS-DATA §5):
+SousKit/Sources/SousKit/Resources. It holds them against Data/ itself first —
+`compile.py --check` — and publishes nothing when they differ: a push to main
+publishes as far as production (phase 10b), so a push that skipped the
+compiler must not get through. In two steps (INGREDIENTS-DATA §5):
 
 1. a `DataRelease` record `release-<dataVersion>`, one asset per file in a
    field named after it, each read back and checked against the manifest
@@ -37,6 +39,7 @@ from typing import Any, Dict, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cloudkit  # noqa: E402
+import compile as data_compiler  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RESOURCES = REPO_ROOT / "SousKit/Sources/SousKit/Resources"
@@ -158,6 +161,21 @@ def pointed_version(client: cloudkit.Client, schema: int) -> Optional[int]:
     return None if "serverErrorCode" in record else value(record, "dataVersion")
 
 
+def compile_check() -> list:
+    """What `compile.py --check` would call stale: resources, or the
+    released ids, that differ from compiling Data/ now."""
+    try:
+        outputs, _, released = data_compiler.compile_data(data_compiler.DATA, RESOURCES)
+    except data_compiler.DataError as error:
+        raise SystemExit(f"Data/ does not compile, nothing published:\n{error}")
+    stale = [name for name, text in outputs.items()
+             if not (RESOURCES / name).exists() or (RESOURCES / name).read_text(encoding="utf-8") != text]
+    released_path = data_compiler.DATA / "released-ids.txt"
+    if not released_path.exists() or released_path.read_text(encoding="utf-8") != released:
+        stale.append("Data/released-ids.txt")
+    return stale
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--environment", choices=cloudkit.ENVIRONMENTS, required=True)
@@ -182,6 +200,11 @@ def main() -> None:
               value(record, "commit"), published)
         return
 
+    if args.resources == RESOURCES:
+        stale = compile_check()
+        if stale:
+            raise SystemExit("The resources differ from compile(Data/): " + ", ".join(stale)
+                             + ". Nothing published; run Scripts/data/compile.py and commit.")
     manifest, manifest_bytes, files = load_set(args.resources)
     print(f"Data set {manifest['dataVersion']} (schema {manifest['schema']}, {len(files)} files)")
     current = pointed_version(client, manifest["schema"])

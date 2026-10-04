@@ -77,6 +77,18 @@ class FakeGitHub:
     def comment(self, number, text):
         self.comments.append((number, text))
 
+    def issue(self, number):
+        return self.issues[number - 1]
+
+    def close(self, number):
+        self.issues[number - 1]["state"] = "closed"
+
+    def add_labels(self, number, names):
+        self.issues[number - 1]["labels"] = sorted(set(self.issues[number - 1]["labels"]) | set(names))
+
+    def pulls(self, repository):
+        return getattr(self, "sous_pulls", [])
+
 
 def night(cloudkit, github):
     return inbox.run(cloudkit, github, out=io.StringIO())
@@ -212,6 +224,42 @@ class NightTests(unittest.TestCase):
         self.assertIn("Produkt, Marke Greenforce, EAN 4260000000000", body)
         self.assertIn("351 kcal, 48 g Eiweiß pro 100 g (Quelle: Etikett)", body)
         self.assertEqual(inbox.title(block), "„Greenforce Sojahack“: Produkt (Greenforce)")
+
+
+def pull(number, branch, state="closed", merged=True, repo="raddatzk/sous"):
+    return {"number": number, "state": state, "merged_at": "2026-10-04T10:00:00Z" if merged else None,
+            "html_url": f"https://github.com/{repo}/pull/{number}",
+            "head": {"ref": branch, "repo": {"full_name": repo}}}
+
+
+class SweepTests(unittest.TestCase):
+    def setUp(self):
+        self.github = FakeGitHub()
+        night(FakeCloudKit([record("r1", "_a", [COUNTS_AS]),
+                            record("r2", "_b", [{"kind": "word", "name": "Pandanblatt", "recipes": 1}])]), self.github)
+        self.github.issues = [dict(i, labels=list(i["labels"])) for i in self.github.issues]
+
+    def test_a_merged_pull_request_closes_its_issue_with_the_link(self):
+        self.github.sous_pulls = [pull(42, "inbox/1-pandanblatt"), pull(43, "inbox/2-x", state="open", merged=False),
+                                  pull(44, "feature/inbox", merged=True)]
+        done = inbox.sweep(self.github, "raddatzk/sous", out=io.StringIO())
+        self.assertEqual(done, ["#1 closed (https://github.com/raddatzk/sous/pull/42)"])
+        self.assertEqual(self.github.issues[0]["state"], "closed")
+        self.assertEqual(self.github.issues[1]["state"], "open")
+        self.assertIn("https://github.com/raddatzk/sous/pull/42", self.github.comments[-1][1])
+        # A second night finds the issue closed and says nothing more.
+        self.assertEqual(inbox.sweep(self.github, "raddatzk/sous", out=io.StringIO()), [])
+
+    def test_an_unmerged_pull_request_is_said_once(self):
+        self.github.sous_pulls = [pull(45, "inbox/2-pandanblatt", merged=False)]
+        inbox.sweep(self.github, "raddatzk/sous", out=io.StringIO())
+        inbox.sweep(self.github, "raddatzk/sous", out=io.StringIO())
+        self.assertEqual(len([c for c in self.github.comments if "ohne Merge" in c[1]]), 1)
+        self.assertEqual(self.github.issues[1]["state"], "open")
+
+    def test_a_branch_from_a_fork_is_ignored(self):
+        self.github.sous_pulls = [pull(46, "inbox/1-x", repo="someone/sous")]
+        self.assertEqual(inbox.sweep(self.github, "raddatzk/sous", out=io.StringIO()), [])
 
 
 if __name__ == "__main__":

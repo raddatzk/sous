@@ -62,7 +62,33 @@ KIND_LABELS = {
     "values": "werte",
     "product": "produkt",
 }
-LABEL_COLORS = {"katalog": "0e8a16", "zählt-wie": "1d76db", "neu": "fbca04", "werte": "d93f0b", "produkt": "5319e7"}
+#: kat:<label> → the category in Data/ — the app's own words for the aisles.
+#: approve.py reads a new word's category from these labels (phase 10b).
+CATEGORIES = {
+    "gemüse": "vegetables",
+    "obst": "fruit",
+    "kräuter": "herbs",
+    "gewürze": "spices",
+    "fleisch": "meat",
+    "fisch": "fish",
+    "milchprodukte": "dairy",
+    "backwaren": "bakery",
+    "getreide": "grains",
+    "hülsenfrüchte": "legumes",
+    "nüsse": "nuts",
+    "öle": "oils",
+    "backen": "baking",
+    "konserven": "canned",
+    "getränke": "drinks",
+    "tiefkühl": "frozen",
+    "sonstiges": "other",
+}
+LABEL_COLORS = {
+    "katalog": "0e8a16", "zählt-wie": "1d76db", "neu": "fbca04", "werte": "d93f0b", "produkt": "5319e7",
+    # The approvals (approve.py) and what the nightly sweep notes.
+    "als-alias": "0052cc", "als-sorte": "0052cc", "neues-wort": "0052cc", "pr-geschlossen": "b60205",
+    **{f"kat:{name}": "c5def5" for name in CATEGORIES},
+}
 STATES = ("unspecified", "raw", "cooked")
 BLOCK = re.compile(r"```json sous-catalog\n(.*?)\n```", re.S)
 
@@ -395,6 +421,20 @@ class GitHub:
     def comment(self, number: int, text: str) -> None:
         self._call("POST", f"/issues/{number}/comments", {"body": text})
 
+    def issue(self, number: int) -> Dict[str, Any]:
+        return self._call("GET", f"/issues/{number}")
+
+    def close(self, number: int) -> None:
+        self._call("PATCH", f"/issues/{number}", {"state": "closed", "state_reason": "completed"})
+
+    def add_labels(self, number: int, names: List[str]) -> None:
+        self._call("POST", f"/issues/{number}/labels", {"labels": names})
+
+    def pulls(self, repository: str) -> List[Dict[str, Any]]:
+        """The newest pull requests of another (public) repository."""
+        other = GitHub(repository, self.token, self.api)
+        return other._call("GET", "/pulls?state=all&sort=created&direction=desc&per_page=100")
+
 
 # --------------------------------------------------------------------------
 # A night
@@ -467,12 +507,57 @@ def run(client: Any, github: Any, dry_run: bool = False, out=sys.stdout) -> Nigh
     return night
 
 
+CLOSED_UNMERGED = "pr-geschlossen"
+
+
+def inbox_issue(pull: Dict[str, Any], sous: str) -> Optional[int]:
+    """The inbox issue a data pull request came from: its branch is
+    `inbox/<issue>-<id>` in sous itself (approve.py)."""
+    head = pull.get("head") or {}
+    ref = head.get("ref") or ""
+    if (head.get("repo") or {}).get("full_name") != sous or not ref.startswith("inbox/"):
+        return None
+    number = ref[len("inbox/"):].split("-", 1)[0]
+    return int(number) if number.isdigit() else None
+
+
+def sweep(github: Any, sous: str, dry_run: bool = False, out=sys.stdout) -> List[str]:
+    """Closes the issues whose pull request was merged, with its link, and
+    says once on an issue when its pull request was closed unmerged (10b)."""
+    done: List[str] = []
+    for pull in github.pulls(sous):
+        number = inbox_issue(pull, sous)
+        if number is None or pull.get("state") != "closed":
+            continue
+        issue = github.issue(number)
+        if issue.get("state") != "open":
+            continue
+        labels = {label["name"] if isinstance(label, dict) else label for label in issue.get("labels", [])}
+        if pull.get("merged_at"):
+            text = f"Übernommen mit {pull['html_url']}. Der Katalog ist damit veröffentlicht."
+            if not dry_run:
+                github.comment(number, text)
+                github.close(number)
+            done.append(f"#{number} closed ({pull['html_url']})")
+        elif CLOSED_UNMERGED not in labels:
+            text = f"Der Pull Request {pull['html_url']} wurde ohne Merge geschlossen."
+            if not dry_run:
+                github.comment(number, text)
+                github.add_labels(number, [CLOSED_UNMERGED])
+            done.append(f"#{number} noted unmerged ({pull['html_url']})")
+    for line in done:
+        print(f"{'would: ' if dry_run else ''}{line}", file=out)
+    return done
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--environment", choices=cloudkit.ENVIRONMENTS, required=True)
     parser.add_argument("--repository", default=os.environ.get("GITHUB_REPOSITORY"),
                         help="owner/name of the private inbox repository")
     parser.add_argument("--dry-run", action="store_true", help="print the issues; write and delete nothing")
+    parser.add_argument("--sous", default="raddatzk/sous",
+                        help="the repository whose data pull requests close inbox issues")
     args = parser.parse_args(argv)
     if not args.repository:
         parser.error("--repository or GITHUB_REPOSITORY is needed")
@@ -480,7 +565,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not token and not args.dry_run:
         parser.error("GITHUB_TOKEN is needed")
     client = cloudkit.Client.from_environment(args.environment)
-    night = run(client, GitHub(args.repository, token or ""), dry_run=args.dry_run)
+    github = GitHub(args.repository, token or "")
+    night = run(client, github, dry_run=args.dry_run)
+    try:
+        sweep(github, args.sous, dry_run=args.dry_run)
+    except Exception as error:  # the filing is done; a failed sweep waits a night
+        print(f"failed: sweeping the pull requests of {args.sous}: {error}")
+        return 1
     return 1 if night.failures else 0
 
 
