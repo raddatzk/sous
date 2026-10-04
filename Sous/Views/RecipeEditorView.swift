@@ -614,7 +614,7 @@ struct RecipeEditorView: View {
                         complete(with: ingredient)
                     } label: {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(ingredient.name)
+                            Text(ingredient.shownName)
                                 .font(.callout)
                                 .lineLimit(1)
                                 .truncationMode(.tail)

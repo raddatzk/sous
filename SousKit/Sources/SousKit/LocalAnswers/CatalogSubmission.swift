@@ -43,6 +43,10 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
             /// A name the catalog does not know and the household has not
             /// answered — "An den Katalog melden" on an unknown line.
             case unknown
+            /// A catalog word the household files differently (phase 7d):
+            /// another aisle (``category``), or a variety of another word
+            /// (``parent``). Regional, perhaps; the curator decides.
+            case catalogOverride = "override"
         }
 
         /// A catalog word, by its id and by the name it had when shared.
@@ -62,8 +66,18 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
         public var name: String
         /// The word a ``Kind/values`` item is about.
         public var catalogID: String?
-        /// What a name counts as; for a product, the word it counts like.
+        /// What a name counts as; for a product, the word it counts like;
+        /// for a household's own spelling, the word it spells.
         public var target: Target?
+        /// Set where the household said the name is a *spelling* of
+        /// ``target`` (phase 7d) — an alias, not a variety.
+        public var spelling: Bool?
+        /// The aisle the household files the word under, where it differs
+        /// from the catalog's (phase 7d).
+        public var category: IngredientCategory?
+        /// The word the household files this one as a variety of, where it
+        /// differs from the catalog's parent (phase 7d).
+        public var parent: Target?
         /// Per 100 g.
         public var values: NutritionInfo?
         /// Where the values were read: "Packung, Marke X".
@@ -83,6 +97,9 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
             name: String,
             catalogID: String? = nil,
             target: Target? = nil,
+            spelling: Bool? = nil,
+            category: IngredientCategory? = nil,
+            parent: Target? = nil,
             values: NutritionInfo? = nil,
             source: String? = nil,
             weights: [String: LocalAnswer.Weight]? = nil,
@@ -95,6 +112,9 @@ public struct CatalogSubmission: Codable, Hashable, Sendable {
             self.name = Self.capped(name, 80)
             self.catalogID = catalogID
             self.target = target
+            self.spelling = spelling == true ? true : nil
+            self.category = category
+            self.parent = parent
             self.values = values
             self.source = source.map { Self.capped($0, 200) }
             self.weights = weights?.isEmpty == true ? nil : weights
@@ -170,6 +190,7 @@ extension CatalogSubmission.Item {
     public var detail: String {
         var parts: [String] = []
         switch kind {
+        case .countsAs where spelling == true: parts.append("Schreibweise von \(target?.name ?? "?")")
         case .countsAs: parts.append("zählt wie \(target?.name ?? "?")")
         case .word: parts.append("eigenes Wort")
         case .values: parts.append("eigene Angaben")
@@ -180,7 +201,10 @@ extension CatalogSubmission.Item {
             if let target { product += ", rechnet wie \(target.name)" }
             parts.append(product)
         case .unknown: parts.append("unbekannt")
+        case .catalogOverride: parts.append("eigene Einordnung")
         }
+        if let category { parts.append("Kategorie \(category.title)") }
+        if let parent { parts.append("Sorte von \(parent.name)") }
         if let values {
             var text = "\(Self.number(values.kcal)) kcal/100 g"
             if let source { text += " (\(source))" }

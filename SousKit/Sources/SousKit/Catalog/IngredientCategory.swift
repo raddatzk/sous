@@ -2,6 +2,10 @@ import Foundation
 
 /// What kind of thing an ingredient is — which doubles as the aisle it is
 /// found in, so a shopping list can be walked through a shop in order.
+///
+/// Read tolerantly: an aisle a newer data set brings ("plantBased" was the
+/// first, phase 7d) reads as `other` in an app that does not know it yet,
+/// rather than failing the whole set.
 public enum IngredientCategory: String, Codable, CaseIterable, Sendable {
     case vegetables
     case fruit
@@ -10,6 +14,9 @@ public enum IngredientCategory: String, Codable, CaseIterable, Sendable {
     case meat
     case fish
     case dairy
+    /// Tofu, Sojahack and their like: the shelf most shops keep beside the
+    /// dairy and the meat, not among the beans.
+    case plantBased
     case bakery
     case grains
     case legumes
@@ -30,6 +37,7 @@ public enum IngredientCategory: String, Codable, CaseIterable, Sendable {
         case .meat: "Fleisch & Wurst"
         case .fish: "Fisch"
         case .dairy: "Milchprodukte & Eier"
+        case .plantBased: "Vegan & Fleischersatz"
         case .bakery: "Brot & Backwaren"
         case .grains: "Nudeln, Reis & Getreide"
         case .legumes: "Hülsenfrüchte"
@@ -51,18 +59,24 @@ public enum IngredientCategory: String, Codable, CaseIterable, Sendable {
         case .herbs: 2
         case .bakery: 3
         case .dairy: 4
-        case .meat: 5
-        case .fish: 6
-        case .frozen: 7
-        case .grains: 8
-        case .legumes: 9
-        case .canned: 10
-        case .oils: 11
-        case .spices: 12
-        case .nuts: 13
-        case .baking: 14
-        case .drinks: 15
-        case .other: 16
+        case .plantBased: 5
+        case .meat: 6
+        case .fish: 7
+        case .frozen: 8
+        case .grains: 9
+        case .legumes: 10
+        case .canned: 11
+        case .oils: 12
+        case .spices: 13
+        case .nuts: 14
+        case .baking: 15
+        case .drinks: 16
+        case .other: 17
         }
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = IngredientCategory(rawValue: raw) ?? .other
     }
 }

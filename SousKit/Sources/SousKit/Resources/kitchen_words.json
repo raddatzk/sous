@@ -2293,7 +2293,7 @@
    "Sojagranulat",
    "Sojahackfleisch"
   ],
-  "category": "legumes"
+  "category": "plantBased"
  },
  {
   "id": "sojasauce",
@@ -2469,7 +2469,7 @@
    "Naturtofu",
    "Tofu Natur"
   ],
-  "category": "legumes"
+  "category": "plantBased"
  },
  {
   "id": "tomate",

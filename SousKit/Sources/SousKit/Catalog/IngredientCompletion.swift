@@ -61,7 +61,10 @@ public enum IngredientCompletion {
         }
         let used = usedIngredientNames(in: text, excluding: line, catalog: catalog)
         return catalog.suggestions(for: partial, limit: limit + used.count)
-            .filter { !used.contains(IngredientCatalog.normalize($0.name)) }
+            .filter { ingredient in
+                !used.contains(IngredientCatalog.normalize(ingredient.name))
+                    && !used.contains(IngredientCatalog.normalize(ingredient.shownName))
+            }
             .prefix(limit)
             .map { $0 }
     }
@@ -89,7 +92,9 @@ public enum IngredientCompletion {
     }
 
     /// The line with the typed name replaced by the chosen ingredient,
-    /// keeping the amount, the unit, and anything written after it.
+    /// keeping the amount, the unit, and anything written after it. Written
+    /// as the household shows the word ("Semmel", phase 7d) — a spelling of
+    /// it, so the line reads as the same word.
     public static func completed(
         line: String,
         with ingredient: CatalogIngredient
@@ -98,6 +103,6 @@ public enum IngredientCompletion {
               let range = line.range(of: partial, options: .backwards)
         else { return line }
 
-        return line.replacingCharacters(in: range, with: ingredient.name)
+        return line.replacingCharacters(in: range, with: ingredient.shownName)
     }
 }

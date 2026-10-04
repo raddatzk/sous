@@ -102,7 +102,7 @@ struct LocalAnswerForm: View {
                 if existing != nil {
                     Section {
                         Button(isOwnProduct ? "Produkt entfernen" : "Lokale Angabe entfernen", role: .destructive) {
-                            write { if let existing { await catalog.deleteLocalAnswer(existing) } }
+                            write { if let existing { await catalog.removeLocalAnswer(existing) } }
                         }
                     }
                 }

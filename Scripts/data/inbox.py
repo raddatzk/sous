@@ -61,6 +61,8 @@ KIND_LABELS = {
     "unknown": "neu",
     "values": "werte",
     "product": "produkt",
+    # A catalog word a household files under another aisle or parent (phase 7d).
+    "override": "einordnung",
 }
 #: kat:<label> → the category in Data/ — the app's own words for the aisles.
 #: approve.py reads a new word's category from these labels (phase 10b).
@@ -72,6 +74,7 @@ CATEGORIES = {
     "fleisch": "meat",
     "fisch": "fish",
     "milchprodukte": "dairy",
+    "vegan": "plantBased",
     "backwaren": "bakery",
     "getreide": "grains",
     "hülsenfrüchte": "legumes",
@@ -85,6 +88,7 @@ CATEGORIES = {
 }
 LABEL_COLORS = {
     "katalog": "0e8a16", "zählt-wie": "1d76db", "neu": "fbca04", "werte": "d93f0b", "produkt": "5319e7",
+    "einordnung": "006b75",
     # The approvals (approve.py) and what the nightly sweep notes.
     "als-alias": "0052cc", "als-sorte": "0052cc", "neues-wort": "0052cc", "pr-geschlossen": "b60205",
     **{f"kat:{name}": "c5def5" for name in CATEGORIES},
@@ -125,6 +129,14 @@ def clean_item(raw: Any) -> Optional[Dict[str, Any]]:
     target = raw.get("target")
     if isinstance(target, dict) and _text(target.get("id"), 80) and _text(target.get("name"), 80):
         item["target"] = {"id": _text(target["id"], 80), "name": _text(target["name"], 80)}
+    # Phase 7d: a household's own spelling of the target, its aisle, its parent.
+    if raw.get("spelling") is True and "target" in item:
+        item["spelling"] = True
+    if raw.get("category") in CATEGORIES.values():
+        item["category"] = raw["category"]
+    parent = raw.get("parent")
+    if isinstance(parent, dict) and _text(parent.get("id"), 80) and _text(parent.get("name"), 80):
+        item["parent"] = {"id": _text(parent["id"], 80), "name": _text(parent["name"], 80)}
     values = raw.get("values")
     if isinstance(values, dict):
         cleaned = {k: _number(v) for k, v in values.items()
@@ -293,11 +305,14 @@ def describe(answer: Dict[str, Any]) -> str:
     kind = answer["kind"]
     if kind == "countsAs":
         target = answer.get("target") or {}
-        text = f"zählt wie {target.get('name', '?')} (`{target.get('id', '?')}`)"
+        verb = "Schreibweise von" if answer.get("spelling") else "zählt wie"
+        text = f"{verb} {target.get('name', '?')} (`{target.get('id', '?')}`)"
     elif kind == "word":
         text = "eigenes Wort"
     elif kind == "values":
         text = f"eigene Angaben zu `{answer.get('catalogID', '?')}`"
+    elif kind == "override":
+        text = f"eigene Einordnung von `{answer.get('catalogID', '?')}`"
     elif kind == "product":
         text = "Produkt"
         if answer.get("brand"):
@@ -308,6 +323,11 @@ def describe(answer: Dict[str, Any]) -> str:
             text += f", rechnet wie {answer['target']['name']} (`{answer['target']['id']}`)"
     else:
         text = "unbekannt"
+    if category := answer.get("category"):
+        label = next((name for name, value in CATEGORIES.items() if value == category), category)
+        text += f" · Kategorie `kat:{label}`"
+    if parent := answer.get("parent"):
+        text += f" · Sorte von {parent['name']} (`{parent['id']}`)"
     if values := answer.get("values"):
         parts = [f"{_number_text(values['kcal'])} kcal"]
         for key, unit in (("proteinG", "g Eiweiß"), ("fatG", "g Fett"), ("carbsG", "g Kohlenhydrate")):
@@ -328,10 +348,13 @@ def title(block: Dict[str, Any]) -> str:
     name = f"„{block['name']}“"
     kind = first["kind"]
     if kind == "countsAs":
-        return f"{name} zählt wie {(first.get('target') or {}).get('name', '?')}"
+        verb = "Schreibweise von" if first.get("spelling") else "zählt wie"
+        return f"{name} {verb} {(first.get('target') or {}).get('name', '?')}"
     if kind == "product":
         return f"{name}: Produkt" + (f" ({first['brand']})" if first.get("brand") else "")
-    return f"{name}: " + {"word": "neues Wort", "values": "eigene Angaben", "unknown": "unbekannt"}[kind]
+    return f"{name}: " + {
+        "word": "neues Wort", "values": "eigene Angaben", "unknown": "unbekannt", "override": "eigene Einordnung",
+    }[kind]
 
 
 def marker(normalized: str) -> str:

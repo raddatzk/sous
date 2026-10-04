@@ -42,11 +42,15 @@ enum SousManagedObjectModel {
     /// added `CDLocalAnswer`, and `includingHouseholdIngredients: false` the
     /// one before 6b added `CDHouseholdIngredient` — what a store written by
     /// an earlier build holds, for the migration tests that open one with the
-    /// current model.
+    /// current model. `includingCatalogOverrides: false` is `CDLocalAnswer`
+    /// before phase 7d gave it the override attributes (category, parent,
+    /// spellings, display name, baseline) — all optional, so CloudKit's
+    /// schema only grows.
     static func makeModel(
         includingRetiredEntities: Bool,
         includingLocalAnswers: Bool = true,
-        includingHouseholdIngredients: Bool = true
+        includingHouseholdIngredients: Bool = true,
+        includingCatalogOverrides: Bool = true
     ) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
@@ -55,7 +59,7 @@ enum SousManagedObjectModel {
             shoppingEntryEntity(), shoppingPlanEntryEntity(), shoppingDemandEntity(),
         ]
         if includingLocalAnswers {
-            members.append(localAnswerEntity())
+            members.append(localAnswerEntity(includingOverrides: includingCatalogOverrides))
         }
         if includingHouseholdIngredients {
             members.append(householdIngredientEntity())
@@ -294,7 +298,7 @@ enum SousManagedObjectModel {
 
     /// A household's local answer (INGREDIENTS-DATA §3 B), added in phase 6a.
     /// Every field optional or defaulted, as CloudKit requires.
-    private static func localAnswerEntity() -> NSEntityDescription {
+    private static func localAnswerEntity(includingOverrides: Bool) -> NSEntityDescription {
         let entity = NSEntityDescription()
         entity.name = localAnswerEntityName
         entity.managedObjectClassName = NSStringFromClass(CDLocalAnswer.self)
@@ -314,6 +318,18 @@ enum SousManagedObjectModel {
             attribute("createdAt", .dateAttributeType),
             attribute("updatedAt", .dateAttributeType),
         ]
+        if includingOverrides {
+            // Phase 7d: the household's overrides of the catalog. Each its
+            // own attribute, so two members' edits merge field by field; the
+            // spellings and the baseline are one blob each.
+            entity.properties += [
+                attribute("categoryRaw", .stringAttributeType, optional: true),
+                attribute("parentID", .stringAttributeType, optional: true),
+                attribute("spellingsData", .binaryDataAttributeType, optional: true),
+                attribute("displayName", .stringAttributeType, optional: true),
+                attribute("baselineData", .binaryDataAttributeType, optional: true),
+            ]
+        }
         entity.indexes = [index(named: "byKey", on: entity, properties: ["key"])]
         return entity
     }

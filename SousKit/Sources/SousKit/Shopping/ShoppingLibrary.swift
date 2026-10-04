@@ -567,6 +567,18 @@ public final class ShoppingLibrary {
         return brand
     }
 
+    /// What `item` is shown as: the household's display name for its word
+    /// ("Semmel" for Brötchen, phase 7d), where the row is that word — the
+    /// row every spelling of it bundles into. Read when the row is drawn,
+    /// like the brand: the stored name stays the identity, and a display
+    /// name chosen later reaches the open list at once.
+    public func shownName(of item: ShoppingItem) -> String {
+        guard let word = catalog.ingredient(spelledExactly: item.name),
+              word.key == IngredientCatalog.normalize(item.name)
+        else { return item.name }
+        return word.shownName
+    }
+
     /// The household's fields for `item` and then for everything it is a
     /// variety of, nearest first — only the rows there are.
     private func householdChain(of item: ShoppingItem) -> [HouseholdIngredient] {
@@ -591,6 +603,14 @@ public final class ShoppingLibrary {
     /// 350 g" names a purchase nobody can make.
     private func inherited(of item: ShoppingItem) -> [CatalogIngredient] {
         catalog.ancestors(of: item.name)
+    }
+
+    /// The aisle `item` stands in, read now rather than when it was added:
+    /// the household's own aisle (phase 7d) or a data update moves rows that
+    /// are already on the list. An item the catalog does not know keeps the
+    /// aisle it came with.
+    private func aisle(of item: ShoppingItem) -> IngredientCategory? {
+        catalog.ingredient(for: item.name)?.category ?? item.category
     }
 
     // MARK: - Readings
@@ -622,7 +642,7 @@ public final class ShoppingLibrary {
                 pantry.append(item)
             } else if let store = preferredStore(of: item) {
                 stores[store, default: []].append(item)
-            } else if let category = item.category {
+            } else if let category = aisle(of: item) {
                 aisles[category, default: []].append(item)
             } else {
                 unassigned.append(item)
@@ -637,7 +657,7 @@ public final class ShoppingLibrary {
             .map { name, items in
                 // Inside one shop the aisle walk applies just the same.
                 (section: ShoppingSection.store(name), items: items.sorted {
-                    ($0.category?.aisleOrder ?? -1, $0.name) < ($1.category?.aisleOrder ?? -1, $1.name)
+                    (aisle(of: $0)?.aisleOrder ?? -1, $0.name) < (aisle(of: $1)?.aisleOrder ?? -1, $1.name)
                 })
             }
             .sorted { $0.section.title.localizedCompare($1.section.title) == .orderedAscending })

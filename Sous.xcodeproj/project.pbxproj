@@ -68,6 +68,7 @@
 		9769D5427681ED964DA8CF56 /* SousWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2FB8435F0A0BC9D7BF7B1F7D /* SousWidgets.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9770945DB57CC1710A550056 /* RecipeCommands.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C446F3D4F3591B6BBB157EF /* RecipeCommands.swift */; };
 		981D6F9D596E52AAEEDAAC22 /* InitialImportViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89EB59A64D9098D2BA6116DD /* InitialImportViews.swift */; };
+		98A2A003555BA45B1B2E1F6F /* CatalogOverrideForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837685C56EB1052E635E51C4 /* CatalogOverrideForm.swift */; };
 		9E085AA7B7BF149444F6FC5A /* RecipeEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FCFC4BBE66589EC1C58ECE1 /* RecipeEditorView.swift */; };
 		9F25406D385F3C6DECBE3864 /* MealPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F7A9B74CF19472A4FA13548 /* MealPlanView.swift */; };
 		A099E34443DFAC11A3163D69 /* IngredientMeasurePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC937BDCB94723ECECBF2FF /* IngredientMeasurePicker.swift */; };
@@ -193,6 +194,7 @@
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		7D20D68B303277CBCE5F3EF5 /* LibraryWipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryWipe.swift; sourceTree = "<group>"; };
 		7D300564443D3A1FEA625003 /* SousDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousDialogs.swift; sourceTree = "<group>"; };
+		837685C56EB1052E635E51C4 /* CatalogOverrideForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatalogOverrideForm.swift; sourceTree = "<group>"; };
 		8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimerSetupSheet.swift; sourceTree = "<group>"; };
 		8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeLinkChips.swift; sourceTree = "<group>"; };
 		874968D982EF7B9D954ECC27 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 			isa = PBXGroup;
 			children = (
 				E59C696E9B502CE1433926B5 /* AddVariantSheet.swift */,
+				837685C56EB1052E635E51C4 /* CatalogOverrideForm.swift */,
 				B455A6FB858C506E19F8D231 /* CatalogShareSheet.swift */,
 				F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */,
 				C5FCA0AB252031EC1359F91A /* CategoryManagerView.swift */,
@@ -616,6 +619,7 @@
 			files = (
 				6AB353F80688690CFEC6D30A /* AddVariantSheet.swift in Sources */,
 				7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */,
+				98A2A003555BA45B1B2E1F6F /* CatalogOverrideForm.swift in Sources */,
 				485F6C9DBE064A254310FC5F /* CatalogShareSheet.swift in Sources */,
 				54EE5B57A0B478E701864B1C /* CategoryField.swift in Sources */,
 				0305C54B39EABEACD87706E5 /* CategoryManagerView.swift in Sources */,

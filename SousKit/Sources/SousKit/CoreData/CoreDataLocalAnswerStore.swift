@@ -23,6 +23,11 @@ final class CDLocalAnswer: CDHouseholdMember {
     @NSManaged var weightsData: Data?
     @NSManaged var brand: String?
     @NSManaged var ean: String?
+    @NSManaged var categoryRaw: String?
+    @NSManaged var parentID: String?
+    @NSManaged var spellingsData: Data?
+    @NSManaged var displayName: String?
+    @NSManaged var baselineData: Data?
     @NSManaged var sharedAt: Date?
     @NSManaged var createdAt: Date?
     @NSManaged var updatedAt: Date?
@@ -38,6 +43,11 @@ final class CDLocalAnswer: CDHouseholdMember {
         weightsData = answer.weights.isEmpty ? nil : try? SousCoding.encoder.encode(answer.weights)
         brand = answer.brand
         ean = answer.ean
+        categoryRaw = answer.category?.rawValue
+        parentID = answer.parentID
+        spellingsData = answer.spellings.isEmpty ? nil : try? SousCoding.encoder.encode(answer.spellings)
+        displayName = answer.displayName
+        baselineData = answer.baseline.flatMap { $0.isEmpty ? nil : try? SousCoding.encoder.encode($0) }
         sharedAt = answer.sharedAt
         updatedAt = .nowInSyncPrecision
     }
@@ -56,6 +66,11 @@ final class CDLocalAnswer: CDHouseholdMember {
             } ?? [:],
             brand: brand,
             ean: ean,
+            category: categoryRaw.flatMap(IngredientCategory.init(rawValue:)),
+            parentID: parentID,
+            spellings: spellingsData.flatMap { try? SousCoding.decoder.decode([String].self, from: $0) } ?? [],
+            displayName: displayName,
+            baseline: baselineData.flatMap { try? SousCoding.decoder.decode(CatalogBaseline.self, from: $0) },
             sharedAt: sharedAt,
             updatedAt: updatedAt ?? .distantPast
         )

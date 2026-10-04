@@ -620,8 +620,10 @@ struct ShoppingListView: View {
         // above it there is nothing to be different from, and the name the
         // ingredient is known by is the one to look for on a shelf.
         // The household's brand rides along, since that is what the shelf
-        // is searched for: "vegane Butter (ja!)".
-        let name = shopping.brand(of: item).map { "\(item.name) (\($0))" } ?? item.name
+        // is searched for: "vegane Butter (ja!)". And its display name for
+        // the word leads where it chose one: "Semmel", not "Brötchen".
+        let shown = shopping.shownName(of: item)
+        let name = shopping.brand(of: item).map { "\(shown) (\($0))" } ?? shown
         guard !amounts.isEmpty else { return Text(name) }
         let amount = Text(amounts).foregroundStyle(.tint).fontWeight(.medium)
         return Text("\(amount) \(name)")

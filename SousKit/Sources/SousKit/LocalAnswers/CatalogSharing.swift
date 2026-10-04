@@ -14,6 +14,14 @@ import Foundation
 /// A product *choice* — a name pointing at a brand — is never offered: it is
 /// the household's purchase, and a generic word never becomes a public alias
 /// of a brand (§3 I).
+///
+/// The household's overrides (phase 7d) are offered as proposals: each
+/// spelling the catalog lacks as a spelling of its word, and an aisle or
+/// parent that differs from the catalog's as the word's own item. A word
+/// only the household knows carries its aisle and parent on its item. A
+/// claimed spelling (one the catalog gives another word) and a display name
+/// stay home: both are the household's reading of a word the catalog
+/// already has.
 public enum CatalogSharing {
     /// One offered adjustment: what is sent, and the answer it comes from.
     public struct Offer: Identifiable, Hashable, Sendable {
@@ -52,8 +60,8 @@ public enum CatalogSharing {
         usage: CatalogUsage = .empty,
         targetName: (String) -> String? = { _ in nil }
     ) -> [Offer] {
-        answers.answers.filter(isPending).compactMap { answer in
-            offer(for: answer, catalog: catalog, nutrition: nutrition, usage: usage, targetName: targetName)
+        answers.answers.filter(isPending).flatMap { answer in
+            offers(for: answer, catalog: catalog, nutrition: nutrition, usage: usage, targetName: targetName)
         }
         .sorted { lhs, rhs in
             let left = Group(lhs.item.kind), right = Group(rhs.item.kind)
@@ -68,6 +76,61 @@ public enum CatalogSharing {
         let use = usage.use(forName: name)
         let item = CatalogSubmission.Item(kind: .unknown, name: name, recipes: use?.recipes ?? 0, line: use?.line)
         return Offer(id: "unknown:\(IngredientCatalog.normalize(name))", item: item, answer: nil)
+    }
+
+    /// Everything one answer offers: what it answers, and what it
+    /// overrides.
+    static func offers(
+        for answer: LocalAnswer,
+        catalog: IngredientCatalog,
+        nutrition: NutritionCatalog,
+        usage: CatalogUsage,
+        targetName: (String) -> String?
+    ) -> [Offer] {
+        var offers: [Offer] = []
+        if answer.hasAnswer,
+           let offer = offer(for: answer, catalog: catalog, nutrition: nutrition, usage: usage, targetName: targetName) {
+            offers.append(offer)
+        }
+        offers += overrideOffers(for: answer, catalog: catalog, usage: usage)
+        return offers
+    }
+
+    /// The overrides of a catalog word, as proposals (phase 7d).
+    static func overrideOffers(for answer: LocalAnswer, catalog: IngredientCatalog, usage: CatalogUsage) -> [Offer] {
+        guard answer.hasOverrides,
+              let word = answer.catalogID.flatMap(catalog.ingredient(forID:))
+                ?? catalog.ingredient(writtenAs: answer.name),
+              let wordID = word.catalogID
+        else { return [] }
+        let wordTarget = CatalogSubmission.Item.Target(id: wordID, name: word.name)
+        var offers: [Offer] = []
+        for spelling in answer.spellings where catalog.ingredient(spelledExactly: spelling) == nil {
+            let use = usage.use(forName: spelling)
+            let item = CatalogSubmission.Item(
+                kind: .countsAs, name: spelling, target: wordTarget, spelling: true,
+                recipes: use?.recipes ?? 0, line: use?.line
+            )
+            offers.append(Offer(
+                id: "\(answer.key)|spelling:\(IngredientCatalog.normalize(spelling))", item: item, answer: answer
+            ))
+        }
+        let category = answer.category.flatMap { $0 == word.category ? nil : $0 }
+        let parent = answer.parentID.flatMap(catalog.ingredient(forID:)).flatMap { parent in
+            parent.key == word.parentName.map(IngredientCatalog.normalize) || parent.key == word.key ? nil : parent
+        }
+        if category != nil || parent != nil {
+            let use = usage.use(forKey: answer.key)
+            let item = CatalogSubmission.Item(
+                kind: .catalogOverride, name: word.name, catalogID: wordID, category: category,
+                parent: parent.flatMap { parent in
+                    parent.catalogID.map { CatalogSubmission.Item.Target(id: $0, name: parent.name) }
+                },
+                recipes: use?.recipes ?? 0, line: use?.line
+            )
+            offers.append(Offer(id: "\(answer.key)|override", item: item, answer: answer))
+        }
+        return offers
     }
 
     static func offer(
@@ -88,11 +151,16 @@ public enum CatalogSharing {
             values: NutritionInfo? = answer.values,
             weights: [String: LocalAnswer.Weight] = answer.weights
         ) -> Offer {
+            // A word only the household knows carries its own aisle and
+            // parent along (phase 7d).
+            let ownWord = kind == .countsAs || kind == .word
             let item = CatalogSubmission.Item(
                 kind: kind,
                 name: name,
                 catalogID: kind == .values ? answer.catalogID : nil,
                 target: kind == .values ? nil : target(answer.targetID),
+                category: ownWord ? answer.category : nil,
+                parent: ownWord ? target(answer.parentID) : nil,
                 values: values,
                 source: values == nil ? nil : answer.valuesSource,
                 weights: weights,
@@ -139,12 +207,13 @@ public enum CatalogSharing {
 
     /// The sheet's groups (decided with the cook, 2026-10-03).
     public enum Group: Int, CaseIterable, Comparable, Sendable {
-        case new, countsAs, values, product
+        case new, countsAs, placement, values, product
 
         public init(_ kind: CatalogSubmission.Item.Kind) {
             switch kind {
             case .word, .unknown: self = .new
             case .countsAs: self = .countsAs
+            case .catalogOverride: self = .placement
             case .values: self = .values
             case .product: self = .product
             }
@@ -154,6 +223,7 @@ public enum CatalogSharing {
             switch self {
             case .new: "Neu"
             case .countsAs: "Zählt wie"
+            case .placement: "Kategorie & Sorte"
             case .values: "Werte & Gewichte"
             case .product: "Produkte"
             }
@@ -164,12 +234,14 @@ public enum CatalogSharing {
             switch self {
             case .new: "Namen, die der Katalog noch nicht kennt."
             case .countsAs: "Ob Schreibweise oder Sorte, entscheidet der Katalog."
+            case .placement: "Wo dein Haushalt ein Wort anders einordnet als der Katalog."
             case .values: "Wo deine Angaben von denen des Katalogs abweichen."
             case .product: "Eigene Produkte, mit den Werten vom Etikett."
             }
         }
 
         public static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
+
     }
 }
 

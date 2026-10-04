@@ -19,8 +19,8 @@
   },
   "group": {"type": "string", "pattern": "^[B-Z]$"},
   "category": {
-   "enum": ["vegetables", "fruit", "herbs", "spices", "meat", "fish", "dairy", "bakery",
-            "grains", "legumes", "nuts", "oils", "baking", "canned", "drinks", "frozen", "other"]
+   "enum": ["vegetables", "fruit", "herbs", "spices", "meat", "fish", "dairy", "plantBased",
+            "bakery", "grains", "legumes", "nuts", "oils", "baking", "canned", "drinks", "frozen", "other"]
   },
   "state": {"enum": ["raw", "cooked", "unspecified"]},
   "unit": {

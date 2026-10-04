@@ -73,6 +73,7 @@ public final class IngredientCatalogLibrary {
             householdIngredients = fold(entries)
             hasLoaded = true
             if wordsChanged { await wordsDidChange?() }
+            await foldAgreedOverrides()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -94,11 +95,11 @@ public final class IngredientCatalogLibrary {
     /// (``LocalAnswerSet``). Says whether the words the answers add changed
     /// since an earlier load.
     private func rebuild() -> Bool {
-        let addedBefore = appliedAnswers.addedNames
+        let readingBefore = appliedAnswers.addedNames + appliedAnswers.overrideSignature
         appliedAnswers = localAnswers.applied(to: catalogWithoutLocalAnswers)
         catalog = appliedAnswers.catalog
         revision += 1
-        return hasLoaded && appliedAnswers.addedNames != addedBefore
+        return hasLoaded && appliedAnswers.addedNames + appliedAnswers.overrideSignature != readingBefore
     }
 
     /// Counts the rebuilds, so what is derived from this library — the
@@ -304,6 +305,9 @@ public final class IngredientCatalogLibrary {
         }
         answer.catalogID = answer.catalogID.map(catalog.currentID(for:))
         answer.targetID = answer.targetID.map(catalog.currentID(for:))
+        answer.parentID = answer.parentID.map(catalog.currentID(for:))
+        answer.spellings = Self.distinctSpellings(answer.spellings)
+        answer.displayName = answer.displayName.flatMap(Self.nonEmpty)
         answer.brand = answer.brand.flatMap(Self.nonEmpty)
         answer.ean = answer.ean.flatMap(Self.nonEmpty)
         answer.valuesSource = answer.valuesSource.flatMap(Self.nonEmpty)
@@ -326,6 +330,28 @@ public final class IngredientCatalogLibrary {
             errorMessage = error.localizedDescription
             return false
         }
+    }
+
+    /// "Lokale Angabe entfernen" on a word the household also overrides
+    /// (phase 7d): what the answer says about numbers, products and "zählt
+    /// wie" goes; the aisle, parent, spellings and display name of a
+    /// catalog word stay, since they were said in another place. A word
+    /// only the household knows goes whole — without its answer it is not
+    /// there to override.
+    public func removeLocalAnswer(_ answer: LocalAnswer) async {
+        guard answer.catalogID != nil, answer.hasOverrides else {
+            await deleteLocalAnswer(answer)
+            return
+        }
+        var kept = answer
+        kept.kind = nil
+        kept.targetID = nil
+        kept.values = nil
+        kept.valuesSource = nil
+        kept.weights = [:]
+        kept.brand = nil
+        kept.ean = nil
+        await saveLocalAnswer(kept)
     }
 
     /// Takes a local answer back — "Lokale Angabe entfernen".
@@ -397,13 +423,14 @@ public final class IngredientCatalogLibrary {
 
     /// Re-reads only the answers — the household rows are keyed by ids,
     /// which an answer does not change.
-    private func reloadAnswers() async {
+    private func reloadAnswers(foldingAgreed: Bool = true) async {
         do {
             localAnswers = LocalAnswerSet(try await localAnswerStore.answers())
             if rebuild() { await wordsDidChange?() }
         } catch {
             errorMessage = error.localizedDescription
         }
+        if foldingAgreed { await foldAgreedOverrides() }
     }
 
     private static func nonEmpty(_ text: String) -> String? {
@@ -427,5 +454,219 @@ public final class IngredientCatalogLibrary {
             return true
         }
         return await saveLocalAnswer(answer)
+    }
+
+    // MARK: - Overrides (phase 7d)
+
+    /// Where the catalog has moved away from the household's overrides since
+    /// it decided — "Abweichungen" on top of the catalog view, and a quiet
+    /// hint in each ingredient's detail.
+    public var catalogConflicts: [CatalogConflict] { appliedAnswers.conflicts }
+
+    /// The open conflicts about `word`.
+    public func conflicts(of word: CatalogIngredient) -> [CatalogConflict] {
+        appliedAnswers.conflicts(forAnswerKey: overrideKey(of: word))
+    }
+
+    /// The answer holding the household's overrides of `word`: the one about
+    /// its catalog id, or — for a word only the household knows — the one
+    /// about its name.
+    public func overrideAnswer(of word: CatalogIngredient) -> LocalAnswer? {
+        let key = overrideKey(of: word)
+        return localAnswers.answers.first { $0.key == key }
+    }
+
+    private func overrideKey(of word: CatalogIngredient) -> String {
+        if let id = word.catalogID { return "id:\(catalog.currentID(for: id))" }
+        return "name:\(word.key)"
+    }
+
+    /// What `word` is in the data set's catalog, before any override — `nil`
+    /// for a word only the household knows.
+    public func catalogWord(of word: CatalogIngredient) -> CatalogIngredient? {
+        word.catalogID.flatMap { catalogWithoutLocalAnswers.ingredient(forID: $0) }
+    }
+
+    /// What a spelling would be, added to `word` — asked before it is.
+    public enum SpellingCheck: Equatable, Sendable {
+        /// Nothing to add.
+        case empty
+        /// The word answers to it already.
+        case alreadyKnown
+        /// Nobody has it: a local spelling, plain identity.
+        case new
+        /// The catalog gives it to another word, named here: claiming it
+        /// re-reads that spelling for the household — said once, now ("Im
+        /// Katalog ist „Pfannkuchen“ Eierkuchen — für deinen Haushalt
+        /// umdeuten?"), and never asked again as a conflict.
+        case claims(String)
+        /// It is another word's own name, or a spelling the household gave
+        /// another word — not to be taken.
+        case taken(String)
+    }
+
+    /// What adding `spelling` to `word` would mean.
+    public func checkSpelling(_ spelling: String, for word: CatalogIngredient) -> SpellingCheck {
+        let key = IngredientCatalog.normalize(spelling)
+        guard !key.isEmpty else { return .empty }
+        let household = catalog.ingredient(spelledExactly: spelling)
+        if household?.key == word.key { return .alreadyKnown }
+        if let owner = catalogWithoutLocalAnswers.ingredient(spelledExactly: spelling), owner.key != word.key {
+            return owner.key == key ? .taken(owner.name) : .claims(owner.name)
+        }
+        if let household { return .taken(household.shownName) }
+        return .new
+    }
+
+    /// The spellings `word` may be shown by: its name and every spelling it
+    /// answers to, the catalog's and the household's.
+    public func displayNameChoices(for word: CatalogIngredient) -> [String] {
+        let current = catalog.ingredient(spelledExactly: word.name).flatMap { $0.key == word.key ? $0 : nil } ?? word
+        var seen: Set<String> = []
+        return ([current.name] + current.aliases).filter { seen.insert(IngredientCatalog.normalize($0)).inserted }
+    }
+
+    /// Writes the household's overrides of `word` — the edit mode of the
+    /// ingredient's detail. `nil` or empty takes a field back to the
+    /// catalog's; so does the catalog's own value.
+    ///
+    /// Where a place changes, what the catalog says there now is remembered
+    /// (``CatalogBaseline``): that is what the household saw when it
+    /// decided, so only a later move of the catalog is asked about. A claimed
+    /// spelling remembers the word the catalog gave it to — the one
+    /// confirmation it gets.
+    @discardableResult
+    public func saveOverrides(
+        of word: CatalogIngredient,
+        category: IngredientCategory?,
+        parentID: String?,
+        spellings: [String],
+        displayName: String?
+    ) async -> Bool {
+        let base = catalogWord(of: word)
+        var answer = overrideAnswer(of: word)
+            ?? LocalAnswer(catalogID: word.catalogID.map(catalog.currentID(for:)), name: base?.name ?? word.name)
+        let held = answer
+        var baseline = answer.baseline ?? CatalogBaseline()
+
+        let baseParentID = base?.parentName
+            .flatMap(catalogWithoutLocalAnswers.ingredient(for:))?.catalogID
+        answer.category = base != nil && category == base?.category ? nil : category
+        answer.parentID = parentID.flatMap { base != nil && $0 == baseParentID ? nil : $0 }
+        answer.spellings = Self.distinctSpellings(spellings).filter { spelling in
+            let key = IngredientCatalog.normalize(spelling)
+            return key != word.key && !(base?.keys.contains(key) ?? false)
+        }
+        answer.displayName = displayName.flatMap(Self.nonEmpty)
+            .flatMap { IngredientCatalog.normalize($0) == word.key ? nil : $0 }
+
+        if answer.category != held.category {
+            baseline.category = answer.category == nil ? nil : base?.category
+        }
+        if answer.parentID != held.parentID {
+            baseline.parentID = answer.parentID == nil || base == nil ? nil : baseParentID ?? ""
+        }
+        let heldKeys = Set(held.spellings.map(IngredientCatalog.normalize))
+        var owners: [String: String] = [:]
+        for spelling in answer.spellings {
+            let key = IngredientCatalog.normalize(spelling)
+            if heldKeys.contains(key) {
+                owners[key] = baseline.spellingOwners[key]
+            } else if let owner = catalogWithoutLocalAnswers.ingredient(spelledExactly: spelling),
+                      owner.key != word.key {
+                owners[key] = owner.catalogID ?? owner.key
+            }
+        }
+        baseline.spellingOwners = owners
+        answer.baseline = baseline.isEmpty ? nil : baseline
+        guard answer != held else { return true }
+        if answer.isEmpty {
+            await deleteLocalAnswer(answer)
+            return true
+        }
+        return await saveLocalAnswer(answer)
+    }
+
+    /// "Katalog übernehmen": the override at the conflict's place goes, and
+    /// the catalog's value stands.
+    @discardableResult
+    public func adoptCatalog(_ conflict: CatalogConflict) async -> Bool {
+        await change(conflict.answerKey) { answer in
+            Self.drop(conflict.place, from: &answer)
+        }
+    }
+
+    /// "Meine behalten": the override stays, and the catalog's new value is
+    /// remembered — the conflict is not asked again until the catalog moves
+    /// that place once more.
+    @discardableResult
+    public func keepLocal(_ conflict: CatalogConflict) async -> Bool {
+        await change(conflict.answerKey) { answer in
+            var baseline = answer.baseline ?? CatalogBaseline()
+            switch conflict.place {
+            case .category: baseline.category = IngredientCategory(rawValue: conflict.catalogValue)
+            case .parent: baseline.parentID = conflict.catalogValue
+            case .spelling(let spelling):
+                baseline.spellingOwners[IngredientCatalog.normalize(spelling)] = conflict.catalogValue
+            }
+            answer.baseline = baseline
+        }
+    }
+
+    private func change(_ key: String, _ edit: (inout LocalAnswer) -> Void) async -> Bool {
+        guard var answer = localAnswers.answers.first(where: { $0.key == key }) else { return false }
+        edit(&answer)
+        if answer.isEmpty {
+            await deleteLocalAnswer(answer)
+            return true
+        }
+        return await saveLocalAnswer(answer)
+    }
+
+    private static func drop(_ place: CatalogConflict.Place, from answer: inout LocalAnswer) {
+        switch place {
+        case .category:
+            answer.category = nil
+            answer.baseline?.category = nil
+        case .parent:
+            answer.parentID = nil
+            answer.baseline?.parentID = nil
+        case .spelling(let spelling):
+            let key = IngredientCatalog.normalize(spelling)
+            answer.spellings.removeAll { IngredientCatalog.normalize($0) == key }
+            answer.baseline?.spellingOwners[key] = nil
+        }
+        if answer.baseline?.isEmpty == true { answer.baseline = nil }
+    }
+
+    /// Overrides the catalog has come to agree with fold away without a
+    /// question: the household said it first, and now the catalog says it
+    /// too. Written by whichever device loads first; the others find
+    /// nothing left to fold.
+    private func foldAgreedOverrides() async {
+        let folded = appliedAnswers.folded
+        guard !folded.isEmpty else { return }
+        do {
+            for key in Set(folded.map(\.answerKey)) {
+                guard var answer = localAnswers.answers.first(where: { $0.key == key }) else { continue }
+                for conflict in folded where conflict.answerKey == key {
+                    Self.drop(conflict.place, from: &answer)
+                }
+                if answer.isEmpty {
+                    try await localAnswerStore.delete(answer)
+                } else {
+                    try await localAnswerStore.save(answer)
+                }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        await reloadAnswers(foldingAgreed: false)
+    }
+
+    /// Trimmed, empty ones dropped, each spelling once.
+    private static func distinctSpellings(_ spellings: [String]) -> [String] {
+        var seen: Set<String> = []
+        return spellings.compactMap(nonEmpty).filter { seen.insert(IngredientCatalog.normalize($0)).inserted }
     }
 }

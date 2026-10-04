@@ -71,6 +71,30 @@ struct OwnProductTests {
         #expect(catalog.brand(for: "Sojahack") == nil)
     }
 
+    @Test("A name that chose a product stands in the product's aisle, unless it has an aisle of its own")
+    func productBringsItsAisle() throws {
+        var product = Self.sojahack
+        product.category = .frozen
+        let catalog = ProductTests.products.catalog
+        #expect(catalog.ingredient(for: "Sojahack")?.category != .frozen)
+
+        let applied = LocalAnswerSet([Self.link, product]).applied(to: catalog)
+        #expect(applied.catalog.ingredient(for: "Sojahack")?.category == .frozen)
+        #expect(applied.conflicts.isEmpty)
+
+        // A catalog product brings its aisle the same way.
+        let choice = LocalAnswer(name: "vegane Butter", kind: .product, targetID: "testmarke-vegane-butter")
+        let butter = try #require(catalog.ingredient(forID: "testmarke-vegane-butter"))
+        #expect(LocalAnswerSet([choice]).applied(to: catalog).catalog.ingredient(for: "vegane Butter")?.category
+            == butter.category)
+
+        // The name's own aisle wins over the product's.
+        var link = Self.link
+        link.category = .canned
+        #expect(LocalAnswerSet([link, product]).applied(to: catalog).catalog.ingredient(for: "Sojahack")?.category
+            == .canned)
+    }
+
     @Test("A word of its own is read and shopped as written, and not computed")
     @MainActor
     func ownWord() async throws {

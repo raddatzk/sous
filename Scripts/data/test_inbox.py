@@ -107,6 +107,32 @@ class CleanItemTests(unittest.TestCase):
         self.assertEqual(item["weights"], {"Dose": {"grams": 240, "state": "cooked"}, "EL": {"grams": 15}})
         self.assertEqual(item["source"], "Dose, Marke X")
 
+    def test_keeps_a_households_spelling_aisle_and_parent(self):
+        spelling = inbox.clean_item({
+            "kind": "countsAs", "name": "Schrippe", "target": {"id": "broetchen", "name": "Brötchen"},
+            "spelling": True, "recipes": 2,
+        })
+        self.assertTrue(spelling["spelling"])
+        self.assertEqual(inbox.describe(spelling), "Schreibweise von Brötchen (`broetchen`)")
+        override = inbox.clean_item({
+            "kind": "override", "name": "Brötchen", "catalogID": "broetchen", "category": "bakery",
+            "parent": {"id": "brot", "name": "Brot"},
+        })
+        self.assertEqual(override["category"], "bakery")
+        self.assertEqual(override["parent"], {"id": "brot", "name": "Brot"})
+        self.assertEqual(
+            inbox.describe(override),
+            "eigene Einordnung von `broetchen` · Kategorie `kat:backwaren` · Sorte von Brot (`brot`)",
+        )
+        self.assertEqual(inbox.labels({"answers": [override]}), ["katalog", "einordnung"])
+        # A category the app does not have, a spelling without a target, a
+        # malformed parent: dropped field by field.
+        odd = inbox.clean_item({
+            "kind": "word", "name": "Trollpaste", "spelling": True, "category": "dungeon", "parent": {"id": 1},
+        })
+        for key in ("spelling", "category", "parent"):
+            self.assertNotIn(key, odd)
+
     def test_drops_what_is_malformed(self):
         self.assertIsNone(inbox.clean_item({"kind": "evil", "name": "x"}))
         self.assertIsNone(inbox.clean_item({"kind": "word", "name": "   "}))

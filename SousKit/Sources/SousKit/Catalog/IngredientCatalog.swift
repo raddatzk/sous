@@ -170,6 +170,14 @@ public struct IngredientCatalog: Sendable {
         return nil
     }
 
+    /// The word that holds `name` as its name or one of its spellings,
+    /// exactly — no plural, no qualifier turn. What a household's own
+    /// spelling is checked against (phase 7d): whether the catalog gives it
+    /// to a word, and to which.
+    public func ingredient(spelledExactly name: String) -> CatalogIngredient? {
+        byKey[Self.normalize(name)]
+    }
+
     /// A spelling or its naive plural — the lookup without the comma rule.
     private func spelled(_ name: String) -> CatalogIngredient? {
         spellingKey(name).flatMap { byKey[$0] }

@@ -50,6 +50,17 @@ public struct CatalogIngredient: Identifiable, Hashable, Sendable, Codable {
     /// one, and inherits nothing. Like `catalogID`, only the shipped catalog
     /// writes it, so it is not part of the encoded form.
     public var product: CatalogProduct?
+    /// The spelling a household shows this word by — "Semmel" for
+    /// Brötchen (phase 7d). One of its own spellings, never an identity:
+    /// ``name`` stays what the word is stored, keyed and computed under, so
+    /// the shopping rows, the pantry flag and the numbers do not move. Set
+    /// only by ``LocalAnswerSet/applied(to:)``, so not part of the encoded
+    /// form either.
+    public var displayName: String?
+
+    /// What the word is shown as: the household's display name where it
+    /// chose one, the catalog's name otherwise.
+    public var shownName: String { displayName ?? name }
 
     /// Normalized name, used as the identity.
     public var key: String { IngredientCatalog.normalize(name) }

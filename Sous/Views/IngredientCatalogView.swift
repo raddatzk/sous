@@ -5,7 +5,10 @@ import SwiftUI
 ///
 /// To read, not to maintain (INGREDIENTS-DATA §3 A). The catalog comes with
 /// the data set; what the household says lives beside it — a local answer
-/// for a name the catalog cannot answer yet, and pantry, store and note.
+/// for a name the catalog cannot answer yet, its own aisle, parent,
+/// spellings and display name for a word (phase 7d), and pantry, store and
+/// note. Where the catalog has since moved away from the household's
+/// override, "Abweichungen" on top asks, quietly.
 struct IngredientCatalogView: View {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Environment(NutritionLibrary.self) private var nutrition
@@ -18,6 +21,18 @@ struct IngredientCatalogView: View {
     var body: some View {
         NavigationStack {
             List {
+                if searchText.isEmpty, !catalog.catalogConflicts.isEmpty {
+                    Section {
+                        ForEach(catalog.catalogConflicts) { conflict in
+                            CatalogConflictRow(conflict: conflict, namesWord: true)
+                        }
+                    } header: {
+                        Text("Abweichungen")
+                            .sousGroupHeader()
+                    } footer: {
+                        Text("Der Katalog sagt hier inzwischen etwas anderes als dein Haushalt. Deine Angabe gilt, bis du den Katalog übernimmst.")
+                    }
+                }
                 if searchText.isEmpty {
                     CatalogNudgeCard()
                 }
@@ -94,9 +109,10 @@ struct IngredientCatalogView: View {
         } label: {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(ingredient.name)
-                    if !ingredient.aliases.isEmpty {
-                        Text(ingredient.aliases.joined(separator: ", "))
+                    Text(ingredient.shownName)
+                    let spellings = Self.otherSpellings(of: ingredient)
+                    if !spellings.isEmpty {
+                        Text(spellings.joined(separator: ", "))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -113,7 +129,8 @@ struct IngredientCatalogView: View {
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                if catalog.localTrace(for: ingredient.name)?.status == .applied {
+                if catalog.localTrace(for: ingredient.name)?.status == .applied
+                    || catalog.overrideAnswer(of: ingredient) != nil {
                     // Where the household's own word stands over the
                     // catalog's.
                     Image(systemName: "house")
@@ -127,11 +144,18 @@ struct IngredientCatalogView: View {
         .buttonStyle(.plain)
     }
 
+    /// Every spelling the word answers to but the one it is shown by — the
+    /// catalog's name among them, where the household shows another.
+    static func otherSpellings(of ingredient: CatalogIngredient) -> [String] {
+        let shown = IngredientCatalog.normalize(ingredient.shownName)
+        return ([ingredient.name] + ingredient.aliases).filter { IngredientCatalog.normalize($0) != shown }
+    }
+
     /// The household's own products (phase 7b), on top and in no aisle —
     /// matching the search, where there is one.
     private var ownProducts: [CatalogIngredient] {
         let keys = Set(catalog.ownProducts.map(\.writtenKey))
-        return matches.filter { keys.contains($0.key) }.sorted { $0.name < $1.name }
+        return matches.filter { keys.contains($0.key) }.sorted { $0.shownName < $1.shownName }
     }
 
     /// What the search finds. A household word filed under its target is
@@ -156,17 +180,20 @@ struct IngredientCatalogView: View {
         let own = Set(catalog.ownProducts.map(\.writtenKey))
         let filed = Set(filedUnder.values.joined().map(IngredientCatalog.normalize))
         return Dictionary(grouping: matches.filter { !own.contains($0.key) && !filed.contains($0.key) }, by: \.category)
-            .map { (category: $0.key, ingredients: $0.value.sorted { $0.name < $1.name }) }
+            .map { (category: $0.key, ingredients: $0.value.sorted { $0.shownName < $1.shownName }) }
             .sorted { $0.category.aisleOrder < $1.category.aisleOrder }
     }
 }
 
-/// One catalog word, read-only, with what the household says about it.
+/// One catalog word, with what the household says about it.
 ///
 /// What the catalog says — name, spellings, what it is a variety of, the
-/// basis and its source, the weights — is shown, not edited: a wrong answer
+/// basis and its source, the weights — is shown, not edited: a wrong number
 /// is a data fix for the curator, not a question for the cook (§3 A). What
 /// the household says sits beside it:
+/// - its overrides of aisle, parent, spellings and display name, marked
+///   "lokal" and changed in "Anpassen …" (phase 7d) — names differ by
+///   region; with a quiet hint on top where the catalog has since moved;
 /// - the local answer, marked "lokal", with "Lokale Angabe entfernen" (§3 B);
 /// - pantry, preferred store and note, which are facts about the household,
 ///   not about the ingredient (§3 C).
@@ -187,6 +214,8 @@ struct IngredientDetailView: View {
     @State private var hasLoaded = false
     /// Set while the local-answer form is open over this one.
     @State private var isEditingLocalAnswer = false
+    /// Set while the edit mode for aisle, parent and spellings is open.
+    @State private var isEditingOverrides = false
     /// A household word filed under this one, opened to change or remove.
     @State private var teaching: IngredientTeaching?
     @State private var isConfirmingRemoval = false
@@ -197,6 +226,7 @@ struct IngredientDetailView: View {
     var body: some View {
         NavigationStack {
             Form {
+                conflictSection
                 identitySection
                 varietySection
                 localAnswerSection
@@ -205,7 +235,7 @@ struct IngredientDetailView: View {
                 measuresSection
             }
             .formStyle(.grouped)
-            .navigationTitle(ingredient.name)
+            .navigationTitle(word.shownName)
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
@@ -223,6 +253,9 @@ struct IngredientDetailView: View {
             .sheet(isPresented: $isEditingLocalAnswer) {
                 LocalAnswerForm(name: ingredient.name, existing: localAnswer)
             }
+            .sheet(isPresented: $isEditingOverrides) {
+                CatalogOverrideForm(word: word, answer: catalog.overrideAnswer(of: word))
+            }
             .sousConfirmation(
                 "Lokale Angabe entfernen?",
                 isPresented: $isConfirmingRemoval,
@@ -230,7 +263,7 @@ struct IngredientDetailView: View {
             ) {
                 if let localAnswer {
                     Button("Entfernen", role: .destructive) {
-                        Task { await catalog.deleteLocalAnswer(localAnswer) }
+                        Task { await catalog.removeLocalAnswer(localAnswer) }
                     }
                 }
             }
@@ -251,11 +284,42 @@ struct IngredientDetailView: View {
 
     // MARK: - What the catalog says
 
+    /// The word as the household catalog has it now — `ingredient` is the
+    /// row that was tapped, and an override saved here changes the word.
+    private var word: CatalogIngredient {
+        catalog.catalog.ingredient(spelledExactly: ingredient.name)
+            .flatMap { $0.key == ingredient.key ? $0 : nil } ?? ingredient
+    }
+
+    /// The household's overrides of this word, if it has any (phase 7d).
+    private var overrides: LocalAnswer? {
+        catalog.overrideAnswer(of: word).flatMap { $0.hasOverrides ? $0 : nil }
+    }
+
+    /// Where the catalog has moved away from the household's overrides —
+    /// asked here, quietly, never in a pop-up.
+    @ViewBuilder
+    private var conflictSection: some View {
+        let conflicts = catalog.conflicts(of: word)
+        if !conflicts.isEmpty {
+            Section {
+                ForEach(conflicts) { conflict in
+                    CatalogConflictRow(conflict: conflict)
+                }
+            } header: {
+                Text("Katalog geändert")
+            }
+        }
+    }
+
     private var identitySection: some View {
         Section {
-            LabeledContent("Name", value: ingredient.name)
-            LabeledContent("Kategorie", value: categoryText)
-            if let product = ingredient.product {
+            LabeledContent("Name", value: word.name)
+            if let displayName = word.displayName {
+                LabeledContent("Angezeigt als", value: displayName + " · lokal")
+            }
+            LabeledContent("Kategorie", value: categoryText + (overrides?.category != nil ? " · lokal" : ""))
+            if let product = word.product {
                 LabeledContent("Marke", value: product.brand)
                 if !product.eans.isEmpty {
                     LabeledContent("EAN", value: product.eans.joined(separator: ", "))
@@ -264,19 +328,33 @@ struct IngredientDetailView: View {
                     LabeledContent("Handel", value: "nicht mehr erhältlich")
                 }
             }
-            if !ingredient.aliases.isEmpty {
+            if !catalogSpellings.isEmpty {
                 LabeledContent("Schreibweisen") {
-                    Text(ingredient.aliases.joined(separator: ", "))
+                    Text(catalogSpellings.joined(separator: ", "))
                         .multilineTextAlignment(.trailing)
                 }
             }
+            if let spellings = overrides?.spellings, !spellings.isEmpty {
+                LabeledContent("Eigene Schreibweisen") {
+                    Text(spellings.joined(separator: ", "))
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+            Button("Anpassen …") { isEditingOverrides = true }
         } footer: {
-            Text("So steht die Zutat im Katalog. Fehlt eine Schreibweise oder stimmt etwas nicht, ist das eine Meldung an den Katalog wert.")
+            Text("So steht die Zutat im Katalog. Kategorie, Sorte, Schreibweisen und Anzeigename kannst du für deinen Haushalt anpassen – das geht dem Katalog vor und wird beim Teilen als Vorschlag mitgeschickt.")
         }
+    }
+
+    /// The spellings the word has beside the household's own.
+    private var catalogSpellings: [String] {
+        let own = Set((overrides?.spellings ?? []).map(IngredientCatalog.normalize))
+        return word.aliases.filter { !own.contains(IngredientCatalog.normalize($0)) }
     }
 
     /// "Gemüse — von Tomate" for a variety that takes its parent's aisle.
     private var categoryText: String {
+        let ingredient = word
         guard ingredient.ownCategory == nil, let parent = ingredient.parentName,
               let source = catalog.catalog.categorySource(for: parent)
         else { return ingredient.category.title }
@@ -292,11 +370,15 @@ struct IngredientDetailView: View {
         if !ancestors.isEmpty || !children.isEmpty {
             Section {
                 if !ancestors.isEmpty {
-                    LabeledContent("Sorte von", value: ancestors.map(\.name).joined(separator: " → "))
+                    LabeledContent(
+                        "Sorte von",
+                        value: ancestors.map(\.shownName).joined(separator: " → ")
+                            + (overrides?.parentID != nil ? " · lokal" : "")
+                    )
                 }
                 if !children.isEmpty {
                     LabeledContent("Sorten") {
-                        Text(children.map(\.name).joined(separator: ", "))
+                        Text(children.map(\.shownName).joined(separator: ", "))
                             .multilineTextAlignment(.trailing)
                     }
                 }
@@ -319,7 +401,8 @@ struct IngredientDetailView: View {
     /// over (§3 B, R3).
     private var localAnswerSection: some View {
         Section {
-            if let trace = catalog.localTrace(for: ingredient.name) {
+            // Overrides alone are shown with the catalog's fields above.
+            if let trace = catalog.localTrace(for: ingredient.name), trace.answer.hasAnswer {
                 Text(trace.label)
                     .foregroundStyle(.secondary)
                 Button(trace.answer.isLocalProduct ? "Produkt bearbeiten …" : "Lokale Angabe bearbeiten …") {
