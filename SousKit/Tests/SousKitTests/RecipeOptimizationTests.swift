@@ -464,11 +464,11 @@ struct RecipeOptimizationTests {
     func householdProposals() throws {
         let recipe = Recipe(
             title: "Curry",
-            ingredientsText: "400 ml dünne Kokosmilch (oder mehr)\n2 Einhornstaub\n1 TL Kreuzkümel\n1 Prise Glitzerzucker",
+            ingredientsText: "400 ml halbfette Kokosmilch (oder mehr)\n2 Einhornstaub\n1 TL Kreuzkümel\n1 Prise Glitzerzucker",
             instructionsText: "Alles kochen."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "400 ml dünne Kokosmilch"}], "einordnung": {"name": "dünne Kokosmilch", "art": "formulierung", "ziel": "Kokosmilch"}}"#,
+            #"{"zeile": 1, "neu": [{"nr": 1, "text": "400 ml halbfette Kokosmilch"}], "einordnung": {"name": "halbfette Kokosmilch", "art": "formulierung", "ziel": "Kokosmilch"}}"#,
             #"{"zeile": 2, "neu": [{"nr": 2, "text": "2 Einhornstaub"}], "einordnung": {"name": "Einhornstaub", "art": "neu", "ziel": null}}"#,
             #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 TL Kreuzkümel"}], "einordnung": {"name": "Kreuzkümel", "art": "tippfehler", "ziel": "Kreuzkümmel"}}"#,
             // A name that would not make the line read is no proposal.
@@ -477,7 +477,7 @@ struct RecipeOptimizationTests {
 
         let proposals = Dictionary(uniqueKeysWithValues: optimization.householdProposals.map { ($0.name, $0.proposal) })
         #expect(proposals == [
-            "dünne Kokosmilch": .countsAs(try #require(IngredientCatalog.bundled.ingredient(for: "Kokosmilch")?.name)),
+            "halbfette Kokosmilch": .countsAs(try #require(IngredientCatalog.bundled.ingredient(for: "Kokosmilch")?.name)),
             "Einhornstaub": .word,
         ])
         #expect(RecipeOptimization.HouseholdProposal.word.label == "neues Wort, ohne Werte")
