@@ -510,7 +510,7 @@ struct RecipeEditorView: View {
                 }
                 .font(.callout)
                 ForEach(unknown, id: \.self) { name in
-                    UnknownIngredientControl.chip(name: name, recipeTitle: draft.title) { ingredientTeaching = $0 }
+                    UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
                 }
             }
             // Keeps the capsules' own edges off the scroll view's bounds,
@@ -695,7 +695,7 @@ struct RecipeEditorView: View {
                 ScrollView(.horizontal) {
                     HStack(spacing: 8) {
                         ForEach(unknown, id: \.self) { name in
-                            UnknownIngredientControl.chip(name: name, recipeTitle: draft.title) { ingredientTeaching = $0 }
+                            UnknownIngredientControl.chip(name: name) { ingredientTeaching = $0 }
                         }
                     }
                     .padding(.vertical, 2)

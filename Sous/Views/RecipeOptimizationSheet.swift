@@ -15,7 +15,8 @@ import AppKit
 ///
 /// Names that stay as written but unknown come with a proposal for the
 /// household ("zählt wie Kokosmilch", "neues Wort, ohne Werte"), ticked, and
-/// saved as local answers with the rest. See ``RecipeOptimization``.
+/// saved as local answers with the rest — the nudge card shares them with the
+/// catalog later (phase 10). See ``RecipeOptimization``.
 struct RecipeOptimizationSheet: View {
     @Environment(RecipeLibrary.self) private var library
     @Environment(IngredientCatalogLibrary.self) private var catalogLibrary
@@ -30,8 +31,6 @@ struct RecipeOptimizationSheet: View {
     @State private var didCopy = false
     @State private var optimization: RecipeOptimization?
     @State private var selection = RecipeOptimization.Selection()
-    @State private var reported: Set<Int> = []
-    @State private var didCopyReport = false
     /// The household proposals to save with the recipe, by line.
     @State private var proposed: Set<Int> = []
     @State private var failure: String?
@@ -144,7 +143,6 @@ struct RecipeOptimizationSheet: View {
         case .success(let value):
             optimization = value
             selection = value.defaultSelection
-            reported = Set(value.classifications.map(\.id))
             proposed = Set(value.householdProposals
                 .filter { catalogLibrary.localTrace(for: $0.name) == nil }
                 .map(\.id))
@@ -235,10 +233,6 @@ struct RecipeOptimizationSheet: View {
         let proposals = optimization.householdProposals
         if !proposals.isEmpty {
             proposalSection(proposals)
-        }
-
-        if !optimization.classifications.isEmpty {
-            classificationSection(optimization)
         }
 
         let warnings = applied.reading?.warnings ?? []
@@ -368,34 +362,6 @@ struct RecipeOptimizationSheet: View {
             Text("Für deinen Haushalt")
         } footer: {
             Text("Sous kennt diese Namen noch nicht. Übernehmen legt die angehakten Angaben für diesen Haushalt an; der Name im Rezept bleibt, wie er ist. „Zählt wie“ rechnet mit Nährwerten und Gewichten des Ziels, ein neues Wort ohne Werte wird erkannt und eingekauft, aber nicht berechnet.")
-        }
-    }
-
-    @ViewBuilder
-    private func classificationSection(_ optimization: RecipeOptimization) -> some View {
-        Section {
-            ForEach(optimization.classifications) { item in
-                Toggle(isOn: Binding(
-                    get: { reported.contains(item.id) },
-                    set: { if $0 { reported.insert(item.id) } else { reported.remove(item.id) } }
-                )) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(item.name)
-                        Text([item.kind.title, item.target].compactMap { $0 }.joined(separator: " "))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            Button(didCopyReport ? "Meldung kopiert" : "Meldung kopieren", systemImage: didCopyReport ? "checkmark" : "paperplane") {
-                SousPasteboard.copy(optimization.report(optimization.classifications.filter { reported.contains($0.id) }))
-                didCopyReport = true
-            }
-            .disabled(reported.isEmpty)
-        } header: {
-            Text("Für den Katalog")
-        } footer: {
-            Text("Was der Chat über diese Namen sagt. Die Meldung geht an den Katalog, damit er sie für alle lernt.")
         }
     }
 

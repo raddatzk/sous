@@ -456,7 +456,6 @@ struct RecipeOptimizationTests {
         // The catalog has no Tempeh to count as: a word of its own, then.
         #expect(tempeh.target == nil)
         #expect(tempeh.proposal == .word)
-        #expect(optimization.report([tempeh]).contains("„Tempeh-Streifen“: Sorte von"))
     }
 
     @Test("A name that stays unknown comes with a household proposal that makes its line read")

@@ -117,6 +117,17 @@ public final class CoreDataLocalAnswerStore: LocalAnswerStore, @unchecked Sendab
         }
     }
 
+    public func markShared(keys: Set<String>, at date: Date) async throws {
+        try await context.perform {
+            let request = CDLocalAnswer.fetchRequest()
+            request.predicate = NSPredicate(format: "key IN %@", Array(keys))
+            let rows = try self.context.fetchInActiveHousehold(request)
+            guard !rows.isEmpty else { return }
+            for row in rows { row.sharedAt = date }
+            try self.context.save()
+        }
+    }
+
     private func rows(key: String) throws -> [CDLocalAnswer] {
         let request = CDLocalAnswer.fetchRequest()
         request.predicate = NSPredicate(format: "key == %@", key)

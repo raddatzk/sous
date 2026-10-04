@@ -5,13 +5,31 @@
 	<!-- Nothing leaves the device: the ingredient and meal-suitability models
 	     are FoundationModels, which runs on device, and the household's rows
 	     live in the user's own iCloud, which we cannot read. The only network
-	     call is the recipe importer fetching a page the user handed it. -->
+	     call is the recipe importer fetching a page the user handed it —
+	     besides the shared catalog adjustments declared below, which leave
+	     only when the cook shares them. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyTrackingDomains</key>
 	<array/>
 	<key>NSPrivacyCollectedDataTypes</key>
-	<array/>
+	<array>
+		<dict>
+			<!-- "Anpassungen teilen" (phase 10): the household's own catalog
+			     adjustments, sent only when the cook shares them, to the
+			     app's own CloudKit public database. -->
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
 		<dict>

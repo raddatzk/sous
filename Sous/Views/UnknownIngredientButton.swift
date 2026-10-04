@@ -15,9 +15,17 @@ import AppKit
 /// disappears a moment after the tap and the sheet's presenter goes with it.
 /// A view that stays holds the value instead: the editor's form, or the line.
 struct IngredientTeaching: Hashable, Identifiable {
-    let name: String
+    enum Purpose: Hashable {
+        /// "Lokale Angabe …": the form.
+        case answer
+        /// "An den Katalog melden …": the share sheet with this one name.
+        case report
+    }
 
-    var id: String { name }
+    let name: String
+    var purpose: Purpose = .answer
+
+    var id: String { "\(purpose):\(name)" }
 }
 
 /// The control on a name the catalog does not know.
@@ -25,18 +33,17 @@ struct IngredientTeaching: Hashable, Identifiable {
 /// The catalog answers; the app does not ask (INGREDIENTS-DATA §3 A). So an
 /// unknown name offers exactly two things, and neither is a question: a local
 /// answer for this household (``LocalAnswerForm``: "zählt wie", own values,
-/// own weights, a product), and a report for the curator, copied as text
-/// until sharing exists. Teaching the catalog a spelling, a variety or a new
-/// ingredient is the curator's work, not the cook's.
+/// own weights, a product), and a report for the curator, sent through
+/// ``CatalogShareSheet`` (phase 10). Teaching the catalog a spelling, a
+/// variety or a new ingredient is the curator's work, not the cook's.
 ///
 /// The control reports the choice and presents nothing itself. The caller
 /// decides where the form lives, as described at ``IngredientTeaching``. For
 /// a control that stays on screen, that is one line: ``UnknownIngredientButton``.
 struct UnknownIngredientControl<Label: View>: View {
     let name: String
-    /// Named in the report, where there is a recipe.
-    var recipeTitle: String?
-    /// Called when "Lokale Angabe …" is chosen. The caller presents the form.
+    /// Called with what was chosen. The caller presents the form or the
+    /// share sheet.
     let choose: (IngredientTeaching) -> Void
     @ViewBuilder var label: () -> Label
 
@@ -45,8 +52,8 @@ struct UnknownIngredientControl<Label: View>: View {
             Button("Lokale Angabe …", systemImage: "house") {
                 choose(IngredientTeaching(name: name))
             }
-            Button("Meldung kopieren", systemImage: "paperplane") {
-                SousPasteboard.copy(CatalogReport.unknown(name, recipeTitle: recipeTitle))
+            Button("An den Katalog melden …", systemImage: "paperplane") {
+                choose(IngredientTeaching(name: name, purpose: .report))
             }
         } label: {
             label()
@@ -64,9 +71,9 @@ extension UnknownIngredientControl where Label == AnyView {
     /// The chip shape the editor uses in its "Noch unbekannt" rows and in the
     /// keyboard bar — the same control in both, so the two do not drift.
     static func chip(
-        name: String, recipeTitle: String? = nil, choose: @escaping (IngredientTeaching) -> Void
+        name: String, choose: @escaping (IngredientTeaching) -> Void
     ) -> UnknownIngredientControl<AnyView> {
-        UnknownIngredientControl(name: name, recipeTitle: recipeTitle, choose: choose) {
+        UnknownIngredientControl(name: name, choose: choose) {
             AnyView(
                 HStack(spacing: 4) {
                     Text(name)
@@ -88,7 +95,6 @@ extension UnknownIngredientControl where Label == AnyView {
 /// instead.
 struct UnknownIngredientButton<Label: View>: View {
     let name: String
-    var recipeTitle: String?
     /// Run once the form is gone. A local answer changes what the recipe it
     /// was given in can count.
     var onClose: () -> Void = {}
@@ -97,12 +103,13 @@ struct UnknownIngredientButton<Label: View>: View {
     @State private var teaching: IngredientTeaching?
 
     var body: some View {
-        UnknownIngredientControl(name: name, recipeTitle: recipeTitle, choose: { teaching = $0 }, label: label)
+        UnknownIngredientControl(name: name, choose: { teaching = $0 }, label: label)
             .ingredientTeaching($teaching, onClose: onClose)
     }
 }
 
-/// Presents ``LocalAnswerForm`` for the name the cook chose.
+/// Presents ``LocalAnswerForm`` or ``CatalogShareSheet`` for the name the
+/// cook chose.
 private struct IngredientTeachingSheet: ViewModifier {
     @Environment(IngredientCatalogLibrary.self) private var catalog
     @Binding var teaching: IngredientTeaching?
@@ -110,7 +117,12 @@ private struct IngredientTeachingSheet: ViewModifier {
 
     func body(content: Content) -> some View {
         content.sheet(item: $teaching, onDismiss: onClose) { teaching in
-            LocalAnswerForm(name: teaching.name, existing: catalog.localAnswer(for: teaching.name))
+            switch teaching.purpose {
+            case .answer:
+                LocalAnswerForm(name: teaching.name, existing: catalog.localAnswer(for: teaching.name))
+            case .report:
+                CatalogShareSheet(source: .unknown(teaching.name))
+            }
         }
     }
 }
@@ -124,8 +136,8 @@ extension View {
     }
 }
 
-/// The system pasteboard on both platforms — where a report goes until
-/// sharing exists.
+/// The system pasteboard on both platforms — a prompt for the chat, or a
+/// submission as text where there is no iCloud account.
 enum SousPasteboard {
     static func copy(_ text: String) {
         #if os(iOS)

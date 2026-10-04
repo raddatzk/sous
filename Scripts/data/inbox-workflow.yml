@@ -1,0 +1,73 @@
+# The nightly workflow of the PRIVATE inbox repository (phase 10, R1).
+#
+# This file lives in sous only as the source to copy from: put it into the
+# inbox repository as .github/workflows/inbox.yml. It does nothing here.
+#
+# It checks out the public sous repository for Scripts/data/ (cloudkit.py,
+# inbox.py and compile.py's normalize), reads the CatalogSubmission records
+# with the server-to-server key, files them as issues in the inbox repository
+# with that repository's own GITHUB_TOKEN, and deletes the records it filed.
+#
+# The inbox repository needs:
+# - secrets CLOUDKIT_KEY_ID and CLOUDKIT_PRIVATE_KEY (PEM text): a
+#   server-to-server key of the container iCloud.me.raddatz.sous for the
+#   environment named by the variable below. The key acts as the publisher's
+#   user record, which holds the role Publisher (read and write on
+#   CatalogSubmission).
+# - variable CLOUDKIT_ENVIRONMENT: "development" until the schema is in
+#   production, then "production" (with the production key in the secrets).
+# - Settings → Actions → General: Actions allowed. The token's permissions
+#   are set below, so the default "read" for GITHUB_TOKEN is fine.
+#
+# The emergency stop is not here: removing `GRANT CREATE TO "_icloud"` from
+# CatalogSubmission stops new submissions without an app release.
+name: Katalog-Inbox
+
+on:
+  schedule:
+    - cron: "23 3 * * *"
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Print the issues; write and delete nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: catalog-inbox
+  cancel-in-progress: false
+
+jobs:
+  file:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the sous scripts
+        uses: actions/checkout@v4
+        with:
+          repository: raddatzk/sous
+          ref: main
+          path: sous
+          sparse-checkout: Scripts/data
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: sous/Scripts/data/requirements.txt
+
+      - run: pip install -r sous/Scripts/data/requirements.txt
+
+      - name: File the submissions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CLOUDKIT_KEY_ID: ${{ secrets.CLOUDKIT_KEY_ID }}
+          CLOUDKIT_PRIVATE_KEY: ${{ secrets.CLOUDKIT_PRIVATE_KEY }}
+          ENVIRONMENT: ${{ vars.CLOUDKIT_ENVIRONMENT || 'development' }}
+          DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: python3 sous/Scripts/data/inbox.py --environment "$ENVIRONMENT" $DRY_RUN

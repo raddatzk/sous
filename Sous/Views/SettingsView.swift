@@ -21,6 +21,8 @@ struct SettingsForm: View {
 
     var body: some View {
         Form {
+            CatalogNudgeCard()
+
             Section {
                 Picker("Erscheinungsbild", selection: $appearance) {
                     ForEach(SousAppearance.allCases) { option in
@@ -53,6 +55,7 @@ struct SettingsForm: View {
             }
 
             catalogRelease
+            CatalogSharingSettingsSection()
             dataSources
         }
         .formStyle(.grouped)

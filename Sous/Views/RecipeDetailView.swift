@@ -992,7 +992,7 @@ struct RecipeDetailView: View {
                             // that word — see `IngredientLineButton`. Salz auf
                             // Vorrat setzen is then a tap on "Salz", not a trip
                             // through the catalog to look the word up again.
-                            IngredientLineButton(ingredient: ingredient, formatter: formatter, recipeTitle: recipe.title) {
+                            IngredientLineButton(ingredient: ingredient, formatter: formatter) {
                                 await recomputeNutrition()
                             }
                         }

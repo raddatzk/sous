@@ -18,6 +18,9 @@ struct IngredientCatalogView: View {
     var body: some View {
         NavigationStack {
             List {
+                if searchText.isEmpty {
+                    CatalogNudgeCard()
+                }
                 if !ownProducts.isEmpty {
                     Section {
                         ForEach(ownProducts) { ingredient in

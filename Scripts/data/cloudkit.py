@@ -20,7 +20,7 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -119,6 +119,33 @@ class Client:
         if desired_keys is not None:
             payload["desiredKeys"] = desired_keys
         return self.request("records/query", payload)["records"]
+
+    def query_page(self, record_type: str, desired_keys: Optional[List[str]] = None,
+                   limit: int = 200, sort_by: Optional[str] = None,
+                   continuation: Optional[str] = None) -> Tuple[List[Dict[str, Any]], Optional[str]]:
+        """One page of a query, oldest first when `sort_by` names a time field,
+        and the marker for the next page (None after the last)."""
+        query: Dict[str, Any] = {"recordType": record_type}
+        if sort_by:
+            query["sortBy"] = [{"fieldName": sort_by, "ascending": True}]
+        payload: Dict[str, Any] = {"query": query, "resultsLimit": limit}
+        if desired_keys is not None:
+            payload["desiredKeys"] = desired_keys
+        if continuation:
+            payload["continuationMarker"] = continuation
+        response = self.request("records/query", payload)
+        return response.get("records", []), response.get("continuationMarker")
+
+    def delete(self, names: List[str]) -> None:
+        """Deletes the records, whatever their change tag; a name already gone
+        is not an error."""
+        for start in range(0, len(names), 200):
+            batch = names[start:start + 200]
+            records = self.request("records/modify", {"atomic": False, "operations": [
+                {"operationType": "forceDelete", "record": {"recordName": name}} for name in batch]})["records"]
+            for record in records:
+                if record.get("serverErrorCode") not in (None, "NOT_FOUND"):
+                    raise CloudKitError(200, record["serverErrorCode"], record.get("reason", ""), record)
 
     def upload_asset(self, record_type: str, field: str, record_name: str, data: bytes) -> Dict[str, Any]:
         """Uploads one file and returns the asset dictionary for a field value."""

@@ -22,8 +22,6 @@ import SwiftUI
 struct IngredientLineButton: View {
     let ingredient: RecipeIngredient
     var formatter = QuantityFormatter(locale: .sous)
-    /// Named in a report about an unknown name.
-    var recipeTitle: String?
     /// Run once the sheet is gone: a local answer given in it — own values,
     /// a weight — changes this recipe's figures, and nothing else on the
     /// page would notice.
@@ -44,7 +42,7 @@ struct IngredientLineButton: View {
                     IngredientDetailView(ingredient: entry)
                 }
         } else if name.count >= 2 {
-            UnknownIngredientButton(name: name, recipeTitle: recipeTitle, onClose: { Task { await onClose() } }) {
+            UnknownIngredientButton(name: name, onClose: { Task { await onClose() } }) {
                 line
             }
         } else {

@@ -478,21 +478,6 @@ extension RecipeOptimization {
     }
 }
 
-// MARK: - Reporting
-
-extension RecipeOptimization {
-    /// The classifications as text to send to the curator — the way to
-    /// share them until sharing exists (phase 10).
-    public func report(_ chosen: [Classification]) -> String {
-        var text = "Sous – Vorschläge für den Zutatenkatalog\nRezept: \(recipe.title)\n"
-        for item in chosen {
-            let target = item.target.map { " \($0)" } ?? ""
-            text += "- „\(item.name)“: \(item.kind.title)\(target)\n"
-        }
-        return text
-    }
-}
-
 // MARK: - The prompt
 
 /// Builds the optimization prompt (v4) and reads the answer. See

@@ -15,7 +15,9 @@ Essenspläne liegen auf deinem Gerät und – wenn du iCloud nutzt – in deinem
 eigenen privaten iCloud-Bereich, auf den ich als Entwickler keinen Zugriff
 habe. Die App enthält keine Analyse-, Werbe- oder Tracking-Bibliotheken.
 Einmal am Tag fragt Sous bei Apple nach einer neuen Fassung des
-Zutatenkatalogs; dabei sendet die App nichts von dir (Abschnitt 5).
+Zutatenkatalogs; dabei sendet die App nichts von dir (Abschnitt 5). Nur wenn
+du selbst „Anpassungen teilen“ wählst, schickt Sous die Angaben, die du dort
+siehst, an den Katalog (ebenfalls Abschnitt 5).
 
 ## 3. Daten auf deinem Gerät
 
@@ -27,7 +29,7 @@ Alles, was du in Sous anlegst, wird lokal gespeichert:
 - dein Zutatenkatalog mit eigenen Schreibweisen und Varianten
 - Einstellungen der App
 
-Diese Daten verlassen dein Gerät nur auf den in Abschnitt 4 und 6
+Diese Daten verlassen dein Gerät nur auf den in Abschnitt 4, 5 und 6
 beschriebenen Wegen. Ich erhalte davon nichts.
 
 ## 4. iCloud-Synchronisation
@@ -68,12 +70,45 @@ Der Katalog entsteht öffentlich: Jede Änderung ist in der Versionsgeschichte
 des Quellcodes nachzulesen. Einstellungen → Zutatenkatalog zeigt, welche
 Fassung die App gerade verwendet, und verlinkt diese Geschichte.
 
+### Anpassungen teilen
+
+Eigene Angaben zu Zutaten – „zählt wie“, eigene Wörter, eigene Nährwerte und
+Gewichte, eigene Produkte – wirken zuerst nur in deinem Haushalt. Ab und zu
+schlägt Sous vor, sie zu teilen, damit der Katalog sie für alle übernimmt.
+Gesendet wird nur, wenn du es auslöst, und nur, was du in der Liste angehakt
+lässt, genau so, wie es dort steht:
+
+- der Name, wie er in deinen Rezepten steht, und deine Angabe dazu
+  (worauf er zählt, Nährwerte samt Quelle, Gewichte, Marke und EAN eines
+  eigenen Produkts),
+- in wie vielen deiner Rezepte der Name vorkommt und eine Zutatenzeile, in
+  der er steht,
+- die Version der App und des Katalogs.
+
+Nicht gesendet werden Rezepttitel, ganze Rezepte, dein Haushalt, Vorrat,
+Supermärkte, Notizen oder Kontaktdaten.
+
+Die Angaben gehen als Datensatz in den öffentlichen Bereich des
+CloudKit-Containers von Sous bei Apple. Andere Nutzer können ihn nicht lesen.
+Apple versieht ihn mit einer pseudonymen Kennung deines iCloud-Kontos; ich
+erfahre daraus weder Namen noch Adresse. Einmal in der Nacht holt ein Skript
+die Datensätze ab, legt sie als Vorschläge in einem privaten
+Projektarchiv ab, das nur ich lesen kann, und löscht sie danach bei Apple. Die
+pseudonyme Kennung nutzt das Skript nur, um die Menge pro Konto und Nacht zu
+begrenzen; in die Vorschläge schreibt es sie nicht. Was ich übernehme, steht
+danach ohne Bezug auf dich im öffentlichen Katalog. Dafür brauchst du ein
+iCloud-Konto.
+
+Ohne iCloud-Konto bietet Sous stattdessen ein vorausgefülltes Formular auf
+GitHub an. Es braucht ein GitHub-Konto, und was du dort absendest, ist
+öffentlich lesbar. Alternativ kannst du die Angaben als Text kopieren und
+selbst schicken.
+
 <!--
-App Store privacy label: the daily read collects nothing, so it needs no
-entry. "Other User Content" (app functionality, not linked to the user once
-the creator id is dropped) arrives only with phase 10, when adjustments can
-be shared through CatalogSubmission records — together with an entry in the
-PrivacyInfo.xcprivacy files and a paragraph here.
+App Store privacy label: "Other User Content", used for app functionality,
+not linked to the user (the creator id is used for the nightly cap only and
+dropped), not used for tracking. Declared in the app's and the share
+extension's PrivacyInfo.xcprivacy (both can share); the widgets cannot.
 -->
 
 ## 6. Einen Haushalt teilen

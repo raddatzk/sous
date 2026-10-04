@@ -363,6 +363,38 @@ public final class IngredientCatalogLibrary {
         return await saveLocalAnswer(answer)
     }
 
+    // MARK: - Sharing
+
+    /// The answers worth sharing with the curator now (§3 D): pending, and
+    /// about something the data set does not answer already.
+    public func shareOffers(usage: CatalogUsage = .empty) -> [CatalogSharing.Offer] {
+        CatalogSharing.offers(
+            localAnswers,
+            catalog: catalogWithoutLocalAnswers,
+            nutrition: dataSet.nutrition,
+            usage: usage,
+            targetName: targetName(for:)
+        )
+    }
+
+    /// How many answers the nudge card counts — the offers without their
+    /// recipe context, which counting does not need.
+    public var pendingShareCount: Int { shareOffers().count }
+
+    /// Marks the answers behind `offers` as shared, so they are not offered
+    /// again until they change. `sharedAt` syncs with the household, so a
+    /// second member is not asked about the same answer.
+    public func markShared(_ offers: [CatalogSharing.Offer], at date: Date = .nowInSyncPrecision) async {
+        let keys = Set(offers.compactMap { $0.answer?.key })
+        guard !keys.isEmpty else { return }
+        do {
+            try await localAnswerStore.markShared(keys: keys, at: date)
+            await reloadAnswers()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     /// Re-reads only the answers — the household rows are keyed by ids,
     /// which an answer does not change.
     private func reloadAnswers() async {

@@ -297,6 +297,7 @@ targets:
       - path: Sous/Views/RecipeLinkChips.swift
       - path: Sous/Views/RecipeTextEditorStyles.swift
       - path: Sous/Views/UnknownIngredientButton.swift
+      - path: Sous/Views/CatalogShareSheet.swift
       - path: Sous/Views/LocalAnswerForm.swift
       - path: Sous/Views/SousDialogs.swift
       - path: Sous/Views/DecimalText.swift

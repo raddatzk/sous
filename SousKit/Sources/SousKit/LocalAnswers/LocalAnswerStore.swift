@@ -11,6 +11,10 @@ public protocol LocalAnswerStore: Sendable {
     func save(_ answer: LocalAnswer) async throws -> LocalAnswer?
     /// Removes every row under the answer's key.
     func delete(_ answer: LocalAnswer) async throws
+    /// Records that the answers under `keys` were shared at `date` — and
+    /// only that: ``LocalAnswer/updatedAt`` stays, so an answer counts as
+    /// changed since sharing exactly when it was saved again afterwards.
+    func markShared(keys: Set<String>, at date: Date) async throws
 }
 
 /// A store that keeps nothing beyond the process — for tests, and for a
@@ -36,5 +40,11 @@ public actor InMemoryLocalAnswerStore: LocalAnswerStore {
 
     public func delete(_ answer: LocalAnswer) {
         rows.removeAll { $0.key == answer.key || $0.id == answer.id }
+    }
+
+    public func markShared(keys: Set<String>, at date: Date) {
+        for index in rows.indices where keys.contains(rows[index].key) {
+            rows[index].sharedAt = date
+        }
     }
 }
