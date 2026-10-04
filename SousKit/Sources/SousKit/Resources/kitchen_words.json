@@ -754,6 +754,12 @@
   "category": "grains"
  },
  {
+  "id": "gochujang",
+  "name": "Gochujang",
+  "aliases": [],
+  "category": "canned"
+ },
+ {
   "id": "gorgonzola",
   "name": "Gorgonzola",
   "aliases": [],
