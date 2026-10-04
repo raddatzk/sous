@@ -105,4 +105,24 @@ struct LocalAnswerMigrationTests {
         #expect(try await answers.answers().map(\.name) == ["Rauchtofu"])
         try ScratchStore.close(after)
     }
+
+    @Test("A store from before the prompt templates opens, keeps its recipes, and takes templates")
+    func oldStoreTakesPromptTemplates() async throws {
+        let url = try ScratchStore.makeURL()
+        defer { ScratchStore.remove(url) }
+        let old = SousManagedObjectModel.makeModel(includingRetiredEntities: true, includingPromptTemplates: false)
+        #expect(old.entitiesByName[SousManagedObjectModel.promptTemplateEntityName] == nil)
+
+        let before = try ScratchStore.open(url, with: old)
+        let saved = try await CoreDataRecipeStore(container: before)
+            .save(Recipe(title: "Brot", servings: 4, ingredientsText: "500 g Mehl"))
+        try ScratchStore.close(before)
+
+        let after = try ScratchStore.open(url, with: SousManagedObjectModel.shared)
+        #expect(try await CoreDataRecipeStore(container: after).recipe(id: saved.id)?.title == "Brot")
+        let templates = CoreDataPromptTemplateStore(container: after)
+        try await templates.save(PromptTemplate(title: "Vegan", text: "{{recipe}}"))
+        #expect(try await templates.templates().map(\.title) == ["Vegan"])
+        try ScratchStore.close(after)
+    }
 }

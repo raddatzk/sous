@@ -45,12 +45,14 @@ enum SousManagedObjectModel {
     /// current model. `includingCatalogOverrides: false` is `CDLocalAnswer`
     /// before phase 7d gave it the override attributes (category, parent,
     /// spellings, display name, baseline) — all optional, so CloudKit's
-    /// schema only grows.
+    /// schema only grows. `includingPromptTemplates: false` is the model
+    /// before `CDPromptTemplate` (the household's AI prompts) was added.
     static func makeModel(
         includingRetiredEntities: Bool,
         includingLocalAnswers: Bool = true,
         includingHouseholdIngredients: Bool = true,
-        includingCatalogOverrides: Bool = true
+        includingCatalogOverrides: Bool = true,
+        includingPromptTemplates: Bool = true
     ) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
@@ -63,6 +65,9 @@ enum SousManagedObjectModel {
         }
         if includingHouseholdIngredients {
             members.append(householdIngredientEntity())
+        }
+        if includingPromptTemplates {
+            members.append(promptTemplateEntity())
         }
         if includingRetiredEntities {
             members.append(reviewMarkEntity(named: amountReviewEntityName))
@@ -84,7 +89,7 @@ enum SousManagedObjectModel {
         recipeEntityName, variantGroupEntityName, recipeImageEntityName,
         mealPlanEntryEntityName, shoppingEntryEntityName,
         shoppingPlanEntryEntityName, shoppingDemandEntityName,
-        localAnswerEntityName, householdIngredientEntityName,
+        localAnswerEntityName, householdIngredientEntityName, promptTemplateEntityName,
     ]
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
@@ -101,6 +106,7 @@ enum SousManagedObjectModel {
     static let shoppingDemandEntityName = "CDShoppingDemand"
     static let localAnswerEntityName = "CDLocalAnswer"
     static let householdIngredientEntityName = "CDHouseholdIngredient"
+    static let promptTemplateEntityName = "CDPromptTemplate"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -353,6 +359,24 @@ enum SousManagedObjectModel {
             attribute("updatedAt", .dateAttributeType),
         ]
         entity.indexes = [index(named: "byKey", on: entity, properties: ["key"])]
+        return entity
+    }
+
+    /// A household's saved request for a chat model. Every field optional or
+    /// defaulted, as CloudKit needs; `body` because `text` is not a name Core
+    /// Data likes on a managed object.
+    private static func promptTemplateEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = promptTemplateEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDPromptTemplate.self)
+        entity.properties = [
+            attribute("id", .UUIDAttributeType),
+            attribute("title", .stringAttributeType, default: ""),
+            attribute("body", .stringAttributeType, default: ""),
+            attribute("sortOrder", .integer64AttributeType, default: 0),
+            attribute("createdAt", .dateAttributeType),
+            attribute("updatedAt", .dateAttributeType),
+        ]
         return entity
     }
 
