@@ -1,5 +1,7 @@
 - id: baguette
   name: Baguette
+  aliases:
+    - Baguettebrot
   category: bakery
   nutrition:
     unspecified: [B781200]

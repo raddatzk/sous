@@ -1,5 +1,9 @@
 - id: pita
   name: Pita
+  aliases:
+    - Pitabrot
+    - Pittabrot
+    - Pitta
   category: bakery
   nutrition:
     unspecified: [B782100]

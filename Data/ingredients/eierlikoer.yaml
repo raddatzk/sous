@@ -1,0 +1,6 @@
+- id: eierlikoer
+  name: Eierlikör
+  category: drinks
+  nutrition:
+    unspecified: [P546000]
+  via: BLS-Name "Eierlikör"

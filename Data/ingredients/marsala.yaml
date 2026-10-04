@@ -1,0 +1,26 @@
+- id: marsala
+  name: Marsala
+  aliases:
+    - Marsalawein
+  category: drinks
+  nutrition:
+    unspecified:
+      - code: Z-marsala
+        name: Marsala wine
+        source: Ciqual 2020 (Anses), Nr. 1015 „Marsala wine“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 211
+          proteinG: 0.1
+          fatG: 0
+          saturatedFatG: 0
+          carbsG: 27.9
+          sugarG: 27.9
+          fiberG: 0
+          sodiumMg: 4
+          vitaminCMg: 0
+          vitaminDMcg: 0
+          vitaminEMg: 0
+          calciumMg: 4
+          ironMg: 0.4
+          potassiumMg: 97
+  via: Das BLS führt Marsala nicht; Ciqual-Zeile

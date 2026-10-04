@@ -2,6 +2,9 @@
   name: Butterschmalz
   aliases:
     - Ghee
+    - Butterreinfett
+    - Geklärte Butter
+    - Rindschmalz
   category: oils
   nutrition:
     unspecified: [Q683000]

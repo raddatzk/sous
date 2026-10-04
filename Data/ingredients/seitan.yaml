@@ -1,0 +1,7 @@
+- id: seitan
+  name: Seitan
+  category: plantBased
+  nutrition:
+    unspecified: [C558000]
+  via: BLS "Fleischersatz glutenhaltig (Seitan)". Das Glutenpulver, aus dem man ihn selbst
+    macht, ist ein anderes Erzeugnis (C551000).

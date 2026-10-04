@@ -1,5 +1,7 @@
 - id: linsen
   name: Linsen
+  aliases:
+    - Tellerlinsen
   category: legumes
   measures:
     Dose:
@@ -14,5 +16,14 @@
   varieties:
     - id: belugalinsen
       name: Belugalinsen
+      aliases:
+        - Schwarze Linsen
     - id: berglinsen
       name: Berglinsen
+    - id: gruene-linsen
+      name: Grüne Linsen
+      aliases:
+        - Puy-Linsen
+        - Le-Puy-Linsen
+    - id: gelbe-linsen
+      name: Gelbe Linsen

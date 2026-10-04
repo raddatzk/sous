@@ -1,0 +1,11 @@
+- id: mungbohnen
+  name: Mungbohnen
+  aliases:
+    - Mungbohne
+    - Mungobohnen
+    - Mungobohne
+  category: legumes
+  nutrition:
+    unspecified: [H770100]
+    cooked: [H770132]
+  via: 'BLS-Gruppe "Mungbohne reif": die getrockneten Bohnen, trocken abgewogen.'

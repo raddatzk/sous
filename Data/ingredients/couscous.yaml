@@ -1,7 +1,15 @@
 - id: couscous
   name: Couscous
+  aliases:
+    - Kuskus
   category: grains
   nutrition:
     raw: [C119200]
     cooked: [C119232]
   via: BLS-Gruppe "Couscous (Hartweizen)"
+  varieties:
+    - id: perlcouscous
+      name: Perlcouscous
+      aliases:
+        - Israelischer Couscous
+        - Ptitim

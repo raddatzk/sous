@@ -5,3 +5,9 @@
   nutrition:
     unspecified: [Q230000]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: geroestetes-sesamoel
+      name: Geröstetes Sesamöl
+      aliases:
+        - Sesamöl geröstet
+        - Dunkles Sesamöl

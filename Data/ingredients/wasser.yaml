@@ -1,5 +1,8 @@
 - id: wasser
   name: Wasser
+  aliases:
+    - Leitungswasser
+    - Trinkwasser
   category: drinks
   nutrition:
     unspecified: [N110000]
@@ -7,3 +10,7 @@
   varieties:
     - id: mineralwasser
       name: Mineralwasser
+      aliases:
+        - Sprudelwasser
+        - Sodawasser
+        - Mineralwasser mit Kohlensäure

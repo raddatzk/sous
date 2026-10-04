@@ -7,3 +7,8 @@
   nutrition:
     raw: [G107100]
   via: BLS-Gruppe "Römischer Salat/Romanasalat"
+  varieties:
+    - id: romanaherzen
+      name: Romanaherzen
+      aliases:
+        - Mini-Romana

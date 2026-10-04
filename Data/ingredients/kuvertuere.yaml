@@ -1,6 +1,21 @@
 - id: kuvertuere
   name: Kuvertüre
+  aliases:
+    - Couverture
   category: baking
   nutrition:
     unspecified: [S671000]
   via: BLS-Gruppe "Zartbitter-/Halbbitter-Kuvertüre"
+  varieties:
+    - id: zartbitterkuvertuere
+      name: Zartbitterkuvertüre
+    - id: vollmilchkuvertuere
+      name: Vollmilchkuvertüre
+      nutrition:
+        unspecified: [S539900]
+      via: Das BLS führt Kuvertüre nur zartbitter; die Vollmilchkuvertüre rechnet mit "Vollmilchschokolade"
+    - id: weisse-kuvertuere
+      name: Weiße Kuvertüre
+      nutrition:
+        unspecified: [S580000]
+      via: Das BLS führt Kuvertüre nur zartbitter; die weiße rechnet mit "Schokolade weiß"

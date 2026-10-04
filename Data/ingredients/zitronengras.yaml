@@ -1,0 +1,29 @@
+- id: zitronengras
+  name: Zitronengras
+  aliases:
+    - Lemongras
+    - Zitronengrasstängel
+  category: herbs
+  nutrition:
+    raw:
+      - code: Z-zitronengras
+        name: Lemon grass (citronella), raw
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168573 „Lemon grass
+          (citronella), raw“, gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 99
+          proteinG: 1.82
+          fatG: 0.49
+          saturatedFatG: 0.119
+          sodiumMg: 6
+          vitaminAMcg: 0
+          vitaminCMg: 2.6
+          vitaminDMcg: 0
+          calciumMg: 65
+          ironMg: 8.17
+          magnesiumMg: 60
+          potassiumMg: 723
+  via: Das BLS führt Zitronengras nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR
+    Legacy, gemeinfrei) führt die frischen Stängel als „Lemon grass (citronella), raw“, inline
+    übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen
+    an und für Zitronengras keine Ballaststoffe — deshalb fehlen beide in dieser Zeile.

@@ -4,3 +4,8 @@
   nutrition:
     unspecified: [P741000]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: brauner-rum
+      name: Brauner Rum
+    - id: weisser-rum
+      name: Weißer Rum

@@ -1,5 +1,7 @@
 - id: schnittlauch
   name: Schnittlauch
+  aliases:
+    - Schnittlauchröllchen
   category: herbs
   measures: {Bund: 25, Stiel: 1, Handvoll: 10}
   nutrition:

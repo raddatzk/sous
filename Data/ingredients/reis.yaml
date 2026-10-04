@@ -16,5 +16,39 @@
       name: Naturreis
       aliases:
         - Vollkornreis
+        - brauner Reis
+        - Braunreis
+      nutrition:
+        raw: [C351000]
+        cooked: [C351032, C351082]
+      via: BLS-Gruppe "Reis unpoliert" — erbte bisher den polierten Reis des Stamms; ungeschält
+        hat er mehr Ballaststoffe (4 statt 2,5 g) und viermal so viel Fett.
     - id: sushireis
       name: Sushireis
+      aliases:
+        - Sushi Reis
+    - id: wildreis
+      name: Wildreis
+      nutrition:
+        raw: [C353100]
+        cooked: [C353132, C353182]
+      candidates: [C354100, C354132]
+      via: BLS-Gruppe "Wildreis" — die Samen eines Wassergrases, mit deutlich mehr Eiweiß
+        als Reis (13 statt 8 g); die Reismischung mit Wildreis steht als Kandidat daneben.
+    - id: parboiled-reis
+      name: Parboiled Reis
+      aliases:
+        - Parboiledreis
+        - Reis parboiled
+      nutrition:
+        raw: [C359000]
+        cooked: [C359032, C359042, C359082]
+      via: BLS-Gruppe "Reis parboiled, poliert"
+    - id: klebreis
+      name: Klebreis
+      aliases:
+        - Klebereis
+    - id: milchreis
+      name: Milchreis
+      aliases:
+        - Rundkornreis

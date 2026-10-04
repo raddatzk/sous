@@ -1,5 +1,8 @@
 - id: radieschen
   name: Radieschen
+  aliases:
+    - Radieserl
+    - Radiesli
   category: vegetables
   measures: {Stk.: 10, Bund: 200}
   nutrition:

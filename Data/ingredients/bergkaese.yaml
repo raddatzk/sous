@@ -3,7 +3,25 @@
   aliases:
     - Emmentaler
     - Gruyere
+    - Gruyère
+    - Greyerzer
+    - Alpkäse
   category: dairy
   nutrition:
     unspecified: [M302600, M302700]
   via: kuratierte Auswahl
+  varieties:
+    - id: appenzeller
+      name: Appenzeller
+      nutrition:
+        unspecified: [M301700, M301300]
+      via: BLS-Zeile "Appenzeller mind. 50 % Fett i. Tr."; fast doppelt so salzig wie Bergkäse,
+        daher eigene Zeile statt Vererbung
+    - id: raclettekaese
+      name: Raclettekäse
+      nutrition:
+        unspecified: [M307700]
+      via: BLS-Zeile "Raclettekäse mind. 45 % Fett i. Tr."; das nackte Wort Raclette ist auch
+        das Gericht und steht deshalb nicht als Schreibweise da
+    - id: comte
+      name: Comté

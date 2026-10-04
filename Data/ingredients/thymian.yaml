@@ -1,7 +1,63 @@
 - id: thymian
   name: Thymian
+  aliases:
+    - frischer Thymian
+    - Thymianzweig: {unit: Zweig}
+    - Thymianzweige: {unit: Zweig}
+    - Thymianblätter
   category: herbs
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    raw:
+      - code: Z-thymian
+        name: Thyme, fresh
+        source: Ciqual 2020 (Anses), Nr. 11070 „Thyme, fresh“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 107
+          proteinG: 5.56
+          fatG: 1.68
+          saturatedFatG: 0.47
+          carbsG: 10.5
+          fiberG: 14
+          sodiumMg: 9
+          vitaminCMg: 160
+          vitaminDMcg: 0
+          vitaminEMg: 1.7
+          calciumMg: 405
+          ironMg: 17.5
+          magnesiumMg: 160
+          potassiumMg: 609
+  via: Das BLS führt Thymian nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz
+    meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es
+    als „Thyme, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.
+  varieties:
+    - id: zitronenthymian
+      name: Zitronenthymian
+    - id: getrockneter-thymian
+      name: Getrockneter Thymian
+      aliases:
+        - Thymian getrocknet
+      category: spices
+      nutrition:
+        unspecified:
+          - code: Z-getrockneter-thymian
+            name: Thyme, dried
+            source: Ciqual 2020 (Anses), Nr. 11038 „Thyme, dried“, Licence Ouverte / CC BY
+              4.0
+            per100g:
+              kcal: 285
+              proteinG: 9.11
+              fatG: 7.43
+              saturatedFatG: 2.73
+              carbsG: 26.9
+              sugarG: 1.71
+              fiberG: 37
+              sodiumMg: 55
+              vitaminCMg: 50
+              vitaminDMcg: 0
+              vitaminEMg: 7.48
+              calciumMg: 1890
+              ironMg: 124
+              magnesiumMg: 220
+              potassiumMg: 814
+      via: Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte
+        je Gramm. Ciqual 2020 (Anses) führt es als „Thyme, dried“, inline übernommen.

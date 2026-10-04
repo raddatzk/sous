@@ -9,3 +9,10 @@
   nutrition:
     unspecified: [H862200]
   via: BLS-Name "Miso/Sojabohnenpaste"
+  varieties:
+    - id: rotes-miso
+      name: Rotes Miso
+      aliases:
+        - rote Misopaste
+        - dunkle Misopaste
+        - Aka Miso

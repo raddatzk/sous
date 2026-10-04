@@ -1,0 +1,7 @@
+- id: walnussoel
+  name: Walnussöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q310000]
+  via: BLS-Name "Walnussöl"

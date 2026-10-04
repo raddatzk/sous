@@ -1,0 +1,8 @@
+- id: glukosesirup
+  name: Glukosesirup
+  aliases:
+    - Glucosesirup
+  category: baking
+  nutrition:
+    unspecified: [S151000]
+  via: BLS-Name "Glukosesirup maltosehaltig"

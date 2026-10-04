@@ -5,8 +5,31 @@
     - Cumin
     - ganzer Kreuzkümmel
     - Kreuzkümmelsamen
+    - gemahlener Kreuzkümmel
+    - Kreuzkümmel gemahlen
+    - Römischer Kümmel
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-kreuzkuemmel
+        name: Cumin, seed
+        source: Ciqual 2020 (Anses), Nr. 11042 „Cumin, seed“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 427
+          proteinG: 17.8
+          fatG: 22.3
+          saturatedFatG: 1.54
+          carbsG: 33.7
+          sugarG: 2.25
+          fiberG: 10.5
+          sodiumMg: 168
+          vitaminCMg: 7.7
+          vitaminDMcg: 0
+          vitaminEMg: 3.33
+          calciumMg: 931
+          ironMg: 66.4
+          magnesiumMg: 366
+          potassiumMg: 1790
+  via: Das BLS führt Kreuzkümmel nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+    2020 (Anses) führt es als „Cumin, seed“ (die getrockneten Samen, wie ein Rezept sie meint
+    (gemahlen hat er dieselben Werte je Gramm)); diese Zeile ist inline übernommen.

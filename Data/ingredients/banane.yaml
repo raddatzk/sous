@@ -8,3 +8,12 @@
     raw: [F503100]
   candidates: [F503400]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: kochbanane
+      name: Kochbanane
+      aliases:
+        - Kochbananen
+      nutrition:
+        raw: [F545100]
+        cooked: [F545132, F545152, F545162, F545182, F545142]
+      via: BLS-Gruppe "Kochbanane"; stärkereich, nicht wie die Obstbanane

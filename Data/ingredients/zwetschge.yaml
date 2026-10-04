@@ -1,5 +1,11 @@
 - id: zwetschge
   name: Zwetschge
+  aliases:
+    - Zwetschgen
+    - Zwetschke
+    - Zwetschken
+    - Zwetsche
+    - Zwetschen
   category: fruit
   nutrition:
     cooked: [F223152]

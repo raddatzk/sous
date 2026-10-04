@@ -1,7 +1,9 @@
 - id: garam-masala
   name: Garam Masala
+  aliases:
+    - Garam-Masala
   category: spices
   nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  via: Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Garam Masala;
+    die Mischungen unterscheiden sich von Hersteller zu Hersteller. Lieber keine Werte als
+    die einer anderen Mischung (Ciquals „Mix of 4 spices“ ist das französische Quatre épices).

@@ -1,0 +1,14 @@
+- id: papaya
+  name: Papaya
+  aliases:
+    - Papayas
+  category: fruit
+  nutrition:
+    raw: [F517100]
+  candidates: [F517400]
+  via: BLS-Name "Papaya roh"
+  varieties:
+    - id: gruene-papaya
+      name: Grüne Papaya
+      aliases:
+        - Grüne Papayas

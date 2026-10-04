@@ -1,5 +1,7 @@
 - id: kichererbsen
   name: Kichererbsen
+  aliases:
+    - Kichererbse
   category: legumes
   measures:
     Dose:

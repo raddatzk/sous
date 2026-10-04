@@ -1,5 +1,7 @@
 - id: kuerbis
   name: Kürbis
+  aliases:
+    - Kürbisse
   category: vegetables
   nutrition:
     raw: [G581100]
@@ -24,3 +26,7 @@
         raw: [G581000]
         cooked: [G581032, G581052, G581082, G581062]
       via: BLS-Gruppe "Kürbis Hokkaido (C. maxima)"
+    - id: muskatkuerbis
+      name: Muskatkürbis
+    - id: spaghettikuerbis
+      name: Spaghettikürbis

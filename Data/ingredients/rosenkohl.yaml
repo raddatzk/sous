@@ -1,5 +1,8 @@
 - id: rosenkohl
   name: Rosenkohl
+  aliases:
+    - Kohlsprossen
+    - Sprossenkohl
   category: vegetables
   nutrition:
     raw: [G332100]

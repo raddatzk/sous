@@ -2,8 +2,16 @@
   name: Semmelbrösel
   aliases:
     - Paniermehl
+    - Semmelmehl
+    - Weckmehl
+    - Brösel
   category: bakery
   density: 0.35
   nutrition:
     unspecified: [B821000]
   via: BLS-Gruppe "Paniermehl/Semmelbrösel/Semmelmehl"
+  varieties:
+    - id: panko
+      name: Panko
+      aliases:
+        - Pankomehl

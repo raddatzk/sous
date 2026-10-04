@@ -2,6 +2,9 @@
   name: Hühnerbrühe
   aliases:
     - Hühnerfond
+    - Geflügelbrühe
+    - Geflügelfond
+    - Hühnerbouillon
   category: canned
   nutrition:
     unspecified: [X411243]

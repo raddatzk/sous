@@ -1,7 +1,18 @@
 - id: kokosoel
   name: Kokosöl
+  aliases:
+    - Kokosnussöl
   category: oils
   density: 0.92
   nutrition:
     unspecified: [Q550000]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: desodoriertes-kokosoel
+      name: Desodoriertes Kokosöl
+      aliases:
+        - Kokosöl desodoriert
+        - Geschmacksneutrales Kokosöl
+      nutrition:
+        unspecified: [Q550100]
+      via: BLS-Name "Kokosöl desodoriert"

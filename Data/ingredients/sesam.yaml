@@ -7,3 +7,16 @@
     unspecified: [H420100]
   candidates: [H420610]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: schwarzer-sesam
+      name: Schwarzer Sesam
+      aliases:
+        - Sesam schwarz
+        - Schwarze Sesamsamen
+    - id: geroesteter-sesam
+      name: Gerösteter Sesam
+      aliases:
+        - Sesam geröstet
+      nutrition:
+        unspecified: [H420610]
+      via: BLS-Name "Sesam geröstet ohne Fett"

@@ -1,5 +1,7 @@
 - id: essig
   name: Essig
+  aliases:
+    - Weinessig
   category: oils
   density: 1.01
   nutrition:
@@ -18,3 +20,27 @@
       name: Rotweinessig
     - id: weissweinessig
       name: Weißweinessig
+    - id: branntweinessig
+      name: Branntweinessig
+      aliases:
+        - Tafelessig
+      nutrition:
+        unspecified: [R122000]
+      via: BLS-Name "Branntweinessig"
+    - id: kraeuteressig
+      name: Kräuteressig
+      nutrition:
+        unspecified: [R124000]
+      via: BLS-Name "Kräuteressig"
+    - id: sherryessig
+      name: Sherryessig
+    - id: himbeeressig
+      name: Himbeeressig
+    - id: chinkiang-essig
+      name: Chinkiang-Essig
+      aliases:
+        - Schwarzer Reisessig
+        - Schwarzer Essig
+      nutrition: without
+      via: Chinesischer Schwarzessig aus Klebreis, gesüßt und gewürzt; keine Zeile in BLS,
+        Ciqual oder USDA SR Legacy

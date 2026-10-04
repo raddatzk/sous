@@ -8,3 +8,21 @@
   varieties:
     - id: hartweizengriess
       name: Hartweizengrieß
+      aliases:
+        - Semola
+        - Semola rimacinata
+    - id: weichweizengriess
+      name: Weichweizengrieß
+      aliases:
+        - Weizengrieß
+      nutrition:
+        unspecified: [C218000]
+        cooked: [C218032]
+      via: BLS-Gruppe "Weichweizen Grieß" — der Grieß für Grießbrei und Nockerl; der Stamm
+        rechnet mit Hartweizengrieß
+    - id: dinkelgriess
+      name: Dinkelgrieß
+      nutrition:
+        unspecified: [C238000]
+        cooked: [C238032]
+      via: BLS-Gruppe "Dinkel Grieß"

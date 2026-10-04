@@ -1,0 +1,7 @@
+- id: ciabatta
+  name: Ciabatta
+  category: bakery
+  nutrition:
+    unspecified: [B781200]
+  via: Ein italienisches Weizenbrot; das BLS führt Weizenbrot nur als "Weizenbaguette", denselben
+    Teig.

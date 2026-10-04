@@ -2,6 +2,8 @@
   name: Suppengrün
   aliases:
     - Suppenkraut
+    - Suppengemüse
+    - Wurzelwerk
   category: vegetables
   measures: {Bund: 300}
   nutrition:

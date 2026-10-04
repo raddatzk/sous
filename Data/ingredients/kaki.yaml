@@ -1,0 +1,10 @@
+- id: kaki
+  name: Kaki
+  aliases:
+    - Kakis
+    - Kakifrucht
+    - Kakifrüchte
+  category: fruit
+  nutrition:
+    raw: [F507100]
+  via: BLS-Name "Kaki roh"

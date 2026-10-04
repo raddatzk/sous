@@ -1,0 +1,30 @@
+- id: hanfsamen
+  name: Hanfsamen
+  aliases:
+    - Geschälte Hanfsamen
+    - Hanfsamen geschält
+  category: nuts
+  nutrition:
+    unspecified:
+      - code: Z-hanfsamen
+        name: Seeds, hemp seed, hulled
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 170148 „Seeds, hemp
+          seed, hulled“, gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 553
+          proteinG: 31.56
+          fatG: 48.75
+          saturatedFatG: 4.6
+          sugarG: 1.5
+          fiberG: 4
+          sodiumMg: 5
+          vitaminAMcg: 1
+          vitaminCMg: 0.5
+          vitaminEMg: 0.8
+          calciumMg: 70
+          ironMg: 7.95
+          magnesiumMg: 700
+          potassiumMg: 1200
+  via: 'Das BLS führt Hanfsamen nicht, Ciqual 2020 auch nicht; USDA-Zeile der geschälten Samen,
+    wie sie fürs Kochen verkauft werden. Kohlenhydrate weggelassen: USDA rechnet sie nur „by
+    difference“, Ballaststoffe eingeschlossen.'

@@ -5,3 +5,6 @@
   nutrition:
     unspecified: [R421100]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: weinsteinbackpulver
+      name: Weinsteinbackpulver

@@ -13,3 +13,13 @@
   nutrition:
     unspecified: [G568900]
   via: BLS-Gruppe "Tomate geschält, Konserve"
+  varieties:
+    - id: geschaelte-tomaten
+      name: Geschälte Tomaten
+      aliases:
+        - Pelati
+        - Tomaten geschält
+      measures:
+        Dose:
+          grams: 400
+          note: Die übliche 400-g-Dose; der Saft gehört dazu.

@@ -3,9 +3,75 @@
   aliases:
     - Schweinefilet
     - Schnitzel
+    - Schweinsfilet
+    - Schweinslungenbraten
+    - Schweineschnitzel
+    - Schweinsschnitzel
   category: meat
   nutrition:
     raw: [U611100, U622100]
     cooked: [U611162, U622162, U611172, U622172]
   candidates: [U950100]
   via: kuratierte Auswahl
+  varieties:
+    - id: schweinebauch
+      name: Schweinebauch
+      nutrition:
+        raw: [U642100]
+        cooked: [U642162, U642132]
+      via: BLS-Gruppe "Schwein Bauch (wie gewachsen)"
+    - id: schweinenacken
+      name: Schweinenacken
+      aliases:
+        - Schweinekamm
+        - Schweinehals
+        - Nackensteak
+        - Schweinsschopf
+      nutrition:
+        raw: [U532100]
+        cooked: [U532182, U532162]
+      via: BLS-Gruppe "Schwein Kammsteak"
+    - id: schweinekotelett
+      name: Schweinekotelett
+      aliases:
+        - Schweinskotelett
+      nutrition:
+        raw: [U522100, U622100]
+        cooked: [U522182, U522162, U622142]
+      via: BLS-Gruppe "Schwein Stielkotelett"
+    - id: schweineschulter
+      name: Schweineschulter
+      aliases:
+        - Schweinebug
+        - Schweinsschulter
+        - Schäufele
+      nutrition:
+        raw: [U571100, U574100]
+        cooked: [U571162, U574162]
+      via: BLS-Zeile "Schwein Bratenfleisch (Bug mit Fett und Schwarte)"; ohne Schwarte als
+        Alternative
+    - id: schweinegulasch
+      name: Schweinegulasch
+      nutrition:
+        raw: [U554100]
+        cooked: [U554142, U554182]
+      via: BLS-Gruppe "Schwein Gulasch (Restbug)"
+    - id: schweinshaxe
+      name: Schweinshaxe
+      aliases:
+        - Schweinehaxe
+        - Schweinsstelze
+      nutrition:
+        raw: [U693100, U672100]
+        cooked: [U693162, U693132, U672162]
+      via: BLS-Gruppe "Schwein Hintereisbein/Hinterhaxe", frisch; das gepökelte Eisbein ist
+        ein anderes Erzeugnis
+    - id: kassler
+      name: Kassler
+      aliases:
+        - Kasseler
+      nutrition:
+        unspecified: [U522700, U622700]
+      via: BLS-Zeile "Schwein Stielkotelett, Kochpökelware, geräuchert" — so wird Kassler
+        hergestellt. Es ist gepökelt und vorgegart; eine eigene gegarte Zeile führt der BLS
+        nicht.

@@ -15,3 +15,20 @@
     cooked: [E111132, E107122, E111162, E111182]
     raw: [E111100]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: wachtelei
+      name: Wachtelei
+      aliases:
+        - Wachteleier
+      measures:
+        Stk.:
+          grams: 9
+          note: 'USDA FoodData Central, SR Legacy, FDC ID 172191: 1 egg = 9 g.'
+    - id: entenei
+      name: Entenei
+      aliases:
+        - Enteneier
+      nutrition:
+        raw: [E131100]
+        cooked: [E131132]
+      via: BLS-Gruppe "Entenei"; fetter als Hühnerei

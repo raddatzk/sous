@@ -1,5 +1,8 @@
 - id: naan
   name: Naan
+  aliases:
+    - Naanbrot
+    - Naan Brot
   category: bakery
   nutrition:
     unspecified: [B782100]

@@ -11,5 +11,10 @@
   varieties:
     - id: gruener-spargel
       name: Grüner Spargel
+      aliases:
+        - Grünspargel
     - id: weisser-spargel
       name: Weißer Spargel
+      aliases:
+        - Weißspargel
+        - Bleichspargel

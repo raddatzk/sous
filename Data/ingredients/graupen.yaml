@@ -1,0 +1,11 @@
+- id: graupen
+  name: Graupen
+  aliases:
+    - Perlgraupen
+    - Gerstengraupen
+    - Rollgerste
+  category: grains
+  nutrition:
+    raw: [C148000]
+    cooked: [C148032]
+  via: BLS-Gruppe "Gerste Graupen"

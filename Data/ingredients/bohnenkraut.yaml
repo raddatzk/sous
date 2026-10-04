@@ -1,0 +1,24 @@
+- id: bohnenkraut
+  name: Bohnenkraut
+  category: spices
+  nutrition:
+    unspecified:
+      - code: Z-bohnenkraut
+        name: Savory, dried
+        source: Ciqual 2020 (Anses), Nr. 11062 „Savory, dried“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 264
+          proteinG: 6.73
+          fatG: 5.91
+          saturatedFatG: 3.26
+          carbsG: 23
+          fiberG: 45.7
+          sodiumMg: 24
+          vitaminCMg: 50
+          vitaminDMcg: 0
+          calciumMg: 2130
+          ironMg: 37.9
+          magnesiumMg: 377
+          potassiumMg: 1050
+  via: Das BLS führt Bohnenkraut nicht. Ciqual 2020 (Anses) führt das getrocknete als „Savory,
+    dried“, inline übernommen; so steht es meist im Regal und im Rezept.

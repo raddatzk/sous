@@ -2,9 +2,22 @@
   name: Johannisbeere
   aliases:
     - Johannisbeeren
+    - Rote Johannisbeere
+    - Rote Johannisbeeren
+    - Ribisel
+    - Ribiseln
   category: fruit
   nutrition:
     raw: [F321100]
     cooked: [F321152]
   candidates: [F321902, F322100, F323100, F323152, F323902, F324902]
   via: BLS-Gruppe "Johannisbeere rot"
+  varieties:
+    - id: schwarze-johannisbeere
+      name: Schwarze Johannisbeere
+      aliases:
+        - Schwarze Johannisbeeren
+      nutrition:
+        raw: [F323100]
+        cooked: [F323152]
+      via: BLS-Gruppe "Johannisbeere schwarz"

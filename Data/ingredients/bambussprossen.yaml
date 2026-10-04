@@ -1,0 +1,9 @@
+- id: bambussprossen
+  name: Bambussprossen
+  aliases:
+    - Bambusschößlinge
+  category: vegetables
+  nutrition:
+    raw: [H610100]
+    cooked: [H610902, H610132]
+  via: BLS-Gruppe "Bambussprossen"; meist aus Dose oder Glas, abgetropft und damit gegart.

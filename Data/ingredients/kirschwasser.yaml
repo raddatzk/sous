@@ -1,0 +1,8 @@
+- id: kirschwasser
+  name: Kirschwasser
+  aliases:
+    - Kirschbrand
+  category: drinks
+  nutrition:
+    unspecified: [P752100]
+  via: BLS-Name "Obstbrand/Obstwasser" — Kirschwasser ist ein Obstbrand

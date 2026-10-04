@@ -1,0 +1,8 @@
+- id: kalbsfond
+  name: Kalbsfond
+  aliases:
+    - Kalbsbrühe
+  category: canned
+  nutrition:
+    unspecified: [X411563]
+  via: BLS-Name "Kalbsbrühe"

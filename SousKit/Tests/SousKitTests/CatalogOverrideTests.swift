@@ -5,7 +5,7 @@ import Testing
 
 /// A household's overrides of the catalog (phase 7d): aisle, parent,
 /// spellings and display name — regional names, Brötchen / Semmel /
-/// Schrippe. Local wins; a catalog that moves later is asked about quietly,
+/// Weckerl. Local wins; a catalog that moves later is asked about quietly,
 /// one that comes to agree folds the override away. Checked against a small
 /// hand-made catalog, so every reading can be worked out by hand.
 @Suite("Catalog overrides")
@@ -67,15 +67,15 @@ struct CatalogOverrideTests {
 
     @Test("A spelling the catalog lacks is identity: same word, same shopping row")
     func localSpellingIsIdentity() {
-        let answer = LocalAnswer(catalogID: "broetchen", name: "Brötchen", spellings: ["Schrippe"])
+        let answer = LocalAnswer(catalogID: "broetchen", name: "Brötchen", spellings: ["Weckerl"])
         let applied = LocalAnswerSet([answer]).applied(to: Self.catalog())
 
-        #expect(applied.catalog.ingredient(for: "Schrippe")?.name == "Brötchen")
-        #expect(applied.catalog.ingredient(for: "Schrippen")?.name == "Brötchen")
-        #expect(Set(Self.shoppingKeys("2 Schrippen\n2 Brötchen", applied)) == ["brötchen"])
-        #expect(Self.kcal("100 g Schrippe", applied) == 270)
+        #expect(applied.catalog.ingredient(for: "Weckerl")?.name == "Brötchen")
+        #expect(applied.catalog.ingredient(for: "Weckerln")?.name == "Brötchen")
+        #expect(Set(Self.shoppingKeys("2 Weckerln\n2 Brötchen", applied)) == ["brötchen"])
+        #expect(Self.kcal("100 g Weckerl", applied) == 270)
         #expect(applied.conflicts.isEmpty)
-        #expect(applied.trace(for: "Schrippe")?.label == "lokal: eigene Schreibweisen")
+        #expect(applied.trace(for: "Weckerl")?.label == "lokal: eigene Schreibweisen")
     }
 
     @Test("A display name is what the word is shown as, never what it is")
@@ -165,7 +165,7 @@ struct CatalogOverrideTests {
     func laterChangeIsAConflict() {
         let answers = [
             LocalAnswer(
-                catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Schrippe"],
+                catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Weckerl"],
                 displayName: "Semmel", baseline: CatalogBaseline(category: .bakery)
             ),
             LocalAnswer(
@@ -174,14 +174,14 @@ struct CatalogOverrideTests {
             ),
         ]
         // The next release: Brötchen under Getreide, Weizenbrötchen under
-        // Berliner, and "Schrippe" a spelling of Weizenbrötchen.
+        // Berliner, and "Weckerl" a spelling of Weizenbrötchen.
         let release = Self.catalog(extra: [
             Self.word("Brötchen", id: "broetchen", aliases: ["Semmel", "Semmeln"], category: .grains),
-            Self.word("Weizenbrötchen", id: "weizenbroetchen", aliases: ["Schrippe"], parent: "Berliner"),
+            Self.word("Weizenbrötchen", id: "weizenbroetchen", aliases: ["Weckerl"], parent: "Berliner"),
         ])
         let applied = LocalAnswerSet(answers).applied(to: release)
 
-        #expect(Set(applied.conflicts.map(\.place)) == [.category, .parent, .spelling("Schrippe")])
+        #expect(Set(applied.conflicts.map(\.place)) == [.category, .parent, .spelling("Weckerl")])
         let category = try! #require(applied.conflicts.first { $0.place == .category })
         #expect(category.word == "Semmel")
         #expect(category.message
@@ -189,14 +189,14 @@ struct CatalogOverrideTests {
         #expect(category.catalogValue == "grains")
         let parent = try! #require(applied.conflicts.first { $0.place == .parent })
         #expect(parent.message == "Der Katalog sagt jetzt: Sorte von Berliner · deine Angabe: Sorte von Brot")
-        let spelling = try! #require(applied.conflicts.first { $0.place == .spelling("Schrippe") })
-        #expect(spelling.catalogSays == "„Schrippe“ ist Weizenbrötchen")
+        let spelling = try! #require(applied.conflicts.first { $0.place == .spelling("Weckerl") })
+        #expect(spelling.catalogSays == "„Weckerl“ ist Weizenbrötchen")
         #expect(spelling.catalogValue == "weizenbroetchen")
 
         // Local wins meanwhile, at every place.
         #expect(applied.catalog.category(for: "Brötchen") == .frozen)
         #expect(applied.catalog.ancestors(of: "Weizenbrötchen").map(\.name) == ["Brot"])
-        #expect(applied.catalog.ingredient(for: "Schrippe")?.name == "Brötchen")
+        #expect(applied.catalog.ingredient(for: "Weckerl")?.name == "Brötchen")
         #expect(applied.folded.isEmpty)
     }
 
@@ -230,15 +230,15 @@ struct CatalogOverrideTests {
     @Test("Where the catalog comes to agree, the override folds away without a question")
     func agreementFolds() {
         let answer = LocalAnswer(
-            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Schrippe"],
+            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Weckerl"],
             baseline: CatalogBaseline(category: .bakery)
         )
         let release = Self.catalog(extra: [
-            Self.word("Brötchen", id: "broetchen", aliases: ["Semmel", "Schrippe"], category: .frozen),
+            Self.word("Brötchen", id: "broetchen", aliases: ["Semmel", "Weckerl"], category: .frozen),
         ])
         let applied = LocalAnswerSet([answer]).applied(to: release)
         #expect(applied.conflicts.isEmpty)
-        #expect(Set(applied.folded.map(\.place)) == [.category, .spelling("Schrippe")])
+        #expect(Set(applied.folded.map(\.place)) == [.category, .spelling("Weckerl")])
     }
 
     @Test("Overrides outlive a 'zählt wie' the catalog silenced, and ask where it disagrees")
@@ -277,7 +277,7 @@ struct CatalogOverrideTests {
         let answers = [
             LocalAnswer(
                 catalogID: "broetchen", name: "Brötchen", category: .frozen, parentID: "brot",
-                spellings: ["Schrippe", "Pfannkuchen"], displayName: "Semmel",
+                spellings: ["Weckerl", "Pfannkuchen"], displayName: "Semmel",
                 baseline: CatalogBaseline(category: .bakery, spellingOwners: ["pfannkuchen": "eierkuchen"])
             ),
             LocalAnswer(name: "dünne Kokosmilch", kind: .countsAs, targetID: "kokosmilch", parentID: "kokosmilch"),
@@ -285,7 +285,7 @@ struct CatalogOverrideTests {
         let offers = CatalogSharing.offers(LocalAnswerSet(answers), catalog: Self.catalog(), nutrition: Self.nutrition)
         let items = offers.map(\.item)
 
-        #expect(items.map(\.name) == ["dünne Kokosmilch", "Schrippe", "Brötchen"])
+        #expect(items.map(\.name) == ["dünne Kokosmilch", "Weckerl", "Brötchen"])
         #expect(Set(offers.map(\.id)).count == 3)
 
         let household = items[0]
@@ -297,7 +297,7 @@ struct CatalogOverrideTests {
         #expect(spelling.kind == .countsAs)
         #expect(spelling.spelling == true)
         #expect(spelling.target == CatalogSubmission.Item.Target(id: "broetchen", name: "Brötchen"))
-        #expect(spelling.summary == "„Schrippe“ Schreibweise von Brötchen")
+        #expect(spelling.summary == "„Weckerl“ Schreibweise von Brötchen")
 
         let placement = items[2]
         #expect(placement.kind == .catalogOverride)
@@ -344,21 +344,21 @@ struct CatalogOverrideLibraryTests {
 
         let broetchen = try #require(catalog.catalog.ingredient(for: "Brötchen"))
         #expect(catalog.checkSpelling("Semmel", for: broetchen) == .alreadyKnown)
-        #expect(catalog.checkSpelling("Schrippe", for: broetchen) == .new)
+        #expect(catalog.checkSpelling("Weckerl", for: broetchen) == .new)
 
         #expect(await catalog.saveOverrides(
-            of: broetchen, category: .frozen, parentID: nil, spellings: ["Schrippe"], displayName: "Semmel"
+            of: broetchen, category: .frozen, parentID: nil, spellings: ["Weckerl"], displayName: "Semmel"
         ))
         #expect(reindexed == 1)
         let answer = try #require(catalog.overrideAnswer(of: broetchen))
         #expect(answer.key == "id:broetchen")
         // What the catalog said when the household decided.
         #expect(answer.baseline == CatalogBaseline(category: .bakery))
-        #expect(catalog.catalog.ingredient(for: "Schrippe")?.shownName == "Semmel")
-        #expect(catalog.catalog.category(for: "Schrippe") == .frozen)
+        #expect(catalog.catalog.ingredient(for: "Weckerl")?.shownName == "Semmel")
+        #expect(catalog.catalog.category(for: "Weckerl") == .frozen)
         #expect(catalog.catalogConflicts.isEmpty)
 
-        await shopping.add(Recipe(title: "Frühstück", servings: 2, ingredientsText: "4 Schrippen\n2 Brötchen"))
+        await shopping.add(Recipe(title: "Frühstück", servings: 2, ingredientsText: "4 Weckerln\n2 Brötchen"))
         let item = try #require(shopping.items.first)
         #expect(shopping.items.count == 1)
         #expect(item.name == "Brötchen")
@@ -399,7 +399,7 @@ struct CatalogOverrideLibraryTests {
         // Written against a catalog that filed Brötchen under Getreide; the
         // data set now says Backwaren.
         try await stores.localAnswers.save(LocalAnswer(
-            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Schrippe"],
+            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Weckerl"],
             baseline: CatalogBaseline(category: .grains)
         ))
         let catalog = IngredientCatalogLibrary(localAnswers: stores.localAnswers, household: stores.household)
@@ -416,7 +416,7 @@ struct CatalogOverrideLibraryTests {
 
         // Played again from the conflict, the other way.
         try await stores.localAnswers.save(LocalAnswer(
-            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Schrippe"],
+            catalogID: "broetchen", name: "Brötchen", category: .frozen, spellings: ["Weckerl"],
             baseline: CatalogBaseline(category: .grains)
         ))
         await catalog.reload()
@@ -425,7 +425,7 @@ struct CatalogOverrideLibraryTests {
         #expect(catalog.catalogConflicts.isEmpty)
         #expect(catalog.catalog.category(for: "Brötchen") == .bakery)
         // The spelling was not part of the conflict and stays.
-        #expect(catalog.overrideAnswer(of: broetchen)?.spellings == ["Schrippe"])
+        #expect(catalog.overrideAnswer(of: broetchen)?.spellings == ["Weckerl"])
     }
 
     @Test("An override the catalog has come to agree with is folded away on load",
@@ -485,14 +485,14 @@ struct CatalogOverrideStoreTests {
         let store = CoreDataLocalAnswerStore(container: try SousPersistentContainer.make(inMemory: true))
         let answer = LocalAnswer(
             catalogID: "broetchen", name: "Brötchen", category: .frozen, parentID: "brot",
-            spellings: ["Schrippe", "Pfannkuchen"], displayName: "Semmel",
+            spellings: ["Weckerl", "Pfannkuchen"], displayName: "Semmel",
             baseline: CatalogBaseline(category: .bakery, parentID: "", spellingOwners: ["pfannkuchen": "eierkuchen"])
         )
         try await store.save(answer)
         let read = try #require(try await store.answers().first)
         #expect(read.category == .frozen)
         #expect(read.parentID == "brot")
-        #expect(read.spellings == ["Schrippe", "Pfannkuchen"])
+        #expect(read.spellings == ["Weckerl", "Pfannkuchen"])
         #expect(read.displayName == "Semmel")
         #expect(read.baseline == answer.baseline)
         #expect(!read.isEmpty)

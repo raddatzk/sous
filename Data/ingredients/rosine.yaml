@@ -7,3 +7,11 @@
   nutrition:
     unspecified: [F840100]
   via: BLS-Gruppe "Rosine/Sultanine (Weinbeere getrocknet)"
+  varieties:
+    - id: korinthe
+      name: Korinthe
+      aliases:
+        - Korinthen
+      nutrition:
+        unspecified: [F840300]
+      via: BLS-Name "Korinthe (Weinbeere getrocknet)"

@@ -2,6 +2,9 @@
   name: Kabeljau
   aliases:
     - Dorsch
+    - Kabeljaufilet
+    - Dorschfilet
+    - Skrei
   category: fish
   nutrition:
     raw: [T204100]

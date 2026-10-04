@@ -1,5 +1,8 @@
 - id: jasminreis
   name: Jasminreis
+  aliases:
+    - Jasmin Reis
+    - Duftreis
   category: grains
   nutrition:
     raw: [C352000]

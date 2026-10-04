@@ -9,3 +9,18 @@
     unspecified: [H130100]
   candidates: [H130400, H130610]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: gemahlene-haselnuesse
+      name: Gemahlene Haselnüsse
+      aliases:
+        - Gemahlene Haselnuss
+        - Haselnüsse gemahlen
+        - Geriebene Haselnüsse
+      nutrition:
+        unspecified: [H130400]
+      via: BLS-Name "Haselnuss gemahlen"
+    - id: haselnussmus
+      name: Haselnussmus
+      nutrition:
+        unspecified: [H130800]
+      via: BLS-Name "Haselnussmus"

@@ -8,3 +8,35 @@
     raw: [F220100]
   candidates: [F220400, F220902, F227902, F22A902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: getrocknete-pflaumen
+      name: Getrocknete Pflaumen
+      aliases:
+        - Getrocknete Pflaume
+        - Trockenpflaumen
+        - Backpflaumen
+        - Dörrpflaumen
+      nutrition:
+        unspecified: [F220400]
+      via: BLS-Name "Pflaume getrocknet"
+    - id: mirabelle
+      name: Mirabelle
+      aliases:
+        - Mirabellen
+      nutrition:
+        raw: [F224100]
+        cooked: [F224152]
+      via: BLS-Gruppe "Mirabelle"
+    - id: reneklode
+      name: Reneklode
+      aliases:
+        - Reneklauden
+        - Reneclaude
+        - Reineclaude
+        - Reineclauden
+        - Ringlotte
+        - Ringlotten
+      nutrition:
+        raw: [F225100]
+        cooked: [F225152]
+      via: BLS-Gruppe "Reineclaude"; Ringlotte ist das österreichische Wort

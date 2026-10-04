@@ -1,0 +1,26 @@
+- id: gelatine
+  name: Gelatine
+  category: baking
+  measures:
+    Blatt:
+      grams: 1.7
+      note: Sechs Blatt wiegen 10 g und ersetzen ein Päckchen gemahlene Gelatine.
+  nutrition:
+    unspecified: [R468000]
+  via: BLS-Name "Gelatine/Speisegelatine"
+  varieties:
+    - id: blattgelatine
+      name: Blattgelatine
+      measures:
+        Blatt:
+          grams: 1.7
+          note: Sechs Blatt wiegen 10 g.
+    - id: gemahlene-gelatine
+      name: Gemahlene Gelatine
+      aliases:
+        - Gelatinepulver
+        - Gelatine gemahlen
+      measures:
+        Pck.:
+          grams: 9
+          note: Ein Beutel, für 500 ml Flüssigkeit.

@@ -7,3 +7,7 @@
   nutrition:
     unspecified: [S114000]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: vanillinzucker
+      name: Vanillinzucker
+      measures: {Pck.: 8}

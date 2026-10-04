@@ -1,5 +1,7 @@
 - id: rote-linsen
   name: Rote Linsen
+  aliases:
+    - Masoor Dal
   category: legumes
   nutrition:
     cooked: [H730032]

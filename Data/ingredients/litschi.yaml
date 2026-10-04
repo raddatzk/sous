@@ -1,0 +1,12 @@
+- id: litschi
+  name: Litschi
+  aliases:
+    - Litschis
+    - Litchi
+    - Litchis
+    - Lychee
+    - Lychees
+  category: fruit
+  nutrition:
+    raw: [F515100]
+  via: BLS-Name "Litschi roh"

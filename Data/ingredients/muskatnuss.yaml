@@ -2,8 +2,60 @@
   name: Muskatnuss
   aliases:
     - Muskat
+    - Muskatnüsse
+    - geriebene Muskatnuss
+    - frisch geriebene Muskatnuss
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-muskatnuss
+        name: Nutmeg
+        source: Ciqual 2020 (Anses), Nr. 11048 „Nutmeg“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 507
+          proteinG: 5.3
+          fatG: 36.3
+          saturatedFatG: 25.9
+          carbsG: 28.5
+          sugarG: 2.99
+          fiberG: 20.8
+          sodiumMg: 16
+          vitaminCMg: 3
+          vitaminDMcg: 0
+          vitaminEMg: 0
+          calciumMg: 184
+          ironMg: 3.04
+          magnesiumMg: 183
+          potassiumMg: 350
+  via: Das BLS führt Muskatnuss nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020
+    (Anses) führt es als „Nutmeg“ (die Nuss als Gewürz); diese Zeile ist inline übernommen.
+  varieties:
+    - id: muskatbluete
+      name: Muskatblüte
+      aliases:
+        - Macis
+        - Mazis
+      nutrition:
+        unspecified:
+          - code: Z-muskatbluete
+            name: Spices, mace, ground
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 170927 „Spices,
+              mace, ground“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 475
+              proteinG: 6.71
+              fatG: 32.38
+              saturatedFatG: 9.51
+              fiberG: 20.2
+              sodiumMg: 80
+              vitaminAMcg: 40
+              vitaminCMg: 21
+              vitaminDMcg: 0
+              calciumMg: 252
+              ironMg: 13.9
+              magnesiumMg: 163
+              potassiumMg: 463
+      via: Der Samenmantel der Muskatnuss, ein eigenes Gewürz. Weder BLS noch Ciqual führen
+        ihn; USDA FoodData Central (SR Legacy, gemeinfrei) als „Spices, mace, ground“, inline
+        übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen
+        an, das BLS ohne — deshalb fehlen sie in dieser Zeile.

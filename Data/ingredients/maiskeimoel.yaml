@@ -1,0 +1,9 @@
+- id: maiskeimoel
+  name: Maiskeimöl
+  aliases:
+    - Maisöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q260000]
+  via: BLS-Name "Maiskeimöl"

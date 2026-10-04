@@ -5,3 +5,10 @@
     raw: [E401000]
     cooked: [E401032]
   via: kuratierte Auswahl
+  varieties:
+    - id: vollkornspaghetti
+      name: Vollkornspaghetti
+      nutrition:
+        raw: [E510000]
+        cooked: [E500032]
+      via: BLS-Gruppe "Vollkornteigwaren eifrei", wie Vollkornnudeln

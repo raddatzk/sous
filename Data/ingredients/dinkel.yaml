@@ -8,3 +8,6 @@
     cooked: [C235132]
   via: Das BLS führt Dinkel nur gemahlen; der Vollkornschrot ist das ganze Korn, nur zerkleinert,
     und hat je 100 g dieselben Werte
+  varieties:
+    - id: dinkelflocken
+      name: Dinkelflocken

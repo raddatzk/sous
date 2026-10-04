@@ -8,3 +8,13 @@
     raw: [G410100]
   candidates: [G410702, G410732, G410902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: artischockenherzen
+      name: Artischockenherzen
+      aliases:
+        - Artischockenherz
+      category: canned
+      nutrition:
+        cooked: [G410902, G410702]
+      via: 'BLS "Artischocke Konserve, abgetropft": aus Dose oder Glas, also gegart; in Öl
+        eingelegte als Alternative.'

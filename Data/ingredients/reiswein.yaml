@@ -1,0 +1,39 @@
+- id: reiswein
+  name: Reiswein
+  category: drinks
+  nutrition:
+    unspecified:
+      - code: Z-reiswein
+        name: Sake or rice wine
+        source: Ciqual 2020 (Anses), Nr. 1026 „Sake or rice wine“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 133
+          proteinG: 0
+          fatG: 0
+          saturatedFatG: 0
+          carbsG: 5
+          sugarG: 0
+          fiberG: 0
+          sodiumMg: 2
+          vitaminCMg: 0
+          vitaminDMcg: 0
+          vitaminEMg: 0
+          calciumMg: 5
+          ironMg: 0.1
+          magnesiumMg: 6
+          potassiumMg: 25
+  via: Das BLS führt keinen Reiswein; Ciqual-Zeile "Saké ou alcool de riz"
+  varieties:
+    - id: sake
+      name: Sake
+    - id: shaoxing-wein
+      name: Shaoxing-Wein
+      aliases:
+        - Shaoxing
+        - Shao Xing
+    - id: mirin
+      name: Mirin
+      nutrition: without
+      via: Süßer japanischer Reiswein zum Würzen, viel Zucker; keine Zeile in BLS, Ciqual
+        oder USDA SR Legacy, und die Sake-Werte wären zu niedrig

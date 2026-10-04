@@ -1,10 +1,35 @@
 - id: senfkoerner
   name: Senfkörner
+  aliases:
+    - Senfsaat
+    - Senfsamen
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-senfkoerner
+        name: Spices, mustard seed, ground
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 170929 „Spices, mustard
+          seed, ground“, gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 508
+          proteinG: 26.08
+          fatG: 36.24
+          saturatedFatG: 1.989
+          sugarG: 6.79
+          fiberG: 12.2
+          sodiumMg: 13
+          vitaminAMcg: 2
+          vitaminCMg: 7.1
+          vitaminDMcg: 0
+          vitaminEMg: 5.07
+          calciumMg: 266
+          ironMg: 9.21
+          magnesiumMg: 370
+          potassiumMg: 738
+  via: Das BLS führt Senfsaat nicht, Ciqual auch nicht (nur fertigen Senf). USDA FoodData
+    Central (SR Legacy, gemeinfrei) führt „Spices, mustard seed, ground“; ganz oder gemahlen
+    sind es dieselben Samen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen
+    an, das BLS ohne — deshalb fehlen sie in dieser Zeile, statt eine andere Größe einzutragen.
   varieties:
     - id: schwarze-senfkoerner
       name: Schwarze Senfkörner

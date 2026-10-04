@@ -18,3 +18,83 @@
       name: Grüne Bohne
       aliases:
         - Grüne Bohnen
+        - Fisolen
+        - Fisole
+    - id: stangenbohne
+      name: Stangenbohne
+      aliases:
+        - Stangenbohnen
+    - id: prinzessbohne
+      name: Prinzessbohne
+      aliases:
+        - Prinzessbohnen
+        - Keniabohnen
+    - id: wachsbohne
+      name: Wachsbohne
+      aliases:
+        - Wachsbohnen
+      nutrition:
+        raw: [G720100]
+        cooked: [G720132, G720232]
+      candidates: [G720200, G720802, G720902]
+      via: 'BLS-Gruppe "Wachsbohne": die gelbe Gartenbohne hat eigene Zeilen.'
+    - id: dicke-bohne
+      name: Dicke Bohne
+      aliases:
+        - Dicke Bohnen
+        - Saubohne
+        - Saubohnen
+        - Ackerbohnen
+        - Puffbohnen
+        - Favabohnen
+      nutrition:
+        raw: [G730100]
+        cooked: [G730132, G730232]
+      candidates: [G730200, G730902, H750100, H750132]
+      via: 'BLS-Gruppe "Dicke Bohne unreif": die frischen oder tiefgekühlten Kerne, wie sie
+        ein Rezept meint. Die getrocknete reife Bohne (H750100, für Ful) steht unter den Kandidaten.'
+    - id: schlangenbohne
+      name: Schlangenbohne
+      aliases:
+        - Schlangenbohnen
+      nutrition:
+        raw:
+          - code: Z-schlangenbohne-raw
+            name: Yardlong bean, raw
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169222 „Yardlong
+              bean, raw“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 47
+              proteinG: 2.8
+              fatG: 0.4
+              saturatedFatG: 0.105
+              sodiumMg: 4
+              vitaminAMcg: 43
+              vitaminCMg: 18.8
+              vitaminDMcg: 0
+              calciumMg: 50
+              ironMg: 0.47
+              magnesiumMg: 44
+              potassiumMg: 240
+        cooked:
+          - code: Z-schlangenbohne-cooked
+            name: Yardlong bean, cooked, boiled, drained, without salt
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169223 „Yardlong
+              bean, cooked, boiled, drained, without salt“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 47
+              proteinG: 2.53
+              fatG: 0.1
+              saturatedFatG: 0.026
+              sodiumMg: 4
+              vitaminAMcg: 23
+              vitaminCMg: 16.2
+              vitaminDMcg: 0
+              calciumMg: 44
+              ironMg: 0.98
+              magnesiumMg: 42
+              potassiumMg: 290
+      via: BLS und Ciqual führen die Spargelbohne nicht, und sie liegt deutlich über der grünen
+        Bohne (47 statt 28 kcal). Werte aus USDA SR Legacy "Yardlong bean", roh (FDC 169222)
+        und gekocht ohne Salz (FDC 169223). USDA nennt Kohlenhydrate nur als Differenz (mit
+        Ballaststoffen); carbsG ist deshalb weggelassen.

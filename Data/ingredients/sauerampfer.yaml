@@ -1,0 +1,7 @@
+- id: sauerampfer
+  name: Sauerampfer
+  category: vegetables
+  nutrition:
+    raw: [G263100]
+    cooked: [G263132]
+  via: BLS-Gruppe "Sauerampfer".

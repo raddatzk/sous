@@ -1,7 +1,59 @@
 - id: frischkaese
   name: Frischkäse
+  aliases:
+    - Doppelrahmfrischkäse
   category: dairy
   nutrition:
     unspecified: [M710800]
   candidates: [M7A1600, M7B1600]
   via: BLS-Gruppe "Frischkäsezubereitung Natur, mind. 60 % Fett i. Tr."
+  varieties:
+    - id: huettenkaese
+      name: Hüttenkäse
+      aliases:
+        - Körniger Frischkäse
+        - Cottage Cheese
+      nutrition:
+        unspecified: [M711300, M711100]
+      via: BLS-Gruppe "Körniger Frischkäse"; im Laden meist 20 % Fett i. Tr.
+    - id: ziegenfrischkaese
+      name: Ziegenfrischkäse
+      nutrition:
+        unspecified: [M7A1600]
+      via: BLS-Zeile "Frischkäse aus Ziegenmilch, Natur, mind. 45 % Fett i. Tr."
+    - id: paneer
+      name: Paneer
+      aliases:
+        - Panir
+      nutrition: without
+      via: Indischer gepresster Frischkäse. Weder BLS noch Ciqual 2025 noch USDA SR Legacy/Foundation
+        führen ihn; die FNDDS-Zeile "Cheese, paneer" (FDC 2705740) ist aus eingedickter Vollmilch
+        gerechnet und behält 22 g Milchzucker, den echter Paneer mit der Molke verliert —
+        unbrauchbar. Die Werte des Frischkäses zu erben wäre falsch (zu wenig Eiweiß).
+    - id: queso-fresco
+      name: Queso fresco
+      nutrition:
+        unspecified:
+          - code: Z-queso-fresco
+            name: Cheese, fresh, queso fresco
+            source: USDA FoodData Central, SR Legacy, FDC ID 172223 „Cheese, fresh, queso
+              fresco“, NDB 1228, gemeinfrei (CC0)
+            per100g:
+              kcal: 299
+              proteinG: 18.1
+              fatG: 23.8
+              saturatedFatG: 12.9
+              sugarG: 2.32
+              fiberG: 0.0
+              sodiumMg: 751
+              vitaminAMcg: 224
+              vitaminDMcg: 2.7
+              vitaminEMg: 0.37
+              vitaminCMg: 0.0
+              calciumMg: 566
+              ironMg: 0.2
+              magnesiumMg: 24.0
+              potassiumMg: 129
+      via: Mexikanischer Frischkäse, krümelig und salzig; der BLS führt ihn nicht, USDA SR
+        Legacy schon. USDA gibt Kohlenhydrate nur als Differenz mit den Ballaststoffen an,
+        daher ohne carbsG.

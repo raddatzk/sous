@@ -2,12 +2,64 @@
   name: Minze
   aliases:
     - frische Minze
+    - Minzblätter
+    - Minzeblätter
   category: herbs
   measures: {Bund: 20, Handvoll: 5}
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    raw:
+      - code: Z-minze
+        name: Mint, fresh
+        source: Ciqual 2020 (Anses), Nr. 11027 „Mint, fresh“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 57.6
+          proteinG: 3.52
+          fatG: 0.84
+          saturatedFatG: 0.22
+          carbsG: 5.3
+          sugarG: 5.3
+          fiberG: 7.4
+          sodiumMg: 30.5
+          vitaminCMg: 22.6
+          vitaminDMcg: 0
+          vitaminEMg: 5
+          calciumMg: 221
+          ironMg: 8.48
+          magnesiumMg: 71.5
+          potassiumMg: 514
+  via: Das BLS führt Minze nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint
+    ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als
+    „Mint, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.
   varieties:
     - id: pfefferminze
       name: Pfefferminze
+      aliases:
+        - Pfefferminzblätter
+    - id: getrocknete-minze
+      name: Getrocknete Minze
+      aliases:
+        - Minze getrocknet
+      category: spices
+      nutrition:
+        unspecified:
+          - code: Z-getrocknete-minze
+            name: Mint, dried
+            source: Ciqual 2020 (Anses), Nr. 11029 „Mint, dried“, Licence Ouverte / CC BY
+              4.0
+            per100g:
+              kcal: 283
+              proteinG: 19.9
+              fatG: 6.03
+              saturatedFatG: 1.58
+              carbsG: 22.2
+              fiberG: 29.8
+              sodiumMg: 344
+              vitaminCMg: 0
+              vitaminDMcg: 0
+              calciumMg: 1490
+              ironMg: 87.5
+              magnesiumMg: 602
+              potassiumMg: 1920
+      via: Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte
+        je Gramm. Ciqual 2020 (Anses) führt es als „Mint, dried“, inline übernommen. Türkische
+        und levantinische Rezepte nennen sie oft ausdrücklich.

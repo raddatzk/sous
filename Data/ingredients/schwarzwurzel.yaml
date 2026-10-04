@@ -1,0 +1,10 @@
+- id: schwarzwurzel
+  name: Schwarzwurzel
+  aliases:
+    - Schwarzwurzeln
+  category: vegetables
+  nutrition:
+    raw: [G650100]
+    cooked: [G650132, G650152, G650142]
+  candidates: [G650200, G650232, G650902]
+  via: BLS-Gruppe "Schwarzwurzel".

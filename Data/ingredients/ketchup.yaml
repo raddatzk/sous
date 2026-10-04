@@ -1,7 +1,12 @@
 - id: ketchup
   name: Ketchup
+  aliases:
+    - Tomatenketchup
   category: canned
   density: 1.14
   nutrition:
     unspecified: [R141100]
   via: BLS-Gruppe "Tomatenketchup"
+  varieties:
+    - id: curryketchup
+      name: Curryketchup

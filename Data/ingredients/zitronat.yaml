@@ -1,0 +1,9 @@
+- id: zitronat
+  name: Zitronat
+  aliases:
+    - Citronat
+    - Sukkade
+  category: baking
+  nutrition:
+    unspecified: [R381200]
+  via: BLS-Name "Zitronat/Sukkade"

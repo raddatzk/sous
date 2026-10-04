@@ -1,0 +1,6 @@
+- id: portwein
+  name: Portwein
+  category: drinks
+  nutrition:
+    unspecified: [P431000]
+  via: BLS-Name "Portwein"

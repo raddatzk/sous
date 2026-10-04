@@ -8,3 +8,12 @@
     raw: [F301100]
   candidates: [F301400, F301902, F340902, F341902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: walderdbeere
+      name: Walderdbeere
+      aliases:
+        - Walderdbeeren
+      nutrition:
+        raw: [F409100]
+        cooked: [F301152]
+      via: BLS-Name "Wald-Erdbeere roh"; gedünstet führt das BLS nur die Gartenerdbeere

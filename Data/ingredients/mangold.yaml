@@ -1,0 +1,10 @@
+- id: mangold
+  name: Mangold
+  aliases:
+    - Krautstiel
+    - Krautstiele
+  category: vegetables
+  nutrition:
+    raw: [G230100]
+    cooked: [G230132, G230152, G230142, G230182, G230162]
+  via: BLS-Gruppe "Mangold"; "Krautstiel" ist das Schweizer Wort.

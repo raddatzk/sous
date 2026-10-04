@@ -3,8 +3,25 @@
   aliases:
     - Erdnüsse
     - Erdnussbutter
+    - Erdnusskerne
+    - Aschantinuss
+    - Aschantinüsse
   category: nuts
   nutrition:
     unspecified: [H110600]
   candidates: [H110700, H810100]
   via: BLS-Gruppe "Erdnuss geröstet"
+  varieties:
+    - id: gesalzene-erdnuesse
+      name: Gesalzene Erdnüsse
+      aliases:
+        - Gesalzene Erdnuss
+        - Erdnüsse gesalzen
+      nutrition:
+        unspecified: [H110700]
+      via: BLS-Name "Erdnuss geröstet, gesalzen"
+    - id: erdnussmus
+      name: Erdnussmus
+      nutrition:
+        unspecified: [H110800]
+      via: BLS-Name "Erdnussmus" — reines Mus, anders als die Erdnusscreme

@@ -1,5 +1,8 @@
 - id: tomatenmark
   name: Tomatenmark
+  aliases:
+    - Paradeismark
+    - Tomatenkonzentrat
   category: canned
   density: 1.1
   nutrition:

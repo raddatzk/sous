@@ -2,6 +2,9 @@
   name: Speck
   aliases:
     - Bacon
+    - Frühstücksspeck
+    - Durchwachsener Speck
+    - Speckwürfel
   category: meat
   nutrition:
     cooked: [W411332]
@@ -10,3 +13,18 @@
   varieties:
     - id: raeucherspeck
       name: Räucherspeck
+    - id: pancetta
+      name: Pancetta
+    - id: guanciale
+      name: Guanciale
+      nutrition: without
+      via: Luftgetrocknete Schweinebacke, fast reines Fett. Weder BLS noch Ciqual 2025 noch
+        USDA SR Legacy führen sie; die Werte des Bauchspecks zu erben würde die Energie etwa
+        halbieren.
+    - id: schinkenspeck
+      name: Schinkenspeck
+      nutrition:
+        cooked: [W410482, W410462, W410432]
+        unspecified: [W410400]
+      via: BLS-Gruppe "Schwein Schinkenspeck, Rohpökelware, geräuchert"; mager, ein Zehntel
+        des Fetts von Bauchspeck

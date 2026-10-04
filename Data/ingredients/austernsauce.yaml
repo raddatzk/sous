@@ -1,0 +1,30 @@
+- id: austernsauce
+  name: Austernsauce
+  aliases:
+    - Austernsoße
+  category: canned
+  nutrition:
+    unspecified:
+      - code: Z-austernsauce
+        name: Sauce, oyster, ready-to-serve
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 174529 „Sauce, oyster,
+          ready-to-serve“, gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 51
+          proteinG: 1.35
+          fatG: 0.25
+          saturatedFatG: 0.043
+          sugarG: 0
+          fiberG: 0.3
+          sodiumMg: 2733
+          vitaminAMcg: 0
+          vitaminCMg: 0.1
+          vitaminDMcg: 0
+          vitaminEMg: 0
+          calciumMg: 32
+          ironMg: 0.18
+          magnesiumMg: 4
+          potassiumMg: 54
+  via: Weder BLS noch Ciqual führen Austernsauce; USDA SR Legacy, inline übernommen. USDA
+    nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb
+    nicht in der Zeile.

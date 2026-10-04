@@ -2,9 +2,15 @@
   name: Brokkoli
   aliases:
     - Broccoli
+    - Brokkoliröschen
   category: vegetables
   measures: {Stk.: 400}
   nutrition:
     cooked: [G312132, G312152, G312162, G312182]
     raw: [G312100]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: brokkolini
+      name: Brokkolini
+      aliases:
+        - Broccolini

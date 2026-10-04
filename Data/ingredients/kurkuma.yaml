@@ -1,5 +1,9 @@
 - id: kurkuma
   name: Kurkuma
+  aliases:
+    - Kurkumapulver
+    - Curcuma
+    - Gelbwurz
   category: spices
   nutrition: without
   via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
@@ -8,3 +12,6 @@
   varieties:
     - id: frische-kurkuma
       name: Frische Kurkuma
+      aliases:
+        - Kurkumawurzel
+        - frische Kurkumawurzel

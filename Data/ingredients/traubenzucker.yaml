@@ -1,0 +1,8 @@
+- id: traubenzucker
+  name: Traubenzucker
+  aliases:
+    - Dextrose
+  category: baking
+  nutrition:
+    unspecified: [S115100]
+  via: BLS-Name "Traubenzucker (Dextrose/Glukose)"

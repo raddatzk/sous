@@ -1,5 +1,10 @@
 - id: fenchel
   name: Fenchel
+  aliases:
+    - Gemüsefenchel
+    - Knollenfenchel
+    - Fenchelknolle
+    - Fenchelknollen
   category: vegetables
   measures: {Stk.: 300}
   nutrition:

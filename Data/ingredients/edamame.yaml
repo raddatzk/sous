@@ -1,5 +1,7 @@
 - id: edamame
   name: Edamame
+  aliases:
+    - Edamamebohnen
   category: legumes
   nutrition:
     raw: [G750100]

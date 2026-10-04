@@ -8,3 +8,10 @@
   nutrition:
     raw: [H150100]
   via: BLS-Name "Kokos Fruchtfleisch, roh" — die frische Nuss; getrocknete Raspeln sind Kokosraspeln
+  varieties:
+    - id: kokoswasser
+      name: Kokoswasser
+      category: drinks
+      nutrition:
+        unspecified: [H151000]
+      via: BLS-Name "Kokoswasser (Fruchtwasser)"

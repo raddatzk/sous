@@ -1,7 +1,26 @@
 - id: thunfisch
   name: Thunfisch
+  aliases:
+    - Thunfischsteak
+    - Thunfischfilet
+    - Thon
   category: fish
   nutrition:
     cooked: [T121132, T121162, T121172, T121182]
     raw: [T121100]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: thunfisch-in-oel
+      name: Thunfisch in Öl
+      nutrition:
+        unspecified: [T121702]
+      via: BLS-Zeile "Thunfisch in Öl, Konserve, abgetropft"; die Dose ist schon gegart, daher
+        nur ein Zustand
+    - id: thunfisch-im-eigenen-saft
+      name: Thunfisch im eigenen Saft
+      aliases:
+        - Thunfisch naturell
+      nutrition:
+        unspecified: [T121902]
+      via: BLS-Zeile "Thunfisch im eigenen Saft, Konserve, abgetropft"; die Dose ist schon
+        gegart, daher nur ein Zustand

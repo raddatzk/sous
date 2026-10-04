@@ -1,0 +1,15 @@
+- id: steckruebe
+  name: Steckrübe
+  aliases:
+    - Steckrüben
+    - Kohlrübe
+    - Kohlrüben
+    - Wruke
+    - Wruken
+    - Bodenkohlrabi
+  category: vegetables
+  nutrition:
+    raw: [G611100]
+    cooked: [G611132, G611152]
+  via: BLS-Gruppe "Kohlrübe/Steckrübe"; "Wruke" sagt man im Nordosten, "Bodenkohlrabi" in
+    der Schweiz.

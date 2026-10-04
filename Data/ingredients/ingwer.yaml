@@ -2,6 +2,8 @@
   name: Ingwer
   aliases:
     - frischer Ingwer
+    - Ingwerwurzel
+    - Ingwerknolle
   category: vegetables
   measures: {cm: 5}
   nutrition:

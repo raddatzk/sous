@@ -7,11 +7,25 @@
   varieties:
     - id: honigmelone
       name: Honigmelone
+      aliases:
+        - Honigmelonen
       nutrition:
         raw: [F533100]
       via: BLS-Namensabgleich, einmalig festgeschrieben
     - id: wassermelone
       name: Wassermelone
+      aliases:
+        - Wassermelonen
       nutrition:
         raw: [F535100]
       via: BLS-Namensabgleich, einmalig festgeschrieben
+    - id: netzmelone
+      name: Netzmelone
+      aliases:
+        - Netzmelonen
+        - Cantaloupe-Melone
+        - Cantaloupmelone
+        - Cantaloupe
+      nutrition:
+        raw: [F532100]
+      via: BLS-Name "Netzmelone/Cantaloupmelone, roh"

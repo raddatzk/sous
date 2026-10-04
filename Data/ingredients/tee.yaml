@@ -1,6 +1,24 @@
 - id: tee
   name: Tee
+  aliases:
+    - Schwarztee
+    - Schwarzer Tee
   category: drinks
   nutrition:
     unspecified: [N630000]
   via: BLS-Gruppe "Schwarztee (Getränk)"
+  varieties:
+    - id: gruener-tee
+      name: Grüner Tee
+      aliases:
+        - Grüntee
+    - id: earl-grey
+      name: Earl Grey
+    - id: matcha
+      name: Matcha
+      aliases:
+        - Matchapulver
+        - Matcha-Tee
+      nutrition: without
+      via: Das Pulver wird mitgegessen, ist also nicht der Aufguss; keine Zeile in BLS, Ciqual
+        oder USDA SR Legacy

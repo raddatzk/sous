@@ -1,5 +1,10 @@
 - id: basilikum
   name: Basilikum
+  aliases:
+    - frisches Basilikum
+    - frischer Basilikum
+    - Basilikumblatt: {unit: Blatt}
+    - Basilikumblätter: {unit: Blatt}
   category: herbs
   measures: {Bund: 20, Handvoll: 10}
   nutrition:
@@ -9,3 +14,14 @@
   varieties:
     - id: thai-basilikum
       name: Thai-Basilikum
+      aliases:
+        - Thai Basilikum
+    - id: getrocknetes-basilikum
+      name: Getrocknetes Basilikum
+      aliases:
+        - Basilikum getrocknet
+      category: spices
+      nutrition:
+        unspecified: [R231000]
+      via: BLS-Name „Basilikum getrocknet“ — bisher nur Kandidat des frischen Basilikums,
+        mit dem er je Gramm fast zehnmal so viel Energie hat.

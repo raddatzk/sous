@@ -2,6 +2,7 @@
   name: Pastinake
   aliases:
     - Pastinaken
+    - Pastinak
   category: vegetables
   nutrition:
     cooked: [G640132, G640152, G640162, G640182]

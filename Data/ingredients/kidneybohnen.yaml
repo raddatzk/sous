@@ -1,5 +1,7 @@
 - id: kidneybohnen
   name: Kidneybohnen
+  aliases:
+    - Kidneybohne
   category: legumes
   measures:
     Dose:

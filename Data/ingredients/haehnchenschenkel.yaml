@@ -3,8 +3,27 @@
   aliases:
     - Hähnchenkeule
     - Hähnchenkeulen
+    - Hühnerschenkel
+    - Hühnerkeule
+    - Hühnerkeulen
+    - Pouletschenkel
   category: meat
   nutrition:
     raw: [V4A5100, V4B5100]
     cooked: [V4A5162, V4B5162, V4A5182, V4B5182, V4A5172, V4B5172]
   via: kuratierte Auswahl
+  varieties:
+    - id: haehnchenoberschenkel
+      name: Hähnchenoberschenkel
+      nutrition:
+        raw: [V4A5100]
+        cooked: [V4A5182, V4A5162, V4A5142]
+      via: BLS-Gruppe "Hähnchen Oberschenkel, mit Haut"
+    - id: haehnchenunterschenkel
+      name: Hähnchenunterschenkel
+      aliases:
+        - Drumsticks
+      nutrition:
+        raw: [V4B5100]
+        cooked: [V4B5182, V4B5162, V4B5142]
+      via: BLS-Gruppe "Hähnchen Unterschenkel, mit Haut"; deutlich magerer als der Oberschenkel

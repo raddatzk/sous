@@ -22,3 +22,20 @@
       nutrition:
         unspecified: [H520800]
       via: BLS-Name, in die Küchenliste übernommen
+      varieties:
+        - id: kalamata-oliven
+          name: Kalamata-Oliven
+          aliases:
+            - Kalamata-Olive
+            - Kalamata
+    - id: gruene-oliven
+      name: Grüne Oliven
+      aliases:
+        - grüne Olive
+      measures:
+        Glas:
+          grams: 170
+          note: Ein übliches Glas, abgetropft; die BLS-Zeilen für Oliven sind abgetropft.
+      nutrition:
+        unspecified: [H510802, H510900, H511900]
+      via: BLS "Oliven grün, gesäuert, abgetropft"; gefüllte als Alternativen.

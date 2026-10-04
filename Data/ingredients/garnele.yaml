@@ -4,6 +4,13 @@
     - Garnelen
     - Shrimps
     - Scampi
+    - Shrimp
+    - Crevetten
+    - Crevette
+    - Gambas
+    - Gamba
+    - Riesengarnele
+    - Tigergarnele
   category: fish
   nutrition:
     raw: [T753100]
@@ -11,3 +18,8 @@
   candidates: [T753172, T753182, T753200, T753232, T753252, T753272, T753282, T753800, T936100,
     T936182]
   via: BLS-Gruppe "Garnele/Granat/Krabbe"
+  varieties:
+    - id: nordseekrabben
+      name: Nordseekrabben
+      aliases:
+        - Nordseegarnelen

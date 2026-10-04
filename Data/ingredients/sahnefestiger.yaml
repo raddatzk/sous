@@ -1,0 +1,12 @@
+- id: sahnefestiger
+  name: Sahnefestiger
+  aliases:
+    - Sahnestandmittel
+  category: baking
+  measures:
+    Pck.:
+      grams: 8
+      note: Ein Päckchen für 250 ml Sahne.
+  nutrition:
+    unspecified: [R434000]
+  via: BLS-Name "Sahnestandmittel"

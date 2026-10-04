@@ -1,0 +1,10 @@
+- id: okra
+  name: Okra
+  aliases:
+    - Okraschoten
+  category: vegetables
+  nutrition:
+    raw: [G530100]
+    cooked: [G530132, G530152, G530142]
+  candidates: [G530902]
+  via: BLS-Gruppe "Okra".

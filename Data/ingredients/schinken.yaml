@@ -8,11 +8,53 @@
   varieties:
     - id: kochschinken
       name: Kochschinken
+      aliases:
+        - Gekochter Schinken
+        - Prosciutto cotto
     - id: parmaschinken
       name: Parmaschinken
+      aliases:
+        - Prosciutto di Parma
+        - Prosciutto crudo
       nutrition:
         cooked: [W441032, W441082]
         unspecified: [W441000]
       via: BLS-Namensabgleich, einmalig festgeschrieben
     - id: serranoschinken
       name: Serranoschinken
+      aliases:
+        - Jamón Serrano
+      nutrition:
+        unspecified:
+          - code: Z-serranoschinken
+            name: Dry-cured ham, Serrano
+            source: Ciqual 2025 (Anses), Nr. 28845 „Dry-cured ham, Serrano“, Licence Ouverte
+              / CC BY 4.0
+            per100g:
+              kcal: 235
+              proteinG: 30.4
+              fatG: 12.3
+              saturatedFatG: 5.2
+              carbsG: 0.76
+              sugarG: 0.36
+              sodiumMg: 1990
+      via: Erbte bisher den Kochschinken (904 mg Natrium, 130 kcal). Der BLS führt keinen
+        Serrano; Ciqual-Zeile "Jambon sec Serrano".
+    - id: schwarzwaelder-schinken
+      name: Schwarzwälder Schinken
+      nutrition:
+        unspecified: [W442000]
+      via: BLS-Zeile "Schwarzwälder Schinken, Rohpökelware, geräuchert"
+    - id: lachsschinken
+      name: Lachsschinken
+      nutrition:
+        unspecified: [W443000]
+      via: BLS-Zeile "Lachsschinken, Rohpökelware, geräuchert"
+    - id: roher-schinken
+      name: Roher Schinken
+      aliases:
+        - Rohschinken
+      nutrition:
+        unspecified: [U682700, U681700]
+      via: BLS-Zeile "Schwein Rohschinken, mit Fettrand, Rohpökelware, geräuchert"; ohne Fettrand
+        als Alternative

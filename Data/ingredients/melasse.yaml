@@ -1,5 +1,7 @@
 - id: melasse
   name: Melasse
+  aliases:
+    - Zuckerrohrmelasse
   category: baking
   density: 1.4
   nutrition:

@@ -1,0 +1,9 @@
+- id: maniok
+  name: Maniok
+  aliases:
+    - Cassava
+  category: vegetables
+  nutrition:
+    raw: [K410100]
+    cooked: [K410432]
+  via: 'BLS-Gruppe "Maniok/Cassava": die Knolle, nicht die Stärke.'

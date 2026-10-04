@@ -1,0 +1,8 @@
+- id: preiselbeere
+  name: Preiselbeere
+  aliases:
+    - Preiselbeeren
+  category: fruit
+  nutrition:
+    raw: [F401100]
+  via: BLS-Name "Preiselbeere roh"

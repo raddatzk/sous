@@ -1,0 +1,33 @@
+- id: kuemmel
+  name: Kümmel
+  aliases:
+    - Kümmelsamen
+    - Kümmelkörner
+    - Kümmelsaat
+    - ganzer Kümmel
+    - gemahlener Kümmel
+    - Kümmel gemahlen
+  category: spices
+  nutrition:
+    unspecified:
+      - code: Z-kuemmel
+        name: Caraway, seed
+        source: Ciqual 2020 (Anses), Nr. 11064 „Caraway, seed“, Licence Ouverte / CC BY 4.0
+        per100g:
+          kcal: 334
+          proteinG: 19.8
+          fatG: 14.6
+          saturatedFatG: 0.62
+          carbsG: 11.9
+          sugarG: 0.64
+          fiberG: 38
+          sodiumMg: 17
+          vitaminCMg: 21
+          vitaminDMcg: 0
+          vitaminEMg: 2.5
+          calciumMg: 689
+          ironMg: 16.2
+          magnesiumMg: 258
+          potassiumMg: 1350
+  via: Das BLS führt Kümmel nicht. Ciqual 2020 (Anses) führt die getrockneten Samen als „Caraway,
+    seed“, inline übernommen. Kümmel ist Carum carvi, nicht Kreuzkümmel (eigener Eintrag).

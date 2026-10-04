@@ -8,3 +8,42 @@
     raw: [F130100]
   candidates: [F130400, F130902, F131902, F133902, F134902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: nashi-birne
+      name: Nashi-Birne
+      aliases:
+        - Nashi-Birnen
+        - Nashi
+      nutrition:
+        raw:
+          - code: Z-nashi-birne
+            name: Pears, asian, raw
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168177 „Pears, asian,
+              raw“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 42
+              proteinG: 0.5
+              fatG: 0.23
+              saturatedFatG: 0.012
+              sugarG: 7.05
+              fiberG: 3.6
+              sodiumMg: 0
+              vitaminAMcg: 0
+              vitaminCMg: 3.8
+              vitaminDMcg: 0
+              vitaminEMg: 0.12
+              calciumMg: 4
+              ironMg: 0
+              magnesiumMg: 8
+              potassiumMg: 121
+      via: 'Das BLS führt die Asiatische Birne nicht; Zeile aus USDA SR Legacy. Gegart gibt
+        es keine Zeile. Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe
+        eingeschlossen.'
+    - id: getrocknete-birnen
+      name: Getrocknete Birnen
+      aliases:
+        - Dörrbirnen
+        - Kletzen
+      nutrition:
+        unspecified: [F130400]
+      via: BLS-Name "Birne getrocknet"; Kletzen ist das österreichisch-bairische Wort dafür

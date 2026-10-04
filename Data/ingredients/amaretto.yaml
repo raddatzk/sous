@@ -1,0 +1,8 @@
+- id: amaretto
+  name: Amaretto
+  aliases:
+    - Mandellikör
+  category: drinks
+  nutrition:
+    unspecified: [P540100]
+  via: BLS-Name "Mandellikör"

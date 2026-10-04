@@ -2,7 +2,34 @@
   name: Filoteig
   aliases:
     - Yufka
+    - Filo
+    - Phylloteig
+    - Yufkateig
   category: frozen
-  nutrition: without
-  via: Das BLS führt keinen Filo- oder Yufkateig. Blätterteig steht daneben und ist etwas
-    anderes; lieber offen als falsch zugeordnet.
+  nutrition:
+    raw:
+      - code: Z-filoteig
+        name: Phyllo or filo dough, raw
+        source: Ciqual 2020 (Anses), Nr. 23445 „Phyllo or filo dough, raw“, Licence Ouverte
+          / CC BY 4.0
+        per100g:
+          kcal: 289
+          proteinG: 7.1
+          fatG: 6
+          saturatedFatG: 1.47
+          carbsG: 50.8
+          sugarG: 0.18
+          fiberG: 1.9
+          sodiumMg: 483
+          vitaminCMg: 0
+          vitaminDMcg: 0
+          vitaminEMg: 0.08
+          calciumMg: 11
+          ironMg: 3.21
+          magnesiumMg: 15
+          potassiumMg: 74
+  via: Das BLS führt keinen Filo- oder Yufkateig; Blätterteig ist etwas anderes. Die Werte
+    sind Ciqual 2020 Nr. 23445 "Phyllo or filo dough, raw", der rohe Teig aus der Packung.
+  varieties:
+    - id: strudelteig
+      name: Strudelteig

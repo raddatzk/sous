@@ -14,3 +14,22 @@
       name: Grüner Apfel
       aliases:
         - grüne Äpfel
+    - id: boskop
+      name: Boskop
+      aliases:
+        - Boskoop
+    - id: getrocknete-aepfel
+      name: Getrocknete Äpfel
+      aliases:
+        - Getrockneter Apfel
+        - Apfelringe
+      nutrition:
+        unspecified: [F110400]
+      via: BLS-Name "Apfel getrocknet"
+    - id: apfelsaft
+      name: Apfelsaft
+      category: drinks
+      nutrition:
+        unspecified: [F110600]
+      candidates: [F110700]
+      via: BLS-Name "Apfelsaft"; der Nektar ist nur Kandidat

@@ -10,3 +10,15 @@
     raw: [F201100]
   candidates: [F201400, F201902, F2A1902, F2B1902, F2C1902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: getrocknete-aprikosen
+      name: Getrocknete Aprikosen
+      aliases:
+        - Getrocknete Aprikose
+        - Trockenaprikosen
+        - Softaprikosen
+        - Getrocknete Marillen
+      nutrition:
+        unspecified: [F201400]
+      via: BLS-Name "Aprikose getrocknet"; Softaprikosen sind weniger stark getrocknet, das
+        BLS trennt sie nicht

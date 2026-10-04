@@ -1,0 +1,11 @@
+- id: physalis
+  name: Physalis
+  aliases:
+    - Kapstachelbeere
+    - Kapstachelbeeren
+    - Andenbeere
+    - Andenbeeren
+  category: fruit
+  nutrition:
+    raw: [F552100]
+  via: BLS-Name "Kapstachelbeere/Physalis, roh"

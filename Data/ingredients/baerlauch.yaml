@@ -1,5 +1,7 @@
 - id: baerlauch
   name: Bärlauch
+  aliases:
+    - Bärlauchblätter
   category: herbs
   measures: {Bund: 100}
   nutrition:

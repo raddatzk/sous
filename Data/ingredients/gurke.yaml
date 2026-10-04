@@ -14,3 +14,41 @@
       name: Salatgurke
       aliases:
         - Salatgurken
+    - id: minigurke
+      name: Minigurke
+      aliases:
+        - Minigurken
+        - Snackgurke
+        - Snackgurken
+    - id: schmorgurke
+      name: Schmorgurke
+      aliases:
+        - Schmorgurken
+    - id: gewuerzgurke
+      name: Gewürzgurke
+      aliases:
+        - Gewürzgurken
+        - Essiggurke
+        - Essiggurken
+        - Saure Gurken
+      category: canned
+      nutrition:
+        unspecified: [G520802]
+      candidates: [G891202, G891102]
+      via: 'BLS "Gurke gesäuert (Gewürzgurke) abgetropft": aus dem Glas, mit eigenen Werten.'
+      varieties:
+        - id: cornichon
+          name: Cornichon
+          aliases:
+            - Cornichons
+    - id: salzgurke
+      name: Salzgurke
+      aliases:
+        - Salzgurken
+        - Salzdillgurke
+        - Salzdillgurken
+      category: canned
+      nutrition:
+        unspecified: [G890702]
+      via: 'BLS "Salzgurke/Salzdillgurke, milchsauer fermentiert": milchsauer statt in Essig,
+        andere Werte als die Gewürzgurke.'

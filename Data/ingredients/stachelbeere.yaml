@@ -1,0 +1,9 @@
+- id: stachelbeere
+  name: Stachelbeere
+  aliases:
+    - Stachelbeeren
+  category: fruit
+  nutrition:
+    raw: [F305100]
+    cooked: [F305152]
+  via: BLS-Gruppe "Stachelbeere"

@@ -1,8 +1,19 @@
 - id: blumenkohl
   name: Blumenkohl
+  aliases:
+    - Karfiol
+    - Blumenkohlröschen
   category: vegetables
   measures: {Stk.: 600}
   nutrition:
     cooked: [G311132, G311142, G311152, G311162, G311182]
     raw: [G311100]
   via: BLS-Name, in die Küchenliste übernommen
+  varieties:
+    - id: romanesco
+      name: Romanesco
+      nutrition:
+        raw: [G350100]
+        cooked: [G350132, G350152, G350162, G350182]
+      via: 'BLS-Gruppe "Romanesco": eine eigene Kohlsorte mit eigenen Zeilen, deshalb nicht
+        die Werte des Blumenkohls.'

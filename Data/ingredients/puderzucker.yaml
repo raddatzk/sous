@@ -1,5 +1,7 @@
 - id: puderzucker
   name: Puderzucker
+  aliases:
+    - Staubzucker
   category: baking
   density: 0.55
   nutrition:

@@ -1,5 +1,11 @@
 - id: feldsalat
   name: Feldsalat
+  aliases:
+    - Rapunzel
+    - Rapunzelsalat
+    - Ackersalat
+    - Vogerlsalat
+    - Nüsslisalat
   category: vegetables
   nutrition:
     raw: [G104100]

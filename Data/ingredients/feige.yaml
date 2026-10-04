@@ -7,3 +7,12 @@
     raw: [F505100]
   candidates: [F505400, F505902]
   via: BLS-Namensabgleich, einmalig festgeschrieben
+  varieties:
+    - id: getrocknete-feigen
+      name: Getrocknete Feigen
+      aliases:
+        - Getrocknete Feige
+        - Trockenfeigen
+      nutrition:
+        unspecified: [F505400]
+      via: BLS-Name "Feige getrocknet"

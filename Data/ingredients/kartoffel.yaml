@@ -3,6 +3,8 @@
   aliases:
     - Kartoffeln
     - Salzkartoffeln
+    - Erdapfel
+    - Erdäpfel
   category: vegetables
   measures: {Stk.: 120}
   nutrition:
@@ -14,3 +16,16 @@
   varieties:
     - id: festkochende-kartoffeln
       name: Festkochende Kartoffeln
+    - id: mehligkochende-kartoffeln
+      name: Mehligkochende Kartoffeln
+    - id: vorwiegend-festkochende-kartoffeln
+      name: Vorwiegend festkochende Kartoffeln
+    - id: fruehkartoffeln
+      name: Frühkartoffeln
+      aliases:
+        - neue Kartoffeln
+    - id: drillinge
+      name: Drillinge
+      aliases:
+        - Kartoffeldrillinge
+        - Babykartoffeln

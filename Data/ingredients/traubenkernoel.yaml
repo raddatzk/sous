@@ -1,0 +1,7 @@
+- id: traubenkernoel
+  name: Traubenkernöl
+  category: oils
+  density: 0.92
+  nutrition:
+    unspecified: [Q330000]
+  via: BLS-Name "Traubenkernöl"

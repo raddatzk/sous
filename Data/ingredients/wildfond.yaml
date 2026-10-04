@@ -1,0 +1,9 @@
+- id: wildfond
+  name: Wildfond
+  aliases:
+    - Wildbrühe
+  category: canned
+  nutrition:
+    unspecified: [X411363]
+  candidates: [X412363]
+  via: BLS-Name "Wildbrühe"

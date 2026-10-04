@@ -2,6 +2,9 @@
   name: Pilz
   aliases:
     - Pilze
+    - Schwammerl
+    - Schwammerln
+    - Speisepilze
   category: vegetables
   nutrition:
     raw: [K701100]
@@ -12,6 +15,8 @@
       name: Champignon
       aliases:
         - Champignons
+        - Egerling
+        - Egerlinge
       measures: {Stk.: 20}
       nutrition:
         cooked: [K701132, K701152, K701162, K701172, K701182]
@@ -24,13 +29,186 @@
           name: Brauner Champignon
           aliases:
             - Braune Champignons
+            - Steinchampignon
+            - Steinchampignons
     - id: pfifferling
       name: Pfifferling
       aliases:
         - Pfifferlinge
+        - Eierschwammerl
+        - Eierschwammerln
       nutrition:
         raw: [K713100]
         cooked: [K713152, K713182, K713142, K713062]
       via: BLS-Name, in die Küchenliste übernommen
     - id: waldpilze
       name: Waldpilze
+    - id: steinpilz
+      name: Steinpilz
+      aliases:
+        - Steinpilze
+        - Herrenpilz
+        - Herrenpilze
+      nutrition:
+        raw: [K718100]
+        cooked: [K718152, K718182, K718162]
+      candidates: [K718902]
+      via: BLS-Gruppe "Steinpilz".
+      varieties:
+        - id: getrocknete-steinpilze
+          name: Getrocknete Steinpilze
+          aliases:
+            - Steinpilze getrocknet
+          nutrition:
+            unspecified: [K718400]
+            cooked: [K718432]
+          via: 'BLS "Steinpilz getrocknet": ein Rezept wiegt die trockenen Pilze ab, eingeweicht
+            ist der gekochte Zustand.'
+    - id: shiitake
+      name: Shiitake
+      aliases:
+        - Shiitakepilz
+        - Shiitakepilze
+      nutrition:
+        raw: [K724100]
+        cooked: [K724152, K724182]
+      candidates: [K724902]
+      via: BLS-Gruppe "Shiitakepilz".
+      varieties:
+        - id: getrocknete-shiitake
+          name: Getrocknete Shiitake
+          aliases:
+            - getrocknete Shiitakepilze
+          nutrition:
+            unspecified: [K724400]
+            cooked: [K724432]
+          via: 'BLS "Shiitakepilz getrocknet": trocken abgewogen, eingeweicht ist der gekochte
+            Zustand.'
+    - id: austernpilz
+      name: Austernpilz
+      aliases:
+        - Austernpilze
+        - Austernseitling
+        - Austernseitlinge
+      nutrition:
+        raw: [K740100]
+        cooked: [K740152, K740182]
+      candidates: [K740400, K740432]
+      via: BLS-Gruppe "Austernpilz".
+    - id: mischpilze
+      name: Mischpilze
+      aliases:
+        - Pilzmischung
+      nutrition:
+        raw: [K750100]
+        cooked: [K750152, K750182, K750162]
+      candidates: [K750200, K750252, K750282, K750400, K750902]
+      via: BLS-Gruppe "Mischpilze", meist aus der Tiefkühltruhe.
+    - id: kraeuterseitling
+      name: Kräuterseitling
+      aliases:
+        - Kräuterseitlinge
+      nutrition:
+        raw:
+          - code: Z-kraeuterseitling
+            name: Mushroom, king oyster
+            source: USDA FoodData Central, Foundation Foods (Oktober 2021), FDC ID 2003599
+              „Mushroom, king oyster“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 46
+              proteinG: 2.41
+              fatG: 0.31
+              fiberG: 3.0
+              sodiumMg: 1
+              vitaminDMcg: 0.07
+              calciumMg: 0
+              ironMg: 0.34
+              magnesiumMg: 13.5
+              potassiumMg: 294
+      via: Das BLS führt den Kräuterseitling nicht (nur den Austernpilz, eine andere Art).
+        Werte aus USDA Foundation Foods "Mushroom, king oyster" (FDC 2003599), roh. USDA nennt
+        Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.
+    - id: enoki
+      name: Enoki
+      aliases:
+        - Enokipilze
+        - Enokipilz
+      nutrition:
+        raw:
+          - code: Z-enoki
+            name: Mushrooms, enoki, raw
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169382 „Mushrooms,
+              enoki, raw“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 37
+              proteinG: 2.66
+              fatG: 0.29
+              saturatedFatG: 0.027
+              sugarG: 0.22
+              fiberG: 2.7
+              sodiumMg: 3
+              vitaminCMg: 0
+              vitaminDMcg: 0.1
+              vitaminEMg: 0.01
+              calciumMg: 0
+              ironMg: 1.15
+              magnesiumMg: 16
+              potassiumMg: 359
+      via: BLS und Ciqual führen Enoki nicht. Werte aus USDA SR Legacy "Mushrooms, enoki,
+        raw" (FDC 169382); die neuere Foundation-Zeile (FDC 2003600) nennt weniger Nährstoffe.
+        USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb
+        weggelassen.
+    - id: shimeji
+      name: Shimeji
+      aliases:
+        - Buchenpilze
+        - Buchenpilz
+        - Shimeji-Pilze
+      nutrition:
+        raw:
+          - code: Z-shimeji
+            name: Mushroom, beech
+            source: USDA FoodData Central, Foundation Foods (Oktober 2021), FDC ID 2003603
+              „Mushroom, beech“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 40
+              proteinG: 2.18
+              fatG: 0.45
+              fiberG: 3.1
+              sodiumMg: 1
+              vitaminDMcg: 0.37
+              calciumMg: 0
+              ironMg: 0.74
+              magnesiumMg: 10.5
+              potassiumMg: 376
+      via: Das BLS führt Buchenpilze nicht. Werte aus USDA Foundation Foods "Mushroom, beech"
+        (FDC 2003603), roh. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen);
+        carbsG ist deshalb weggelassen.
+    - id: mu-err
+      name: Mu-Err
+      aliases:
+        - Mu-Err-Pilze
+        - Mu-Err-Pilz
+        - Wolkenohrpilze
+      nutrition:
+        unspecified:
+          - code: Z-mu-err
+            name: Fungi, Cloud ears, dried
+            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168581 „Fungi, Cloud
+              ears, dried“, gemeinfrei (CC0 1.0)
+            per100g:
+              kcal: 284
+              proteinG: 9.25
+              fatG: 0.73
+              fiberG: 70.1
+              sodiumMg: 35
+              vitaminAMcg: 0
+              vitaminCMg: 0
+              vitaminDMcg: 0
+              calciumMg: 159
+              ironMg: 5.88
+              magnesiumMg: 83
+              potassiumMg: 754
+      via: Getrocknet aus dem Asialaden; BLS und Ciqual führen sie nicht. Werte aus USDA SR
+        Legacy "Fungi, Cloud ears, dried" (FDC 168581), trocken abgewogen. USDA nennt Kohlenhydrate
+        nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.

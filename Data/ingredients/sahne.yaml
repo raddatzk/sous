@@ -3,6 +3,9 @@
   aliases:
     - Schlagobers
     - Süße Sahne
+    - Obers
+    - Schlagrahm
+    - Vollrahm
   category: dairy
   density: 0.99
   nutrition:
@@ -13,3 +16,35 @@
     - id: schlagsahne
       name: Schlagsahne
       density: 0.99
+    - id: kaffeesahne
+      name: Kaffeesahne
+      aliases:
+        - Kaffeeobers
+        - Kaffeerahm
+      nutrition:
+        unspecified: [M171500]
+      via: BLS-Zeile "Kaffeesahne mind. 10 % Fett"
+    - id: kochsahne
+      name: Kochsahne
+      aliases:
+        - Kochrahm
+      nutrition:
+        unspecified:
+          - code: Z-kochsahne
+            name: Cream, 12-20% fat, light, fluid, refrigerated
+            source: Ciqual 2025 (Anses), Nr. 19436 „Cream, 12-20% fat, light, fluid, refrigerated“,
+              Licence Ouverte / CC BY 4.0
+            per100g:
+              kcal: 173
+              proteinG: 2.96
+              fatG: 16
+              saturatedFatG: 9.4
+              carbsG: 4.3
+              sugarG: 4.2
+              fiberG: 0
+              sodiumMg: 60
+              calciumMg: 105
+              magnesiumMg: 9
+              potassiumMg: 127
+      via: Der BLS führt keine Sahne zwischen 10 und 30 % Fett. Kochsahne hat meist 15 %;
+        die Ciqual-Zeile für flüssige Sahne mit 12–20 % Fett trifft das.

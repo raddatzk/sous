@@ -1,7 +1,31 @@
 - id: koriandersamen
   name: Koriandersamen
+  aliases:
+    - Koriandersaat
+    - Korianderkörner
+    - gemahlener Koriander
+    - Koriander gemahlen
   category: spices
-  nutrition: without
-  via: Das BLS führt dieses Gewürz nicht — in allen 3.983 Zeilen keine Entsprechung. Die Namenssuche
-    findet nur Fertigprodukte mit dem Geschmack (Zimt → Cerealien mit Zimtgeschmack, 424 kcal),
-    also lieber keine Werte als falsche.
+  nutrition:
+    unspecified:
+      - code: Z-koriandersamen
+        name: Coriander, seed
+        source: Ciqual 2020 (Anses), Nr. 11026 „Coriander, seed“, Licence Ouverte / CC BY
+          4.0
+        per100g:
+          kcal: 346
+          proteinG: 12.4
+          fatG: 17.8
+          saturatedFatG: 0.97
+          carbsG: 13
+          fiberG: 41.9
+          sodiumMg: 35
+          vitaminCMg: 21
+          vitaminDMcg: 0
+          calciumMg: 709
+          ironMg: 16.3
+          magnesiumMg: 330
+          potassiumMg: 1270
+  via: Das BLS führt Koriandersamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+    2020 (Anses) führt es als „Coriander, seed“ (die getrockneten Samen, wie ein Rezept sie
+    meint); diese Zeile ist inline übernommen.

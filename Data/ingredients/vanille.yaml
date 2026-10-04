@@ -3,8 +3,34 @@
   aliases:
     - Vanilleschote
     - Vanilleschoten
+    - Vanillemark
+    - Bourbon-Vanille
   category: spices
   nutrition: without
   via: Das BLS führt keine Vanille als Gewürz, nur Vanillezucker (S114000) und Vanillinzucker.
-    Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es hier früher
-    geschah, wäre falscher als keine Werte.
+    Ciqual 2020 führt „Vanilla, pod“ (Nr. 11057), aber ohne einen einzigen Wert; USDA nur
+    Extrakte. Eine Schote wiegt wenige Gramm; mit den Werten von Zucker zu rechnen, wie es
+    hier früher geschah, wäre falscher als keine Werte.
+  varieties:
+    - id: vanilleextrakt
+      name: Vanilleextrakt
+      nutrition:
+        unspecified:
+          - code: Z-vanilleextrakt
+            name: Vanilla, alcoholic extract
+            source: Ciqual 2020 (Anses), Nr. 11065 „Vanilla, alcoholic extract“, Licence Ouverte
+              / CC BY 4.0
+            per100g:
+              kcal: 240
+              proteinG: 0.05
+              fatG: 0
+              carbsG: 2.41
+              fiberG: 0
+              sodiumMg: 4
+              vitaminCMg: 0
+              vitaminDMcg: 0
+              ironMg: 0.13
+              magnesiumMg: 5
+              potassiumMg: 98
+      via: 'Ein anderes Erzeugnis als die Schote: in Alkohol ausgezogen, daher die Energie.
+        Ciqual 2020 (Anses) führt es als „Vanilla, alcoholic extract“, inline übernommen.'

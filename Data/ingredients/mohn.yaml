@@ -1,0 +1,17 @@
+- id: mohn
+  name: Mohn
+  aliases:
+    - Mohnsamen
+    - Blaumohn
+  category: nuts
+  nutrition:
+    unspecified: [H450100]
+  via: BLS-Name "Mohn"
+  varieties:
+    - id: gemahlener-mohn
+      name: Gemahlener Mohn
+      aliases:
+        - Mohn gemahlen
+      nutrition:
+        unspecified: [H450400]
+      via: BLS-Name "Mohn gemahlen"

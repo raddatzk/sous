@@ -3,6 +3,8 @@
   aliases:
     - Kristallzucker
     - Haushaltszucker
+    - Feinzucker
+    - weißer Zucker
   category: baking
   density: 0.85
   measures: {Tasse: 200}
@@ -10,3 +12,10 @@
     unspecified: [S111000]
   candidates: [S112000]
   via: BLS-Gruppe "Zucker weiß (Raffinadezucker/Weißzucker)"
+  varieties:
+    - id: gelierzucker
+      name: Gelierzucker
+    - id: hagelzucker
+      name: Hagelzucker
+      aliases:
+        - Perlzucker

@@ -9,3 +9,12 @@
   nutrition:
     unspecified: [H170100]
   via: BLS-Gruppe "Cashewkern"
+  varieties:
+    - id: cashewmus
+      name: Cashewmus
+      aliases:
+        - Cashewnussmus
+        - Cashewbutter
+      nutrition:
+        unspecified: [F960800]
+      via: BLS-Name "Cashewnussmus"

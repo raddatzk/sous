@@ -1,0 +1,33 @@
+- id: worcestersauce
+  name: Worcestersauce
+  aliases:
+    - Worcestershiresauce
+    - Worcestersoße
+    - Worcester Sauce
+    - Worcestershire Sauce
+  category: canned
+  nutrition:
+    unspecified:
+      - code: Z-worcestersauce
+        name: Sauce, worcestershire
+        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171610 „Sauce, worcestershire“,
+          gemeinfrei (CC0 1.0)
+        per100g:
+          kcal: 77
+          proteinG: 0
+          fatG: 0
+          saturatedFatG: 0
+          sugarG: 10.03
+          fiberG: 0
+          sodiumMg: 1300
+          vitaminAMcg: 5
+          vitaminCMg: 13
+          vitaminDMcg: 0
+          vitaminEMg: 0.08
+          calciumMg: 107
+          ironMg: 5.3
+          magnesiumMg: 13
+          potassiumMg: 800
+  via: Weder BLS noch Ciqual führen Worcestersauce; USDA SR Legacy, inline übernommen. USDA
+    nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb
+    nicht in der Zeile.
