@@ -9,23 +9,9 @@
   nutrition:
     unspecified:
       - code: Z-koriandersamen
-        name: Coriander, seed
-        source: Ciqual 2020 (Anses), Nr. 11026 „Coriander, seed“, Licence Ouverte / CC BY
-          4.0
-        per100g:
-          kcal: 346
-          proteinG: 12.4
-          fatG: 17.8
-          saturatedFatG: 0.97
-          carbsG: 13
-          fiberG: 41.9
-          sodiumMg: 35
-          vitaminCMg: 21
-          vitaminDMcg: 0
-          calciumMg: 709
-          ironMg: 16.3
-          magnesiumMg: 330
-          potassiumMg: 1270
-  via: Das BLS führt Koriandersamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+        source:
+          id: ciqual-2020
+          ref: '11026'
+  via: Das BLS führt Koriandersamen nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual
     2020 (Anses) führt es als „Coriander, seed“ (die getrockneten Samen, wie ein Rezept sie
     meint); diese Zeile ist inline übernommen.

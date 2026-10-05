@@ -8,16 +8,7 @@
   nutrition:
     unspecified:
       - code: Z-fischsauce
-        name: Nuoc mam sauce or fish sauce, prepacked
-        source: Ciqual 2020 (Anses), Nr. 11194 „Nuoc mam sauce or fish sauce, prepacked“,
-          Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 81.2
-          proteinG: 9.3
-          fatG: 0
-          saturatedFatG: 0
-          carbsG: 10.9
-          sugarG: 8.34
-          fiberG: 0.2
-          sodiumMg: 8860
+        source:
+          id: ciqual-2020
+          ref: '11194'
   via: Das BLS führt keine Fischsauce; Ciqual 2020 (Anses), inline übernommen.

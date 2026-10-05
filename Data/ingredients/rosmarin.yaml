@@ -9,24 +9,10 @@
   nutrition:
     raw:
       - code: Z-rosmarin
-        name: Rosemary, fresh
-        source: Ciqual 2020 (Anses), Nr. 11068 „Rosemary, fresh“, Licence Ouverte / CC BY
-          4.0
-        per100g:
-          kcal: 121
-          proteinG: 3.31
-          fatG: 5.86
-          saturatedFatG: 2.84
-          carbsG: 6.6
-          fiberG: 14.1
-          sodiumMg: 26
-          vitaminCMg: 21.8
-          vitaminDMcg: 0
-          calciumMg: 317
-          ironMg: 6.65
-          magnesiumMg: 91
-          potassiumMg: 668
-  via: Das BLS führt Rosmarin nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz
+        source:
+          id: ciqual-2020
+          ref: '11068'
+  via: Das BLS führt Rosmarin nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz
     meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es
     als „Rosemary, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.
   varieties:
@@ -38,22 +24,8 @@
       nutrition:
         unspecified:
           - code: Z-getrockneter-rosmarin
-            name: Rosemary, dried
-            source: Ciqual 2020 (Anses), Nr. 11036 „Rosemary, dried“, Licence Ouverte / CC
-              BY 4.0
-            per100g:
-              kcal: 328
-              proteinG: 4.88
-              fatG: 15.2
-              saturatedFatG: 7.37
-              carbsG: 21.5
-              fiberG: 42.6
-              sodiumMg: 50
-              vitaminCMg: 61.2
-              vitaminDMcg: 0
-              calciumMg: 1280
-              ironMg: 29.3
-              magnesiumMg: 220
-              potassiumMg: 955
+            source:
+              id: ciqual-2020
+              ref: '11036'
       via: Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte
         je Gramm. Ciqual 2020 (Anses) führt es als „Rosemary, dried“, inline übernommen.

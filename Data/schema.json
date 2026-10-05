@@ -40,6 +40,12 @@
    "propertyNames": {"anyOf": [{"$ref": "#/$defs/nutrient"}, {"enum": ["kj", "saltG"]}]},
    "additionalProperties": {"$ref": "#/$defs/number"}
   },
+  "sourceValues": {
+   "description": "A source row's values, as numbers: the app's nutrients, and `kj` and `saltG` for a label that states those. A value the source leaves out is absent, not zero; a row may state none.",
+   "type": "object",
+   "propertyNames": {"anyOf": [{"$ref": "#/$defs/nutrient"}, {"enum": ["kj", "saltG"]}]},
+   "additionalProperties": {"type": "number", "minimum": 0}
+  },
   "alias": {
    "oneOf": [
     {"$ref": "#/$defs/text"},
@@ -90,28 +96,52 @@
    }
   },
   "inlineRow": {
-   "description": "Values the BLS does not have, written out with their source. Its code is a Z code.",
+   "description": "A row from a source other than the BLS, named by its source and its code there. Its own code is a Z code; its name and values come from Data/sources/<id>.json.",
    "type": "object",
-   "required": ["code", "name", "source"],
-   "oneOf": [{"required": ["per100g"]}, {"required": ["per100ml"]}],
+   "required": ["code", "source"],
    "additionalProperties": false,
    "properties": {
     "code": {"$ref": "#/$defs/code"},
-    "name": {"$ref": "#/$defs/text"},
     "group": {"$ref": "#/$defs/group"},
     "category": {"$ref": "#/$defs/category"},
-    "source": {"$ref": "#/$defs/text"},
+    "source": {
+     "type": "object",
+     "required": ["id", "ref"],
+     "additionalProperties": false,
+     "properties": {
+      "id": {"$ref": "#/$defs/sourceId"},
+      "ref": {"description": "The row's code in the source: a Ciqual number, an FDC ID, an EAN.", "type": "string", "minLength": 1}
+     }
+    }
+   }
+  },
+  "sourceRow": {
+   "description": "One row of Data/sources/<id>.json: the name as the source writes it, and the values it states.",
+   "type": "object",
+   "required": ["name"],
+   "oneOf": [{"required": ["per100g"]}, {"required": ["per100ml"]}],
+   "additionalProperties": false,
+   "properties": {
+    "name": {"$ref": "#/$defs/text"},
+    "nameEnglish": {"$ref": "#/$defs/text"},
+    "note": {"$ref": "#/$defs/text"},
     "checked": {"$ref": "#/$defs/date"},
     "per": {
      "description": "What the label's values refer to: the food as sold, or drained (\"pro 100 g abgetropft\").",
      "enum": ["as-sold", "drained"]
     },
-    "per100g": {"$ref": "#/$defs/labelValues"},
+    "per100g": {"$ref": "#/$defs/sourceValues"},
     "per100ml": {
-     "allOf": [{"$ref": "#/$defs/labelValues"}],
-     "description": "Values per 100 ml, as EU labels state liquids; compiled to per 100 g through the entry's `density`, which it then requires."
+     "allOf": [{"$ref": "#/$defs/sourceValues"}],
+     "description": "Values per 100 ml, as EU labels state liquids; compiled to per 100 g through the density of the entry that names the row, which it then requires."
     }
    }
+  },
+  "sourceRows": {
+   "type": "object",
+   "required": ["rows"],
+   "additionalProperties": false,
+   "properties": {"rows": {"type": "object", "additionalProperties": {"$ref": "#/$defs/sourceRow"}}}
   },
   "nutrition": {
    "description": "Per state an ordered list: the first code is the basis, the rest are alternatives. Or `without`: the catalog knows this and settles it without values.",
@@ -310,25 +340,35 @@
     }
    }
   },
-  "source": {
+  "sourceId": {
+   "description": "An id of the register in sources.yaml.",
+   "type": "string",
+   "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+  },
+  "sourceFile": {
+   "description": "Data/sources/<id>.yaml: one body the values are drawn from, as it asks to be named. Every source the same record.",
    "type": "object",
-   "required": ["title", "datasetVersion", "release", "license", "licenseURL", "attribution", "changeNote"],
+   "required": ["title", "publisher", "url", "version", "release", "license", "licenseURL", "attribution", "changeNote"],
    "additionalProperties": false,
    "properties": {
     "title": {"$ref": "#/$defs/text"},
-    "licenseURL": {"type": "string", "pattern": "^https://"},
-    "datasetVersion": {"$ref": "#/$defs/text"},
+    "publisher": {"$ref": "#/$defs/text"},
+    "url": {"type": "string", "pattern": "^https://"},
+    "version": {"description": "How the source is cited in front of a row: \"Ciqual 2020 (Anses)\".", "$ref": "#/$defs/text"},
     "release": {"$ref": "#/$defs/text"},
-    "license": {"$ref": "#/$defs/text"},
+    "retrieved": {"description": "When the download was taken.", "$ref": "#/$defs/date"},
+    "license": {
+     "description": "Only licences that allow the values to be copied and redistributed. A nutrition declaration is a statement of fact and carries none.",
+     "enum": ["CC BY 4.0", "CC0 1.0", "Licence Ouverte 2.0", "Tatsachenangabe"]
+    },
+    "licenseURL": {"type": "string", "pattern": "^https://"},
     "attribution": {"$ref": "#/$defs/text"},
-    "changeNote": {"$ref": "#/$defs/text"}
+    "changeNote": {"description": "What was done to the values. Every source says it, whether its licence asks or not.", "$ref": "#/$defs/text"},
+    "cite": {"description": "How a row is cited after the version, with {ref} and {name}: \"Nr. {ref} „{name}“\".", "$ref": "#/$defs/text"},
+    "rowURL": {"description": "Where one row can be looked up, with {ref}.", "type": "string", "pattern": "^https://"},
+    "download": {"description": "Where the tables come from; they stay out of the repo.", "type": "string", "pattern": "^https://"},
+    "extract": {"description": "The command that turns the download into <id>.json.", "$ref": "#/$defs/text"}
    }
-  },
-  "sourcesFile": {
-   "type": "object",
-   "required": ["bls", "supplements"],
-   "additionalProperties": false,
-   "properties": {"bls": {"$ref": "#/$defs/source"}, "supplements": {"$ref": "#/$defs/source"}}
   }
  }
 }

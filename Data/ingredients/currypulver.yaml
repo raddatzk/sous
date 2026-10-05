@@ -6,24 +6,9 @@
   nutrition:
     unspecified:
       - code: Z-currypulver
-        name: Curry, powder
-        source: Ciqual 2020 (Anses), Nr. 11005 „Curry, powder“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 301
-          proteinG: 14.5
-          fatG: 14
-          saturatedFatG: 1.65
-          carbsG: 2.63
-          sugarG: 2.63
-          fiberG: 53.2
-          sodiumMg: 52
-          vitaminCMg: 0.7
-          vitaminDMcg: 0
-          vitaminEMg: 25.2
-          calciumMg: 525
-          ironMg: 19.1
-          magnesiumMg: 255
-          potassiumMg: 1170
-  via: Das BLS führt Currypulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+        source:
+          id: ciqual-2020
+          ref: '11005'
+  via: Das BLS führt Currypulver nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual
     2020 (Anses) führt es als „Curry, powder“ (die Gewürzmischung als Pulver); diese Zeile
     ist inline übernommen.

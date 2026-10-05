@@ -7,26 +7,10 @@
   nutrition:
     unspecified:
       - code: Z-paprikapulver
-        name: Spices, paprika
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171329 „Spices, paprika“,
-          gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 282
-          proteinG: 14.14
-          fatG: 12.89
-          saturatedFatG: 2.14
-          sugarG: 10.34
-          fiberG: 34.9
-          sodiumMg: 68
-          vitaminAMcg: 2463
-          vitaminCMg: 0.9
-          vitaminDMcg: 0
-          vitaminEMg: 29.1
-          calciumMg: 229
-          ironMg: 21.14
-          magnesiumMg: 178
-          potassiumMg: 2280
-  via: Das BLS führt Paprikapulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+        source:
+          id: usda-sr-legacy
+          ref: '171329'
+  via: Das BLS führt Paprikapulver nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual
     2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname
     wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices,
     paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich

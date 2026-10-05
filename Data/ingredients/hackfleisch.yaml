@@ -47,45 +47,13 @@
       nutrition:
         raw:
           - code: Z-lammhackfleisch-raw
-            name: Lamb, ground, raw
-            source: USDA FoodData Central, SR Legacy, FDC ID 174370 „Lamb, ground, raw“, NDB
-              17224, gemeinfrei (CC0)
-            per100g:
-              kcal: 282
-              proteinG: 16.6
-              fatG: 23.4
-              saturatedFatG: 10.2
-              sugarG: 0.0
-              fiberG: 0.0
-              sodiumMg: 59.0
-              vitaminAMcg: 0.0
-              vitaminDMcg: 0.1
-              vitaminEMg: 0.2
-              vitaminCMg: 0.0
-              calciumMg: 16.0
-              ironMg: 1.55
-              magnesiumMg: 21.0
-              potassiumMg: 222
+            source:
+              id: usda-sr-legacy
+              ref: '174370'
         cooked:
           - code: Z-lammhackfleisch-cooked
-            name: Lamb, ground, cooked, broiled
-            source: USDA FoodData Central, SR Legacy, FDC ID 172544 „Lamb, ground, cooked,
-              broiled“, NDB 17225, gemeinfrei (CC0)
-            per100g:
-              kcal: 283
-              proteinG: 24.8
-              fatG: 19.6
-              saturatedFatG: 8.12
-              sugarG: 0.0
-              fiberG: 0.0
-              sodiumMg: 81.0
-              vitaminAMcg: 0.0
-              vitaminDMcg: 0.1
-              vitaminEMg: 0.14
-              vitaminCMg: 0.0
-              calciumMg: 22.0
-              ironMg: 1.79
-              magnesiumMg: 24.0
-              potassiumMg: 339
+            source:
+              id: usda-sr-legacy
+              ref: '172544'
       via: Der BLS führt kein Lammhack. USDA SR Legacy "Lamb, ground", roh und gegrillt; USDA
         gibt Kohlenhydrate nur als Differenz mit den Ballaststoffen an, daher ohne carbsG.

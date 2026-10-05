@@ -5,21 +5,7 @@
   nutrition:
     unspecified:
       - code: Z-avocadooel
-        name: Avocado oil
-        source: Ciqual 2020 (Anses), Nr. 17100 „Avocado oil“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 900
-          proteinG: 0
-          fatG: 100
-          saturatedFatG: 17.9
-          carbsG: 0
-          sugarG: 0
-          fiberG: 0
-          sodiumMg: 0
-          vitaminCMg: 0
-          vitaminEMg: 45.3
-          calciumMg: 0
-          ironMg: 0
-          magnesiumMg: 0
-          potassiumMg: 0
+        source:
+          id: ciqual-2020
+          ref: '17100'
   via: Das BLS führt Avocadoöl nicht; Ciqual-Zeile

@@ -7,25 +7,9 @@
   nutrition:
     unspecified:
       - code: Z-natron
-        name: Sodium bicarbonate
-        source: Ciqual 2020 (Anses), Nr. 11507 „Sodium bicarbonate“, Licence Ouverte / CC
-          BY 4.0
-        per100g:
-          kcal: 0.4
-          proteinG: 0.1
-          fatG: 0
-          saturatedFatG: 0
-          carbsG: 0
-          sugarG: 0
-          fiberG: 0
-          sodiumMg: 27400
-          vitaminCMg: 0
-          vitaminDMcg: 0
-          vitaminEMg: 0
-          calciumMg: 0
-          ironMg: 0
-          magnesiumMg: 0
-          potassiumMg: 0
+        source:
+          id: ciqual-2020
+          ref: '11507'
   via: Natron (Natriumhydrogencarbonat) führt das BLS nicht. Energie trägt es nicht bei, aber
     gut ein Viertel seines Gewichts ist Natrium — ein Teelöffel bringt so viel Natrium wie
     gut 3 g Salz. Ciqual 2020 (Anses) „Sodium bicarbonate“, inline übernommen. Backpulver

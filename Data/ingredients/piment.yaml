@@ -11,23 +11,9 @@
   nutrition:
     unspecified:
       - code: Z-piment
-        name: Spices, allspice, ground
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171315 „Spices, allspice,
-          ground“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 263
-          proteinG: 6.09
-          fatG: 8.69
-          saturatedFatG: 2.55
-          fiberG: 21.6
-          sodiumMg: 77
-          vitaminAMcg: 27
-          vitaminCMg: 39.2
-          vitaminDMcg: 0
-          calciumMg: 661
-          ironMg: 7.06
-          magnesiumMg: 135
-          potassiumMg: 1044
+        source:
+          id: usda-sr-legacy
+          ref: '171315'
   via: Das BLS führt Piment nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR Legacy,
     gemeinfrei) führt das gemahlene Gewürz als „Spices, allspice, ground“, inline übernommen.
     USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS

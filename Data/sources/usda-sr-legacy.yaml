@@ -1,0 +1,16 @@
+# A source of nutrition values. Its rows are in usda-sr-legacy.json, extracted from the
+# download below; an ingredient names a row by its code there.
+title: 'USDA FoodData Central, SR Legacy'
+publisher: 'U.S. Department of Agriculture, Agricultural Research Service'
+url: https://fdc.nal.usda.gov
+version: 'USDA FoodData Central, SR Legacy (April 2018)'
+release: 'April 2018'
+retrieved: '2026-10-05'
+license: CC0 1.0
+licenseURL: https://creativecommons.org/publicdomain/zero/1.0/deed.de
+attribution: 'USDA FoodData Central, SR Legacy (April 2018), U.S. Department of Agriculture, Agricultural Research Service (gemeinfrei, CC0 1.0)'
+changeNote: 'Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Ohne Kohlenhydrate: USDA gibt sie „by difference“ einschließlich der Ballaststoffe an, Sous zählt sie wie BLS und Ciqual ohne. Die Nährwerte selbst sind unverändert.'
+cite: 'FDC ID {ref} „{name}“'
+rowURL: https://fdc.nal.usda.gov/food-details/{ref}/nutrients
+download: https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_sr_legacy_food_csv_2018-04.zip
+extract: 'python3 Scripts/sources/extract.py usda-sr-legacy FoodData_Central_sr_legacy_food_csv_2018-04.zip'

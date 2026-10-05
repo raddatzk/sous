@@ -8,25 +8,10 @@
   nutrition:
     raw:
       - code: Z-dill
-        name: Dill, fresh
-        source: Ciqual 2020 (Anses), Nr. 11093 „Dill, fresh“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 48.2
-          proteinG: 3.93
-          fatG: 1.1
-          saturatedFatG: 0.27
-          carbsG: 3.9
-          sugarG: 1.2
-          fiberG: 3.5
-          sodiumMg: 27
-          vitaminCMg: 70
-          vitaminDMcg: 0
-          vitaminEMg: 1.7
-          calciumMg: 202
-          ironMg: 5.5
-          magnesiumMg: 28
-          potassiumMg: 647
-  via: Das BLS führt Dill nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint
+        source:
+          id: ciqual-2020
+          ref: '11093'
+  via: Das BLS führt Dill nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint
     ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als
     „Dill, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte.
   varieties:
@@ -39,23 +24,9 @@
       nutrition:
         unspecified:
           - code: Z-getrockneter-dill
-            name: Spices, dill weed, dried
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171322 „Spices,
-              dill weed, dried“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 253
-              proteinG: 19.96
-              fatG: 4.36
-              saturatedFatG: 0.234
-              fiberG: 13.6
-              sodiumMg: 208
-              vitaminAMcg: 293
-              vitaminCMg: 50
-              vitaminDMcg: 0
-              calciumMg: 1784
-              ironMg: 48.78
-              magnesiumMg: 451
-              potassiumMg: 3308
+            source:
+              id: usda-sr-legacy
+              ref: '171322'
       via: Getrocknet ist es ein anderes Produkt (Gewürzregal) mit einem Vielfachen der Werte
         je Gramm. USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, dill
         weed, dried“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich

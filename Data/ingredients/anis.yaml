@@ -8,23 +8,9 @@
   nutrition:
     unspecified:
       - code: Z-anis
-        name: Spices, anise seed
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171316 „Spices, anise
-          seed“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 337
-          proteinG: 17.6
-          fatG: 15.9
-          saturatedFatG: 0.586
-          fiberG: 14.6
-          sodiumMg: 16
-          vitaminAMcg: 16
-          vitaminCMg: 21
-          vitaminDMcg: 0
-          calciumMg: 646
-          ironMg: 36.96
-          magnesiumMg: 170
-          potassiumMg: 1441
+        source:
+          id: usda-sr-legacy
+          ref: '171316'
   via: Das BLS führt Anis nicht, Ciqual 2020 auch nicht. USDA FoodData Central (SR Legacy,
     gemeinfrei) führt die getrockneten Samen als „Spices, anise seed“, inline übernommen.
     USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS

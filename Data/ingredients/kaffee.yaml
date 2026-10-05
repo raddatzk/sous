@@ -12,25 +12,9 @@
       nutrition:
         unspecified:
           - code: Z-espresso
-            name: Beverages, coffee, brewed, espresso, restaurant-prepared
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171891 „Beverages,
-              coffee, brewed, espresso, restaurant-prepared“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 9
-              proteinG: 0.12
-              fatG: 0.18
-              saturatedFatG: 0.092
-              sugarG: 0
-              fiberG: 0
-              sodiumMg: 14
-              vitaminAMcg: 0
-              vitaminCMg: 0.2
-              vitaminDMcg: 0
-              vitaminEMg: 0.01
-              calciumMg: 2
-              ironMg: 0.13
-              magnesiumMg: 80
-              potassiumMg: 115
+            source:
+              id: usda-sr-legacy
+              ref: '171891'
       via: 'Das BLS führt nur Filterkaffee; Espresso ist deutlich konzentrierter. USDA-Zeile.
         Kohlenhydrate weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen.'
     - id: instantkaffee
@@ -40,24 +24,8 @@
       nutrition:
         unspecified:
           - code: Z-instantkaffee
-            name: Beverages, coffee, instant, regular, powder
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 171893 „Beverages,
-              coffee, instant, regular, powder“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 353
-              proteinG: 12.2
-              fatG: 0.5
-              saturatedFatG: 0.197
-              sugarG: 0
-              fiberG: 0
-              sodiumMg: 37
-              vitaminAMcg: 0
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              vitaminEMg: 0
-              calciumMg: 141
-              ironMg: 4.41
-              magnesiumMg: 327
-              potassiumMg: 3535
+            source:
+              id: usda-sr-legacy
+              ref: '171893'
       via: 'Das Pulver, nicht das Getränk; das BLS hat es nicht. USDA-Zeile. Kohlenhydrate
         weggelassen: USDA rechnet sie nur „by difference“, Ballaststoffe eingeschlossen.'

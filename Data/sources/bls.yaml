@@ -1,0 +1,14 @@
+# The Bundeslebensmittelschlüssel. Its rows are in bls.json, extracted from the
+# workbook (download, then extract); an ingredient names a row by its SBLS code.
+title: 'Bundeslebensmittelschlüssel'
+publisher: 'Max Rubner-Institut (MRI), Bundesforschungsinstitut für Ernährung und Lebensmittel'
+url: https://blsdb.de
+version: 'BLS 4.0'
+release: '2025'
+retrieved: '2026-10-05'
+license: CC BY 4.0
+licenseURL: https://creativecommons.org/licenses/by/4.0/deed.de
+attribution: 'Bundeslebensmittelschlüssel (BLS) 4.0, Max Rubner-Institut'
+changeNote: 'Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Wo der BLS die Vitamin-A-Aktivität (VITAA) leer lässt, steht sein Retinolwert (VITA). Die Nährwerte selbst sind unverändert.'
+download: https://blsdb.de/assets/uploads/BLS_4_0_2025_DE.zip
+extract: 'python3 Scripts/sources/extract.py bls BLS_4_0_Daten_2025_DE.xlsx'

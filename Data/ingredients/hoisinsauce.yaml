@@ -8,25 +8,9 @@
   nutrition:
     unspecified:
       - code: Z-hoisinsauce
-        name: Sauce, hoisin, ready-to-serve
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 172886 „Sauce, hoisin,
-          ready-to-serve“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 220
-          proteinG: 3.31
-          fatG: 3.39
-          saturatedFatG: 0.568
-          sugarG: 27.26
-          fiberG: 2.8
-          sodiumMg: 1615
-          vitaminAMcg: 0
-          vitaminCMg: 0.4
-          vitaminDMcg: 0
-          vitaminEMg: 0.28
-          calciumMg: 32
-          ironMg: 1.01
-          magnesiumMg: 24
-          potassiumMg: 119
+        source:
+          id: usda-sr-legacy
+          ref: '172886'
   via: Weder BLS noch Ciqual führen Hoisinsauce; USDA SR Legacy, inline übernommen. USDA nennt
     Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht
     in der Zeile.

@@ -10,22 +10,9 @@
   nutrition:
     unspecified:
       - code: Z-kardamom
-        name: Cardamom, powder
-        source: Ciqual 2020 (Anses), Nr. 11075 „Cardamom, powder“, Licence Ouverte / CC BY
-          4.0
-        per100g:
-          kcal: 321
-          proteinG: 10.8
-          fatG: 6.7
-          carbsG: 40.5
-          fiberG: 28
-          sodiumMg: 18
-          vitaminCMg: 21
-          vitaminDMcg: 0
-          calciumMg: 383
-          ironMg: 14
-          magnesiumMg: 229
-          potassiumMg: 1120
-  via: Das BLS führt Kardamom nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020
+        source:
+          id: ciqual-2020
+          ref: '11075'
+  via: Das BLS führt Kardamom nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020
     (Anses) führt es als „Cardamom, powder“ (das gemahlene Gewürz); diese Zeile ist inline
     übernommen.

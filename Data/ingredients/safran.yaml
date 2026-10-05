@@ -7,23 +7,8 @@
   nutrition:
     unspecified:
       - code: Z-safran
-        name: Saffron
-        source: Ciqual 2020 (Anses), Nr. 11039 „Saffron“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 352
-          proteinG: 11.4
-          fatG: 5.85
-          saturatedFatG: 1.59
-          carbsG: 61.5
-          sugarG: 42.4
-          fiberG: 3.9
-          sodiumMg: 148
-          vitaminCMg: 80.8
-          vitaminDMcg: 0
-          vitaminEMg: 1.69
-          calciumMg: 111
-          ironMg: 11.1
-          magnesiumMg: 264
-          potassiumMg: 1720
-  via: Das BLS führt Safran nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020
+        source:
+          id: ciqual-2020
+          ref: '11039'
+  via: Das BLS führt Safran nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020
     (Anses) führt es als „Saffron“ (die getrockneten Fäden); diese Zeile ist inline übernommen.

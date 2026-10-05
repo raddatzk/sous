@@ -9,42 +9,14 @@
   nutrition:
     unspecified:
       - code: Z-adzukibohnen-unspecified
-        name: Beans, adzuki, mature seeds, raw
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 173727 „Beans, adzuki,
-          mature seeds, raw“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 329
-          proteinG: 19.87
-          fatG: 0.53
-          saturatedFatG: 0.191
-          fiberG: 12.7
-          sodiumMg: 5
-          vitaminAMcg: 1
-          vitaminCMg: 0
-          vitaminDMcg: 0
-          calciumMg: 66
-          ironMg: 4.98
-          magnesiumMg: 127
-          potassiumMg: 1254
+        source:
+          id: usda-sr-legacy
+          ref: '173727'
     cooked:
       - code: Z-adzukibohnen-cooked
-        name: Beans, adzuki, mature seeds, cooked, boiled, without salt
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 173728 „Beans, adzuki,
-          mature seeds, cooked, boiled, without salt“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 128
-          proteinG: 7.52
-          fatG: 0.1
-          saturatedFatG: 0.036
-          fiberG: 7.3
-          sodiumMg: 8
-          vitaminAMcg: 0
-          vitaminCMg: 0
-          vitaminDMcg: 0
-          calciumMg: 28
-          ironMg: 2
-          magnesiumMg: 52
-          potassiumMg: 532
+        source:
+          id: usda-sr-legacy
+          ref: '173728'
   via: 'Das BLS und Ciqual führen keine Adzukibohnen. Trocken: USDA SR Legacy "Beans, adzuki,
     mature seeds, raw" (FDC 173727); gekocht: dieselben ohne Salz gekocht (FDC 173728). USDA
     nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.'

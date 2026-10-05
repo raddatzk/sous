@@ -7,25 +7,10 @@
   nutrition:
     unspecified:
       - code: Z-lorbeerblatt
-        name: Bay, leaves
-        source: Ciqual 2020 (Anses), Nr. 11053 „Bay, leaves“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 353
-          proteinG: 7.61
-          fatG: 8.36
-          saturatedFatG: 2.28
-          carbsG: 48.6
-          sugarG: 48.6
-          fiberG: 26.3
-          sodiumMg: 23
-          vitaminCMg: 46.5
-          vitaminDMcg: 0
-          vitaminEMg: 1.79
-          calciumMg: 834
-          ironMg: 43
-          magnesiumMg: 120
-          potassiumMg: 529
-  via: Das BLS führt Lorbeer nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020
+        source:
+          id: ciqual-2020
+          ref: '11053'
+  via: Das BLS führt Lorbeer nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020
     (Anses) führt die getrockneten Blätter als „Bay, leaves“; diese Zeile ist inline übernommen.
   varieties:
     - id: frisches-lorbeerblatt

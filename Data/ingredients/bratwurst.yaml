@@ -43,36 +43,14 @@
       nutrition:
         cooked:
           - code: Z-merguez-cooked
-            name: Merguez sausage, beef and mutton, cooked
-            source: Ciqual 2025 (Anses), Nr. 30155 „Merguez sausage, beef and mutton, cooked“,
-              Licence Ouverte / CC BY 4.0
-            per100g:
-              kcal: 283
-              proteinG: 19.8
-              fatG: 21.8
-              saturatedFatG: 12
-              carbsG: 1.8
-              sugarG: 1.6
-              fiberG: 0
-              sodiumMg: 930
-              vitaminAMcg: 69.7
-              calciumMg: 38
-              ironMg: 2.04
-              magnesiumMg: 22.8
-              potassiumMg: 513
+            source:
+              id: ciqual-2025
+              ref: '30155'
         unspecified:
           - code: Z-merguez-unspecified
-            name: Merguez sausage, beef and mutton, raw
-            source: Ciqual 2025 (Anses), Nr. 30156 „Merguez sausage, beef and mutton, raw“,
-              Licence Ouverte / CC BY 4.0
-            per100g:
-              kcal: 315
-              proteinG: 14
-              fatG: 27.6
-              carbsG: 2.8
-              sugarG: 0
-              fiberG: 0
-              sodiumMg: 630
+            source:
+              id: ciqual-2025
+              ref: '30156'
       via: Nordafrikanische Würstchen aus Rind und Lamm/Hammel, scharf gewürzt; der BLS führt
         sie nicht. Ciqual-Zeilen "Merguez, boeuf et mouton", roh als Ware und gegart.
     - id: salsiccia

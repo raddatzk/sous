@@ -4,18 +4,9 @@
   nutrition:
     unspecified:
       - code: Z-chorizo
-        name: Spicy pork sausage with red pepper
-        source: Ciqual 2025 (Anses), Nr. 30315 „Spicy pork sausage with red pepper“, Licence
-          Ouverte / CC BY 4.0
-        per100g:
-          kcal: 425
-          proteinG: 23.5
-          fatG: 36.1
-          saturatedFatG: 14.3
-          carbsG: 1.24
-          sugarG: 1.24
-          fiberG: 0.93
-          sodiumMg: 1690
+        source:
+          id: ciqual-2025
+          ref: '30315'
   via: Das BLS führt keine Chorizo. Ciqual-Zeile "Chorizo" (englisch "Spicy pork sausage with
     red pepper"), die allgemeine Zeile für die spanische Paprika-Rohwurst; Ciqual führt daneben
     die luftgetrocknete Wurst (30316) und die Aufschnittware (30317).

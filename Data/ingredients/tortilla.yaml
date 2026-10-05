@@ -14,25 +14,9 @@
       nutrition:
         unspecified:
           - code: Z-maistortilla
-            name: Tortillas, ready-to-bake or -fry, corn
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 175036 „Tortillas,
-              ready-to-bake or -fry, corn“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 218
-              proteinG: 5.7
-              fatG: 2.85
-              saturatedFatG: 0.453
-              sugarG: 0.88
-              fiberG: 6.3
-              sodiumMg: 45
-              vitaminAMcg: 0
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              vitaminEMg: 0.28
-              calciumMg: 81
-              ironMg: 1.23
-              magnesiumMg: 72
-              potassiumMg: 186
+            source:
+              id: usda-sr-legacy
+              ref: '175036'
       via: Das BLS führt nur die Weizentortilla. Die mexikanische Maistortilla aus Masa harina
         hat ein Viertel weniger Energie; USDA SR Legacy, inline übernommen. USDA nennt Kohlenhydrate
         nur „by difference“ (Ballaststoffe eingerechnet); die stehen deshalb nicht in der
@@ -45,25 +29,9 @@
       nutrition:
         unspecified:
           - code: Z-tacoschalen
-            name: Taco shells, baked
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 172800 „Taco shells,
-              baked“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 476
-              proteinG: 6.41
-              fatG: 21.79
-              saturatedFatG: 7.105
-              sugarG: 1.5
-              fiberG: 6.7
-              sodiumMg: 324
-              vitaminAMcg: 1
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              vitaminEMg: 0.69
-              calciumMg: 100
-              ironMg: 1.64
-              magnesiumMg: 83
-              potassiumMg: 231
+            source:
+              id: usda-sr-legacy
+              ref: '172800'
       via: Frittierte, gebogene Maistortillas; das BLS hat sie nicht. USDA SR Legacy, inline
         übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet);
         die stehen deshalb nicht in der Zeile.

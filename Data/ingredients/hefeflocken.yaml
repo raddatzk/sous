@@ -7,22 +7,8 @@
   nutrition:
     unspecified:
       - code: Z000001
-        name: Nutritional yeast
-        source: Ciqual 2020 (Anses), Nr. 11009 „Nutritional yeast“, Licence Ouverte / CC BY
-          4.0
-        per100g:
-          kcal: 334
-          proteinG: 40.4
-          fatG: 4.5
-          saturatedFatG: 0.7
-          carbsG: 21.8
-          sugarG: 2.5
-          fiberG: 22.5
-          sodiumMg: 141
-          vitaminEMg: 0.098
-          calciumMg: 130
-          ironMg: 4.1
-          magnesiumMg: 150
-          potassiumMg: 1700
+        source:
+          id: ciqual-2020
+          ref: '11009'
   via: Der BLS führt keine Nährhefe — nur Backhefe, ein anderes Erzeugnis. Z000001 ist die
-    Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Resources/community.json.
+    Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Data/sources/ciqual-2020.json.

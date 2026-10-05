@@ -8,24 +8,9 @@
   nutrition:
     unspecified:
       - code: Z-oregano
-        name: Oregano, dried
-        source: Ciqual 2020 (Anses), Nr. 11035 „Oregano, dried“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 265
-          proteinG: 9
-          fatG: 4.28
-          saturatedFatG: 1.55
-          carbsG: 26.4
-          sugarG: 4.09
-          fiberG: 42.5
-          sodiumMg: 25
-          vitaminCMg: 2.3
-          vitaminDMcg: 0
-          vitaminEMg: 18.3
-          calciumMg: 1600
-          ironMg: 36.8
-          magnesiumMg: 270
-          potassiumMg: 1260
-  via: Das BLS führt Oregano nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz
+        source:
+          id: ciqual-2020
+          ref: '11035'
+  via: Das BLS führt Oregano nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz
     meint ein Rezept den getrockneten (frischen gibt es selten); Ciqual 2020 (Anses) führt
     ihn als „Oregano, dried“, inline übernommen.

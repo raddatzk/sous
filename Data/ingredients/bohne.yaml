@@ -60,40 +60,14 @@
       nutrition:
         raw:
           - code: Z-schlangenbohne-raw
-            name: Yardlong bean, raw
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169222 „Yardlong
-              bean, raw“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 47
-              proteinG: 2.8
-              fatG: 0.4
-              saturatedFatG: 0.105
-              sodiumMg: 4
-              vitaminAMcg: 43
-              vitaminCMg: 18.8
-              vitaminDMcg: 0
-              calciumMg: 50
-              ironMg: 0.47
-              magnesiumMg: 44
-              potassiumMg: 240
+            source:
+              id: usda-sr-legacy
+              ref: '169222'
         cooked:
           - code: Z-schlangenbohne-cooked
-            name: Yardlong bean, cooked, boiled, drained, without salt
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169223 „Yardlong
-              bean, cooked, boiled, drained, without salt“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 47
-              proteinG: 2.53
-              fatG: 0.1
-              saturatedFatG: 0.026
-              sodiumMg: 4
-              vitaminAMcg: 23
-              vitaminCMg: 16.2
-              vitaminDMcg: 0
-              calciumMg: 44
-              ironMg: 0.98
-              magnesiumMg: 42
-              potassiumMg: 290
+            source:
+              id: usda-sr-legacy
+              ref: '169223'
       via: BLS und Ciqual führen die Spargelbohne nicht, und sie liegt deutlich über der grünen
         Bohne (47 statt 28 kcal). Werte aus USDA SR Legacy "Yardlong bean", roh (FDC 169222)
         und gekocht ohne Salz (FDC 169223). USDA nennt Kohlenhydrate nur als Differenz (mit

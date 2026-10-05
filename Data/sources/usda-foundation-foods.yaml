@@ -1,0 +1,16 @@
+# A source of nutrition values. Its rows are in usda-foundation-foods.json, extracted from the
+# download below; an ingredient names a row by its code there.
+title: 'USDA FoodData Central, Foundation Foods'
+publisher: 'U.S. Department of Agriculture, Agricultural Research Service'
+url: https://fdc.nal.usda.gov
+version: 'USDA FoodData Central, Foundation Foods (Dezember 2025)'
+release: 'Dezember 2025'
+retrieved: '2026-10-05'
+license: CC0 1.0
+licenseURL: https://creativecommons.org/publicdomain/zero/1.0/deed.de
+attribution: 'USDA FoodData Central, Foundation Foods (Dezember 2025), U.S. Department of Agriculture, Agricultural Research Service (gemeinfrei, CC0 1.0)'
+changeNote: 'Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Ohne Kohlenhydrate: USDA gibt sie „by difference“ einschließlich der Ballaststoffe an, Sous zählt sie wie BLS und Ciqual ohne. Nur die Lebensmittel selbst, nicht ihre einzelnen Proben. Die Nährwerte selbst sind unverändert.'
+cite: 'FDC ID {ref} „{name}“'
+rowURL: https://fdc.nal.usda.gov/food-details/{ref}/nutrients
+download: https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2025-12-18.zip
+extract: 'python3 Scripts/sources/extract.py usda-foundation-foods FoodData_Central_foundation_food_csv_2025-12-18.zip'

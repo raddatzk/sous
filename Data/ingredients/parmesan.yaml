@@ -17,23 +17,8 @@
       nutrition:
         unspecified:
           - code: Z-pecorino
-            name: Pecorino cheese, from ewe's milk
-            source: Ciqual 2025 (Anses), Nr. 12122 „Pecorino cheese, from ewe's milk“, Licence
-              Ouverte / CC BY 4.0
-            per100g:
-              kcal: 383
-              proteinG: 25.5
-              fatG: 31
-              saturatedFatG: 22
-              carbsG: 1
-              fiberG: 0
-              sodiumMg: 1890
-              vitaminAMcg: 139
-              vitaminDMcg: 0.5
-              vitaminEMg: 0.73
-              vitaminCMg: 0
-              calciumMg: 1160
-              ironMg: 1.4
-              potassiumMg: 94
+            source:
+              id: ciqual-2025
+              ref: '12122'
       via: Der BLS führt keinen Pecorino; Ciqual-Zeile für Schafskäse-Pecorino. Mit 1890 mg
         Natrium fast dreimal so salzig wie Parmesan.

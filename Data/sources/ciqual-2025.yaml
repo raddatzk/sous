@@ -1,0 +1,15 @@
+# A source of nutrition values. Its rows are in ciqual-2025.json, extracted from the
+# download below; an ingredient names a row by its code there.
+title: 'Ciqual 2025'
+publisher: 'Anses (Agence nationale de sécurité sanitaire de l''alimentation, de l''environnement et du travail), Frankreich'
+url: https://ciqual.anses.fr
+version: 'Ciqual 2025 (Anses)'
+release: '2025-11-03'
+retrieved: '2026-10-05'
+license: Licence Ouverte 2.0
+licenseURL: https://www.etalab.gouv.fr/licence-ouverte-open-licence/
+attribution: 'Table de composition nutritionnelle des aliments Ciqual 2025, Anses (Frankreich)'
+changeNote: 'Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Vitamin A als Retinoläquivalente, Vitamin E gesamt. Werte unter der Bestimmungsgrenze („traces“, „< x“) bleiben leer. Die englischen Namen stammen aus der XML-Fassung der Tabelle. Die Nährwerte selbst sind unverändert.'
+cite: 'Nr. {ref} „{name}“'
+download: https://doi.org/10.57745/RDMHWY
+extract: 'python3 Scripts/sources/extract.py ciqual-2025 ''Table Ciqual 2025_FR_2025_11_03.xlsx'' alim_2025_11_03.xml'

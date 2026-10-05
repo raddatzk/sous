@@ -17,20 +17,8 @@
       nutrition:
         unspecified:
           - code: Z-vanilleextrakt
-            name: Vanilla, alcoholic extract
-            source: Ciqual 2020 (Anses), Nr. 11065 „Vanilla, alcoholic extract“, Licence Ouverte
-              / CC BY 4.0
-            per100g:
-              kcal: 240
-              proteinG: 0.05
-              fatG: 0
-              carbsG: 2.41
-              fiberG: 0
-              sodiumMg: 4
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              ironMg: 0.13
-              magnesiumMg: 5
-              potassiumMg: 98
+            source:
+              id: ciqual-2020
+              ref: '11065'
       via: 'Ein anderes Erzeugnis als die Schote: in Alkohol ausgezogen, daher die Energie.
         Ciqual 2020 (Anses) führt es als „Vanilla, alcoholic extract“, inline übernommen.'

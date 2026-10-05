@@ -28,23 +28,9 @@
       nutrition:
         unspecified:
           - code: Z-medjool-dattel
-            name: Dates, medjool
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168191 „Dates, medjool“,
-              gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 277
-              proteinG: 1.81
-              fatG: 0.15
-              sugarG: 66.47
-              fiberG: 6.7
-              sodiumMg: 1
-              vitaminAMcg: 7
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              calciumMg: 64
-              ironMg: 0.9
-              magnesiumMg: 54
-              potassiumMg: 696
+            source:
+              id: usda-sr-legacy
+              ref: '168191'
       via: 'Weiche, halbgetrocknete Sorte; das BLS hat nur frische und getrocknete Datteln
         allgemein. Zeile aus USDA SR Legacy. Kohlenhydrate weggelassen: USDA rechnet sie nur
         „by difference“, Ballaststoffe eingeschlossen.'

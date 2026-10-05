@@ -7,25 +7,9 @@
   nutrition:
     unspecified:
       - code: Z-agavendicksaft
-        name: Sweetener, syrup, agave
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 170277 „Sweetener, syrup,
-          agave“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 310
-          proteinG: 0.09
-          fatG: 0.45
-          saturatedFatG: 0
-          sugarG: 68.03
-          fiberG: 0.2
-          sodiumMg: 4
-          vitaminAMcg: 8
-          vitaminCMg: 17
-          vitaminDMcg: 0
-          vitaminEMg: 0.98
-          calciumMg: 1
-          ironMg: 0.09
-          magnesiumMg: 1
-          potassiumMg: 4
+        source:
+          id: usda-sr-legacy
+          ref: '170277'
   via: Das BLS führt keinen Agavendicksaft, und Ahornsirup ist ein anderer Zucker. Ciqual
     hat ihn (31089), aber ohne Energie; USDA SR Legacy nennt sie, daher diese Zeile inline.
     USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet); die stehen

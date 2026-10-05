@@ -7,25 +7,9 @@
   nutrition:
     unspecified:
       - code: Z-agar-agar
-        name: Seaweed, agar, dried
-        source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 170090 „Seaweed, agar,
-          dried“, gemeinfrei (CC0 1.0)
-        per100g:
-          kcal: 306
-          proteinG: 6.21
-          fatG: 0.3
-          saturatedFatG: 0.061
-          sugarG: 2.97
-          fiberG: 7.7
-          sodiumMg: 102
-          vitaminAMcg: 0
-          vitaminCMg: 0
-          vitaminDMcg: 0
-          vitaminEMg: 5
-          calciumMg: 625
-          ironMg: 21.4
-          magnesiumMg: 770
-          potassiumMg: 1125
+        source:
+          id: usda-sr-legacy
+          ref: '170090'
   via: Das BLS führt Agar-Agar nicht; Ciqual hat es ohne Energie. USDA SR Legacy, getrocknet,
     inline übernommen. USDA nennt Kohlenhydrate nur „by difference“ (Ballaststoffe eingerechnet);
     die stehen deshalb nicht in der Zeile.

@@ -29,17 +29,9 @@
       nutrition:
         unspecified:
           - code: Z-kecap-manis
-            name: Soy sauce, with sugar, prepacked
-            source: Ciqual 2020 (Anses), Nr. 11216 „Soy sauce, with sugar, prepacked“, Licence
-              Ouverte / CC BY 4.0
-            per100g:
-              proteinG: 2.88
-              sugarG: 39.5
-              sodiumMg: 2760
-              calciumMg: 18
-              ironMg: 0.62
-              magnesiumMg: 17
-              potassiumMg: 410
+            source:
+              id: ciqual-2020
+              ref: '11216'
       via: Die indonesische süße Sojasauce ist zu rund 40 % Zucker und darf die Werte der
         salzigen nicht erben. Das BLS hat sie nicht; Ciqual 2020 (Anses) „Soy sauce, with
         sugar, prepacked“, inline übernommen. Energie und Kohlenhydrate gibt Ciqual nicht

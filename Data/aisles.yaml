@@ -1,13 +1,19 @@
-# BLS food groups: which ones the extraction keeps, and the aisle (category)
-# a row lands in when nothing more specific says. Read by compile.py for
-# aisles.json and by Scripts/nutrition/build_data.py for bls.json.
+# BLS food groups and the aisle (category) a row lands in when nothing more
+# specific says. Read by compile.py for aisles.json.
+#
+# The include/exclude fields (include, overrides with action: exclude,
+# global_exclude_keywords, special_include_codes) were the filter of the old
+# BLS pipeline, which shipped only the rows they kept. Nothing filters by them
+# any more — the app gets the rows the catalog names (Data/sources/) — and they
+# stay as the record of what was sampled; `included` in aisles.json still
+# reports them.
 readme: BLS 4.0 'BLS Code' first-letter food-group filtering rules for the sous nutrition
-  pipeline. See Scripts/nutrition/README.md for the full write-up. Sampled against all 7140
+  pipeline (retired 2026-10-05, see the comment above). Sampled against all 7140
   rows on 2026-08-24 before finalizing (not just the first-page samples in the task brief)
   because several groups turned out far more heterogeneous than their one-line description
   suggested (see notes below, especially E, H, K, Q, R, S).
 note: Default-Ladenbereich je BLS-Lebensmittelgruppe. Greift, wo eine Zeile oder ein Synonym
-  keine eigene Kategorie mitbringt; die feinere Zuordnung je Zeile steht in bls.json.
+  keine eigene Kategorie mitbringt; die feinere Zuordnung je Zeile steht in nutrition.json.
 global_exclude_keywords: [instantpulver, fertigprodukt, trockenprodukt, zubereitet, für gebäck/torten]
 global_exclude_keywords_note: Applied as a case-insensitive substring test against germanName
   for every included row, regardless of letter. 'instantpulver'/'trockenprodukt'/'fertigprodukt'

@@ -60,6 +60,19 @@ class BrokenData(unittest.TestCase):
         for fragment in fragments:
             self.assertIn(fragment, str(caught.exception))
 
+    def add_label(self, ref: str, row: dict) -> None:
+        """A row of Data/sources/labels.json, as a curator writes one."""
+        path = self.data / "sources/labels.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        document["rows"][ref] = row
+        path.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+
+    def edit_label(self, ref: str, change) -> None:
+        path = self.data / "sources/labels.json"
+        document = json.loads(path.read_text(encoding="utf-8"))
+        change(document["rows"][ref])
+        path.write_text(json.dumps(document, ensure_ascii=False), encoding="utf-8")
+
     def merge_zwetschge_into_pflaume(self) -> None:
         """A merge as a curator writes it: the absorbed entry's file goes,
         its spellings join the survivor, and its id moves under `formerly`."""
@@ -71,7 +84,7 @@ class BrokenData(unittest.TestCase):
         outputs, _, released = data_compiler.compile_data(self.data)
         self.assertEqual(set(outputs), {
             "kitchen_words.json", "curation.json", "measures.json",
-            "aisles.json", "community.json", "sources.json", "ids.json", "manifest.json",
+            "aisles.json", "nutrition.json", "sources.json", "ids.json", "manifest.json",
         })
         self.assertEqual(released, (self.data / "released-ids.txt").read_text(encoding="utf-8"))
 
@@ -151,8 +164,7 @@ class BrokenData(unittest.TestCase):
         self.edit("ingredients/zwetschge.yaml",
                   "  nutrition:\n    cooked: [F223152]\n    raw: [F223100]\n",
                   "  nutrition:\n    unspecified:\n      - code: Z000003\n"
-                  "        name: Zwetschge\n        source: Test\n"
-                  "        per100g: {kcal: '50'}\n")
+                  "        source: {id: ciqual-2020, ref: '11088'}\n")
         self.assertFails("Zwetschge's inline code Z000003 is not derived from its id; "
                          "write Z-zwetschge")
 
@@ -160,11 +172,87 @@ class BrokenData(unittest.TestCase):
         self.edit("ingredients/zwetschge.yaml",
                   "  nutrition:\n    cooked: [F223152]\n    raw: [F223100]\n",
                   "  nutrition:\n    unspecified:\n      - code: Z-zwetschge\n"
-                  "        name: Zwetschge\n        source: Test\n"
-                  "        per100g: {kcal: '50'}\n")
+                  "        source: {id: ciqual-2020, ref: '11088'}\n")
         outputs, _, _ = data_compiler.compile_data(self.data)
-        codes = [row["code"] for row in json.loads(outputs["community.json"])["entries"]]
+        codes = [row["code"] for row in json.loads(outputs["nutrition.json"])["entries"]]
         self.assertIn("Z-zwetschge", codes)
+
+    ZWETSCHGE_ROW = ("  nutrition:\n    cooked: [F223152]\n    raw: [F223100]\n",
+                     "  nutrition:\n    unspecified:\n      - code: Z-zwetschge\n"
+                     "        source: {{id: {id}, ref: '{ref}'}}\n")
+
+    def name_row(self, source_id: str, ref: str) -> None:
+        old, new = self.ZWETSCHGE_ROW
+        self.edit("ingredients/zwetschge.yaml", old, new.format(id=source_id, ref=ref))
+
+    def test_a_row_naming_a_source_the_register_lacks(self):
+        self.name_row("some-website", "1")
+        self.assertFails("the row Z-zwetschge names the source 'some-website', "
+                         "which is not in Data/sources/")
+
+    def test_a_row_naming_a_code_its_source_lacks(self):
+        self.name_row("ciqual-2020", "99999999")
+        self.assertFails("the row Z-zwetschge names '99999999' in ciqual-2020, which has no "
+                         "such row in Data/sources/ciqual-2020.json")
+
+    def test_any_row_of_a_source_can_be_named_without_copying_it(self):
+        # Not one of the rows the catalog used before: the source holds them all.
+        self.name_row("ciqual-2020", "13000")
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        row = next(r for r in json.loads(outputs["nutrition.json"])["entries"]
+                   if r["code"] == "Z-zwetschge")
+        stated = json.loads((self.data / "sources/ciqual-2020.json").read_text(encoding="utf-8"))
+        self.assertEqual(row["perHundredGrams"], stated["rows"]["13000"]["per100g"])
+
+    def test_a_source_no_row_uses(self):
+        for suffix in ("yaml", "json"):
+            text = (self.data / f"sources/labels.{suffix}").read_text(encoding="utf-8")
+            self.write(f"sources/unused-source.{suffix}", text)
+        self.assertFails("the source 'unused-source' is used by no row")
+
+    def test_a_source_without_its_rows(self):
+        text = (self.data / "sources/labels.yaml").read_text(encoding="utf-8")
+        self.write("sources/some-website.yaml", text)
+        self.assertFails("sources/some-website.yaml: there is no some-website.json beside it")
+
+    def test_a_licence_that_is_not_on_the_list(self):
+        self.edit("sources/ciqual-2020.yaml", "license: Licence Ouverte 2.0", "license: all rights reserved")
+        self.assertFails("is not one of")
+
+    def test_a_source_row_that_is_no_number(self):
+        self.add_label("1234567890128", {"name": "Test", "per100g": {"kcal": "viel"}})
+        self.assertFails("rows/1234567890128: kcal is 'viel', not a number ≥ 0")
+
+    def test_the_register_travels_with_the_data_set(self):
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        listed = json.loads(outputs["sources.json"])["sources"]
+        self.assertEqual(listed[0]["id"], "bls")
+        self.assertIn("ciqual-2020", [source["id"] for source in listed])
+        for source in listed:
+            # Every source the same record.
+            for key in ("title", "publisher", "version", "release", "license", "licenseURL",
+                        "attribution", "changeNote"):
+                self.assertIn(key, source)
+        # After the BLS, by how many shipped rows a source gives.
+        rows = json.loads(outputs["nutrition.json"])["entries"]
+        counts = [sum(r["sourceID"] == s["id"] for r in rows) for s in listed[1:]]
+        self.assertEqual(counts, sorted(counts, reverse=True))
+
+    def test_a_row_names_its_source_in_both_ways(self):
+        self.name_row("ciqual-2020", "11088")
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        row = next(r for r in json.loads(outputs["nutrition.json"])["entries"]
+                   if r["code"] == "Z-zwetschge")
+        self.assertEqual(row["sourceID"], "ciqual-2020")
+        self.assertEqual(row["source"], "Ciqual 2020 (Anses), Nr. 11088 „Cayenne pepper“")
+        self.assertEqual(row["name"], "Cayenne pepper")
+
+    def test_only_the_rows_the_catalog_names_ship(self):
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        shipped = {r["code"] for r in json.loads(outputs["nutrition.json"])["entries"]}
+        bls = json.loads((self.data / "sources/bls.json").read_text(encoding="utf-8"))["rows"]
+        self.assertIn("G480100", shipped)          # Zwiebel's basis
+        self.assertLess(len(shipped), len(bls))    # not the whole BLS
 
     def test_an_alias_another_entry_already_spells(self):
         self.edit("ingredients/zwiebel.yaml", "    - Zwiebeln\n",
@@ -195,7 +283,8 @@ class BrokenData(unittest.TestCase):
 
     def test_a_code_nobody_has(self):
         self.edit("ingredients/zwiebel.yaml", "raw: [G480100]", "raw: [G999999]")
-        self.assertFails("Zwiebel [raw] names G999999, which is neither in bls.json nor written inline")
+        self.assertFails("Zwiebel [raw] names G999999, which is neither in Data/sources/bls.json "
+                         "nor an inline row")
 
     def test_a_root_without_an_answer(self):
         self.write("ingredients/test.yaml",
@@ -219,11 +308,10 @@ class BrokenData(unittest.TestCase):
             "  nutrition:",
             "    unspecified:",
             "      - code: Z-acme-muesli",
-            "        name: Acme Müsli",
-            "        source: Etikett",
-            "        per100g: {kcal: '400'}",
+            "        source: {id: labels, ref: '4012345678901'}",
             "",
         ]))
+        self.add_label("4012345678901", {"name": "Acme Müsli", "per100g": {"kcal": 400}})
         self.assertFails(
             "the product spelling 'Proteinmüsli' does not name the brand 'Acme'",
             "the product row Z-acme-muesli has no 'checked'",
@@ -243,13 +331,11 @@ class BrokenData(unittest.TestCase):
         "  nutrition:",
         "    unspecified:",
         "      - code: Z-testmarke-vegane-butter",
-        "        name: Testmarke Vegane Butter",
-        "        source: Nährwertdeklaration der Packung",
-        "        checked: '2026-10-02'",
-        "        per: as-sold",
-        "        per100g: {kj: '2988', fatG: '80', saturatedFatG: '37', carbsG: '0.5',",
-        "                  sugarG: '0.5', proteinG: '0.2', saltG: '1.2'}",
+        "        source: {id: labels, ref: '0012345678905'}",
     ]
+    BUTTER_LABEL = {"name": "Testmarke Vegane Butter", "checked": "2026-10-02", "per": "as-sold",
+                    "per100g": {"kj": 2988, "fatG": 80, "saturatedFatG": 37, "carbsG": 0.5,
+                                "sugarG": 0.5, "proteinG": 0.2, "saltG": 1.2}}
     DRINK = [
         "- id: testmarke-haferdrink",
         "  kind: product",
@@ -262,16 +348,16 @@ class BrokenData(unittest.TestCase):
         "  nutrition:",
         "    unspecified:",
         "      - code: Z-testmarke-haferdrink",
-        "        name: Testmarke Haferdrink",
-        "        source: Nährwertdeklaration der Packung",
-        "        checked: '2026-10-02'",
-        "        per: as-sold",
-        "        per100ml: {kcal: '46', kj: '193', fatG: '1.5', carbsG: '7.0', fiberG: '0.8',",
-        "                   proteinG: '1.0', saltG: '0.1'}",
+        "        source: {id: labels, ref: '96385074'}",
     ]
+    DRINK_LABEL = {"name": "Testmarke Haferdrink", "checked": "2026-10-02", "per": "as-sold",
+                   "per100ml": {"kcal": 46, "kj": 193, "fatG": 1.5, "carbsG": 7.0, "fiberG": 0.8,
+                                "proteinG": 1.0, "saltG": 0.1}}
 
     def write_products(self, *lines: str) -> None:
         self.write("products/testmarke.yaml", "\n".join(self.BUTTER + self.DRINK + list(lines)) + "\n")
+        self.add_label("0012345678905", json.loads(json.dumps(self.BUTTER_LABEL)))
+        self.add_label("96385074", json.loads(json.dumps(self.DRINK_LABEL)))
 
     def test_products_compile_with_their_label(self):
         self.write_products()
@@ -287,7 +373,7 @@ class BrokenData(unittest.TestCase):
         # A plain ingredient's row is unchanged.
         self.assertNotIn("kind", words["Zwiebel"])
 
-        rows = {r["code"]: r for r in json.loads(outputs["community.json"])["entries"]}
+        rows = {r["code"]: r for r in json.loads(outputs["nutrition.json"])["entries"]}
         values = rows["Z-testmarke-vegane-butter"]["perHundredGrams"]
         self.assertAlmostEqual(values["kcal"], 2988 / 4.184, places=2)
         self.assertNotIn("kj", values)
@@ -311,9 +397,9 @@ class BrokenData(unittest.TestCase):
         self.write_products("- id: testmarke-zwiebel", "  kind: product", "  name: Zwiebel",
                             "  brand: Testmarke", "  category: vegetables", "  nutrition:",
                             "    unspecified:", "      - code: Z-testmarke-zwiebel",
-                            "        name: Zwiebel", "        source: Etikett",
-                            "        checked: '2026-10-02'", "        per: as-sold",
-                            "        per100g: {kcal: '40'}")
+                            "        source: {id: labels, ref: '4000000000006'}")
+        self.add_label("4000000000006", {"name": "Zwiebel", "checked": "2026-10-02",
+                                         "per": "as-sold", "per100g": {"kcal": 40}})
         self.assertFails("the product spelling 'Zwiebel' does not name the brand 'Testmarke'",
                          "'Zwiebel' (Zwiebel) is already spelled")
 
@@ -356,7 +442,7 @@ class BrokenData(unittest.TestCase):
 
     def test_assumed_zeros_travel_with_the_supplements(self):
         outputs, _, _ = data_compiler.compile_data(self.data)
-        rules = json.loads(outputs["community.json"])["assumedZero"]
+        rules = json.loads(outputs["nutrition.json"])["assumedZero"]
         vitamin_c = next(rule for rule in rules if rule["nutrient"] == "vitaminCMg")
         self.assertIn("C", vitamin_c["groups"])
         self.assertEqual(vitamin_c["groups"], sorted(vitamin_c["groups"]))
@@ -396,19 +482,18 @@ class BrokenData(unittest.TestCase):
 
     def test_a_label_without_energy(self):
         self.write_products()
-        self.edit("products/testmarke.yaml", "per100g: {kj: '2988', ", "per100g: {")
+        self.edit_label("0012345678905", lambda row: row["per100g"].pop("kj"))
         self.assertFails("the product row Z-testmarke-vegane-butter has no energy")
 
     def test_salt_and_sodium(self):
         self.write_products()
-        self.edit("products/testmarke.yaml", "saltG: '1.2'", "saltG: '1.2', sodiumMg: '480'")
+        self.edit_label("0012345678905", lambda row: row["per100g"].update(sodiumMg=480))
         self.assertFails("the row Z-testmarke-vegane-butter gives salt and sodium")
 
     def test_a_row_with_both_bases(self):
         self.write_products()
-        self.edit("products/testmarke.yaml", "        per100ml: {kcal: '46'",
-                  "        per100g: {kcal: '45'}\n        per100ml: {kcal: '46'")
-        self.assertFails("Z-testmarke-haferdrink")
+        self.edit_label("96385074", lambda row: row.update(per100g={"kcal": 45}))
+        self.assertFails("rows/96385074: needs exactly one of per100g and per100ml")
 
 
 class Manifest(unittest.TestCase):
@@ -458,7 +543,7 @@ class Manifest(unittest.TestCase):
         self.assertEqual(after["dataVersion"], 2026122400)
         self.assertNotEqual(after["sha256"], before["sha256"])
         self.assertNotEqual(after["files"]["kitchen_words.json"], before["files"]["kitchen_words.json"])
-        self.assertEqual(after["files"]["bls.json"], before["files"]["bls.json"])
+        self.assertEqual(after["files"]["nutrition.json"], before["files"]["nutrition.json"])
 
     def test_a_second_release_the_same_day_counts_up(self):
         self.assertEqual(data_compiler.next_version(2026122400, date(2026, 12, 24)), 2026122401)
@@ -470,15 +555,18 @@ class Manifest(unittest.TestCase):
         self.assertEqual(data_compiler.next_version(2026122499, date(2026, 12, 24)), 2026122500)
         self.assertEqual(data_compiler.next_version(2026122405, date(2026, 1, 1)), 2026122406)
 
-    def test_bls_json_is_part_of_the_set(self):
+    def test_a_new_release_of_a_source_is_new_data(self):
         before = self.compile(date(2026, 9, 30))
-        bls = self.resources / "bls.json"
-        bls.write_bytes(bls.read_bytes() + b" ")
+        # Zwiebel's basis, as a new BLS release might state it.
+        path = self.data / "sources/bls.json"
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        rows["rows"]["G480100"]["per100g"]["kcal"] += 1
+        path.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
         after = self.compile(date(2026, 10, 1))
         # Higher, not a fixed number: the checked-in manifest may already be
         # past the test's dates.
         self.assertGreater(after["dataVersion"], before["dataVersion"])
-        self.assertNotEqual(after["files"]["bls.json"], before["files"]["bls.json"])
+        self.assertNotEqual(after["files"]["nutrition.json"], before["files"]["nutrition.json"])
 
     def test_a_stale_manifest_is_caught(self):
         self.compile(date(2026, 9, 30))

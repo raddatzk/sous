@@ -10,25 +10,9 @@
   nutrition:
     unspecified:
       - code: Z-zimt
-        name: Cinnamon, powder
-        source: Ciqual 2020 (Anses), Nr. 11025 „Cinnamon, powder“, Licence Ouverte / CC BY
-          4.0
-        per100g:
-          kcal: 243
-          proteinG: 3.87
-          fatG: 1.22
-          saturatedFatG: 0.44
-          carbsG: 27.5
-          sugarG: 2.17
-          fiberG: 53.1
-          sodiumMg: 10
-          vitaminCMg: 3.8
-          vitaminDMcg: 0
-          vitaminEMg: 2.32
-          calciumMg: 1000
-          ironMg: 8.32
-          magnesiumMg: 60
-          potassiumMg: 431
+        source:
+          id: ciqual-2020
+          ref: '11025'
   via: Das BLS führt Zimt als Gewürz nicht; die Namenssuche fand nur Cerealien mit Zimtgeschmack
     (424 kcal). Ciqual 2020 (Anses) führt ihn als „Cinnamon, powder“, inline übernommen; die
     Stange ist dieselbe Rinde.

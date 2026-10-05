@@ -6,24 +6,9 @@
   nutrition:
     unspecified:
       - code: Z-fenchelsamen
-        name: Fennel, seed
-        source: Ciqual 2020 (Anses), Nr. 11066 „Fennel, seed“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 326
-          proteinG: 15.7
-          fatG: 14.9
-          saturatedFatG: 0.48
-          carbsG: 12.5
-          sugarG: 12.5
-          fiberG: 39.8
-          sodiumMg: 88
-          vitaminCMg: 21
-          vitaminDMcg: 0
-          vitaminEMg: 2.72
-          calciumMg: 1200
-          ironMg: 18.5
-          magnesiumMg: 385
-          potassiumMg: 1690
-  via: Das BLS führt Fenchelsamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual
+        source:
+          id: ciqual-2020
+          ref: '11066'
+  via: Das BLS führt Fenchelsamen nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual
     2020 (Anses) führt es als „Fennel, seed“ (die getrockneten Samen, wie ein Rezept sie meint);
     diese Zeile ist inline übernommen.

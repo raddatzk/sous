@@ -6,24 +6,9 @@
   nutrition:
     unspecified:
       - code: Z-chiliflocken
-        name: Cayenne pepper
-        source: Ciqual 2020 (Anses), Nr. 11088 „Cayenne pepper“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 376
-          proteinG: 12
-          fatG: 17.3
-          saturatedFatG: 3.26
-          carbsG: 29.4
-          sugarG: 10.3
-          fiberG: 27.2
-          sodiumMg: 30
-          vitaminCMg: 76.4
-          vitaminDMcg: 0
-          vitaminEMg: 29.8
-          calciumMg: 148
-          ironMg: 7.8
-          magnesiumMg: 152
-          potassiumMg: 2010
+        source:
+          id: ciqual-2020
+          ref: '11088'
   via: Getrocknete Chiliflocken führt das BLS nicht; die frische Schote („Pfefferschote“,
     siehe Chili) wiegt getrocknet ein Vielfaches je Gramm. Flocken und Pulver sind getrocknete
     rote Chili wie gemahlener Cayennepfeffer — USDA führt „crushed red pepper“ unter derselben

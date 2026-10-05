@@ -27,17 +27,9 @@
       nutrition:
         unspecified:
           - code: Z-serranoschinken
-            name: Dry-cured ham, Serrano
-            source: Ciqual 2025 (Anses), Nr. 28845 „Dry-cured ham, Serrano“, Licence Ouverte
-              / CC BY 4.0
-            per100g:
-              kcal: 235
-              proteinG: 30.4
-              fatG: 12.3
-              saturatedFatG: 5.2
-              carbsG: 0.76
-              sugarG: 0.36
-              sodiumMg: 1990
+            source:
+              id: ciqual-2025
+              ref: '28845'
       via: Erbte bisher den Kochschinken (904 mg Natrium, 130 kcal). Der BLS führt keinen
         Serrano; Ciqual-Zeile "Jambon sec Serrano".
     - id: schwarzwaelder-schinken

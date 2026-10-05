@@ -6,24 +6,9 @@
   nutrition:
     unspecified:
       - code: Z-cayennepfeffer
-        name: Cayenne pepper
-        source: Ciqual 2020 (Anses), Nr. 11088 „Cayenne pepper“, Licence Ouverte / CC BY 4.0
-        per100g:
-          kcal: 376
-          proteinG: 12
-          fatG: 17.3
-          saturatedFatG: 3.26
-          carbsG: 29.4
-          sugarG: 10.3
-          fiberG: 27.2
-          sodiumMg: 30
-          vitaminCMg: 76.4
-          vitaminDMcg: 0
-          vitaminEMg: 29.8
-          calciumMg: 148
-          ironMg: 7.8
-          magnesiumMg: 152
-          potassiumMg: 2010
+        source:
+          id: ciqual-2020
+          ref: '11088'
   via: Gemahlener Cayennepfeffer fehlt im BLS; die frische Schote („Pfefferschote“, siehe
     Chili) ist getrocknet ein anderes Lebensmittel je Gramm. Ciqual 2020 (Anses) führt ihn
     als „Cayenne pepper“, inline übernommen — dieselbe Zeile wie bei den Chiliflocken.

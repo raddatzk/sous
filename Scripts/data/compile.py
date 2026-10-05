@@ -10,27 +10,28 @@ Reads:
   - `Data/ingredients/*.yaml`  one family per file, varieties nested
   - `Data/products/*.yaml`     finished products, one brand per file
   - `Data/measures.yaml`       units, group weights, group densities
-  - `Data/aisles.yaml`         BLS group -> category, and the extraction filter
-  - `Data/sources.yaml`        what each source says about itself
+  - `Data/aisles.yaml`         BLS group -> category
+  - `Data/sources/<id>.yaml`   each source as it asks to be named
+  - `Data/sources/<id>.json`   each source's rows, written by
+                               `Scripts/sources/extract.py` from its download
+                               (or by hand, for nutrition labels)
   - `Data/retired.yaml`        ids that left the catalog, each with a reason
   - `Data/assumed-zeros.yaml`  per nutrient, the BLS groups where a blank is 0
   - `Data/released-ids.txt`    every id ever released; it only grows
   - `Data/schema.json`         the shape all of the above is validated against
-  - `Resources/bls.json`       generated from the BLS workbook by
-                               `Scripts/nutrition/build_data.py`; read here only
-                               to check that every code exists, and which
-                               blanks an assumed-zero rule reaches
 
-Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`
-and `community.json`, in the shapes the app has always read, `sources.json`,
-which the sources screen reads, and `ids.json`, the rename map: every id an
+Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`,
+`nutrition.json` — every row the catalog uses, from whichever source: the BLS
+rows an entry names by code, the other sources' rows an entry names by source
+and code, nothing else — `sources.json`, the register the sources page shows,
+and `ids.json`, the rename map: every id an
 entry absorbed under `formerly`, pointing at the entry, and the retired ids.
 It also adds the catalog's ids to `Data/released-ids.txt`, and fails when an
 id listed there is gone without being renamed or retired.
 
 Last it writes `manifest.json`, which names the data set these files make:
 its format (`schema`), its release (`dataVersion`), and the SHA-256 of every
-file, `bls.json` included. The app reads a set only through its manifest,
+file. The app reads a set only through its manifest,
 bundled or fetched (SousKit's `DataSet`).
 
 `dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this
@@ -79,14 +80,17 @@ STATES = ("raw", "cooked", "unspecified")
 
 # The format of a data set's files, SousKit's `DataSetManifest.supportedSchema`.
 # Raised only when their shape changes in a way an older app would misread.
-SCHEMA = 1
+# 2: one `nutrition.json` with the rows the catalog uses, from every source,
+# where 1 had `bls.json` (the filtered BLS) and `community.json` (the rest).
+SCHEMA = 2
 MANIFEST = "manifest.json"
-# The files a data set consists of, SousKit's `DataSet.File`. `bls.json` is
-# not written here but belongs to the set all the same.
+# The files a data set consists of, SousKit's `DataSet.File`.
 SET_FILES = (
-    "aisles.json", "bls.json", "community.json", "curation.json",
-    "ids.json", "kitchen_words.json", "measures.json", "sources.json",
+    "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
+    "measures.json", "nutrition.json", "sources.json",
 )
+# Where each source keeps its register entry (<id>.yaml) and its rows (<id>.json).
+SOURCES_DIR = "sources"
 
 # Inline rows written before ids existed carry numbered codes. They keep them; a
 # new row's code is derived from its entry's id instead, so two pull requests
@@ -200,8 +204,11 @@ def load_yaml(path: Path):
             loader.dispose()
 
 
-def number(text: str):
-    """"110" -> 110, "0.3" -> 0.3. The schema has already said it is one."""
+def number(text):
+    """"110" -> 110, "0.3" -> 0.3. The schema has already said it is one. A
+    source's rows (JSON) are numbers already and pass through."""
+    if isinstance(text, (int, float)):
+        return text
     return int(text) if re.fullmatch(r"-?\d+", text) else float(text)
 
 
@@ -268,7 +275,10 @@ class Dataset:
     words: list[Word]
     measures: dict
     aisles: dict
+    # The register, Data/sources/<id>.yaml, by id.
     sources: dict
+    # Every source's rows, Data/sources/<id>.json, by id and then by code.
+    source_rows: dict
     bls_codes: set[str]
     retired: dict[str, str] = field(default_factory=dict)
     assumed_zeros: list = field(default_factory=list)
@@ -311,7 +321,28 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
                 )
     measures = validated(data / "measures.yaml", "measuresFile")
     aisles = validated(data / "aisles.yaml", "aislesFile")
-    sources = validated(data / "sources.yaml", "sourcesFile")
+    sources: dict = {}
+    source_rows: dict = {}
+    for path in sorted((data / SOURCES_DIR).glob("*.yaml")):
+        sources[path.stem] = validated(path, "sourceFile")
+        rows_path = path.with_suffix(".json")
+        if not rows_path.exists():
+            errors.append(f"{relative(path)}: there is no {rows_path.name} beside it; every source "
+                          f"keeps its rows there (see the `extract` line, or write it by hand)")
+            continue
+        try:
+            document = json.loads(rows_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            errors.append(f"{relative(rows_path)}: {error}")
+            continue
+        # The schema's `sourceRows`, checked here directly: jsonschema takes
+        # seconds over the tens of thousands of rows a source has, and the
+        # tests compile dozens of times.
+        row_errors = source_row_errors(document, schema["$defs"]["nutrient"]["enum"])
+        errors.extend(f"{relative(rows_path)}: {error}" for error in row_errors[:5])
+        source_rows[path.stem] = document.get("rows", {}) if isinstance(document, dict) else {}
+    if "bls" not in sources:
+        errors.append(f"Data/{SOURCES_DIR}/bls.yaml is missing; the BLS is the catalog's first source")
     retired = validated(data / "retired.yaml", "retiredFile") or []
     assumed_zeros = validated(data / "assumed-zeros.yaml", "assumedZerosFile") or []
     if errors:
@@ -325,17 +356,48 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
     if errors:
         raise DataError("\n".join(errors))
 
-    bls = json.loads((resources / "bls.json").read_text(encoding="utf-8"))
+    # Inline rows name their source and their code there; what the row says —
+    # its name, its values, a label's date — comes from the source's rows.
+    for word in words:
+        if not isinstance(word.nutrition, dict):
+            continue
+        for items in word.nutrition.values():
+            for index, item in enumerate(items):
+                if not isinstance(item, dict):
+                    continue
+                source_id, ref = item["source"]["id"], str(item["source"]["ref"])
+                if source_id not in sources:
+                    errors.append(f"{word.file}: the row {item['code']} names the source "
+                                  f"{source_id!r}, which is not in Data/{SOURCES_DIR}/ "
+                                  f"(known: {', '.join(sorted(sources))})")
+                    continue
+                row = source_rows.get(source_id, {}).get(ref)
+                if row is None:
+                    errors.append(f"{word.file}: the row {item['code']} names {ref!r} in "
+                                  f"{source_id}, which has no such row in "
+                                  f"Data/{SOURCES_DIR}/{source_id}.json")
+                    continue
+                items[index] = {**row, **{k: v for k, v in item.items() if k != "source"},
+                                "source": source_id, "ref": ref}
+    if errors:
+        raise DataError("\n".join(errors))
+
+    bls_rows = source_rows["bls"]
+    # Per BLS group, per nutrient, how many rows leave it blank: what an
+    # assumed-zero rule can reach. Over the whole BLS, not only the rows the
+    # catalog uses today: a rule is idle only where no row it could ever meet
+    # has the blank, and naming one more code must not turn a rule idle.
     nutrients = schema["$defs"]["nutrient"]["enum"]
     blanks: dict = {}
-    for row in bls["entries"]:
+    for code, row in bls_rows.items():
         for nutrient in nutrients:
-            if nutrient not in row["perHundredGrams"]:
-                group = blanks.setdefault(row["group"], {})
+            if nutrient not in row["per100g"]:
+                group = blanks.setdefault(code[0], {})
                 group[nutrient] = group.get(nutrient, 0) + 1
     return Dataset(
-        words=words, measures=measures, aisles=aisles, sources=sources,
-        bls_codes={row["code"] for row in bls["entries"]},
+        words=words, measures=measures, aisles=aisles,
+        sources=sources, source_rows=source_rows,
+        bls_codes=set(bls_rows),
         retired=retired_ids,
         assumed_zeros=assumed_zeros,
         bls_blanks=blanks,
@@ -359,6 +421,46 @@ def parse_released(text: str) -> list[str]:
 
 SPELLING_PUNCTUATION = set(" -'%/.,")
 PLURAL_SUFFIXES = ("en", "n", "e", "s")
+
+
+SOURCE_ROW_KEYS = {"name", "nameEnglish", "note", "checked", "per", "per100g", "per100ml"}
+
+
+def source_row_errors(document, nutrients: list[str]) -> list[str]:
+    """What `$defs/sourceRows` in schema.json says, without jsonschema."""
+    if not isinstance(document, dict) or set(document) != {"rows"} or not isinstance(document["rows"], dict):
+        return ['(top): a source file is {"rows": {"<code>": {...}, ...}}']
+    allowed_values = set(nutrients) | {"kj", "saltG"}
+    errors = []
+    for code, row in document["rows"].items():
+        where = f"rows/{code}"
+        if not isinstance(row, dict):
+            errors.append(f"{where}: not an object")
+            continue
+        if extra := set(row) - SOURCE_ROW_KEYS:
+            errors.append(f"{where}: unknown {', '.join(sorted(extra))}")
+        if not isinstance(row.get("name"), str) or not row["name"].strip():
+            errors.append(f"{where}: no name")
+        if ("per100g" in row) == ("per100ml" in row):
+            errors.append(f"{where}: needs exactly one of per100g and per100ml")
+        values = row.get("per100g", row.get("per100ml"))
+        if values is not None:
+            if not isinstance(values, dict):
+                errors.append(f"{where}: its values are not an object")
+            else:
+                for key, value in values.items():
+                    if key not in allowed_values:
+                        errors.append(f"{where}: {key!r} is no nutrient")
+                    elif isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+                        errors.append(f"{where}: {key} is {value!r}, not a number ≥ 0")
+        if "per" in row and row["per"] not in ("as-sold", "drained"):
+            errors.append(f"{where}: per is {row['per']!r}, not as-sold or drained")
+        if "checked" in row:
+            try:
+                date.fromisoformat(row["checked"])
+            except (TypeError, ValueError):
+                errors.append(f"{where}: checked {row['checked']!r} is no date")
+    return errors
 
 
 def inline_rows(word: Word):
@@ -556,7 +658,15 @@ def check(dataset: Dataset) -> None:
             seen.add(current.name)
             current = by_name.get(current.parent) if current.parent else None
 
-    # Codes: every one exists, in bls.json or inline; inline ones are Z codes,
+    # Sources: every source of the register is named by a row (the BLS by
+    # code) — a source nobody uses would be credited for nothing.
+    used = {row["source"] for word in words for row in inline_rows(word)}
+    for source_id in dataset.sources:
+        if source_id != "bls" and source_id not in used:
+            errors.append(f"Data/{SOURCES_DIR}/{source_id}.yaml: the source {source_id!r} is "
+                          f"used by no row")
+
+    # Codes: every one exists, in the BLS or as a row of another source; those are Z codes,
     # written once, and a new one is named after its entry's id.
     inline: dict[str, Word] = {}
     for word in words:
@@ -594,11 +704,11 @@ def check(dataset: Dataset) -> None:
         for state, code in codes_of(word):
             if code not in known:
                 errors.append(f"{word.file}: {word.name} [{state}] names {code}, "
-                              f"which is neither in bls.json nor written inline")
+                              f"which is neither in Data/{SOURCES_DIR}/bls.json nor an inline row")
         for code in word.candidates:
             if code not in known:
                 errors.append(f"{word.file}: {word.name} names the candidate {code}, "
-                              f"which is not in bls.json")
+                              f"which is not in Data/{SOURCES_DIR}/bls.json")
         if isinstance(word.nutrition, dict) and word.parent is not None:
             parent_states = by_name[word.parent].nutrition
             if isinstance(parent_states, dict) and set(parent_states) - set(word.nutrition):
@@ -784,80 +894,90 @@ def aisles(dataset: Dataset) -> dict:
     }
 
 
-def group_codes(aisles_document: dict) -> dict:
-    """`Data/aisles.yaml` in the shape `extract_bls.py` has always taken
-    `group_codes.json` in: booleans as booleans, lists as lists."""
-    return {
-        "global_exclude_keywords": aisles_document.get("global_exclude_keywords", []),
-        "letters": {
-            letter: {**cfg, "include": boolean(cfg.get("include", "false"))}
-            for letter, cfg in aisles_document["letters"].items()
-        },
-    }
+def source_line(dataset: Dataset, source_id: str, ref: str | None = None, name: str | None = None) -> str:
+    """What the app prints after „Quelle:“: the source as it is cited, and
+    the row as the source's `cite` names it — „Ciqual 2020 (Anses), Nr. 11088
+    „Cayenne pepper““."""
+    source = dataset.sources[source_id]
+    if ref is None or "cite" not in source:
+        return source["version"]
+    return f"{source['version']}, {source['cite'].format(ref=ref, name=name)}"
 
 
-def load_group_codes(data: Path = DATA) -> dict:
-    return group_codes(load_yaml(data / "aisles.yaml"))
+def row_url(dataset: Dataset, source_id: str, ref: str) -> str | None:
+    template = dataset.sources[source_id].get("rowURL")
+    return template.format(ref=ref) if template else None
 
 
-def community(dataset: Dataset) -> dict:
+def nutrition(dataset: Dataset) -> dict:
+    """Every row the catalog uses, from whichever source, resolved: the BLS
+    rows an entry names by code, and the rows of the other sources an entry
+    names by source and code. Nothing else ships — a source's other rows stay
+    in Data/sources/, where an entry can name them by editing its YAML."""
     by_name = {word.name: word for word in dataset.words}
-    entries = []
+    entries: dict[str, dict] = {}
+    bls_rows = dataset.source_rows["bls"]
+    # A BLS row's category is that of the first entry (in catalog order)
+    # that names it; the app does not read it, but every row has one.
+    for word in catalog_order(dataset.words):
+        codes = [code for _, code in codes_of(word)] + list(word.candidates)
+        for code in codes:
+            if code in bls_rows and code not in entries:
+                entries[code] = {
+                    "code": code,
+                    "name": bls_rows[code]["name"],
+                    "group": code[0],
+                    "category": category_of(word, by_name),
+                    "source": source_line(dataset, "bls"),
+                    "sourceID": "bls",
+                    "perHundredGrams": bls_rows[code]["per100g"],
+                }
     for word in dataset.words:
         for row in inline_rows(word):
             entry = {
                 "code": row["code"],
-                "name": row["name"],
+                "name": row.get("nameEnglish", row["name"]),
                 "group": row.get("group", row["code"][0]),
                 "category": row.get("category", category_of(word, by_name)),
-                "source": row["source"],
+                "source": source_line(dataset, row["source"], row["ref"], row.get("nameEnglish", row["name"])),
+                "sourceID": row["source"],
                 "perHundredGrams": per_hundred_grams(word, row)[0],
             }
+            url = row_url(dataset, row["source"], row["ref"])
+            if url:
+                entry["sourceURL"] = url
             # A label's date and reference travel with its values, so a
             # stale row is findable and a drained figure says so.
             for key in ("checked", "per"):
                 if key in row:
                     entry[key] = row[key]
-            entries.append(entry)
-    header = dataset.sources["supplements"]
-    # The rules travel with the supplements because they are this catalog's
-    # addition to the BLS, as the supplements are; the app applies them to
-    # bls.json's rows only.
+            entries[row["code"]] = entry
+    # The rules belong to the BLS rows; the app applies them to those only.
     assumed_zero = [
         {"nutrient": rule["nutrient"], "groups": sorted(rule["groups"])}
         for rule in dataset.assumed_zeros
     ]
-    return {
-        "datasetVersion": header["datasetVersion"],
-        "release": header["release"],
-        "license": header["license"],
-        "attribution": header["attribution"],
-        "changeNote": header["changeNote"],
-        "assumedZero": assumed_zero,
-        "entries": sorted(entries, key=lambda e: e["code"]),
-    }
+    return {"assumedZero": assumed_zero, "entries": [entries[code] for code in sorted(entries)]}
 
 
 def sources(dataset: Dataset) -> dict:
-    """Every source as it asks to be named, in the order `sources.yaml`
-    writes them: what CC BY 4.0 asks the app to show."""
+    """The register as the sources page shows it: every source the same
+    record, the BLS first, then by how many shipped rows each one gives."""
+    counts: dict[str, int] = {source_id: 0 for source_id in dataset.sources}
+    for row in nutrition(dataset)["entries"]:
+        counts[row["sourceID"]] += 1
+    order = sorted(dataset.sources, key=lambda sid: (sid != "bls", -counts[sid], sid))
+    keys = ("title", "publisher", "url", "version", "release", "retrieved",
+            "license", "licenseURL", "attribution", "changeNote")
     return {"sources": [
-        {
-            "id": source_id,
-            "title": source["title"],
-            "datasetVersion": source["datasetVersion"],
-            "release": source["release"],
-            "license": source["license"],
-            "licenseURL": source["licenseURL"],
-            "attribution": source["attribution"],
-            "changeNote": source["changeNote"],
-        }
-        for source_id, source in dataset.sources.items()
+        {"id": source_id, **{key: dataset.sources[source_id][key] for key in keys
+                             if key in dataset.sources[source_id]}}
+        for source_id in order
     ]}
 
 
 def load_sources(data: Path = DATA) -> dict:
-    return load_yaml(data / "sources.yaml")
+    return {path.stem: load_yaml(path) for path in sorted((data / SOURCES_DIR).glob("*.yaml"))}
 
 
 def ids(dataset: Dataset) -> dict:
@@ -949,14 +1069,11 @@ def compile_data(
         "curation.json": dump_json(curation(dataset)),
         "measures.json": dump_json(measures(dataset)),
         "aisles.json": dump_json(aisles(dataset)),
-        "community.json": dump_json(community(dataset)),
+        "nutrition.json": dump_json(nutrition(dataset)),
         "sources.json": dump_json(sources(dataset)),
         "ids.json": dump_json(ids(dataset)),
     }
-    set_bytes = {
-        name: outputs[name].encode("utf-8") if name in outputs else (resources / name).read_bytes()
-        for name in SET_FILES
-    }
+    set_bytes = {name: outputs[name].encode("utf-8") for name in SET_FILES}
     previous_path = resources / MANIFEST
     previous = read_manifest(previous_path.read_text(encoding="utf-8") if previous_path.exists() else None)
     today = today or datetime.now(timezone.utc).date()

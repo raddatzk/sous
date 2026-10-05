@@ -35,25 +35,9 @@
       nutrition:
         unspecified:
           - code: Z-queso-fresco
-            name: Cheese, fresh, queso fresco
-            source: USDA FoodData Central, SR Legacy, FDC ID 172223 „Cheese, fresh, queso
-              fresco“, NDB 1228, gemeinfrei (CC0)
-            per100g:
-              kcal: 299
-              proteinG: 18.1
-              fatG: 23.8
-              saturatedFatG: 12.9
-              sugarG: 2.32
-              fiberG: 0.0
-              sodiumMg: 751
-              vitaminAMcg: 224
-              vitaminDMcg: 2.7
-              vitaminEMg: 0.37
-              vitaminCMg: 0.0
-              calciumMg: 566
-              ironMg: 0.2
-              magnesiumMg: 24.0
-              potassiumMg: 129
+            source:
+              id: usda-sr-legacy
+              ref: '172223'
       via: Mexikanischer Frischkäse, krümelig und salzig; der BLS führt ihn nicht, USDA SR
         Legacy schon. USDA gibt Kohlenhydrate nur als Differenz mit den Ballaststoffen an,
         daher ohne carbsG.

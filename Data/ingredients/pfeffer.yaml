@@ -36,23 +36,9 @@
       nutrition:
         unspecified:
           - code: Z-weisser-pfeffer
-            name: White pepper, powder
-            source: Ciqual 2020 (Anses), Nr. 11019 „White pepper, powder“, Licence Ouverte
-              / CC BY 4.0
-            per100g:
-              kcal: 310
-              proteinG: 11.4
-              fatG: 2.11
-              saturatedFatG: 0.63
-              carbsG: 48.3
-              fiberG: 26.2
-              sodiumMg: 5
-              vitaminCMg: 21
-              vitaminDMcg: 0
-              calciumMg: 265
-              ironMg: 14.3
-              magnesiumMg: 90
-              potassiumMg: 73
+            source:
+              id: ciqual-2020
+              ref: '11019'
       via: Das BLS führt nur schwarzen Pfeffer. Weißer ist die geschälte Beere, mit deutlich
         anderen Mineralstoffwerten; Ciqual 2020 (Anses) führt ihn als „White pepper, powder“,
         inline übernommen.

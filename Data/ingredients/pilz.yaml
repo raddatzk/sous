@@ -111,20 +111,9 @@
       nutrition:
         raw:
           - code: Z-kraeuterseitling
-            name: Mushroom, king oyster
-            source: USDA FoodData Central, Foundation Foods (Oktober 2021), FDC ID 2003599
-              „Mushroom, king oyster“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 46
-              proteinG: 2.41
-              fatG: 0.31
-              fiberG: 3.0
-              sodiumMg: 1
-              vitaminDMcg: 0.07
-              calciumMg: 0
-              ironMg: 0.34
-              magnesiumMg: 13.5
-              potassiumMg: 294
+            source:
+              id: usda-foundation-foods
+              ref: '2003599'
       via: Das BLS führt den Kräuterseitling nicht (nur den Austernpilz, eine andere Art).
         Werte aus USDA Foundation Foods "Mushroom, king oyster" (FDC 2003599), roh. USDA nennt
         Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.
@@ -136,24 +125,9 @@
       nutrition:
         raw:
           - code: Z-enoki
-            name: Mushrooms, enoki, raw
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 169382 „Mushrooms,
-              enoki, raw“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 37
-              proteinG: 2.66
-              fatG: 0.29
-              saturatedFatG: 0.027
-              sugarG: 0.22
-              fiberG: 2.7
-              sodiumMg: 3
-              vitaminCMg: 0
-              vitaminDMcg: 0.1
-              vitaminEMg: 0.01
-              calciumMg: 0
-              ironMg: 1.15
-              magnesiumMg: 16
-              potassiumMg: 359
+            source:
+              id: usda-sr-legacy
+              ref: '169382'
       via: BLS und Ciqual führen Enoki nicht. Werte aus USDA SR Legacy "Mushrooms, enoki,
         raw" (FDC 169382); die neuere Foundation-Zeile (FDC 2003600) nennt weniger Nährstoffe.
         USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen); carbsG ist deshalb
@@ -167,20 +141,9 @@
       nutrition:
         raw:
           - code: Z-shimeji
-            name: Mushroom, beech
-            source: USDA FoodData Central, Foundation Foods (Oktober 2021), FDC ID 2003603
-              „Mushroom, beech“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 40
-              proteinG: 2.18
-              fatG: 0.45
-              fiberG: 3.1
-              sodiumMg: 1
-              vitaminDMcg: 0.37
-              calciumMg: 0
-              ironMg: 0.74
-              magnesiumMg: 10.5
-              potassiumMg: 376
+            source:
+              id: usda-foundation-foods
+              ref: '2003603'
       via: Das BLS führt Buchenpilze nicht. Werte aus USDA Foundation Foods "Mushroom, beech"
         (FDC 2003603), roh. USDA nennt Kohlenhydrate nur als Differenz (mit Ballaststoffen);
         carbsG ist deshalb weggelassen.
@@ -193,22 +156,9 @@
       nutrition:
         unspecified:
           - code: Z-mu-err
-            name: Fungi, Cloud ears, dried
-            source: USDA FoodData Central, SR Legacy (April 2018), FDC ID 168581 „Fungi, Cloud
-              ears, dried“, gemeinfrei (CC0 1.0)
-            per100g:
-              kcal: 284
-              proteinG: 9.25
-              fatG: 0.73
-              fiberG: 70.1
-              sodiumMg: 35
-              vitaminAMcg: 0
-              vitaminCMg: 0
-              vitaminDMcg: 0
-              calciumMg: 159
-              ironMg: 5.88
-              magnesiumMg: 83
-              potassiumMg: 754
+            source:
+              id: usda-sr-legacy
+              ref: '168581'
       via: Getrocknet aus dem Asialaden; BLS und Ciqual führen sie nicht. Werte aus USDA SR
         Legacy "Fungi, Cloud ears, dried" (FDC 168581), trocken abgewogen. USDA nennt Kohlenhydrate
         nur als Differenz (mit Ballaststoffen); carbsG ist deshalb weggelassen.
