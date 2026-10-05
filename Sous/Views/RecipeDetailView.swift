@@ -81,12 +81,11 @@ struct RecipeDetailView: View {
     @State private var isPlanning = false
     @State private var isReadingStepReferences = false
     @State private var isOptimizing = false
-    @State private var isConfirmingReset = false
-    @State private var isConfirmingUndo = false
+    /// Whether the versions page is open — the earlier versions, the
+    /// original, and going back to any of them.
+    @State private var isShowingVersions = false
     /// The request of the AI edit being set up, which opens its sheet.
     @State private var aiRequest: RecipeAIEditSheet.Request?
-    /// "Original": the recipe as imported, where an optimization changed it.
-    @State private var showsOriginal = false
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
@@ -238,30 +237,21 @@ struct RecipeDetailView: View {
                     VStack(alignment: .leading, spacing: 28) {
                         titleBlock(barEdge: barEdge)
                         actionSection(isWide: isWide)
-                        if changedOriginal != nil {
-                            modePicker
-                        }
-                        if showsOriginal, let original = changedOriginal {
-                            // The imported text in place of the working
-                            // one; nutrition and the source stay.
-                            originalText(original)
-                        } else {
-                            if isWide {
-                                // What to get out and what to do with it, side by
-                                // side: the cook reads the steps and glances left
-                                // instead of scrolling back up.
-                                HStack(alignment: .top, spacing: 40) {
-                                    ingredients
-                                        .frame(width: Self.ingredientColumn, alignment: .leading)
-                                    steps
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                            } else {
+                        if isWide {
+                            // What to get out and what to do with it, side by
+                            // side: the cook reads the steps and glances left
+                            // instead of scrolling back up.
+                            HStack(alignment: .top, spacing: 40) {
                                 ingredients
+                                    .frame(width: Self.ingredientColumn, alignment: .leading)
                                 steps
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            notes
+                        } else {
+                            ingredients
+                            steps
                         }
+                        notes
                         nutritionDetail
                         sourceFooter
                     }
@@ -350,26 +340,8 @@ struct RecipeDetailView: View {
         .sheet(item: $aiRequest) { request in
             RecipeAIEditSheet(recipe: recipe, request: request)
         }
-        .sousConfirmation(
-            "Letzte KI-Änderung zurücknehmen?",
-            isPresented: $isConfirmingUndo,
-            message: "Das Rezept steht wieder so da, wie es vor der letzten Änderung durch die KI war. Änderungen, die du seitdem gemacht hast, gehen dabei verloren."
-        ) {
-            Button("Zurücknehmen", role: .destructive) {
-                Task { await library.undoReplacement(recipe) }
-            }
-        }
-        .sousConfirmation(
-            "Auf Original zurücksetzen?",
-            isPresented: $isConfirmingReset,
-            message: "Zutaten, Zubereitung und Notizen stehen wieder so da, wie das Rezept importiert wurde. Die Zuordnung der Schritte entfällt; optimieren lässt es sich jederzeit neu."
-        ) {
-            Button("Zurücksetzen", role: .destructive) {
-                Task {
-                    await library.resetToOriginal(recipe)
-                    showsOriginal = false
-                }
-            }
+        .sheet(isPresented: $isShowingVersions) {
+            RecipeVersionsView(recipeID: recipe.id)
         }
         // The checkmark is read off the list, so the list has to have been
         // read — this page can be the first thing opened after a launch.
@@ -421,7 +393,7 @@ struct RecipeDetailView: View {
             RecipeEditorView(recipe: editing) { edited in
                 // The page reads `recipe` from the library, so it shows what
                 // was saved without being handed it.
-                await library.save(edited)
+                await library.saveEdited(edited)
             }
         }
         .sheet(isPresented: $isJoiningVariants) {
@@ -1090,55 +1062,6 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// The original, where the recipe reads differently from it now — only
-    /// then is there a second mode to show.
-    private var changedOriginal: RecipeOriginal? {
-        recipe.original.flatMap { $0.matches(recipe) ? nil : $0 }
-    }
-
-    private var modePicker: some View {
-        Picker("Ansicht", selection: $showsOriginal) {
-            Text("Sous-optimiert").tag(false)
-            Text("Original").tag(true)
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-    }
-
-    /// The recipe exactly as imported: text, nothing interpreted, nothing
-    /// scaled, nothing to tap. Read-only history.
-    private func originalText(_ original: RecipeOriginal) -> some View {
-        VStack(alignment: .leading, spacing: 28) {
-            if !original.ingredientsText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Zutaten")
-                        .font(SousStyle.sectionHeading)
-                    Text(original.ingredientsText)
-                        .textSelection(.enabled)
-                }
-            }
-            if !original.instructionsText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Zubereitung")
-                        .font(SousStyle.sectionHeading)
-                    Text(original.instructionsText)
-                        .textSelection(.enabled)
-                }
-            }
-            if let notes = original.notes, !notes.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Notizen")
-                        .font(SousStyle.sectionHeading)
-                    Text(notes)
-                        .textSelection(.enabled)
-                }
-            }
-            Text("So wurde das Rezept importiert. Nur zum Nachlesen; Einkauf, Nährwerte und Kochmodus arbeiten mit der optimierten Fassung.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        }
-    }
-
     @ViewBuilder
     private var notes: some View {
         if let notes = recipe.notes, !notes.isEmpty {
@@ -1491,16 +1414,11 @@ struct RecipeDetailView: View {
                         }
                     }
                 }
-                if recipe.original?.previous != nil, !recipe.isDeleted {
-                    Button("Letzte KI-Änderung zurücknehmen", systemImage: "arrow.uturn.backward.circle") {
-                        isConfirmingUndo = true
-                    }
-                }
-                // Only where the optimization changed something: otherwise
-                // the recipe already reads as it arrived.
-                if changedOriginal != nil, !recipe.isDeleted {
-                    Button("Auf Original zurücksetzen", systemImage: "arrow.uturn.backward") {
-                        isConfirmingReset = true
+                // Only where there is more than the version on screen: an
+                // earlier one, or an original that reads differently.
+                if recipe.versions.count > 1, !recipe.isDeleted {
+                    Button("Versionen …", systemImage: "clock.arrow.circlepath") {
+                        isShowingVersions = true
                     }
                 }
                 if !recipe.isDeleted {

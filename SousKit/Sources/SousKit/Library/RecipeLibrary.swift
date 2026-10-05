@@ -696,50 +696,64 @@ public final class RecipeLibrary {
               current.instructionsText == asked.instructionsText,
               current.notes == asked.notes
         else { return false }
-        current = current.keepingOriginal()
+        let before = current
         current.ingredientsText = applied.recipe.ingredientsText
         current.instructionsText = applied.recipe.instructionsText
         current.notes = applied.recipe.notes
         current.stepReferences = applied.recipe.stepReferences
-        await save(current)
+        await save(current.replacing(before, because: "Für Sous optimiert"))
         return true
     }
 
-    /// "Auf Original zurücksetzen": the recipe reads as it arrived again —
-    /// its ingredients, instructions and notes back from the original. The
-    /// step references go with the optimized text they were read against;
-    /// the original stays kept, so the recipe can be optimized again, and the
-    /// household's answers stay, as they are about names, not this recipe.
+    /// "Auf Original zurücksetzen": the recipe reads as it arrived again.
+    /// One version like any other — see ``restore(_:of:)`` — so going back
+    /// to the original can be taken back too.
     ///
     /// `false` where there is nothing to go back to: no original, or the
     /// recipe already reads like it.
     @discardableResult
     public func resetToOriginal(_ recipe: Recipe) async -> Bool {
-        guard var current = await self.recipe(id: recipe.id),
-              let original = current.original, !original.matches(current)
+        guard let current = await self.recipe(id: recipe.id),
+              let original = current.versions.first(where: { $0.kind == .original })
         else { return false }
-        current.ingredientsText = original.ingredientsText
-        current.instructionsText = original.instructionsText
-        current.notes = original.notes
-        if let meta = original.meta {
-            current.title = meta.title
-            current.summary = meta.summary
-            current.servings = meta.servings
-            current.categories = meta.categories
-        }
-        current.stepReferences = nil
-        // What it was "before the last replacement" is no longer a state
-        // worth going back to once the recipe is back at the start.
-        current.original?.previous = nil
-        await save(current)
+        return await restore(original, of: current)
+    }
+
+    /// The recipe reads as `version` again, and what it read until now
+    /// joins the history — a restore is a change like any other, and can be
+    /// taken back the same way. Fields the version did not keep (an
+    /// original's title, from before titles were kept) stay as they are.
+    ///
+    /// `false` where the recipe is gone or reads like the version already.
+    @discardableResult
+    public func restore(_ version: RecipeVersion, of recipe: Recipe) async -> Bool {
+        guard let current = await self.recipe(id: recipe.id) else { return false }
+        let restored = version.applied(to: current)
+        guard restored.differsInContent(from: current) else { return false }
+        await save(restored.replacing(current, because: "Wiederherstellung"))
         return true
     }
 
+    /// Saves what the editor hands back. Where its content changed — the
+    /// text, the title or the fields beside it — the version it replaces
+    /// joins the history, so a slip of the keyboard is one tap away from
+    /// undone; a new favourite or another photo is no new version.
+    public func saveEdited(_ edited: Recipe) async {
+        guard let stored = await recipe(id: edited.id), edited.differsInContent(from: stored) else {
+            await save(edited)
+            return
+        }
+        // The stored history, not the one the editor opened with: another
+        // device may have added to it meanwhile.
+        var updated = edited
+        updated.original = stored.original
+        await save(updated.replacing(stored, because: "Bearbeitet"))
+    }
+
     /// Takes a replacement: the recipe's content becomes `replacement`'s, as
-    /// far as `fields` says, and what it read before is kept — as the
-    /// original, once, and as the step "Letzte KI-Änderung zurücknehmen"
-    /// goes back to. The recipe's own identity — pictures, favourite,
-    /// variant group — stays.
+    /// far as `fields` says, and what it read before joins the history,
+    /// noted as replaced by `request` ("Vegan machen"). The recipe's own
+    /// identity — pictures, favourite, variant group — stays.
     ///
     /// Refused (`false`) where the recipe was changed since the prompt was
     /// copied, for the reason ``applyOptimization(_:to:)`` gives.
@@ -747,6 +761,7 @@ public final class RecipeLibrary {
     public func applyReplacement(
         _ replacement: RecipeReplacement,
         fields: RecipeReplacement.Fields = .standard,
+        request: String = "KI-Änderung",
         to asked: Recipe
     ) async -> Bool {
         guard let current = await self.recipe(id: asked.id) else { return false }
@@ -755,32 +770,7 @@ public final class RecipeLibrary {
               current.notes == asked.notes,
               current.title == asked.title
         else { return false }
-        var kept = current.keepingOriginal()
-        if kept.original?.meta == nil { kept.original?.meta = RecipeOriginal.Meta(of: current) }
-        kept.original?.previous = RecipeOriginal.Version(of: current)
-        var updated = replacement.applied(to: kept, fields: fields)
-        updated.original = kept.original
-        await save(updated)
-        return true
-    }
-
-    /// "Letzte KI-Änderung zurücknehmen": the recipe reads as before the
-    /// last replacement. One step only; the original stays as it was.
-    @discardableResult
-    public func undoReplacement(_ recipe: Recipe) async -> Bool {
-        guard var current = await self.recipe(id: recipe.id),
-              let previous = current.original?.previous
-        else { return false }
-        current.title = previous.meta.title
-        current.summary = previous.meta.summary
-        current.servings = previous.meta.servings
-        current.categories = previous.meta.categories
-        current.ingredientsText = previous.ingredientsText
-        current.instructionsText = previous.instructionsText
-        current.notes = previous.notes
-        current.stepReferences = previous.stepReferences
-        current.original?.previous = nil
-        await save(current)
+        await save(replacement.applied(to: current, fields: fields).replacing(current, because: request))
         return true
     }
 

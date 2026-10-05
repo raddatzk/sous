@@ -65,7 +65,7 @@ struct RecipeListView: View {
             #endif
             .sheet(item: $library.editing) { recipe in
                 RecipeEditorView(recipe: recipe) { edited in
-                    await library.save(edited)
+                    await library.saveEdited(edited)
                     selected = .recipe(edited.id)
                 }
             }

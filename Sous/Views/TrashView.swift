@@ -92,7 +92,7 @@ struct TrashView: View {
             // trash presents the editor itself.
             .sheet(item: $editing) { recipe in
                 RecipeEditorView(recipe: recipe) { edited in
-                    await library.save(edited)
+                    await library.saveEdited(edited)
                     await load()
                     // Whatever page is open should show what was just saved.
                     if openedRecipe?.id == edited.id { openedRecipe = edited }

@@ -153,7 +153,7 @@ struct RecipeAIEditSheet: View {
         } footer: {
             switch outcome {
             case .replace:
-                Text("Das Rezept wird ersetzt. Über „Mehr“ lässt sich die letzte Änderung zurücknehmen oder das Rezept auf das Original zurücksetzen.")
+                Text("Das Rezept wird ersetzt. Die bisherige Fassung bleibt unter „Mehr“ › „Versionen“ erhalten und lässt sich dort vergleichen und wiederherstellen.")
             case .new:
                 Text("Das Ergebnis wird ein eigenes Rezept, das aktuelle bleibt unverändert.")
             case .variant:
@@ -232,7 +232,7 @@ struct RecipeAIEditSheet: View {
         Task {
             switch outcome {
             case .replace:
-                if await library.applyReplacement(replacement, fields: fields, to: recipe) {
+                if await library.applyReplacement(replacement, fields: fields, request: request.title, to: recipe) {
                     dismiss()
                 } else {
                     failure = "Das Rezept wurde inzwischen geändert. Bitte den Prompt neu kopieren und neu fragen."
@@ -250,7 +250,7 @@ struct RecipeAIEditSheet: View {
 /// A recipe's ingredients as the recipe page shows them — groups under their
 /// headings, the amount in the accent — without the taps of the real lines:
 /// this is what a proposal would look like, not something to work with.
-private struct IngredientsPreview: View {
+struct IngredientsPreview: View {
     let recipe: Recipe
 
     var body: some View {
@@ -273,7 +273,7 @@ private struct IngredientsPreview: View {
 
 /// A recipe's steps as the recipe page shows them: numbered, the numbering
 /// starting again under each heading.
-private struct StepsPreview: View {
+struct StepsPreview: View {
     let recipe: Recipe
 
     var body: some View {

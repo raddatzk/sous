@@ -593,7 +593,11 @@ struct RecipeOriginalTests {
         let reset = try #require(await library.recipe(id: older.id))
         #expect(reset.ingredientsText == "1 Dose Tomaten - (400 g)")
         #expect(reset.stepReferences == nil)
-        #expect(reset.original == optimized.original)
+        // The original stays; the optimized text joins the history, so the
+        // reset can be taken back too.
+        #expect(reset.original?.ingredientsText == optimized.original?.ingredientsText)
+        #expect(reset.versions.map(\.kind) == [.current, .earlier(0), .original])
+        #expect(reset.versions[1].ingredientsText == "400 g Tomaten")
         // Nothing left to go back to.
         #expect(await library.resetToOriginal(reset) == false)
     }

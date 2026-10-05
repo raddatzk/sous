@@ -75,7 +75,7 @@ struct RecipeReplacementTests {
     }
 
     @MainActor
-    @Test("Replacing keeps the title by default, can be undone one step and reset to the original")
+    @Test("Replacing keeps the title by default, keeps every version, and any of them comes back")
     func library() async throws {
         let stores = try StoreBackend.coreData.makeStores()
         let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: try ModelContainer.sousContainer(inMemory: true))
@@ -83,33 +83,40 @@ struct RecipeReplacementTests {
         try await stores.recipes.save(soup)
         let replacement = try RecipeReplacementPrompt.read(answer).get()
 
-        #expect(await library.applyReplacement(replacement, to: soup))
+        #expect(await library.applyReplacement(replacement, request: "Vegan machen", to: soup))
         let replaced = try #require(await library.recipe(id: soup.id))
         #expect(replaced.title == "Linsensuppe")
         #expect(replaced.summary == "Ohne Speck.")
         #expect(replaced.servings == 4)
         #expect(replaced.categories == ["Suppe", "Vegan"])
         #expect(replaced.ingredientsText == "250 g rote Linsen\n1 EL Olivenöl")
+        // The first change keeps the recipe as the original, whole.
         #expect(replaced.original?.ingredientsText == soup.ingredientsText)
         #expect(replaced.original?.meta?.servings == 2)
-        #expect(replaced.original?.previous?.meta.summary == "Mit Speck.")
+        #expect(replaced.versions.map(\.kind) == [.current, .original])
 
-        // A second round: the original stays the first, previous is round one.
+        // A second round: the original stays the first, round one joins the history.
         var second = replacement
         second.ingredientsText = "250 g rote Linsen"
-        #expect(await library.applyReplacement(second, fields: .all, to: replaced))
+        #expect(await library.applyReplacement(second, fields: .all, request: "Für vier", to: replaced))
         let again = try #require(await library.recipe(id: soup.id))
         #expect(again.title == "Vegane Linsensuppe")
         #expect(again.original?.ingredientsText == soup.ingredientsText)
-        #expect(again.original?.previous?.ingredientsText == "250 g rote Linsen\n1 EL Olivenöl")
+        let versions = again.versions
+        #expect(versions.map(\.kind) == [.current, .earlier(0), .original])
+        #expect(versions[1].ingredientsText == "250 g rote Linsen\n1 EL Olivenöl")
+        #expect(versions[1].replacedBy == "Für vier")
 
-        // Undo one step.
-        #expect(await library.undoReplacement(again))
+        // Back one step: round one again, and round two kept in its turn.
+        #expect(await library.restore(versions[1], of: again))
         let undone = try #require(await library.recipe(id: soup.id))
         #expect(undone.title == "Linsensuppe")
         #expect(undone.ingredientsText == "250 g rote Linsen\n1 EL Olivenöl")
-        #expect(undone.original?.previous == nil)
-        #expect(await library.undoReplacement(undone) == false)
+        #expect(undone.versions.count == 4)
+        #expect(undone.versions[1].title == "Vegane Linsensuppe")
+        #expect(undone.versions[1].replacedBy == "Wiederherstellung")
+        // Restoring what is there already changes nothing.
+        #expect(await library.restore(undone.versions[0], of: undone) == false)
 
         // Back to the original, fields beside the text included.
         #expect(await library.resetToOriginal(undone))
@@ -123,6 +130,61 @@ struct RecipeReplacementTests {
         var stale = soup
         stale.ingredientsText = "anderes"
         #expect(await library.applyReplacement(replacement, to: stale) == false)
+    }
+
+    @MainActor
+    @Test("An edit saved in the editor is a version; a new favourite is not; the history keeps ten")
+    func editsAreVersions() async throws {
+        let stores = try StoreBackend.coreData.makeStores()
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: try ModelContainer.sousContainer(inMemory: true))
+        let library = RecipeLibrary(store: stores.recipes, imageStore: stores.images, enrichmentStore: enrichment)
+        try await stores.recipes.save(soup)
+
+        var favourite = soup
+        favourite.isFavorite = true
+        await library.saveEdited(favourite)
+        #expect(try #require(await library.recipe(id: soup.id)).versions.count == 1)
+
+        var typo = try #require(await library.recipe(id: soup.id))
+        typo.instructionsText = "Speck anbraten.\nLinsen kochn."
+        await library.saveEdited(typo)
+        var fixed = typo
+        fixed.instructionsText = "Speck anbraten.\nLinsen kochen."
+        await library.saveEdited(fixed)
+        let edited = try #require(await library.recipe(id: soup.id))
+        #expect(edited.versions.map(\.kind) == [.current, .earlier(0), .original])
+        #expect(edited.versions[1].instructionsText == "Speck anbraten.\nLinsen kochn.")
+        #expect(edited.versions[1].replacedBy == "Bearbeitet")
+        #expect(edited.isFavorite)
+
+        // An editor opened before another change keeps that change's version.
+        for round in 0..<14 {
+            var next = try #require(await library.recipe(id: soup.id))
+            next.notes = "Runde \(round)"
+            await library.saveEdited(next)
+        }
+        let long = try #require(await library.recipe(id: soup.id))
+        #expect(long.original?.history?.count == RecipeOriginal.historyLimit)
+        #expect(long.versions.last?.kind == .original)
+        #expect(long.versions.last?.ingredientsText == soup.ingredientsText)
+    }
+
+    @Test("Two versions compare line by line, fields side by side")
+    func difference() {
+        var after = soup
+        after.title = "Vegane Linsensuppe"
+        after.servings = 4
+        after.ingredientsText = "250 g rote Linsen\n150 g Räuchertofu"
+        let difference = RecipeVersionDifference(
+            from: RecipeVersion(current: soup), to: RecipeVersion(current: after)
+        )
+        #expect(difference.fields.map(\.name) == ["Titel", "Portionen"])
+        #expect(difference.ingredients == [
+            .same("250 g rote Linsen"), .removed("100 g Speck"), .added("150 g Räuchertofu"),
+        ])
+        #expect(difference.steps.allSatisfy { if case .same = $0 { true } else { false } })
+        #expect(!difference.isEmpty)
+        #expect(RecipeVersionDifference(from: RecipeVersion(current: soup), to: RecipeVersion(current: soup)).isEmpty)
     }
 
     @MainActor
