@@ -112,6 +112,48 @@ struct HouseholdTests {
         #expect(try households(in: container).count == 1)
     }
 
+    @Test("Somebody who only joined a household gets none of their own, unless rows wait")
+    func joinedNeedsNoOwnHousehold() async throws {
+        let container = try makeContainer()
+        let context = container.newBackgroundContext()
+
+        let empty = try await CoreDataHouseholds.settle(in: context, hasJoined: true)
+        #expect(empty == HouseholdSettlement(founded: false, assigned: 0, unassigned: 0))
+        #expect(try households(in: container).isEmpty)
+
+        // Saved before the invitation's household arrived: it can only go
+        // to an own one.
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
+        let waiting = try await CoreDataHouseholds.settle(in: context, hasJoined: true)
+        #expect(waiting == HouseholdSettlement(founded: true, assigned: 1, unassigned: 0))
+    }
+
+    @Test("Only a household the app made, never renamed and never used, counts as untouched")
+    func untouchedImplicitHousehold() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await households.settle()
+        try await households.create(named: "Familie")
+
+        func untouched() throws -> [String: Bool] {
+            let context = container.newBackgroundContext()
+            return try context.performAndWait {
+                let request = NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName)
+                return Dictionary(uniqueKeysWithValues: try context.fetch(request).map {
+                    ($0.name, CoreDataHouseholds.isUntouchedImplicit($0, in: context))
+                })
+            }
+        }
+        #expect(try untouched() == [CoreDataHouseholds.defaultName: true, "Familie": false])
+
+        // Rows written while no household is active wait; once given to the
+        // implicit one, it is in use.
+        try await CoreDataRecipeStore(container: container).save(Recipe(title: "Brot"))
+        let implicitID = try #require(try self.households(in: container).first { !$0.isDeliberate }?.id)
+        try await households.assignWaitingRows(to: implicitID)
+        #expect(try untouched()[CoreDataHouseholds.defaultName] == false)
+    }
+
     @Test("Settling again changes nothing")
     func settlingIsIdempotent() async throws {
         let container = try makeContainer()

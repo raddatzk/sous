@@ -320,9 +320,15 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// only means "none delivered yet", and a household founded on that
     /// belief is a stray on every device a minute later.
     ///
-    /// Two things, in this order:
-    /// * An account without a household of its own gets one — the only way
-    ///   the app ever makes one unasked.
+    /// Three things, in this order:
+    /// * Somebody in a joined household needs no empty one of their own: a
+    ///   "Mein Haushalt" the app made, that holds nothing and is shared with
+    ///   nobody, goes. That is the invited person whose own household was
+    ///   founded a moment before the invitation's household arrived.
+    /// * An account without any household gets one of its own — the only way
+    ///   the app ever makes one unasked. So does one that only joined others
+    ///   but has rows waiting, since those sit in the private store and can
+    ///   only go to an own household.
     /// * Rows saved without a household join the own one, if there is
     ///   exactly one. With several the app cannot know which was meant, and
     ///   they stay unassigned — still visible in every own household — for
@@ -330,10 +336,45 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     @discardableResult
     public func settle() async throws -> HouseholdSettlement {
         let context = SousPersistentContainer.backgroundContext(for: container)
-        return try await context.perform {
+        let hasJoined = try await context.perform {
+            try CoreDataHouseholds.joinedHouseholdCount(in: context) > 0
+        }
+        var pruned = 0
+        if hasJoined {
+            let candidates = try await context.perform {
+                try CoreDataHouseholds.households(in: context)
+                    .filter { CoreDataHouseholds.isUntouchedImplicit($0, in: context) }
+                    .map(\.objectID)
+            }
+            // A share means somebody was invited, even if nothing is in it yet.
+            let unshared = candidates.filter { share(of: $0) == nil }
+            if !unshared.isEmpty {
+                pruned = try await context.perform {
+                    for objectID in unshared {
+                        context.delete(try context.existingObject(with: objectID))
+                    }
+                    try context.save()
+                    return unshared.count
+                }
+                Self.log.info("Removed \(pruned, privacy: .public) empty household(s) the app made beside a joined one.")
+            }
+        }
+        return try await Self.settle(in: context, hasJoined: hasJoined, pruned: pruned)
+    }
+
+    /// The part of `settle` that needs no CloudKit, with whether this person
+    /// is in a joined household given — so tests, which have no shared
+    /// store, can say so.
+    static func settle(
+        in context: NSManagedObjectContext,
+        hasJoined: Bool,
+        pruned: Int = 0
+    ) async throws -> HouseholdSettlement {
+        try await context.perform {
             var own = try CoreDataHouseholds.households(in: context)
+            let orphans = try CoreDataHouseholds.waitingRows(in: context)
             var founded = false
-            if own.isEmpty {
+            if own.isEmpty, !hasJoined || !orphans.isEmpty {
                 own = [CoreDataHouseholds.makeHousehold(
                     named: CoreDataHouseholds.defaultName,
                     deliberately: false,
@@ -341,8 +382,6 @@ public final class CoreDataHouseholds: @unchecked Sendable {
                 )]
                 founded = true
             }
-
-            let orphans = try CoreDataHouseholds.waitingRows(in: context)
 
             var assigned = 0
             if own.count == 1, let only = own.first {
@@ -356,13 +395,38 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             let settlement = HouseholdSettlement(
                 founded: founded,
                 assigned: assigned,
-                unassigned: orphans.count - assigned
+                unassigned: orphans.count - assigned,
+                pruned: pruned
             )
             if settlement != HouseholdSettlement(founded: false, assigned: 0, unassigned: 0) {
                 Self.log.info("Settled households: founded \(founded, privacy: .public), assigned \(assigned, privacy: .public), unassigned \(settlement.unassigned, privacy: .public)")
             }
             return settlement
         }
+    }
+
+    /// How many households this person joined — none where there is no
+    /// shared store.
+    private static func joinedHouseholdCount(in context: NSManagedObjectContext) throws -> Int {
+        guard let coordinator = context.persistentStoreCoordinator,
+              let shared = SousPersistentContainer.sharedStore(in: coordinator)
+        else { return 0 }
+        let request = NSFetchRequest<CDHousehold>(entityName: SousManagedObjectModel.householdEntityName)
+        request.affectedStores = [shared]
+        return try context.count(for: request)
+    }
+
+    /// A household nobody chose and nobody used: made by the app, still
+    /// under the name it was given, and with not a single row in it.
+    static func isUntouchedImplicit(_ household: CDHousehold, in context: NSManagedObjectContext) -> Bool {
+        guard !household.isDeliberate, household.name == defaultName else { return false }
+        for entity in SousManagedObjectModel.memberEntityNames {
+            let request = NSFetchRequest<NSManagedObject>(entityName: entity)
+            request.predicate = NSPredicate(format: "household == %@", household)
+            request.fetchLimit = 1
+            if (try? context.count(for: request)) != 0 { return false }
+        }
+        return true
     }
 
     /// How many rows wait for a household — saved before this device knew
@@ -476,8 +540,9 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// deleted one by one; the relationship's rule is to nullify, and
     /// deleting only the household would leave them waiting for a home.
     ///
-    /// Deleting the last own household leaves a fresh, empty "Mein
+    /// Deleting or leaving the last household leaves a fresh, empty "Mein
     /// Haushalt": there is never no household once a device knows its own.
+    /// While a joined one remains, nothing is made.
     public func delete(_ id: UUID) async throws {
         let context = SousPersistentContainer.backgroundContext(for: container)
         let found: (objectID: NSManagedObjectID, isOwn: Bool)? = try await context.perform {
@@ -512,9 +577,9 @@ public final class CoreDataHouseholds: @unchecked Sendable {
             throw HouseholdSharingError.notAvailable
         }
 
-        if found.isOwn {
-            try await settle()
-        }
+        // Leaving the last joined household with none of one's own left
+        // needs a household as much as deleting the last own one does.
+        try await settle()
     }
 
     /// Ends the sharing of a household this person owns: everybody else
@@ -819,6 +884,9 @@ public struct HouseholdSettlement: Equatable, Sendable {
     /// Rows still without a household, because there are several own ones
     /// to choose from.
     public var unassigned: Int
+    /// Empty households the app had made, removed because this person is in
+    /// a joined one.
+    public var pruned: Int = 0
 }
 
 /// A household as far as leaving or deleting it is concerned.

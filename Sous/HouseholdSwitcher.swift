@@ -83,12 +83,12 @@ final class HouseholdSwitcher {
 
         // None active, or one that disappeared — left, revoked, or the
         // account changed — falls back to the person's oldest own household
-        // rather than showing an empty screen with a stale name over it.
-        // With no own household yet, there is nothing to fall back to: the
-        // screens keep showing what waits for one until the first import
-        // has settled.
+        // rather than showing an empty screen with a stale name over it, or
+        // to the first joined one for somebody who only joined. With none at
+        // all yet, there is nothing to fall back to: the screens keep showing
+        // what waits for one until the first import has settled.
         if !choices.contains(where: { $0.id == activeID }) {
-            await switchTo(choices.first(where: \.isOwn)?.id)
+            await switchTo((choices.first(where: \.isOwn) ?? choices.first)?.id)
         }
     }
 
