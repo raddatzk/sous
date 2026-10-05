@@ -3,7 +3,7 @@ import SwiftUI
 
 /// What the app says the first time it is opened.
 ///
-/// Seven pages, and every one of them either does something or names the
+/// Eight pages, and every one of them either does something or names the
 /// place where it is done: a welcome that only describes the app is a page a
 /// cook taps through without reading. So the last page carries the import and
 /// the editor, the optimization page the choice of chat, and the household
@@ -26,9 +26,10 @@ struct OnboardingView: View {
     @State private var step: Step = .welcome
     @State private var journeyStage: IngredientJourneyStage = .reading
 
-    /// The seven pages: what the app is, what it does with a recipe once it
+    /// The eight pages: what the app is, what it does with a recipe once it
     /// has one, what becomes of each ingredient line, cooking along, how a
-    /// chat brings a recipe into shape, who else is cooking — and last,
+    /// chat brings a recipe into shape, how it makes another version of it,
+    /// who else is cooking — and last,
     /// bringing recipes in.
     ///
     /// The ingredients page follows planning because it is the why of
@@ -44,6 +45,7 @@ struct OnboardingView: View {
         case ingredients
         case cooking
         case steps
+        case editing
         case household
         case recipes
 
@@ -52,7 +54,8 @@ struct OnboardingView: View {
             case .welcome: "fork.knife"
             case .recipes: "book.closed"
             case .cooking: "frying.pan"
-            case .steps: "sparkles"
+            case .steps: "wand.and.stars"
+            case .editing: "sparkles"
             case .planning: "calendar"
             case .ingredients: "carrot"
             case .household: "person.2"
@@ -65,6 +68,7 @@ struct OnboardingView: View {
             case .recipes: "Rezepte hineinbringen"
             case .cooking: "Kochen"
             case .steps: "Für Sous optimieren"
+            case .editing: "Mit KI bearbeiten"
             case .planning: "Planen und einkaufen"
             case .ingredients: "Aus einer Zeile wird mehr"
             case .household: "Zu zweit kochen"
@@ -102,6 +106,20 @@ struct OnboardingView: View {
                 wählst, was davon gilt, und das Original bleibt erhalten. \
                 Ohne KI ordnest du Schritte von Hand zu. Zu finden im Menü \
                 eines Rezepts.
+                """
+            case .editing:
+                """
+                Aus einem Rezept wird eine andere Version: vegan, \
+                glutenfrei, schneller, für mehr Personen. Im Menü eines \
+                Rezepts wählst du einen Prompt oder schreibst selbst, was \
+                sich ändern soll. Sous kopiert ihn mit dem Rezept, deinen \
+                Kategorien und dem Zutatenkatalog; ihr redet im Chat \
+                darüber, und den JSON-Block der letzten Antwort fügst du \
+                zurück. Das Rezept wird ersetzt — die letzte Änderung \
+                nimmst du zurück, das Original bleibt —, oder du legst die \
+                Version als neues Rezept oder Variante an. Die Prompts, auch \
+                die mitgelieferten, pflegst du unter Einstellungen › \
+                Haushalt › KI-Prompts.
                 """
             case .planning:
                 """
@@ -279,7 +297,7 @@ struct OnboardingView: View {
                 isPlaying: self.step == .ingredients
             )
             .multilineTextAlignment(.leading)
-        case .welcome, .planning, .cooking:
+        case .welcome, .planning, .cooking, .editing:
             EmptyView()
         }
     }
@@ -307,7 +325,7 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    /// Where in the seven the cook is. Decorative, so it is hidden from
+    /// Where in the eight the cook is. Decorative, so it is hidden from
     /// VoiceOver — which reads the page's own heading instead.
     private var dots: some View {
         HStack(spacing: 8) {

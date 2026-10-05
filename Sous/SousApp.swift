@@ -803,6 +803,7 @@ struct SousApp: App {
                 .environment(catalog)
                 .environment(session)
                 .environment(timers)
+                .environment(onboarding)
                 .environment(\.households, households)
                 .environment(\.householdSwitcher, switcher)
                 .environment(\.calendarMirror, calendarMirror)

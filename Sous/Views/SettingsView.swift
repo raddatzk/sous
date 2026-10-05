@@ -1,5 +1,8 @@
 import SousKit
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// What the app looks like, and the one place it is allowed to look different.
 struct SettingsForm: View {
@@ -18,6 +21,10 @@ struct SettingsForm: View {
     private let dataSet = DataSet.current.manifest
     private let dataSetIsFetched = DataSet.current.origin != .bundled
     private let lastDataCheck = DataUpdateSchedule().lastCheck
+    /// Absent where the form is the Mac's `Settings` scene and nothing was
+    /// injected — then the button is not offered.
+    @Environment(OnboardingNotice.self) private var onboarding: OnboardingNotice?
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Form {
@@ -52,6 +59,24 @@ struct SettingsForm: View {
                 Prompt. „Keine KI verwenden“ blendet das Fragen ganz aus — \
                 Zutaten pro Schritt lassen sich dann von Hand zuordnen.
                 """)
+            }
+
+            if let onboarding {
+                Section {
+                    Button("Einführung erneut zeigen", systemImage: "questionmark.circle") {
+                        onboarding.replay()
+                        // The phone's settings are a sheet, and the welcome
+                        // comes once it is gone; on the Mac there is nothing
+                        // to close, and the welcome opens in the main window.
+                        #if os(iOS)
+                        dismiss()
+                        #else
+                        NSApp.windows.first { $0.canBecomeMain }?.makeKeyAndOrderFront(nil)
+                        #endif
+                    }
+                } footer: {
+                    Text("Die Seiten, die beim ersten Start erscheinen — mit allem, was seitdem dazugekommen ist.")
+                }
             }
 
             catalogRelease

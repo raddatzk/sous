@@ -38,6 +38,11 @@ final class OnboardingNotice {
     var isShowing = false
     /// What to do the moment it is off screen, if anything.
     var followUp: FollowUp?
+    /// The cook asked for the welcome again from the settings, which on the
+    /// phone is a sheet of its own: presenting the welcome out of it while
+    /// it is still closing would be swallowed, so the request waits here
+    /// until the root has the settings off screen (`showPendingReplay()`).
+    private(set) var isReplayPending = false
 
     private static let defaultsKey = "didFinishOnboarding"
 
@@ -58,6 +63,24 @@ final class OnboardingNotice {
     func decide(hasRecipes: Bool) {
         guard !UserDefaults.sous.bool(forKey: Self.defaultsKey) else { return }
         guard !hasRecipes else { return finish() }
+        isShowing = true
+    }
+
+    /// "Einführung erneut zeigen". Not a second flag: the welcome is shown
+    /// again the way it is shown the first time, and closing it changes
+    /// nothing about what this install was told.
+    func replay() {
+        #if os(iOS)
+        isReplayPending = true
+        #else
+        isShowing = true
+        #endif
+    }
+
+    /// Shows a requested replay — called once the settings are gone.
+    func showPendingReplay() {
+        guard isReplayPending else { return }
+        isReplayPending = false
         isShowing = true
     }
 

@@ -21,6 +21,7 @@ struct RecipeListView: View {
     @Environment(CloudKitInitialImport.self) private var initialImport
     @Environment(MealPlanLibrary.self) private var plan
     @Environment(ShoppingLibrary.self) private var shopping
+    @Environment(OnboardingNotice.self) private var onboarding
 
     @State private var selected: RecipeListSelection?
     /// Only the phone offers this: the Mac has the Settings scene behind
@@ -58,7 +59,7 @@ struct RecipeListView: View {
                 }
             }
             #if os(iOS)
-            .sheet(isPresented: $isShowingSettings) {
+            .sheet(isPresented: $isShowingSettings, onDismiss: { onboarding.showPendingReplay() }) {
                 SettingsView()
             }
             #endif
