@@ -44,9 +44,10 @@ Data/
                           named after the root's id
   products/<brand>.yaml   finished products, one file per brand (none yet)
   measures.yaml           units (Prise, Msp., Zehe, …), group weights, group densities
-  aisles.yaml             BLS food group → default aisle, and the group filter
-                          Scripts/nutrition/build_data.py applies to the workbook
-  sources.yaml            what each data source says about itself
+  aisles.yaml             BLS food group → default aisle
+  sources/<id>.yaml       one source of nutrition values: who publishes it, which
+                          release, when it was downloaded, its licence, what was done
+  sources/<id>.json       that source's rows, every one it has, keyed by its code
   retired.yaml            ids that left the catalog, each with a reason
   assumed-zeros.yaml      per nutrient, the BLS groups where a blank counts as 0
   released-ids.txt        every id ever released; compile.py adds to it, nobody
@@ -54,13 +55,14 @@ Data/
   schema.json             the shape all of the above is validated against
 ```
 
-`bls.json` is not compiled from here. It is generated from the BLS workbook by
-`Scripts/nutrition/build_data.py` (see its README) and nobody edits it; this
-catalog refers to its rows by code.
+An ingredient never holds a number of its own. It names a row of a source —
+the BLS by its code, any other source by `source: {id, ref}` — and the compiler
+resolves every name into `nutrition.json`, the one file of values the app
+ships, with exactly the rows the catalog uses. See "Sources" below.
 
 ## The data set and its version
 
-The compiled files, `bls.json` included, are one **data set**, and
+The compiled files are one **data set**, and
 `compile.py` writes its `manifest.json` last: the format (`schema`), the
 release (`dataVersion`), and the SHA-256 of every file. The app reads a set
 only through its manifest, the one it ships and the ones it fetches.
@@ -68,7 +70,7 @@ only through its manifest, the one it ships and the ones it fetches.
 `dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this content,
 and a counter within the day. Nobody sets it. `compile.py` raises it whenever
 any file's bytes change and leaves it alone otherwise, so compile again after
-`build_data.py` too. Bundled and published data are one series, so an app
+extracting a new release of a source too. Bundled and published data are one series, so an app
 update with newer data always wins over an older fetched set.
 
 Two data pull requests open at once both raise the version; their manifests
@@ -273,8 +275,9 @@ the alias that became a variety is left without one, and a root without
 ```
 
 Within a state the **first code is the basis**, the numbers the app shows; the
-rest are real alternatives. Nothing is averaged. A code must exist in
-`bls.json` or be written inline (below).
+rest are real alternatives. Nothing is averaged. A code must be a row of
+`sources/bls.json` or the code of a row from another source (below). Any of
+the BLS's 7,140 rows will do: the compiler ships what the catalog names.
 
 `nutrition: without` is an answer too: the catalog knows the word and settles
 it without values, as for spices the BLS does not list. The app then says
@@ -296,30 +299,29 @@ nobody wrote down. `assumed-zeros.yaml` names those cases:
   reason: Bread, grain, eggs, … carry next to no vitamin C.
 ```
 
-A rule fills blanks only, only in `bls.json` rows, and only in the groups it
+A rule fills blanks only, only in BLS rows, and only in the groups it
 names: a stated value never changes, and a Ciqual row or a product label keeps
 its blanks. A group goes in only when everything in it is low enough that a
 portion moves the score by nothing; a mixed group (fruit and vitamin E,
 vegetables and vitamin C, spices) stays out. The rules ship in
-`community.json` (`assumedZero`), and the app applies them as it loads.
+`nutrition.json` (`assumedZero`), and the app applies them as it loads. A
+group is reported as idle only when no row of the whole BLS has the blank.
 
 ### Foods the BLS does not have
 
 The BLS is a catalog of analysed foods, and some things people cook with are
-not in it: nutritional yeast, for one. Such a row is written **inline**, on the
-ingredient that needs it, with its source:
+not in it: nutritional yeast, for one. Such a food takes a row from another
+source, named on the ingredient by the source's id and its code there:
 
 ```yaml
       nutrition:
         unspecified:
-          - code: Z000002                  # a new row would be Z-kokosmilch-fettarm
-            name: Kokosmilch fettreduziert, 41 % Kokosmark
-            category: fruit            # only where it differs from the ingredient's
-            source: Nährwertdeklaration REWE Beste Wahl …, EAN 4388844280076 …
-            per100g: {kcal: 121.4, fatG: 12.24, …}
+          - code: Z-hefeflocken          # the app's code for the row
+            source: {id: ciqual-2020, ref: '11009'}
 ```
 
-It compiles into `community.json`. The rules:
+The name ("Nutritional yeast") and the values come from
+`sources/ciqual-2020.json`; nothing is copied by hand. The rules:
 
 1. **The code is `Z-` plus the entry's id** (`Z-hefeflocken`), and
    `Z-<id>-<state>` where the entry has a row per state. The BLS only ever
@@ -328,25 +330,77 @@ It compiles into `community.json`. The rules:
    Z000001 and Z000002 were numbered before that and keep their codes. A
    code is never reissued: a deleted row's code lapses, since a reused one
    would silently move a cook's basis onto a different food.
-2. **The name is the source's name, verbatim**: "Nutritional yeast", not
+2. **`ref` is the row's code in the source**: a Ciqual number, an FDC ID, an
+   EAN. The app prints the source and the row as „Quelle: Ciqual 2020 (Anses),
+   Nr. 11009 „Nutritional yeast““ — the per-row half of what CC BY asks for,
+   built from the source's `cite`.
+3. **The name stays the source's name**: "Nutritional yeast", not
    "Hefeflocken". A translated name exists in no database, so nobody could
    check it. The German word is the ingredient's name.
-3. **Every row names its own source.** It is what the app prints as „Quelle: …",
-   and the per-row half of what CC BY asks for. `sources.yaml` names the bodies
-   involved, for the sources screen.
-4. **Only sources whose licence allows it.** Ciqual (Anses, Licence Ouverte) is
-   a good fit; a nutrition site without a licence statement is not. Open Food
-   Facts is ODbL, whose share-alike does not mix with CC BY: look a product up
-   there, but do not copy rows.
-5. **Missing values are left out, not written as zero.** Ciqual marks unknowns
-   with `–` and traces with `<`; neither is a zero.
-6. **Write the label as it reads.** `per100ml` instead of `per100g` for a
-   liquid's label, with the entry's `density`, which the compiler then needs;
-   `kj` where a label gives no kcal (÷ 4.184); `saltG` for salt, stored as
-   sodium (÷ 2.5). The compiler notes every conversion.
+4. `category` and `group` may follow the code, where the row's aisle or food
+   group differs from the ingredient's.
 
-Take the rows you have a gap for. A bulk import would need a German word for
-each of thousands of rows before a cook could reach any of them.
+## Sources
+
+Every source of values is kept the same way, the BLS no differently from a
+label: `sources/<id>.yaml` says what it is, `sources/<id>.json` holds its rows.
+
+```yaml
+# Data/sources/ciqual-2020.yaml
+title: Ciqual 2020
+publisher: Anses (…), Frankreich
+url: https://ciqual.anses.fr
+version: Ciqual 2020 (Anses)        # how a row is cited: „Quelle: <version>, …“
+release: '2020-07-07'
+retrieved: '2026-10-05'             # when the download was taken
+license: Licence Ouverte 2.0        # one of the list in schema.json
+licenseURL: https://www.etalab.gouv.fr/licence-ouverte-open-licence/
+attribution: Table de composition nutritionnelle des aliments Ciqual 2020, Anses (Frankreich)
+changeNote: Auf die 16 Nährstofffelder je 100 g gekürzt, …   # every source says what was done
+cite: 'Nr. {ref} „{name}“'          # how one row is cited after the version
+rowURL: https://…/{ref}             # optional: where one row can be looked up
+download: https://…                 # where the tables come from (not in the repo)
+extract: python3 Scripts/sources/extract.py ciqual-2020 '…xls'
+```
+
+The settings' "Datenquellen" page shows every source with the same fields, the
+BLS first and then by how many rows each one gives the app. A licence has to be
+one the schema lists (CC BY 4.0, CC0 1.0, Licence Ouverte 2.0, or a nutrition
+declaration, which is a statement of fact): a nutrition site without a licence
+statement is no source, and Open Food Facts is ODbL, whose share-alike does not
+mix with CC BY — look a product up there, but do not copy rows.
+
+**Naming a row of a source an ingredient does not use yet.** Edit the YAML:
+a BLS code in `nutrition:`, or `source: {id, ref}` for any other source. Compile.
+Nothing else: `sources/<id>.json` holds every row of the source already.
+
+**A new release of a source.** Download it (the `download` line), run the
+`extract` line, which rewrites `sources/<id>.json` from the download, and
+update `release` and `retrieved`. The diff is the release's changes, one row per
+line. A code the new release no longer has fails the compile; remap it in the
+same change.
+
+**A new source.** Write `sources/<id>.yaml` with every field above. If it has
+tables to download, teach `Scripts/sources/extract.py` its format (the column
+for each of the app's 16 nutrients, what it writes for unknown and trace
+values — both stay blank, never 0), and run it. A source without tables — a
+label, a page — gets a `sources/<id>.json` written by hand, one row per code:
+
+```json
+{"rows": {
+ "4388844280076": {"name": "Kokosmilch fettreduziert, 41 % Kokosmark",
+   "note": "REWE Beste Wahl …", "per100g": {"kcal": 121.4, "fatG": 12.24}}
+}}
+```
+
+Write a label as it reads: `per100ml` instead of `per100g` for a liquid's label,
+which the compiler turns into grams through the ingredient's `density`; `kj`
+where a label gives no kcal (÷ 4.184); `saltG` for salt, stored as sodium
+(÷ 2.5). The compiler notes every conversion. Missing values are left out, not
+written as zero.
+
+What a household or a contributor writes under "Quelle" in the app is a
+suggestion until a curator has made it a row of a registered source.
 
 ### Measures
 
@@ -375,9 +429,9 @@ and those grams are cooked chickpeas, not dry ones.
 
 A finished product (`kind: product`) stands **beside** the ingredients, in
 `Data/products/<brand>.yaml`, never nested under a generic word, and inherits
-nothing. Its values come only from the label, as an inline row with `source`,
-`checked` (the date the label was read) and `per` (`as-sold` or `drained`),
-and at least its energy, where it has a label row. **Every one of its spellings names the brand**: a
+nothing. Its values come only from the label: a row of `sources/labels.json`
+with `checked` (the date the label was read), `per` (`as-sold` or `drained`)
+and at least its energy, named from the product by its EAN. **Every one of its spellings names the brand**: a
 generic word ("Proteinmüsli") must never lead to a product, or every recipe's
 muesli would silently become one brand. A household that buys the brand says
 so with a local product choice for its own word.
@@ -392,12 +446,13 @@ so with a local product choice for its own word.
   nutrition:
     unspecified:
       - code: Z-ja-vegane-butter
-        name: ja! Vegane Butter
-        source: Nährwertdeklaration der Packung
-        checked: '2026-10-02'
-        per: as-sold
-        per100g: {kcal: …, fatG: …, saturatedFatG: …, carbsG: …, sugarG: …,
-                  proteinG: …, saltG: …}
+        source: {id: labels, ref: '…'}   # the EAN
+```
+
+```json
+"…": {"name": "ja! Vegane Butter", "checked": "2026-10-02", "per": "as-sold",
+      "per100g": {"kcal": …, "fatG": …, "saturatedFatG": …, "carbsG": …,
+                  "sugarG": …, "proteinG": …, "saltG": …}}
 ```
 
 - **A product needs no values.** Name and brand are enough. Without a label,
@@ -417,14 +472,18 @@ Schema first (`schema.json`: known fields, categories, units and states;
 numbers where numbers belong), then across files:
 
 - names and aliases unique after normalization
-- every code exists, in `bls.json` or inline; inline codes unique
+- every code exists, in `sources/bls.json` or as a row of another source;
+  every `source: {id, ref}` names a registered source and a row it has;
+  Z codes unique
+- every source in `sources/` has its `.yaml` and its `.json`, a licence from
+  the list, and is named by at least one row
 - ids unique; an ingredient file holds one family named after its root's id
 - no released id vanishes: each is an entry's, under one `formerly`, or
   retired; an absorbed or retired id is never an entry's again
 - a new inline code is derived from its entry's id
 - a root has a category and maps or says `without`
 - no ancestor loops
-- product spellings name the brand; product rows carry `source`, `checked`, `per`
+- product spellings name the brand; product rows carry `checked` and `per`
 - one assumed-zero rule per nutrient
 
 It warns, without failing, where a spelling is another entry's spelling plus a

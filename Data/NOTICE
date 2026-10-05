@@ -11,33 +11,45 @@ redistributing it, whole or in part, credits them as below.
    Lebensmittel, release 2025. https://blsdb.de
    Licence: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
 
-   Changes: filtered to the food groups used in cooking (Data/aisles.yaml),
-   reduced to 16 nutrient fields per 100 g, and linked to kitchen words,
-   spellings, varieties, measures and aisles. The nutrient values themselves
-   are unchanged. They ship in bls.json; the catalog refers to them by SBLS code.
+   Changes: reduced to 16 nutrient fields per 100 g (Data/sources/bls.json
+   keeps every row with those fields), and linked to kitchen words, spellings,
+   varieties, measures and aisles; the app ships the rows the catalog names.
+   Where VITAA is blank, VITA stands in. The nutrient values themselves are
+   unchanged. The catalog refers to them by SBLS code.
    Where a row leaves a nutrient blank and the food by nature carries next to
    none of it, the app counts the blank as 0 (Data/assumed-zeros.yaml); no
    value the BLS states is changed.
 
 
-2. Table de composition nutritionnelle des aliments Ciqual 2020
+2. Table de composition nutritionnelle des aliments Ciqual 2020 and 2025
    Anses (Agence nationale de sécurité sanitaire de l'alimentation, de
    l'environnement et du travail), France. https://ciqual.anses.fr
    Licence: Licence Ouverte / Open Licence 2.0 (Etalab), which is compatible
    with CC BY 4.0.
 
    Used for single rows the BLS does not have, copied by hand with their
-   Ciqual number and name as published. Each row names its source in its
-   `source` field (community.json).
+   Ciqual number and name as published; Data/sources/ciqual-2020.json and
+   ciqual-2025.json keep every row of the tables with the 16 fields.
 
 
-3. Nutrition declarations of retail products
+3. USDA FoodData Central, SR Legacy (April 2018) and Foundation Foods
+   (December 2025)
+   U.S. Department of Agriculture, Agricultural Research Service.
+   https://fdc.nal.usda.gov
+   Licence: CC0 1.0 (public domain), https://creativecommons.org/publicdomain/zero/1.0/
+
+   Used for single rows the BLS does not have, with their FDC ID and name as
+   published; Data/sources/usda-*.json keep every row with the 16 fields.
+
+
+4. Nutrition declarations of retail products
    Where no database lists a food, a row may be read from a product's
    nutrition declaration. A declaration is a statement of fact and carries no
-   licence. Each such row names the product and its EAN in its `source` field,
-   so it can be checked at the shelf.
+   licence. Each such row is a row of Data/sources/labels.json, keyed by the
+   product's EAN, so it can be checked at the shelf.
 
 
-Every inline row in Data/ingredients/ names its own source, and the app shows
-it under the ingredient as „Quelle: …“. The sources screen shows the entries of
-Data/sources.yaml.
+Every source is registered in Data/sources/<id>.yaml, with its rows in
+Data/sources/<id>.json. An ingredient names a row by the source's id and its
+code there, and the app shows both under the ingredient as „Quelle: …“. The
+settings' "Datenquellen" page shows every source of the register.

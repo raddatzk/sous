@@ -78,7 +78,7 @@ The nutrition pipeline in `Scripts/` involves no model at all.
 | `SousWidgets/` | The cook-timer Live Activity. |
 | `Data/` | The ingredient catalog as YAML — words, spellings, varieties, BLS codes, weights, aisles — and the one place it is edited. Has its own [README](Data/README.md). |
 | `Scripts/data/` | The compiler that turns `Data/` into the bundled resources; CI checks the two agree. |
-| `Scripts/nutrition/` | The pipeline that derives `bls.json` from the BLS workbook. Has its own [README](Scripts/nutrition/README.md). |
+| `Scripts/sources/` | `extract.py`: turns a source's download (the BLS workbook, Ciqual, USDA) into `Data/sources/<id>.json`, for a new release. |
 | `project.yml` | The source of truth for the Xcode project. |
 
 The three targets share an app group (`group.me.raddatz.sous`) so the extension
@@ -176,11 +176,13 @@ echo "1.$(git rev-list --count HEAD)"
 
 ## Data and attribution
 
-The bundled food data is derived from the **Bundeslebensmittelschlüssel (BLS)
-4.0**, published by the Max Rubner-Institut under
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The app carries that
-attribution in its settings, and the dataset version and licence travel inside
-`bls.json` itself so the credit cannot drift away from the numbers.
+The bundled food data is derived mostly from the **Bundeslebensmittelschlüssel
+(BLS) 4.0**, published by the Max Rubner-Institut under
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and for foods it does
+not list from Ciqual (Anses, Licence Ouverte 2.0), USDA FoodData Central (CC0)
+and product labels. Every source is registered in `Data/sources/`, travels with
+the data set as `sources.json`, and is shown on the settings' "Datenquellen"
+page; every row names its source under the ingredient. See `Data/NOTICE`.
 
 `PRIVACY.md` is the privacy policy the App Store listing points at.
 
