@@ -301,40 +301,17 @@
    "required": ["note", "letters"],
    "additionalProperties": false,
    "properties": {
-    "readme": {"$ref": "#/$defs/text"},
     "note": {"$ref": "#/$defs/text"},
-    "global_exclude_keywords": {"type": "array", "items": {"$ref": "#/$defs/text"}},
-    "global_exclude_keywords_note": {"$ref": "#/$defs/text"},
     "letters": {
      "type": "object",
      "propertyNames": {"$ref": "#/$defs/group"},
      "additionalProperties": {
       "type": "object",
-      "required": ["include", "category"],
+      "required": ["category"],
       "additionalProperties": false,
       "properties": {
-       "include": {"$ref": "#/$defs/boolean"},
        "category": {"$ref": "#/$defs/category"},
-       "note": {"$ref": "#/$defs/text"},
-       "overrides": {
-        "type": "array",
-        "items": {
-         "type": "object",
-         "required": ["mode", "keywords"],
-         "additionalProperties": false,
-         "properties": {
-          "mode": {"enum": ["starts_with", "contains"]},
-          "keywords": {"type": "array", "items": {"$ref": "#/$defs/text"}},
-          "category": {"$ref": "#/$defs/category"},
-          "action": {"const": "exclude"}
-         }
-        }
-       },
-       "special_include_codes": {
-        "type": "object",
-        "propertyNames": {"$ref": "#/$defs/code"},
-        "additionalProperties": {"$ref": "#/$defs/category"}
-       }
+       "note": {"$ref": "#/$defs/text"}
       }
      }
     }

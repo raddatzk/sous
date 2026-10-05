@@ -885,8 +885,6 @@ def aisles(dataset: Dataset) -> dict:
             {
                 "group": letter,
                 "category": letters[letter].get("category"),
-                "included": boolean(letters[letter].get("include", "false"))
-                or bool(letters[letter].get("special_include_codes")),
                 "note": letters[letter].get("note", ""),
             }
             for letter in sorted(letters)
