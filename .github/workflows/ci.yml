@@ -16,6 +16,9 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   # The catalog, in seconds and on Linux beside the Mac job: Data/ compiles,
   # passes its checks, and the bundled resources are exactly what it compiles
