@@ -490,6 +490,13 @@ struct RecipeListView: View {
     private var list: some View {
         entries
         .navigationTitle(isPicking ? pickingTitle : "Rezepte")
+        #if os(iOS)
+        // Large, but in the bar: the title menu below opens only from a
+        // title standing in the bar, and a large title that sits above the
+        // list reaches it only after scrolling — which a short library
+        // cannot do.
+        .toolbarTitleDisplayMode(.inlineLarge)
+        #endif
         // The switch, as a menu on the title, and the household's name
         // beneath it once there is more than one to tell apart.
         .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
