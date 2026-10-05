@@ -44,6 +44,17 @@ struct CookModeView: View {
     /// The system activity holding the display awake while cooking is up.
     @State private var awakeActivity: NSObjectProtocol?
     #endif
+    /// Where each step card begins in the steps' scroll content, for the
+    /// scroll to rest on — see `StepSnapBehavior`. Only the cards laid out so
+    /// far; the ones a swipe can reach always are.
+    @State private var stepTops: [UUID: CGFloat] = [:]
+    /// The scroll view's top inset (the bar above the steps), which a step
+    /// resting at the top sits below.
+    @State private var stepsInsetTop: CGFloat = 0
+    /// Where the steps' scroll stood when the finger came down: what a
+    /// swipe is "one step on" from. The behavior is told only where the
+    /// gesture would carry the scroll, not where it began.
+    @State private var stepsScrollStart = StepSnapBehavior.Start()
 
     private let formatter = QuantityFormatter(locale: .sous)
 
@@ -338,6 +349,10 @@ struct CookModeView: View {
     /// tick box in front of it and wants 320, while a step gives up 60 points
     /// to its number before the text starts, so the reading half wants 420.
     private static let splitWidth: CGFloat = 740
+    /// The steps' scroll content, where each card's top is measured.
+    private static let stepsSpace = "cookSteps"
+    /// How far below the top edge a step comes to rest.
+    private static let stepRestMargin: CGFloat = 16
     /// Wider than the recipe page's column, for that tick box.
     private static let ingredientColumn: CGFloat = 320
 
@@ -419,6 +434,11 @@ struct CookModeView: View {
                             rendition: rendition
                         )
                         .id(step.id)
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.frame(in: .named(Self.stepsSpace)).minY
+                        } action: { top in
+                            stepTops[step.id] = top
+                        }
                         .opacity(step.id == focused ? 1 : 0.4)
                         .animation(.easeInOut(duration: 0.2), value: focused)
                         .onTapGesture {
@@ -442,7 +462,24 @@ struct CookModeView: View {
                 // against the window's edge with the width of a Mac window
                 // empty beside them.
                 .frame(maxWidth: .infinity)
+                .coordinateSpace(.named(Self.stepsSpace))
             }
+            #if os(iOS)
+            // A light swipe brings the next step to the top and rests there,
+            // rather than sending the list off by however hard the thumb
+            // happened to flick. Only on touch: a trackpad's scroll is
+            // already as fine as the hand wants it.
+            .scrollTargetBehavior(StepSnapBehavior(
+                tops: steps.compactMap { stepTops[$0.id] }.map { $0 - stepsInsetTop - Self.stepRestMargin },
+                start: stepsScrollStart
+            ))
+            .onScrollPhaseChange { _, phase, context in
+                if phase == .interacting { stepsScrollStart.offset = context.geometry.contentOffset.y }
+            }
+            .onScrollGeometryChange(for: CGFloat.self, of: { $0.contentInsets.top }) { _, inset in
+                stepsInsetTop = inset
+            }
+            #endif
             // The scroll is never steered while a hand is on it. A two-way
             // `scrollPosition` binding did that: every focus change redrew
             // the cards, and the scroll view re-aligned the bound step hard
@@ -883,5 +920,90 @@ struct CookModeView: View {
             awakeActivity = nil
         }
         #endif
+    }
+}
+
+/// Where the steps' scroll comes to rest: a light swipe moves exactly one
+/// step, to the top; a strong one rests on the step it ends near, or wherever
+/// it ends if that is far from any.
+///
+/// Not `.viewAligned`: that pins every step to the top, and a step taller
+/// than the screen (landscape, large type) could then never be read to its
+/// end. Here a step whose next one is further away than most of a screen
+/// scrolls freely, and only the last stretch snaps.
+struct StepSnapBehavior: ScrollTargetBehavior {
+    /// The scroll offsets at which a step rests at the top, in any order.
+    var tops: [CGFloat]
+    /// The scroll offset when the gesture began. A reference, written as the
+    /// finger comes down and read as it lifts: as view state it would reach
+    /// the behavior a render too late, still holding the last gesture's.
+    var start: Start
+
+    final class Start: @unchecked Sendable {
+        var offset: CGFloat = 0
+    }
+
+    /// How much of the screen a light swipe may travel to reach the next step.
+    private static let reach: CGFloat = 0.8
+    /// How close to a step's top a gesture has to end for it to snap.
+    private static let catchment: CGFloat = 0.25
+    /// Below this the finger let go without a flick. The velocity is not
+    /// in points per second (a light flick reads about 0.6), so this is
+    /// measured, not derived.
+    private static let still: CGFloat = 0.15
+    /// How close to the step on screen the scroll may stand and that step
+    /// still be the one it is on, not the next: a step rests a little below
+    /// the top edge, and a scroll at rest is not always exactly there.
+    private static let slack: CGFloat = 30
+    /// How far past the step after the next a flick may carry and still
+    /// count as light, as a share of the screen.
+    private static let overshoot: CGFloat = 0.5
+
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        let tops = tops.sorted()
+        guard !tops.isEmpty else { return }
+        let height = context.containerSize.height
+        // `originalTarget` is where the gesture would carry the scroll, not
+        // where it began; that is `start`.
+        let origin = start.offset
+        let proposed = target.rect.minY
+        let velocity = context.velocity.dy
+
+        func nearest(to y: CGFloat) -> CGFloat? {
+            guard let top = tops.min(by: { abs($0 - y) < abs($1 - y) }),
+                  abs(top - y) <= height * Self.catchment
+            else { return nil }
+            return top
+        }
+
+        var resting: CGFloat?
+        if abs(velocity) < Self.still {
+            // Dragged and let go: rest on the step the hand left near.
+            resting = nearest(to: proposed)
+        } else if proposed > origin, let next = tops.first(where: { $0 > origin + Self.slack }) {
+            // Onwards with a flick. A light one goes exactly one step, even
+            // where its momentum would carry past the next — a light flick
+            // overshoots a short step easily, and skipping one is losing
+            // the place. A strong one, carrying well past the step after,
+            // rests on whichever step it ends near. A next step further
+            // away than most of a screen is not snapped to: the rest of a
+            // long step is still to be read.
+            let after = tops.first(where: { $0 > next + Self.slack }) ?? next
+            if proposed <= after + height * Self.overshoot {
+                resting = next - origin <= height * Self.reach ? next : nil
+            } else {
+                resting = nearest(to: proposed)
+            }
+        } else if proposed < origin, let previous = tops.last(where: { $0 < origin - Self.slack }) {
+            let before = tops.last(where: { $0 < previous - Self.slack }) ?? previous
+            if proposed >= before - height * Self.overshoot {
+                resting = origin - previous <= height * Self.reach ? previous : nil
+            } else {
+                resting = nearest(to: proposed)
+            }
+        }
+        if let resting {
+            target.rect.origin.y = resting
+        }
     }
 }
