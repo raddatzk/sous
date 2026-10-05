@@ -79,6 +79,7 @@
 		A72EB9A35B8972F7FE34899B /* NRFBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22368522EEB68B987EB6F862 /* NRFBadge.swift */; };
 		AA2382D635E9D1198DF48FB0 /* CatalogShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B455A6FB858C506E19F8D231 /* CatalogShareSheet.swift */; };
 		AAD143278712E842054B39FE /* CookSwitcherBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */; };
+		AC55E5D189F1B1033E4C486D /* ExampleRecipes.sousrecipe in Resources */ = {isa = PBXBuildFile; fileRef = 7B6CAF780595B2C0293E1762 /* ExampleRecipes.sousrecipe */; };
 		AF64C28BF1D6DDA6F9D995D3 /* PromptTemplatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85DB7B3D55C57E5D12AABE0 /* PromptTemplatesView.swift */; };
 		B0B397542B858F009CA68298 /* ContinueCookingBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D887BABFAA022A8033B9EDBE /* ContinueCookingBanner.swift */; };
 		B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */ = {isa = PBXBuildFile; fileRef = E5991E77C580417358950F92 /* sous.icon */; };
@@ -195,6 +196,7 @@
 		71BCDE64C12AC53F29EAC9E7 /* SousWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SousWidgets.entitlements; sourceTree = "<group>"; };
 		7209502695EB1AED927F3B9B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookTimerMetadata.swift; sourceTree = "<group>"; };
+		7B6CAF780595B2C0293E1762 /* ExampleRecipes.sousrecipe */ = {isa = PBXFileReference; path = ExampleRecipes.sousrecipe; sourceTree = "<group>"; };
 		7CBF4A5F5006626CFD84006A /* Sous.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Sous.entitlements; sourceTree = "<group>"; };
 		7D20D68B303277CBCE5F3EF5 /* LibraryWipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryWipe.swift; sourceTree = "<group>"; };
 		7D300564443D3A1FEA625003 /* SousDialogs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SousDialogs.swift; sourceTree = "<group>"; };
@@ -361,6 +363,7 @@
 			children = (
 				16E4774220314313C4F7B5ED /* Cooking */,
 				32E05357BCD2BF89080015B2 /* Intents */,
+				448F58808512603698327067 /* Resources */,
 				E8ABAC23FD01EBA09CA4CCE5 /* Supporting */,
 				77A3933FE095081587E52DAC /* Timers */,
 				0B1D145DA0D7595B25BA6B4D /* Views */,
@@ -375,6 +378,14 @@
 				42B651330E061A44821ADA43 /* SousApp.swift */,
 			);
 			path = Sous;
+			sourceTree = "<group>";
+		};
+		448F58808512603698327067 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				7B6CAF780595B2C0293E1762 /* ExampleRecipes.sousrecipe */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		6A4FC4B5E4E998100961EC91 /* SousWidgets */ = {
@@ -573,6 +584,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B47CCE52CDB6D601ABC2D61E /* Assets.xcassets in Resources */,
+				AC55E5D189F1B1033E4C486D /* ExampleRecipes.sousrecipe in Resources */,
 				F2FE5B65452C7BCBC2814E47 /* PrivacyInfo.xcprivacy in Resources */,
 				B0D259B1D0BBCC83378DC4E8 /* sous.icon in Resources */,
 			);

@@ -154,6 +154,23 @@ struct HouseholdTests {
         #expect(try untouched()[CoreDataHouseholds.defaultName] == false)
     }
 
+    @Test("An account is blank until it has a recipe, even one in the trash")
+    func blankAccount() async throws {
+        let container = try makeContainer()
+        let households = CoreDataHouseholds(container: container)
+        try await households.settle()
+        #expect(try await households.isBlank())
+
+        let store = CoreDataRecipeStore(container: container)
+        let recipe = try await store.save(Recipe(title: "Brot"))
+        #expect(try await !households.isBlank())
+
+        var trashed = recipe
+        trashed.deletedAt = .now
+        try await store.save(trashed)
+        #expect(try await !households.isBlank())
+    }
+
     @Test("Settling again changes nothing")
     func settlingIsIdempotent() async throws {
         let container = try makeContainer()

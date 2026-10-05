@@ -331,6 +331,40 @@ struct SousApp: App {
         switcher.noteUnassigned(settlement.unassigned)
     }
 
+    /// Whether this install has already decided about the example recipes —
+    /// either way, so a person who deletes them never gets them back.
+    private static let exampleRecipesDecidedKey = "didDecideExampleRecipes"
+
+    /// Puts two example recipes into a library that starts out empty, so the
+    /// first look at the app shows what a recipe becomes in it.
+    ///
+    /// Only once it is known that the account really has nothing: after the
+    /// first import, with no recipe of its own — not even one in the trash —
+    /// and no household joined. Somebody invited into a household gets what
+    /// is in there, and an empty one stays empty: examples would land in a
+    /// library they share. Decided once per install, so a second device of
+    /// the same account finds the examples the first one wrote, and leaves
+    /// it at that.
+    private func offerExampleRecipes() async {
+        guard initialImport.hasArrived,
+              !UserDefaults.sous.bool(forKey: Self.exampleRecipesDecidedKey),
+              !switcher.expectingJoin,
+              switcher.activeID != nil
+        else { return }
+        // Marked before the first await: two launch tasks get here, and the
+        // second must not decide again while the first is still looking.
+        UserDefaults.sous.set(true, forKey: Self.exampleRecipesDecidedKey)
+        guard let isBlank = try? await households.isBlank() else {
+            UserDefaults.sous.set(false, forKey: Self.exampleRecipesDecidedKey)
+            return
+        }
+        guard isBlank,
+              let url = Bundle.main.url(forResource: "ExampleRecipes", withExtension: "sousrecipe"),
+              let data = try? Data(contentsOf: url)
+        else { return }
+        _ = await library.importRecipes(from: data, named: url.lastPathComponent)
+    }
+
     /// Hands a file opened with Sous to the importer, which lives in the
     /// recipe list — so that is where the app goes.
     ///
@@ -565,6 +599,7 @@ struct SousApp: App {
                     await initialImport.waitUntilArrived()
                     await joinTheHousehold()
                     await switcher.refresh()
+                    await offerExampleRecipes()
                 }
                 .task {
                     cloudKitLog.start()
@@ -574,6 +609,7 @@ struct SousApp: App {
                     await migrateStores()
                     await joinTheHousehold()
                     await switcher.refresh()
+                    await offerExampleRecipes()
                     // The household is settled: a file or a plan link that
                     // launched the app can be acted on now.
                     commands.isLaunchSettled = true

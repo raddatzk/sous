@@ -405,6 +405,19 @@ public final class CoreDataHouseholds: @unchecked Sendable {
         }
     }
 
+    /// Whether this account has nothing yet: not a single recipe of its own,
+    /// not even one in the trash, and no household it joined — however
+    /// empty that one is. Only meaningful once the first import has arrived.
+    public func isBlank() async throws -> Bool {
+        let context = SousPersistentContainer.backgroundContext(for: container)
+        return try await context.perform {
+            guard try CoreDataHouseholds.joinedHouseholdCount(in: context) == 0 else { return false }
+            let request = CDRecipe.fetchRequest()
+            request.affectedStores = CoreDataHouseholds.ownStores(for: context)
+            return try context.count(for: request) == 0
+        }
+    }
+
     /// How many households this person joined — none where there is no
     /// shared store.
     private static func joinedHouseholdCount(in context: NSManagedObjectContext) throws -> Int {
