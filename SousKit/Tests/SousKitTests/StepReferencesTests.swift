@@ -3,8 +3,8 @@ import Testing
 @testable import SousKit
 
 extension StepReferencesPrompt {
-    /// An answer in the retired v2 shape — `{"schritte": [{"schritt": n,
-    /// "bezuege": [...]}]}` — through the reader the optimization uses. The
+    /// An answer in the retired v2 shape — `{"steps": [{"step": n,
+    /// "references": [...]}]}` — through the reader the optimization uses. The
     /// shape is the tests' shorthand for references; no prompt asks for it
     /// any more.
     static func read(_ pasted: String, for recipe: Recipe) -> Result<Reading, Failure> {
@@ -13,15 +13,15 @@ extension StepReferencesPrompt {
         }
         struct Answer: Decodable {
             struct Step: Decodable {
-                let schritt: Int
-                let bezuege: [AnswerItem]
+                let step: Int
+                let references: [AnswerItem]
             }
-            let schritte: [Step]
+            let steps: [Step]
         }
         guard let answer = try? JSONDecoder().decode(Answer.self, from: Data(pasted[open...close].utf8)) else {
             return .failure(.unreadable)
         }
-        return reading(steps: answer.schritte.map { ($0.schritt, $0.bezuege) }, for: recipe)
+        return reading(steps: answer.steps.map { ($0.step, $0.references) }, for: recipe)
     }
 }
 
@@ -48,18 +48,18 @@ struct StepReferencesTests {
     let answer = #"""
     Hier die Bezüge:
     ```json
-    {"schritte": [
-      {"schritt": 1, "bezuege": [
-        {"art": "menge", "stelle": "200 g", "vorkommen": 1, "zeile": 1, "menge": "200 g"},
-        {"art": "menge", "stelle": "100 g", "vorkommen": 1, "zeile": 2, "menge": "100 g"},
-        {"art": "menge", "stelle": "300 ml", "vorkommen": 1, "zeile": null, "menge": "300 ml"}
+    {"steps": [
+      {"step": 1, "references": [
+        {"kind": "amount", "text": "200 g", "occurrence": 1, "line": 1, "amount": "200 g"},
+        {"kind": "amount", "text": "100 g", "occurrence": 1, "line": 2, "amount": "100 g"},
+        {"kind": "amount", "text": "300 ml", "occurrence": 1, "line": null, "amount": "300 ml"}
       ]},
-      {"schritt": 2, "bezuege": [
-        {"art": "bezug", "stelle": "Die Hälfte der Butter", "vorkommen": 1, "zeile": 3, "menge": "100 g"}
+      {"step": 2, "references": [
+        {"kind": "mention", "text": "Die Hälfte der Butter", "occurrence": 1, "line": 3, "amount": "100 g"}
       ]},
-      {"schritt": 3, "bezuege": [
-        {"art": "bezug", "stelle": "Restliche Butter", "vorkommen": 1, "zeile": 3, "menge": "100 g"},
-        {"art": "bezug", "stelle": "", "vorkommen": 1, "zeile": 4, "menge": ""}
+      {"step": 3, "references": [
+        {"kind": "mention", "text": "Restliche Butter", "occurrence": 1, "line": 3, "amount": "100 g"},
+        {"kind": "mention", "text": "", "occurrence": 1, "line": 4, "amount": ""}
       ]}
     ]}
     ```
@@ -107,9 +107,9 @@ struct StepReferencesTests {
         )
         var withReferences = schnitzel
         withReferences.stepReferences = try StepReferencesPrompt.read(#"""
-        {"schritte": [{"schritt": 1, "bezuege": [
-          {"art": "menge", "stelle": "¼ TL", "zeile": 1, "menge": "½ TL"},
-          {"art": "menge", "stelle": "3-4 EL", "zeile": 2, "menge": "4 EL"}
+        {"steps": [{"step": 1, "references": [
+          {"kind": "amount", "text": "¼ TL", "line": 1, "amount": "½ TL"},
+          {"kind": "amount", "text": "3-4 EL", "line": 2, "amount": "4 EL"}
         ]}]}
         """#, for: schnitzel).get().references
         let step = withReferences.steps[0]
@@ -128,11 +128,11 @@ struct StepReferencesTests {
             instructionsText: "Mit den übrigen Zutaten und etwa 400 g Kartoffeln mischen, Zwei Eier und einer Prise Salz zugeben."
         )
         let reading = try StepReferencesPrompt.read(#"""
-        {"schritte": [{"schritt": 1, "bezuege": [
-          {"art": "bezug", "stelle": "die übrigen Zutaten", "zeile": 2, "menge": ""},
-          {"art": "bezug", "stelle": "Kartoffeln", "zeile": 1, "menge": "400 g"},
-          {"art": "menge", "stelle": "Zwei", "zeile": 3, "menge": "2"},
-          {"art": "menge", "stelle": "einer Prise", "zeile": 2, "menge": "1 Prise"}
+        {"steps": [{"step": 1, "references": [
+          {"kind": "mention", "text": "die übrigen Zutaten", "line": 2, "amount": ""},
+          {"kind": "mention", "text": "Kartoffeln", "line": 1, "amount": "400 g"},
+          {"kind": "amount", "text": "Zwei", "line": 3, "amount": "2"},
+          {"kind": "amount", "text": "einer Prise", "line": 2, "amount": "1 Prise"}
         ]}]}
         """#, for: dough).get()
         #expect(reading.warnings.isEmpty)
@@ -189,7 +189,7 @@ struct StepReferencesTests {
         let soup = Recipe(title: "Suppe", servings: 2, ingredientsText: "4 Zehen Knoblauch", instructionsText: "Knoblauch hacken.")
         var withReferences = soup
         withReferences.stepReferences = try StepReferencesPrompt.read(
-            #"{"schritte": [{"schritt": 1, "bezuege": [{"art": "bezug", "zeile": 1, "menge": "4"}]}]}"#, for: soup
+            #"{"steps": [{"step": 1, "references": [{"kind": "mention", "line": 1, "amount": "4"}]}]}"#, for: soup
         ).get().references
         let chip = withReferences.stepRendition(toServings: 4).ingredients(for: withReferences.steps[0]).first
         #expect(chip?.quantity == Quantity(8, .clove))
@@ -214,12 +214,12 @@ struct StepReferencesTests {
 
     @Test("A line or step the recipe lacks refuses the answer; nothing to read is refused too")
     func refusals() {
-        let unknownLine = #"{"schritte": [{"schritt": 1, "bezuege": [{"art": "bezug", "stelle": "Mehl", "zeile": 9, "menge": ""}]}]}"#
+        let unknownLine = #"{"steps": [{"step": 1, "references": [{"kind": "mention", "text": "Mehl", "line": 9, "amount": ""}]}]}"#
         guard case .failure(.unknownLine(step: 1, line: 9)) = StepReferencesPrompt.read(unknownLine, for: recipe) else {
             Issue.record("expected an unknown line")
             return
         }
-        let unknownStep = #"{"schritte": [{"schritt": 7, "bezuege": []}]}"#
+        let unknownStep = #"{"steps": [{"step": 7, "references": []}]}"#
         guard case .failure(.unknownStep(7)) = StepReferencesPrompt.read(unknownStep, for: recipe) else {
             Issue.record("expected an unknown step")
             return
@@ -233,13 +233,13 @@ struct StepReferencesTests {
     @Test("Quotes the step lacks, unreadable amounts and overbooked lines are warned about")
     func warnings() throws {
         let pasted = #"""
-        {"schritte": [
-          {"schritt": 1, "bezuege": [
-            {"art": "menge", "stelle": "250 g", "zeile": 1, "menge": "250 g"},
-            {"art": "menge", "stelle": "200 g", "zeile": 1, "menge": "200 g"},
-            {"art": "menge", "stelle": "mit", "zeile": 2, "menge": ""}
+        {"steps": [
+          {"step": 1, "references": [
+            {"kind": "amount", "text": "250 g", "line": 1, "amount": "250 g"},
+            {"kind": "amount", "text": "200 g", "line": 1, "amount": "200 g"},
+            {"kind": "amount", "text": "mit", "line": 2, "amount": ""}
           ]},
-          {"schritt": 2, "bezuege": [{"art": "bezug", "stelle": "Die Margarine", "zeile": 3, "menge": "100 g"}]}
+          {"step": 2, "references": [{"kind": "mention", "text": "Die Margarine", "line": 3, "amount": "100 g"}]}
         ]}
         """#
         let reading = try StepReferencesPrompt.read(pasted, for: recipe).get()
@@ -254,18 +254,18 @@ struct StepReferencesTests {
         // A chain — all of it prepared, shares handed out later — adds up
         // past the line by design and is not warned about.
         let chain = #"""
-        {"schritte": [
-          {"schritt": 1, "bezuege": [{"art": "bezug", "zeile": 3, "menge": "200 g"}]},
-          {"schritt": 2, "bezuege": [{"art": "bezug", "zeile": 3, "menge": "100 g"}]},
-          {"schritt": 3, "bezuege": [{"art": "bezug", "zeile": 3, "menge": "100 g"}]}
+        {"steps": [
+          {"step": 1, "references": [{"kind": "mention", "line": 3, "amount": "200 g"}]},
+          {"step": 2, "references": [{"kind": "mention", "line": 3, "amount": "100 g"}]},
+          {"step": 3, "references": [{"kind": "mention", "line": 3, "amount": "100 g"}]}
         ]}
         """#
         #expect(try StepReferencesPrompt.read(chain, for: recipe).get().warnings.isEmpty)
 
         // Amounts the text itself writes, beyond what the line holds, are.
         let written = #"""
-        {"schritte": [{"schritt": 1, "bezuege": [
-          {"art": "menge", "stelle": "200 g", "zeile": 2, "menge": "200 g"}
+        {"steps": [{"step": 1, "references": [
+          {"kind": "amount", "text": "200 g", "line": 2, "amount": "200 g"}
         ]}]}
         """#
         #expect(try StepReferencesPrompt.read(written, for: recipe).get().warnings == [.overbooked(line: 2, percent: 200)])
@@ -274,12 +274,12 @@ struct StepReferencesTests {
     @Test("Two shares of one line in one step become one chip of the sum")
     func mergeShares() throws {
         let pasted = #"""
-        {"schritte": [
-          {"schritt": 2, "bezuege": [
-            {"art": "bezug", "zeile": 3, "menge": "66,7 g"},
-            {"art": "bezug", "zeile": 3, "menge": "133,3 g"},
-            {"art": "bezug", "zeile": 4, "menge": ""},
-            {"art": "bezug", "zeile": 4, "menge": ""}
+        {"steps": [
+          {"step": 2, "references": [
+            {"kind": "mention", "line": 3, "amount": "66,7 g"},
+            {"kind": "mention", "line": 3, "amount": "133,3 g"},
+            {"kind": "mention", "line": 4, "amount": ""},
+            {"kind": "mention", "line": 4, "amount": ""}
           ]}
         ]}
         """#

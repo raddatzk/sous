@@ -157,12 +157,12 @@ public struct RecipeOptimization: Sendable {
     public struct Classification: Identifiable, Hashable, Sendable {
         public enum Kind: String, Hashable, Sendable {
             case alias
-            case variety = "sorte"
-            case new = "neu"
-            case wording = "formulierung"
-            case typo = "tippfehler"
-            case household = "haushalt"
-            case product = "produkt"
+            case variety
+            case new
+            case wording
+            case typo
+            case household
+            case product
         }
 
         public var id: Int { line }
@@ -199,9 +199,9 @@ public struct RecipeOptimization: Sendable {
     /// An ingredient group headed as alternatives ("# Alternative").
     public struct GroupProposal: Identifiable, Hashable, Sendable {
         public enum Action: String, Hashable, Sendable {
-            case remove = "entfernen"
-            case variant = "variante"
-            case keep = "behalten"
+            case remove
+            case variant
+            case keep
         }
 
         public var id: String { name }
@@ -360,7 +360,7 @@ extension RecipeOptimization {
             return (first, nil)
         }
 
-        var steps: [(schritt: Int, bezuege: [StepReferencesPrompt.AnswerItem])] = []
+        var steps: [(number: Int, items: [StepReferencesPrompt.AnswerItem])] = []
         var stepNumber = 0
         for (step, items) in answerSteps {
             switch step {
@@ -370,18 +370,18 @@ extension RecipeOptimization {
             stepNumber += 1
             var mapped: [StepReferencesPrompt.AnswerItem] = []
             for var item in items {
-                guard let target = mappedLine(item.zeile) else {
+                guard let target = mappedLine(item.line) else {
                     // A line that is gone: a written amount still scales
                     // with the servings, a mention has nothing to show.
-                    if item.art?.lowercased() == "menge" {
-                        item.zeile = nil
+                    if item.kind?.lowercased() == "amount" {
+                        item.line = nil
                         mapped.append(item)
                     }
                     continue
                 }
-                item.zeile = target.line
-                if let weighing = target.weighing, let amount = item.menge {
-                    item.menge = Self.weighed(amount, by: weighing) ?? amount
+                item.line = target.line
+                if let weighing = target.weighing, let amount = item.amount {
+                    item.amount = Self.weighed(amount, by: weighing) ?? amount
                 }
                 mapped.append(item)
             }
@@ -492,22 +492,22 @@ public enum RecipeOptimizationPrompt {
     Eine Zeile nennt die Rohzutat so, wie man sie kauft: Menge, Einheit, Zutat. \
     Sonst nichts.
     - Zubereitung wird ein Schritt. "1 TL Ingwer, frisch gerieben" wird \
-    "1 TL Ingwer" mit "zubereitung": "frisch gerieben". Sagt noch kein Schritt, \
+    "1 TL Ingwer" mit "preparation": "frisch gerieben". Sagt noch kein Schritt, \
     dass der Ingwer gerieben wird, bekommt Teil B einen neuen Schritt ("Ingwer \
     schälen und fein reiben.") direkt vor dem ersten Schritt, der ihn verwendet. \
     Sagt es ein Schritt schon ("den geriebenen Ingwer dazugeben"), kommt kein \
     Schritt dazu.
     - Ein Zustand ist Zubereitung, kein Störtext: "100 g Butter, weich" wird \
-    "100 g Butter" mit "zubereitung": "weich", und Teil B bekommt einen Schritt \
+    "100 g Butter" mit "preparation": "weich", und Teil B bekommt einen Schritt \
     "Butter rechtzeitig aus dem Kühlschrank nehmen, damit sie weich wird." als \
     ersten Schritt. Ebenso "zimmerwarm", "kalt", "aufgetaut", "geschmolzen" \
     ("Butter schmelzen." direkt vor dem Schritt, der sie verwendet). Sagt ein \
     Schritt es schon, kommt kein Schritt dazu.
     - Alternativen kommen in die Notizen. "1,5 TL Kreuzkümmel, gemahlen - \
-    (ersatzweise Zimtpulver)" wird "1,5 TL Kreuzkümmel, gemahlen" mit "notiz": \
+    (ersatzweise Zimtpulver)" wird "1,5 TL Kreuzkümmel, gemahlen" mit "note": \
     "Statt Kreuzkümmel geht auch Zimtpulver." Ebenso Beispiele ("Nudeln, z. B. \
     Penne oder Tagliatelle") und Formen ("Paprikapulver, mild oder scharf"). \
-    Sagen die Notizen des Rezepts es schon, entfällt die "notiz".
+    Sagen die Notizen des Rezepts es schon, entfällt die "note".
     - Störtext fällt weg: Bindestriche, Selbstverständliches und Hinweise ohne \
     Einfluss auf den Einkauf. "250 g rote Linsen - (getrocknet)" wird "250 g \
     rote Linsen", denn rote Linsen kauft man getrocknet. Ebenso "gerne Bio", \
@@ -530,16 +530,16 @@ public enum RecipeOptimizationPrompt {
     wird "3 Zehen Knoblauch").
     - Einen Tippfehler korrigierst du nur, wenn das richtige Wort genau eine \
     Änderung entfernt ist (ein Buchstabe mehr, weniger, anders, oder zwei \
-    vertauscht): "Chiabatta" wird "Ciabatta", mit "tippfehler": {"falsch": \
-    "Chiabatta", "richtig": "Ciabatta"}. Ein anderes Wort, das nur ähnlich \
+    vertauscht): "Chiabatta" wird "Ciabatta", mit "typo": {"wrong": \
+    "Chiabatta", "right": "Ciabatta"}. Ein anderes Wort, das nur ähnlich \
     aussieht, ist kein Tippfehler: "Margarine" bleibt "Margarine".
     - Eine Zeile, die schon so dasteht, bleibt unverändert.
 
-    Jede Zeile Z1, Z2, … bekommt genau einen Eintrag in "zeilen", in der \
-    Reihenfolge der Liste. "neu" sind die Zeilen, die an ihre Stelle treten: \
+    Jede Zeile Z1, Z2, … bekommt genau einen Eintrag in "lines", in der \
+    Reihenfolge der Liste. "new" sind die Zeilen, die an ihre Stelle treten: \
     meist eine, zwei bei zwei Zutaten, keine, wenn die Zeile wegfällt. Jede neue \
-    Zeile hat "nr" (fortlaufend über alle neuen Zeilen, ab 1), "text" und \
-    "zutat": den Namen aus der Katalogliste, den die Zeile meint, genau wie dort \
+    Zeile hat "number" (fortlaufend über alle neuen Zeilen, ab 1), "text" und \
+    "ingredient": den Namen aus der Katalogliste, den die Zeile meint, genau wie dort \
     geschrieben, oder null, wenn der Katalog ihn weder als Namen noch als Alias \
     hat. Eine Zeile fällt nur weg, wenn ihr Inhalt in die Notizen wandert oder \
     ihre Gruppe entfernt wird.
@@ -547,96 +547,96 @@ public enum RecipeOptimizationPrompt {
     Unbekannte Namen: Steht der Name einer neuen Zeile nicht im Katalog (weder \
     als Name noch als Alias; Einzahl und Mehrzahl zählen gleich), ordnest du ihn \
     ein, auch wenn die Zeile schon in Form ist und unverändert bleibt: \
-    "einordnung": {"name": der Name genau wie in der neuen Zeile, ohne Menge und \
-    Einheit, "art": …, "ziel": ein Katalogname oder null}. Sous merkt sich das \
-    für den Haushalt: Mit "ziel" zählt der Name wie dieser Katalogname, ohne \
-    "ziel" wird er ein eigenes Wort ohne Nährwerte. Die Zeile behält ihren Namen.
+    "classification": {"name": der Name genau wie in der neuen Zeile, ohne Menge und \
+    Einheit, "kind": …, "target": ein Katalogname oder null}. Sous merkt sich das \
+    für den Haushalt: Mit "target" zählt der Name wie dieser Katalogname, ohne \
+    "target" wird er ein eigenes Wort ohne Nährwerte. Die Zeile behält ihren Namen.
     - "alias": derselbe Einkauf, ein anderes Wort ("Rotkraut" → Rotkohl). \
     Derselbe Einkauf heißt: Mit dem Katalognamen auf dem Einkaufszettel nähme man \
     dasselbe aus dem Regal.
-    - "sorte": ein anderer Einkauf derselben Zutat ("Babyspinat" → Spinat). Im \
-    Zweifel "sorte".
-    - "neu": eine Zutat, die der Katalog nicht hat ("Curryblätter").
-    - "formulierung": ein Zubereitungs- oder Einheitenwort macht den Namen \
+    - "variety": ein anderer Einkauf derselben Zutat ("Babyspinat" → Spinat). Im \
+    Zweifel "variety".
+    - "new": eine Zutat, die der Katalog nicht hat ("Curryblätter").
+    - "wording": ein Zubereitungs- oder Einheitenwort macht den Namen \
     unbekannt.
-    - "tippfehler": der Name ist falsch geschrieben.
-    - "haushalt": eine Formulierung nur dieses Rezepts ("die gelbe Paste aus dem \
+    - "typo": der Name ist falsch geschrieben.
+    - "household": eine Formulierung nur dieses Rezepts ("die gelbe Paste aus dem \
     Becher").
-    - "produkt": eine Marke oder ein Produkt ("Müsli (Seitenbacher)").
-    "ziel" nur, wenn der Katalogname ein fairer Ersatz ist: dieselbe Zutat oder \
+    - "product": eine Marke oder ein Produkt ("Müsli (Seitenbacher)").
+    "target" nur, wenn der Katalogname ein fairer Ersatz ist: dieselbe Zutat oder \
     eine Sorte davon, ein Öl für ein Öl, ein Sirup für einen Sirup, ein Kohl für \
-    einen Kohl. Sojamilch ist keine Milch. Sonst ist "ziel" null. Namen, die der \
+    einen Kohl. Sojamilch ist keine Milch. Sonst ist "target" null. Namen, die der \
     Katalog kennt, bekommen keine Einordnung.
 
     Gruppen mit Alternativen: Kündigt eine Zutatengruppe Alternativen an \
-    ("[Alternative]"), bekommt sie einen Eintrag in "gruppen" mit "vorschlag":
-    - "entfernen", wenn die Alternativen einzelne Tauschmöglichkeiten sind. Ihre \
-    Zeilen bekommen "neu": [] und "entfernt": "gruppe"; was die Notizen noch \
-    nicht sagen, kommt als "notiz" dazu.
-    - "variante" nur, wenn die Alternativen zusammen ein anderes Gericht ergeben, \
+    ("[Alternative]"), bekommt sie einen Eintrag in "groups" mit "proposal":
+    - "remove", wenn die Alternativen einzelne Tauschmöglichkeiten sind. Ihre \
+    Zeilen bekommen "new": [] und "removed": "group"; was die Notizen noch \
+    nicht sagen, kommt als "note" dazu.
+    - "variant" nur, wenn die Alternativen zusammen ein anderes Gericht ergeben, \
     das man eigens plant und einkauft (etwa eine vegane Fassung). Dazu gehört \
-    "variante": {"titel": …, "zutaten": [Zeilen], "schritte": [Schritte]}, das \
+    "variant": {"title": …, "ingredients": [Zeilen], "steps": [Schritte]}, das \
     ganze andere Rezept, mit Mengen nur aus diesem Rezept. Auch dann bekommen die \
-    Zeilen "entfernt": "gruppe".
-    - "behalten" in jedem anderen Fall.
-    "grund" sagt in einem kurzen Satz, warum.
+    Zeilen "removed": "group".
+    - "keep" in jedem anderen Fall.
+    "reason" sagt in einem kurzen Satz, warum.
 
     TEIL B — DIE SCHRITTE
 
-    Die Schritte bleiben, wie sie sind. "schritte" listet alle Schritte in der \
-    neuen Reihenfolge: jeden alten als {"alt": n} (S1 ist 1), in der alten \
-    Reihenfolge, und jeden neuen Zubereitungsschritt aus Teil A als {"neu": \
-    "Text"} an seiner Stelle. Jeder Eintrag hat "bezuege": welche neuen Zeilen \
+    Die Schritte bleiben, wie sie sind. "steps" listet alle Schritte in der \
+    neuen Reihenfolge: jeden alten als {"old": n} (S1 ist 1), in der alten \
+    Reihenfolge, und jeden neuen Zubereitungsschritt aus Teil A als {"new": \
+    "Text"} an seiner Stelle. Jeder Eintrag hat "references": welche neuen Zeilen \
     der Schritt verwendet und wie viel davon. Jeder Bezug hat:
-    - "art": "menge", wenn im Satz eine Mengenangabe dieser Zutat steht \
-    ("200 g", "2 EL", "3"). Dann gehört dazu "stelle": genau diese \
+    - "kind": "amount", wenn im Satz eine Mengenangabe dieser Zutat steht \
+    ("200 g", "2 EL", "3"). Dann gehört dazu "text": genau diese \
     Mengenangabe, so wie sie im Schritt steht (gleiche Schreibweise, gleiche \
-    Brüche, ohne Zutatennamen), und "vorkommen": das wievielte Vorkommen \
+    Brüche, ohne Zutatennamen), und "occurrence": das wievielte Vorkommen \
     dieses Wortlauts im Schritt gemeint ist, sonst 1. Steht die Zutat nicht in \
-    der Liste ("300 ml Wasser"), ist "zeile" null.
-    - "art": "bezug", wenn der Schritt eine Zutat ohne eigene Zahl verwendet: \
+    der Liste ("300 ml Wasser"), ist "line" null.
+    - "kind": "mention", wenn der Schritt eine Zutat ohne eigene Zahl verwendet: \
     beim Namen ("Zwiebeln"), als Anteil ("die Hälfte der Butter"), als \
     Sammelbegriff ("die trockenen Zutaten" — ein Eintrag je gemeinter Zeile) \
-    oder nur gemeint ("abschmecken" für Salz). Ohne "stelle".
-    - "zeile": die "nr" der neuen Zeile.
-    - "menge": was dieser Schritt von der Zeile nimmt, mit der Einheit der \
+    oder nur gemeint ("abschmecken" für Salz). Ohne "text".
+    - "line": die "number" der neuen Zeile.
+    - "amount": was dieser Schritt von der Zeile nimmt, mit der Einheit der \
     neuen Zeile und ohne Zutatennamen: "150 g", "½ TL", "2 Zehen", "1" — nicht \
     "1 Schalotte". "Die Hälfte", "den Rest", "je ¼ TL" bei mehreren Stücken \
     rechnest du um. Hat die Zeile keine Menge (Salz, "etwas Öl"), bleibt \
-    "menge" leer. Runde so, wie ein Rezept es schreiben würde: "85 g" statt \
+    "amount" leer. Runde so, wie ein Rezept es schreiben würde: "85 g" statt \
     "83,3 g", "⅓ TL" statt "0,33 TL".
 
     Regeln für die Bezüge:
     - Pro Schritt höchstens ein Eintrag je Zeile. Nimmt ein Schritt eine Zeile \
     in mehreren Teilen, ist das ein Eintrag mit der Summe. Ausnahme: mehrere \
     geschriebene Mengenangaben derselben Zutat im Satz — jede ist ein eigener \
-    "menge"-Eintrag.
+    "amount"-Eintrag.
     - Wird eine Zutat erst ganz vorbereitet und später aufgeteilt, bekommt der \
     Vorbereitungsschritt die ganze Menge und jeder spätere Schritt seinen Anteil.
     - Nennt ein Schritt eine Zutat, die ein früherer Schritt schon vollständig \
     verarbeitet hat, gibt es dafür keinen Eintrag.
     - Zahlen, die keine Zutatenmenge sind — Temperaturen, Zeiten, Größen wie \
     "3 cm", Stückzahlen des Ergebnisses —, bekommen keinen Eintrag.
-    - Mengen pro Stück ("je ¼ TL Salz", "à 40 g") sind keine "menge": Nimm die \
-    Zutat als "bezug" mit der Gesamtmenge.
-    - Salz für Koch- oder Nudelwasser ist ein "bezug" auf die Salz-Zeile ohne \
+    - Mengen pro Stück ("je ¼ TL Salz", "à 40 g") sind keine "amount": Nimm die \
+    Zutat als "mention" mit der Gesamtmenge.
+    - Salz für Koch- oder Nudelwasser ist ein "mention" auf die Salz-Zeile ohne \
     Menge.
     - Nur neue Zeilen, keine erfundenen Zutaten. Schritte ohne Zutaten bekommen \
     eine leere Liste.
 
-    "hinweise" ist für die Person, die das Rezept pflegt, und nur für genau \
+    "hints" ist für die Person, die das Rezept pflegt, und nur für genau \
     diese drei Fälle, je ein kurzer Satz: (1) Die Schritte nennen mehr oder \
     eine andere Menge einer Zutat als die Liste. (2) Ein Schritt verwendet eine \
     Zutat, die in der Liste fehlt. (3) Eine Zeile der Liste kommt in keinem \
     Schritt vor. Nicht dazu zählen: Wasser (auch Koch-, Nudel- und Salzwasser), \
     Serviervorschläge und Zutaten, die als Alternative oder Variante \
     gekennzeichnet sind. Erkläre keine eigenen Annahmen oder Änderungen. Trifft \
-    keiner der drei Fälle zu, bleibt "hinweise" leer.
+    keiner der drei Fälle zu, bleibt "hints" leer.
 
     Antworte ausschließlich mit einem JSON-Codeblock in genau dieser Form:
 
     ```json
-    {"zeilen": [{"zeile": 1, "neu": [{"nr": 1, "text": "250 g rote Linsen", "zutat": "Rote Linsen"}]}, {"zeile": 2, "neu": [{"nr": 2, "text": "1 TL Ingwer", "zutat": "Ingwer"}], "zubereitung": "frisch gerieben"}, {"zeile": 3, "neu": [{"nr": 3, "text": "1,5 TL Kreuzkümmel, gemahlen", "zutat": "Kreuzkümmel"}], "notiz": "Statt Kreuzkümmel geht auch Zimtpulver."}, {"zeile": 4, "neu": [{"nr": 4, "text": "100 g Babyspinat", "zutat": null}], "einordnung": {"name": "Babyspinat", "art": "sorte", "ziel": "Spinat"}}, {"zeile": 5, "neu": [], "entfernt": "gruppe"}], "gruppen": [{"gruppe": "Alternative", "vorschlag": "entfernen", "grund": "Die Notizen nennen die Alternativen schon."}], "schritte": [{"neu": "Ingwer schälen und fein reiben.", "bezuege": [{"art": "bezug", "zeile": 2, "menge": "1 TL"}]}, {"alt": 1, "bezuege": [{"art": "menge", "stelle": "250 g", "vorkommen": 1, "zeile": 1, "menge": "250 g"}]}], "hinweise": []}
+    {"lines": [{"line": 1, "new": [{"number": 1, "text": "250 g rote Linsen", "ingredient": "Rote Linsen"}]}, {"line": 2, "new": [{"number": 2, "text": "1 TL Ingwer", "ingredient": "Ingwer"}], "preparation": "frisch gerieben"}, {"line": 3, "new": [{"number": 3, "text": "1,5 TL Kreuzkümmel, gemahlen", "ingredient": "Kreuzkümmel"}], "note": "Statt Kreuzkümmel geht auch Zimtpulver."}, {"line": 4, "new": [{"number": 4, "text": "100 g Babyspinat", "ingredient": null}], "classification": {"name": "Babyspinat", "kind": "variety", "target": "Spinat"}}, {"line": 5, "new": [], "removed": "group"}], "groups": [{"group": "Alternative", "proposal": "remove", "reason": "Die Notizen nennen die Alternativen schon."}], "steps": [{"new": "Ingwer schälen und fein reiben.", "references": [{"kind": "mention", "line": 2, "amount": "1 TL"}]}, {"old": 1, "references": [{"kind": "amount", "text": "250 g", "occurrence": 1, "line": 1, "amount": "250 g"}]}], "hints": []}
     ```
     """
 
@@ -714,9 +714,9 @@ public enum RecipeOptimizationPrompt {
     private struct Answer: Decodable {
         struct Entry: Decodable {
             struct New: Decodable {
-                var nr: Int?
+                var number: Int?
                 var text: String
-                var zutat: String?
+                var ingredient: String?
 
                 init(from decoder: Decoder) throws {
                     // A model that writes plain strings instead of objects
@@ -726,50 +726,50 @@ public enum RecipeOptimizationPrompt {
                         return
                     }
                     let container = try decoder.container(keyedBy: CodingKeys.self)
-                    nr = try container.decodeIfPresent(Int.self, forKey: .nr)
+                    number = try container.decodeIfPresent(Int.self, forKey: .number)
                     text = try container.decode(String.self, forKey: .text)
-                    zutat = try container.decodeIfPresent(String.self, forKey: .zutat)
+                    ingredient = try container.decodeIfPresent(String.self, forKey: .ingredient)
                 }
 
-                enum CodingKeys: String, CodingKey { case nr, text, zutat }
+                enum CodingKeys: String, CodingKey { case number, text, ingredient }
             }
             struct Classification: Decodable {
                 var name: String?
-                var art: String
-                var ziel: String?
+                var kind: String
+                var target: String?
             }
             struct Typo: Decodable {
-                var falsch: String
-                var richtig: String
+                var wrong: String
+                var right: String
             }
-            var zeile: Int
-            var neu: [New]
-            var zubereitung: String?
-            var notiz: String?
-            var tippfehler: Typo?
-            var einordnung: Classification?
-            var entfernt: String?
+            var line: Int
+            var new: [New]
+            var preparation: String?
+            var note: String?
+            var typo: Typo?
+            var classification: Classification?
+            var removed: String?
         }
         struct Group: Decodable {
             struct Variant: Decodable {
-                var titel: String
-                var zutaten: [String]
-                var schritte: [String]
+                var title: String
+                var ingredients: [String]
+                var steps: [String]
             }
-            var gruppe: String
-            var vorschlag: String
-            var grund: String?
-            var variante: Variant?
+            var group: String
+            var proposal: String
+            var reason: String?
+            var variant: Variant?
         }
         struct Step: Decodable {
-            var alt: Int?
-            var neu: String?
-            var bezuege: [StepReferencesPrompt.AnswerItem]?
+            var old: Int?
+            var new: String?
+            var references: [StepReferencesPrompt.AnswerItem]?
         }
-        var zeilen: [Entry]
-        var gruppen: [Group]?
-        var schritte: [Step]
-        var hinweise: [String]?
+        var lines: [Entry]
+        var groups: [Group]?
+        var steps: [Step]
+        var hints: [String]?
     }
 
     /// Reads a pasted answer for `recipe` and checks it. The answer is
@@ -795,10 +795,10 @@ public enum RecipeOptimizationPrompt {
 
         // Every old line exactly once.
         var entries: [Int: Answer.Entry] = [:]
-        for entry in answer.zeilen {
-            guard written.indices.contains(entry.zeile - 1) else { return .failure(.unknownLine(entry.zeile)) }
-            guard entries[entry.zeile] == nil else { return .failure(.lineCoveredTwice(entry.zeile)) }
-            entries[entry.zeile] = entry
+        for entry in answer.lines {
+            guard written.indices.contains(entry.line - 1) else { return .failure(.unknownLine(entry.line)) }
+            guard entries[entry.line] == nil else { return .failure(.lineCoveredTwice(entry.line)) }
+            entries[entry.line] = entry
         }
         for number in written.indices.map({ $0 + 1 }) where entries[number] == nil {
             return .failure(.lineNotCovered(number))
@@ -808,9 +808,9 @@ public enum RecipeOptimizationPrompt {
         var answerLines: [Int: (line: Int, index: Int)] = [:]
         var nextNumber = 1
         for number in written.indices.map({ $0 + 1 }) {
-            let texts = entries[number]!.neu
+            let texts = entries[number]!.new
             for (index, new) in texts.enumerated() {
-                let key = new.nr ?? nextNumber
+                let key = new.number ?? nextNumber
                 guard answerLines[key] == nil else { return .failure(.duplicateNumber(key)) }
                 answerLines[key] = (number, index)
                 nextNumber = key + 1
@@ -818,41 +818,41 @@ public enum RecipeOptimizationPrompt {
         }
 
         // The old steps, all of them, once each, in order.
-        let oldSteps = answer.schritte.compactMap(\.alt)
+        let oldSteps = answer.steps.compactMap(\.old)
         guard oldSteps == Array(1..<(recipe.steps.count + 1)) else {
             return .failure(.stepsChanged)
         }
         var newSteps: [RecipeOptimization.NewStep] = []
         var answerSteps: [(step: RecipeOptimization.AnswerStep, items: [StepReferencesPrompt.AnswerItem])] = []
-        for (position, step) in answer.schritte.enumerated() {
-            for item in step.bezuege ?? [] {
-                if let line = item.zeile, answerLines[line] == nil {
+        for (position, step) in answer.steps.enumerated() {
+            for item in step.references ?? [] {
+                if let line = item.line, answerLines[line] == nil {
                     return .failure(.unknownNewLine(step: position + 1, line: line))
                 }
             }
-            if let old = step.alt {
-                answerSteps.append((.old(old), step.bezuege ?? []))
-            } else if let text = step.neu.map(singleLine), !text.isEmpty {
-                let before = answer.schritte[(position + 1)...].first(where: { $0.alt != nil })?.alt
+            if let old = step.old {
+                answerSteps.append((.old(old), step.references ?? []))
+            } else if let text = step.new.map(singleLine), !text.isEmpty {
+                let before = answer.steps[(position + 1)...].first(where: { $0.old != nil })?.old
                 newSteps.append(RecipeOptimization.NewStep(id: position, before: before, text: text))
-                answerSteps.append((.new(position), step.bezuege ?? []))
+                answerSteps.append((.new(position), step.references ?? []))
             }
         }
 
         // Groups offering alternatives.
         let groupNames = Set(written.compactMap(\.group))
         var groups: [RecipeOptimization.GroupProposal] = []
-        for group in answer.gruppen ?? [] {
-            guard let name = groupNames.first(where: { $0.caseInsensitiveCompare(group.gruppe.trimmingCharacters(in: .whitespaces)) == .orderedSame }),
+        for group in answer.groups ?? [] {
+            guard let name = groupNames.first(where: { $0.caseInsensitiveCompare(group.group.trimmingCharacters(in: .whitespaces)) == .orderedSame }),
                   !groups.contains(where: { $0.name == name }),
-                  let action = RecipeOptimization.GroupProposal.Action(rawValue: group.vorschlag.lowercased())
+                  let action = RecipeOptimization.GroupProposal.Action(rawValue: group.proposal.lowercased())
             else { continue }
             let members = written.indices.filter { written[$0].group == name }.map { $0 + 1 }
-            let variant = action == .variant ? group.variante.flatMap { variantProposal($0, recipe: recipe, parsed: parsed) } : nil
+            let variant = action == .variant ? group.variant.flatMap { variantProposal($0, recipe: recipe, parsed: parsed) } : nil
             groups.append(.init(
                 name: name,
                 action: action == .variant && variant == nil ? .remove : action,
-                reason: group.grund.flatMap(nonEmpty),
+                reason: group.reason.flatMap(nonEmpty),
                 lines: members,
                 variant: variant
             ))
@@ -860,7 +860,7 @@ public enum RecipeOptimizationPrompt {
         // Lines marked as leaving with their group, where the answer forgot
         // to propose removing the group.
         for number in written.indices.map({ $0 + 1 }) {
-            guard entries[number]!.entfernt?.lowercased() == "gruppe", let name = written[number - 1].group,
+            guard entries[number]!.removed?.lowercased() == "group", let name = written[number - 1].group,
                   !groups.contains(where: { $0.name == name })
             else { continue }
             let members = written.indices.filter { written[$0].group == name }.map { $0 + 1 }
@@ -882,7 +882,7 @@ public enum RecipeOptimizationPrompt {
             }
         }
 
-        let notes = (answer.hinweise ?? [])
+        let notes = (answer.hints ?? [])
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         return .success(RecipeOptimization(
@@ -910,14 +910,14 @@ public enum RecipeOptimizationPrompt {
         nutritionCatalog: NutritionCatalog
     ) -> RecipeOptimization.Line {
         typealias Line = RecipeOptimization.Line
-        var rewritten = entry.neu.map { singleLine($0.text) }.filter { !$0.isEmpty }
-        let preparation = entry.zubereitung.flatMap(nonEmpty)
-        let note = entry.notiz.flatMap(nonEmpty)
+        var rewritten = entry.new.map { singleLine($0.text) }.filter { !$0.isEmpty }
+        let preparation = entry.preparation.flatMap(nonEmpty)
+        let note = entry.note.flatMap(nonEmpty)
         var changes = Set<Line.Change>()
         var issues: [Line.Issue] = []
         var typos: [Line.Typo] = []
 
-        if entry.entfernt?.lowercased() == "gruppe", group != nil { changes.insert(.group) }
+        if entry.removed?.lowercased() == "group", group != nil { changes.insert(.group) }
         if rewritten.isEmpty, !changes.contains(.group), note == nil { issues.append(.removedWithoutPlace) }
         if rewritten.count > 1 { changes.insert(.split) }
         if preparation != nil { changes.insert(.preparation) }
@@ -925,9 +925,9 @@ public enum RecipeOptimizationPrompt {
 
         // A declared typo: one edit, in the line, and the line then reads.
         var allowedWords: [String] = []
-        if let typo = entry.tippfehler {
-            let wrong = typo.falsch.trimmingCharacters(in: .whitespaces)
-            let right = typo.richtig.trimmingCharacters(in: .whitespaces)
+        if let typo = entry.typo {
+            let wrong = typo.wrong.trimmingCharacters(in: .whitespaces)
+            let right = typo.right.trimmingCharacters(in: .whitespaces)
             if written.range(of: wrong, options: [.caseInsensitive, .diacriticInsensitive]) == nil {
                 issues.append(.typoNotInLine(wrong))
             } else if TypoDistance.edits(fold(wrong), fold(right)) > 1 {
@@ -1008,8 +1008,8 @@ public enum RecipeOptimizationPrompt {
         if !typos.isEmpty { changes.insert(.typo) }
 
         // The claimed ingredient must be what the reader reads.
-        for (index, new) in entry.neu.enumerated() where index < rewritten.count {
-            guard let claim = new.zutat.flatMap(nonEmpty) else { continue }
+        for (index, new) in entry.new.enumerated() where index < rewritten.count {
+            guard let claim = new.ingredient.flatMap(nonEmpty) else { continue }
             guard let claimed = catalog.ingredient(for: claim) else {
                 issues.append(.unknownClaim(claim))
                 continue
@@ -1057,9 +1057,9 @@ public enum RecipeOptimizationPrompt {
         parsed: RecipeIngredient,
         catalog: IngredientCatalog
     ) -> RecipeOptimization.Classification? {
-        guard let raw = entry.einordnung,
-              let kind = RecipeOptimization.Classification.Kind(rawValue: raw.art.lowercased())
-                ?? (raw.art.lowercased() == "marke" ? .product : nil)
+        guard let raw = entry.classification,
+              let kind = RecipeOptimization.Classification.Kind(rawValue: raw.kind.lowercased())
+                ?? (raw.kind.lowercased() == "brand" ?.product : nil)
         else { return nil }
         // Names Sous already knows are Sous's business, whatever the model
         // says about them.
@@ -1070,7 +1070,7 @@ public enum RecipeOptimizationPrompt {
             $0.range(of: name, options: [.caseInsensitive, .diacriticInsensitive]) != nil
         }) else { return nil }
         // An unknown target drops the target, not the classification.
-        let target = kind == .new ? nil : raw.ziel.flatMap(nonEmpty).flatMap { catalog.ingredient(for: $0)?.name }
+        let target = kind == .new ? nil : raw.target.flatMap(nonEmpty).flatMap { catalog.ingredient(for: $0)?.name }
         // A typo is corrected, never answered. A wording kept as written
         // ("dünne Kokosmilch") counts as its word where it has one; it is
         // never a word of its own.
@@ -1103,8 +1103,8 @@ public enum RecipeOptimizationPrompt {
         recipe: Recipe,
         parsed: [RecipeIngredient]
     ) -> RecipeOptimization.VariantProposal? {
-        let title = variant.titel.trimmingCharacters(in: .whitespacesAndNewlines)
-        let lines = variant.zutaten.map(singleLine).filter { !$0.isEmpty }
+        let title = variant.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lines = variant.ingredients.map(singleLine).filter { !$0.isEmpty }
         guard !title.isEmpty, !lines.isEmpty else { return nil }
         let known = parsed.compactMap(\.quantity)
             + IngredientLineReader.writtenLines(in: recipe.ingredientsText).flatMap { amountsWritten(in: $0.text) }
@@ -1115,7 +1115,7 @@ public enum RecipeOptimizationPrompt {
         return .init(
             title: title,
             ingredientsText: lines.joined(separator: "\n"),
-            instructionsText: variant.schritte.map(singleLine).filter { !$0.isEmpty }.joined(separator: "\n"),
+            instructionsText: variant.steps.map(singleLine).filter { !$0.isEmpty }.joined(separator: "\n"),
             foreignAmounts: foreign
         )
     }

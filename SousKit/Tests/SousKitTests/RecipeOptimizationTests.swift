@@ -24,13 +24,13 @@ struct RecipeOptimizationTests {
         """
     )
 
-    /// An answer in the v4 shape: `lines` are the entries of "zeilen" as
-    /// JSON objects, `steps` those of "schritte".
+    /// An answer in the v4 shape: `lines` are the entries of "lines" as
+    /// JSON objects, `steps` those of "steps".
     private func answer(lines: [String], steps: [String], groups: [String] = []) -> String {
         """
         Hier ist die Antwort:
         ```json
-        {"zeilen": [\(lines.joined(separator: ", "))], "gruppen": [\(groups.joined(separator: ", "))], "schritte": [\(steps.joined(separator: ", "))], "hinweise": []}
+        {"lines": [\(lines.joined(separator: ", "))], "groups": [\(groups.joined(separator: ", "))], "steps": [\(steps.joined(separator: ", "))], "hints": []}
         ```
         """
     }
@@ -40,16 +40,16 @@ struct RecipeOptimizationTests {
         var number = 0
         return IngredientLineReader.writtenLines(in: recipe.ingredientsText).enumerated().map { index, line in
             if let override = overrides[index + 1] {
-                number += override.components(separatedBy: "\"nr\"").count - 1
+                number += override.components(separatedBy: "\"number\"").count - 1
                 return override
             }
             number += 1
-            return #"{"zeile": \#(index + 1), "neu": [{"nr": \#(number), "text": "\#(line.text)"}]}"#
+            return #"{"line": \#(index + 1), "new": [{"number": \#(number), "text": "\#(line.text)"}]}"#
         }
     }
 
     private func oldSteps(_ recipe: Recipe) -> [String] {
-        recipe.steps.indices.map { #"{"alt": \#($0 + 1), "bezuege": []}"# }
+        recipe.steps.indices.map { #"{"old": \#($0 + 1), "references": []}"# }
     }
 
     private func read(_ text: String, for recipe: Recipe) throws -> RecipeOptimization {
@@ -69,7 +69,7 @@ struct RecipeOptimizationTests {
         #expect(prompt.contains("Z1: 250 g rote Linsen - (getrocknet)"))
         #expect(prompt.contains("S2: Knoblauch würfeln"))
         #expect(prompt.contains("Notizen:\nDazu passt Reis."))
-        #expect(prompt.contains("\"einordnung\""))
+        #expect(prompt.contains("\"classification\""))
         // A state is preparation, not noise (v5).
         #expect(prompt.contains("\"100 g Butter, weich\""))
     }
@@ -90,13 +90,13 @@ struct RecipeOptimizationTests {
         #expect(throws: RecipeOptimizationPrompt.Failure.stepsChanged) {
             try read(answer(lines: unchanged(chili), steps: oldSteps(chili).reversed()), for: chili)
         }
-        let dangling = [#"{"alt": 1, "bezuege": [{"art": "bezug", "zeile": 42}]}"#] + oldSteps(chili).dropFirst()
+        let dangling = [#"{"old": 1, "references": [{"kind": "mention", "line": 42}]}"#] + oldSteps(chili).dropFirst()
         #expect(throws: RecipeOptimizationPrompt.Failure.unknownNewLine(step: 1, line: 42)) {
             try read(answer(lines: unchanged(chili), steps: dangling), for: chili)
         }
         #expect(throws: RecipeOptimizationPrompt.Failure.unreadable) {
             // A v2 answer is not an optimization.
-            try read(#"{"schritte": [{"schritt": 1, "bezuege": []}], "hinweise": []}"#, for: chili)
+            try read(#"{"steps": [{"step": 1, "references": []}], "hints": []}"#, for: chili)
         }
     }
 
@@ -105,7 +105,7 @@ struct RecipeOptimizationTests {
     @Test("Noise is dropped: \"250 g rote Linsen - (getrocknet)\" becomes \"250 g rote Linsen\"")
     func noise() throws {
         let optimization = try read(answer(
-            lines: unchanged(chili, except: [1: #"{"zeile": 1, "neu": [{"nr": 1, "text": "250 g rote Linsen", "zutat": "Rote Linsen"}]}"#]),
+            lines: unchanged(chili, except: [1: #"{"line": 1, "new": [{"number": 1, "text": "250 g rote Linsen", "ingredient": "Rote Linsen"}]}"#]),
             steps: oldSteps(chili)
         ), for: chili)
         let line = optimization.lines[0]
@@ -124,11 +124,11 @@ struct RecipeOptimizationTests {
     func amounts() throws {
         let optimization = try read(answer(
             lines: unchanged(chili, except: [
-                1: #"{"zeile": 1, "neu": [{"nr": 1, "text": "300 g rote Linsen"}]}"#,
-                2: #"{"zeile": 2, "neu": [{"nr": 2, "text": "3 Zehen Knoblauch", "zutat": "Knoblauch"}]}"#,
-                3: #"{"zeile": 3, "neu": [{"nr": 3, "text": "400 g stückige Tomaten", "zutat": "Gehackte Tomaten"}]}"#,
-                4: #"{"zeile": 4, "neu": [{"nr": 4, "text": "Kreuzkümmel, gemahlen"}]}"#,
-                6: #"{"zeile": 6, "neu": [{"nr": 6, "text": "1 Limette"}, {"nr": 7, "text": "Creme fraiche"}]}"#,
+                1: #"{"line": 1, "new": [{"number": 1, "text": "300 g rote Linsen"}]}"#,
+                2: #"{"line": 2, "new": [{"number": 2, "text": "3 Zehen Knoblauch", "ingredient": "Knoblauch"}]}"#,
+                3: #"{"line": 3, "new": [{"number": 3, "text": "400 g stückige Tomaten", "ingredient": "Gehackte Tomaten"}]}"#,
+                4: #"{"line": 4, "new": [{"number": 4, "text": "Kreuzkümmel, gemahlen"}]}"#,
+                6: #"{"line": 6, "new": [{"number": 6, "text": "1 Limette"}, {"number": 7, "text": "Creme fraiche"}]}"#,
             ]),
             steps: oldSteps(chili)
         ), for: chili)
@@ -156,8 +156,8 @@ struct RecipeOptimizationTests {
     func sizesAndUnitTypos() throws {
         let recipe = Recipe(title: "Dip", ingredientsText: "1 großer Blumenkohl\n3 Priesen Pfeffer", instructionsText: "Alles mischen.")
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "1 Blumenkohl"}]}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "3 Prisen Pfeffer"}], "tippfehler": {"falsch": "Priesen", "richtig": "Prisen"}}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "1 Blumenkohl"}]}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "3 Prisen Pfeffer"}], "typo": {"wrong": "Priesen", "right": "Prisen"}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines[0].issues == [.amountChanged(from: "1 großer", to: "1")])
         #expect(!optimization.lines[1].isRefused)
@@ -169,9 +169,9 @@ struct RecipeOptimizationTests {
     func unitNormalizations() throws {
         let recipe = Recipe(title: "Brot", ingredientsText: "0,5 kg Mehl\n2 Esslöffel Öl\n1 Pkg Hefe", instructionsText: "Alles verkneten.")
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "500 g Mehl"}]}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "2 EL Öl"}]}"#,
-            #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 Packung Hefe"}]}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "500 g Mehl"}]}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "2 EL Öl"}]}"#,
+            #"{"line": 3, "new": [{"number": 3, "text": "1 Packung Hefe"}]}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines.allSatisfy { $0.issues.isEmpty && !$0.isRefused })
     }
@@ -184,11 +184,11 @@ struct RecipeOptimizationTests {
             instructionsText: "Alles mischen."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "200 g Karotten"}]}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "2 EL Kürbiskern"}]}"#,
-            #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 EL Tomate"}]}"#,
-            #"{"zeile": 4, "neu": [{"nr": 4, "text": "2 Zehen Knoblauch"}]}"#,
-            #"{"zeile": 5, "neu": [{"nr": 5, "text": "100 g getrocknete Tomaten"}]}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "200 g Karotten"}]}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "2 EL Kürbiskern"}]}"#,
+            #"{"line": 3, "new": [{"number": 3, "text": "1 EL Tomate"}]}"#,
+            #"{"line": 4, "new": [{"number": 4, "text": "2 Zehen Knoblauch"}]}"#,
+            #"{"line": 5, "new": [{"number": 5, "text": "100 g getrocknete Tomaten"}]}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines[0].issues == [.newWord("Karotten")])
         #expect(optimization.lines[1].isRefused)
@@ -207,10 +207,10 @@ struct RecipeOptimizationTests {
             instructionsText: "Backen."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "100 g Cashewkerne", "zutat": "Cashew"}], "tippfehler": {"falsch": "Cachewkerne", "richtig": "Cashewkerne"}}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "50 g Mandarine"}], "tippfehler": {"falsch": "Margarine", "richtig": "Mandarine"}}"#,
-            #"{"zeile": 3, "neu": [{"nr": 3, "text": "2 EL Kürbiskerne"}]}"#,
-            #"{"zeile": 4, "neu": [{"nr": 4, "text": "1 Focaccia"}], "tippfehler": {"falsch": "Fokaccia", "richtig": "Focaccia"}}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "100 g Cashewkerne", "ingredient": "Cashew"}], "typo": {"wrong": "Cachewkerne", "right": "Cashewkerne"}}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "50 g Mandarine"}], "typo": {"wrong": "Margarine", "right": "Mandarine"}}"#,
+            #"{"line": 3, "new": [{"number": 3, "text": "2 EL Kürbiskerne"}]}"#,
+            #"{"line": 4, "new": [{"number": 4, "text": "1 Focaccia"}], "typo": {"wrong": "Fokaccia", "right": "Focaccia"}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
 
         let cashew = optimization.lines[0]
@@ -240,7 +240,7 @@ struct RecipeOptimizationTests {
     func undeclaredTypo() throws {
         let recipe = Recipe(title: "Salat", ingredientsText: "100 g Cachewkerne", instructionsText: "Rösten.")
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "100 g Cashewkerne"}]}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "100 g Cashewkerne"}]}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines[0].typos == [.init(wrong: "Cachewkerne", right: "Cashewkerne", declared: false)])
         #expect(!optimization.lines[0].isPreTicked)
@@ -252,8 +252,8 @@ struct RecipeOptimizationTests {
     func claims() throws {
         let optimization = try read(answer(
             lines: unchanged(chili, except: [
-                1: #"{"zeile": 1, "neu": [{"nr": 1, "text": "250 g rote Linsen", "zutat": "Linsen"}]}"#,
-                3: #"{"zeile": 3, "neu": [{"nr": 3, "text": "400 g stückige Tomaten", "zutat": "Tomatenwürfel aus Dosen"}]}"#,
+                1: #"{"line": 1, "new": [{"number": 1, "text": "250 g rote Linsen", "ingredient": "Linsen"}]}"#,
+                3: #"{"line": 3, "new": [{"number": 3, "text": "400 g stückige Tomaten", "ingredient": "Tomatenwürfel aus Dosen"}]}"#,
             ]),
             steps: oldSteps(chili)
         ), for: chili)
@@ -267,7 +267,7 @@ struct RecipeOptimizationTests {
     func claimOutsideTheForm() throws {
         let optimization = try read(answer(
             lines: unchanged(chili, except: [
-                5: #"{"zeile": 5, "neu": [{"nr": 5, "text": "1 TL frisch geriebener Ingwer", "zutat": "Ingwer"}]}"#,
+                5: #"{"line": 5, "new": [{"number": 5, "text": "1 TL frisch geriebener Ingwer", "ingredient": "Ingwer"}]}"#,
             ]),
             steps: oldSteps(chili)
         ), for: chili)
@@ -283,14 +283,14 @@ struct RecipeOptimizationTests {
     func preparation() throws {
         let optimization = try read(answer(
             lines: unchanged(chili, except: [
-                5: #"{"zeile": 5, "neu": [{"nr": 5, "text": "1 TL Ingwer", "zutat": "Ingwer"}], "zubereitung": "frisch gerieben"}"#,
+                5: #"{"line": 5, "new": [{"number": 5, "text": "1 TL Ingwer", "ingredient": "Ingwer"}], "preparation": "frisch gerieben"}"#,
             ]),
             steps: [
-                #"{"alt": 1, "bezuege": [{"art": "menge", "stelle": "250 g", "zeile": 1, "menge": "250 g"}]}"#,
-                #"{"neu": "Ingwer schälen und fein reiben.", "bezuege": [{"art": "bezug", "zeile": 5, "menge": "1 TL"}]}"#,
-                #"{"alt": 2, "bezuege": [{"art": "bezug", "zeile": 2, "menge": "3"}, {"art": "bezug", "zeile": 4}, {"art": "bezug", "zeile": 5}]}"#,
-                #"{"alt": 3, "bezuege": [{"art": "bezug", "zeile": 3}, {"art": "bezug", "zeile": 1}]}"#,
-                #"{"alt": 4, "bezuege": [{"art": "bezug", "zeile": 6}]}"#,
+                #"{"old": 1, "references": [{"kind": "amount", "text": "250 g", "line": 1, "amount": "250 g"}]}"#,
+                #"{"new": "Ingwer schälen und fein reiben.", "references": [{"kind": "mention", "line": 5, "amount": "1 TL"}]}"#,
+                #"{"old": 2, "references": [{"kind": "mention", "line": 2, "amount": "3"}, {"kind": "mention", "line": 4}, {"kind": "mention", "line": 5}]}"#,
+                #"{"old": 3, "references": [{"kind": "mention", "line": 3}, {"kind": "mention", "line": 1}]}"#,
+                #"{"old": 4, "references": [{"kind": "mention", "line": 6}]}"#,
             ]
         ), for: chili)
 
@@ -335,7 +335,7 @@ struct RecipeOptimizationTests {
     func noMeasure() throws {
         let recipe = Recipe(title: "Pasta", ingredientsText: "2 EL Parmesan, frisch gerieben", instructionsText: "Den geriebenen Parmesan darüberstreuen.")
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "2 EL Parmesan", "zutat": "Parmesan"}], "zubereitung": "frisch gerieben"}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "2 EL Parmesan", "ingredient": "Parmesan"}], "preparation": "frisch gerieben"}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines[0].rewritten == ["2 EL Parmesan"])
         #expect(optimization.lines[0].weighing == nil)
@@ -350,7 +350,7 @@ struct RecipeOptimizationTests {
     func modelGrams() throws {
         let recipe = Recipe(title: "Tee", ingredientsText: "1 TL Ingwer, frisch gerieben", instructionsText: "Aufgießen.")
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "5 g Ingwer"}], "zubereitung": "frisch gerieben"}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "5 g Ingwer"}], "preparation": "frisch gerieben"}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         #expect(optimization.lines[0].issues == [.amountChanged(from: "1 TL", to: "5 g")])
     }
@@ -363,9 +363,9 @@ struct RecipeOptimizationTests {
         recipe.notes = "Schmeckt aufgewärmt noch besser."
         let optimization = try read(answer(
             lines: unchanged(recipe, except: [
-                4: #"{"zeile": 4, "neu": [{"nr": 4, "text": "1,5 TL Kreuzkümmel, gemahlen", "zutat": "Kreuzkümmel"}], "notiz": "Statt Kreuzkümmel geht auch Zimtpulver."}"#,
-                5: #"{"zeile": 5, "neu": []}"#,
-                6: #"{"zeile": 6, "neu": [{"nr": 5, "text": "Limette", "zutat": "Limette"}, {"nr": 6, "text": "Creme fraiche", "zutat": "Creme fraiche"}]}"#,
+                4: #"{"line": 4, "new": [{"number": 4, "text": "1,5 TL Kreuzkümmel, gemahlen", "ingredient": "Kreuzkümmel"}], "note": "Statt Kreuzkümmel geht auch Zimtpulver."}"#,
+                5: #"{"line": 5, "new": []}"#,
+                6: #"{"line": 6, "new": [{"number": 5, "text": "Limette", "ingredient": "Limette"}, {"number": 6, "text": "Creme fraiche", "ingredient": "Creme fraiche"}]}"#,
             ]),
             steps: oldSteps(recipe)
         ), for: recipe)
@@ -390,15 +390,15 @@ struct RecipeOptimizationTests {
         )
         let optimization = try read(answer(
             lines: [
-                #"{"zeile": 1, "neu": [{"nr": 1, "text": "1 Pkg Halloumi"}]}"#,
-                #"{"zeile": 2, "neu": [{"nr": 2, "text": "3 Zucchini"}]}"#,
-                #"{"zeile": 3, "neu": [{"nr": 3, "text": "Brötchen"}]}"#,
-                #"{"zeile": 4, "neu": [], "entfernt": "gruppe"}"#,
-                #"{"zeile": 5, "neu": [], "entfernt": "gruppe"}"#,
-                #"{"zeile": 6, "neu": [], "entfernt": "gruppe"}"#,
+                #"{"line": 1, "new": [{"number": 1, "text": "1 Pkg Halloumi"}]}"#,
+                #"{"line": 2, "new": [{"number": 2, "text": "3 Zucchini"}]}"#,
+                #"{"line": 3, "new": [{"number": 3, "text": "Brötchen"}]}"#,
+                #"{"line": 4, "new": [], "removed": "group"}"#,
+                #"{"line": 5, "new": [], "removed": "group"}"#,
+                #"{"line": 6, "new": [], "removed": "group"}"#,
             ],
-            steps: [#"{"alt": 1, "bezuege": [{"art": "bezug", "zeile": 2}]}"#, #"{"alt": 2, "bezuege": [{"art": "bezug", "zeile": 3}, {"art": "bezug", "zeile": 1}]}"#],
-            groups: [#"{"gruppe": "Alternative", "vorschlag": "entfernen", "grund": "Die Notizen nennen die Alternativen schon."}"#]
+            steps: [#"{"old": 1, "references": [{"kind": "mention", "line": 2}]}"#, #"{"old": 2, "references": [{"kind": "mention", "line": 3}, {"kind": "mention", "line": 1}]}"#],
+            groups: [#"{"group": "Alternative", "proposal": "remove", "reason": "Die Notizen nennen die Alternativen schon."}"#]
         ), for: recipe)
         #expect(optimization.groups == [.init(name: "Alternative", action: .remove, reason: "Die Notizen nennen die Alternativen schon.", lines: [4, 5, 6], variant: nil)])
         #expect(optimization.defaultSelection.groups == ["Alternative"])
@@ -422,12 +422,12 @@ struct RecipeOptimizationTests {
         )
         let optimization = try read(answer(
             lines: [
-                #"{"zeile": 1, "neu": [{"nr": 1, "text": "200 g Hähnchen"}]}"#,
-                #"{"zeile": 2, "neu": [{"nr": 2, "text": "400 ml Kokosmilch"}]}"#,
-                #"{"zeile": 3, "neu": [], "entfernt": "gruppe"}"#,
+                #"{"line": 1, "new": [{"number": 1, "text": "200 g Hähnchen"}]}"#,
+                #"{"line": 2, "new": [{"number": 2, "text": "400 ml Kokosmilch"}]}"#,
+                #"{"line": 3, "new": [], "removed": "group"}"#,
             ],
             steps: oldSteps(recipe),
-            groups: [#"{"gruppe": "alternative", "vorschlag": "variante", "grund": "Eine vegane Fassung.", "variante": {"titel": "Curry mit Tofu", "zutaten": ["200 g Tofu", "400 ml Kokosmilch", "1 EL Sojasauce"], "schritte": ["Tofu anbraten.", "Köcheln."]}}"#]
+            groups: [#"{"group": "alternative", "proposal": "variant", "reason": "Eine vegane Fassung.", "variant": {"title": "Curry mit Tofu", "ingredients": ["200 g Tofu", "400 ml Kokosmilch", "1 EL Sojasauce"], "steps": ["Tofu anbraten.", "Köcheln."]}}"#]
         ), for: recipe)
         let group = try #require(optimization.groups.first)
         #expect(group.action == .variant)
@@ -446,9 +446,9 @@ struct RecipeOptimizationTests {
             instructionsText: "Alles anbraten."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "200 g Lupinen-Schnetzel"}], "einordnung": {"name": "Lupinen-Schnetzel", "art": "sorte", "ziel": "Lupine"}}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "100 g Babyspinat"}], "einordnung": {"name": "Babyspinat", "art": "sorte", "ziel": "Spinat"}}"#,
-            #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 Handvoll Curryblätter"}], "einordnung": {"name": "Curryblätter", "art": "neu", "ziel": null}}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "200 g Lupinen-Schnetzel"}], "classification": {"name": "Lupinen-Schnetzel", "kind": "variety", "target": "Lupine"}}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "100 g Babyspinat"}], "classification": {"name": "Babyspinat", "kind": "variety", "target": "Spinat"}}"#,
+            #"{"line": 3, "new": [{"number": 3, "text": "1 Handvoll Curryblätter"}], "classification": {"name": "Curryblätter", "kind": "new", "target": null}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
         // Babyspinat and Curryblätter are known to the catalog.
         #expect(optimization.classifications.map(\.name) == ["Lupinen-Schnetzel"])
@@ -468,11 +468,11 @@ struct RecipeOptimizationTests {
             instructionsText: "Alles kochen."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "400 ml halbfette Kokosmilch"}], "einordnung": {"name": "halbfette Kokosmilch", "art": "formulierung", "ziel": "Kokosmilch"}}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "2 Einhornstaub"}], "einordnung": {"name": "Einhornstaub", "art": "neu", "ziel": null}}"#,
-            #"{"zeile": 3, "neu": [{"nr": 3, "text": "1 TL Kreuzkümel"}], "einordnung": {"name": "Kreuzkümel", "art": "tippfehler", "ziel": "Kreuzkümmel"}}"#,
+            #"{"line": 1, "new": [{"number": 1, "text": "400 ml halbfette Kokosmilch"}], "classification": {"name": "halbfette Kokosmilch", "kind": "wording", "target": "Kokosmilch"}}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "2 Einhornstaub"}], "classification": {"name": "Einhornstaub", "kind": "new", "target": null}}"#,
+            #"{"line": 3, "new": [{"number": 3, "text": "1 TL Kreuzkümel"}], "classification": {"name": "Kreuzkümel", "kind": "typo", "target": "Kreuzkümmel"}}"#,
             // A name that would not make the line read is no proposal.
-            #"{"zeile": 4, "neu": [{"nr": 4, "text": "1 Prise Glitzerzucker"}], "einordnung": {"name": "Glitzer", "art": "neu", "ziel": null}}"#,
+            #"{"line": 4, "new": [{"number": 4, "text": "1 Prise Glitzerzucker"}], "classification": {"name": "Glitzer", "kind": "new", "target": null}}"#,
         ], steps: oldSteps(recipe)), for: recipe)
 
         let proposals = Dictionary(uniqueKeysWithValues: optimization.householdProposals.map { ($0.name, $0.proposal) })
@@ -491,9 +491,9 @@ struct RecipeOptimizationTests {
             instructionsText: "Reis kochen."
         )
         let optimization = try read(answer(lines: [
-            #"{"zeile": 1, "neu": [{"nr": 1, "text": "2 Einhornstaub"}], "einordnung": {"name": "Einhornstaub", "art": "neu", "ziel": null}}"#,
-            #"{"zeile": 2, "neu": [{"nr": 2, "text": "200 g Reis", "zutat": "Reis"}]}"#,
-        ], steps: [#"{"alt": 1, "bezuege": [{"art": "bezug", "zeile": 2, "menge": "200 g"}]}"#]), for: recipe)
+            #"{"line": 1, "new": [{"number": 1, "text": "2 Einhornstaub"}], "classification": {"name": "Einhornstaub", "kind": "new", "target": null}}"#,
+            #"{"line": 2, "new": [{"number": 2, "text": "200 g Reis", "ingredient": "Reis"}]}"#,
+        ], steps: [#"{"old": 1, "references": [{"kind": "mention", "line": 2, "amount": "200 g"}]}"#]), for: recipe)
         #expect(!optimization.changesAnything)
         #expect(optimization.householdProposals.map(\.proposal) == [.word])
         let applied = optimization.applied(optimization.defaultSelection)
@@ -513,7 +513,7 @@ struct RecipeOptimizationTests {
             }
         }
         let text = answer(
-            lines: unchanged(chili, except: [1: #"{"zeile": 1, "neu": [{"nr": 1, "text": "300 g rote Linsen"}]}"#]),
+            lines: unchanged(chili, except: [1: #"{"line": 1, "new": [{"number": 1, "text": "300 g rote Linsen"}]}"#]),
             steps: oldSteps(chili)
         )
         let optimization = try await RecipeOptimizer.optimize(chili, backend: Fixed(text: text)).get()

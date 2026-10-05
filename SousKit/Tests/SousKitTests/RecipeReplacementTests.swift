@@ -19,10 +19,10 @@ struct RecipeReplacementTests {
     Hier die vegane Version:
 
     ```json
-    {"titel": "Vegane Linsensuppe", "beschreibung": "Ohne Speck.", "portionen": 4,
-     "kategorien": ["Suppe", "Vegan"],
-     "zutaten": ["250 g rote Linsen", "1 EL Olivenöl"],
-     "zubereitung": ["# Suppe", "Öl erhitzen.", "Linsen kochen."], "notizen": "Rauchsalz passt."}
+    {"title": "Vegane Linsensuppe", "summary": "Ohne Speck.", "servings": 4,
+     "categories": ["Suppe", "Vegan"],
+     "ingredients": ["250 g rote Linsen", "1 EL Olivenöl"],
+     "steps": ["# Suppe", "Öl erhitzen.", "Linsen kochen."], "notes": "Rauchsalz passt."}
     ```
     Sag Bescheid, wenn du etwas ändern willst.
     """
@@ -69,9 +69,9 @@ struct RecipeReplacementTests {
     func refuses() {
         #expect(RecipeReplacementPrompt.read("Nur Text") == .failure(.noAnswer))
         #expect(RecipeReplacementPrompt.read("{ kaputt }") == .failure(.unreadable))
-        #expect(RecipeReplacementPrompt.read(#"{"zutaten": ["1 Ei"], "zubereitung": ["Kochen."]}"#) == .failure(.missing("der Titel")))
-        #expect(RecipeReplacementPrompt.read(#"{"titel": "A", "zubereitung": ["Kochen."]}"#) == .failure(.missing("die Zutatenliste")))
-        #expect(RecipeReplacementPrompt.read(#"{"titel": "A", "zutaten": ["1 Ei"]}"#) == .failure(.missing("die Zubereitung")))
+        #expect(RecipeReplacementPrompt.read(#"{"ingredients": ["1 Ei"], "steps": ["Kochen."]}"#) == .failure(.missing("der Titel")))
+        #expect(RecipeReplacementPrompt.read(#"{"title": "A", "steps": ["Kochen."]}"#) == .failure(.missing("die Zutatenliste")))
+        #expect(RecipeReplacementPrompt.read(#"{"title": "A", "ingredients": ["1 Ei"]}"#) == .failure(.missing("die Zubereitung")))
     }
 
     @MainActor
@@ -143,13 +143,13 @@ struct RecipeReplacementTests {
 
         let withReferences = #"""
         ```json
-        {"titel": "Linsensuppe", "portionen": 2,
-         "zutaten": ["250 g rote Linsen", "1 l Gemüsebrühe"],
-         "zubereitung": ["200 g Linsen in der Brühe kochen.", "Die übrigen Linsen zugeben."],
-         "bezuege": [
-          {"schritt": 1, "bezuege": [{"art": "menge", "stelle": "200 g", "vorkommen": 1, "zeile": 1, "menge": "200 g"},
-                                    {"art": "bezug", "zeile": 2, "menge": "1 l"}]},
-          {"schritt": 2, "bezuege": [{"art": "bezug", "zeile": 1, "menge": "50 g"}]}]}
+        {"title": "Linsensuppe", "servings": 2,
+         "ingredients": ["250 g rote Linsen", "1 l Gemüsebrühe"],
+         "steps": ["200 g Linsen in der Brühe kochen.", "Die übrigen Linsen zugeben."],
+         "stepReferences": [
+          {"step": 1, "references": [{"kind": "amount", "text": "200 g", "occurrence": 1, "line": 1, "amount": "200 g"},
+                                    {"kind": "mention", "line": 2, "amount": "1 l"}]},
+          {"step": 2, "references": [{"kind": "mention", "line": 1, "amount": "50 g"}]}]}
         ```
         """#
         let replacement = try RecipeReplacementPrompt.read(withReferences).get()
@@ -162,7 +162,7 @@ struct RecipeReplacementTests {
         #expect(stored.isOptimizedForSous)
 
         // A reference to a line the answer does not have: no references at all.
-        let broken = withReferences.replacingOccurrences(of: #""zeile": 2"#, with: #""zeile": 9"#)
+        let broken = withReferences.replacingOccurrences(of: #""line": 2"#, with: #""line": 9"#)
         let applied = try RecipeReplacementPrompt.read(broken).get().applied(to: soup, fields: .all)
         #expect(applied.stepReferences == nil)
         #expect(!applied.isOptimizedForSous)
@@ -171,7 +171,7 @@ struct RecipeReplacementTests {
     @Test("The prompt asks for the references, numbered past the headings")
     func promptAsksForReferences() {
         let prompt = RecipeReplacementPrompt.prompt(task: "x", for: soup)
-        #expect(prompt.contains(#""bezuege""#))
+        #expect(prompt.contains(#""stepReferences""#))
         #expect(prompt.contains("Überschriften"))
     }
 

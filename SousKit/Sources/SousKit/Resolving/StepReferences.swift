@@ -427,18 +427,21 @@ public enum StepReferencesPrompt {
 
     /// One reference as the answer writes it, before it is checked.
     struct AnswerItem: Decodable, Equatable, Sendable {
-        var art: String?
-        var stelle: String?
-        var vorkommen: Int?
-        var zeile: Int?
-        var menge: String?
+        /// "amount": an amount written in the sentence; "mention": the
+        /// ingredient used without a number of its own.
+        var kind: String?
+        /// For an amount, the words as the step writes them.
+        var text: String?
+        var occurrence: Int?
+        var line: Int?
+        var amount: String?
     }
 
     /// Checks an answer's references against `recipe` — its lines and steps
     /// numbered from 1 — and stamps them with its fingerprint. The one reader
     /// behind every prompt that asks for references.
     static func reading(
-        steps answerSteps: [(schritt: Int, bezuege: [AnswerItem])],
+        steps answerSteps: [(number: Int, items: [AnswerItem])],
         for recipe: Recipe
     ) -> Result<Reading, Failure> {
         let lines = recipe.ingredients
@@ -447,22 +450,22 @@ public enum StepReferencesPrompt {
         var warnings: [Warning] = []
         var taken: [Int: Quantity] = [:]
         for step in answerSteps {
-            guard steps.indices.contains(step.schritt - 1) else {
-                return .failure(.unknownStep(step.schritt))
+            guard steps.indices.contains(step.number - 1) else {
+                return .failure(.unknownStep(step.number))
             }
-            let stepText = steps[step.schritt - 1].text
-            for item in step.bezuege {
-                if let line = item.zeile, !lines.indices.contains(line - 1) {
-                    return .failure(.unknownLine(step: step.schritt, line: line))
+            let stepText = steps[step.number - 1].text
+            for item in step.items {
+                if let line = item.line, !lines.indices.contains(line - 1) {
+                    return .failure(.unknownLine(step: step.number, line: line))
                 }
-                let kind: StepReferences.Reference.Kind = item.art?.lowercased() == "menge" ? .amount : .mention
+                let kind: StepReferences.Reference.Kind = item.kind?.lowercased() == "amount" ? .amount : .mention
                 // Only an amount written in the sentence is anchored in it —
                 // a mention's words, where a model quotes them anyway, have
                 // nothing to do and are dropped.
-                let text = kind == .amount ? (item.stelle ?? "").trimmingCharacters(in: .whitespacesAndNewlines) : ""
-                let amount = item.menge.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
+                let text = kind == .amount ? (item.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines) : ""
+                let amount = item.amount.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.flatMap { $0.isEmpty ? nil : $0 }
                 let reference = StepReferences.Reference(
-                    kind: kind, text: text, occurrence: kind == .amount ? max(item.vorkommen ?? 1, 1) : 1, line: item.zeile, amount: amount
+                    kind: kind, text: text, occurrence: kind == .amount ? max(item.occurrence ?? 1, 1) : 1, line: item.line, amount: amount
                 )
 
                 switch kind {
@@ -470,11 +473,11 @@ public enum StepReferencesPrompt {
                     // Nothing to scale without the words in the sentence.
                     guard !text.isEmpty else { continue }
                     guard StepReferences.range(of: reference, in: stepText) != nil else {
-                        warnings.append(.notInStep(step: step.schritt, text: text))
+                        warnings.append(.notInStep(step: step.number, text: text))
                         continue
                     }
                     if quantity(in: text) == nil {
-                        warnings.append(.unreadableAmount(step: step.schritt, text: text))
+                        warnings.append(.unreadableAmount(step: step.number, text: text))
                     }
                 case .mention:
                     guard reference.line != nil else { continue }
@@ -486,7 +489,7 @@ public enum StepReferencesPrompt {
                 if kind == .amount, let line = reference.line, let counted = quantity(in: text)?.quantity {
                     taken[line] = taken[line].map { $0.adding(counted) ?? $0 } ?? counted
                 }
-                appendMerging(reference, to: &referencesByStep[step.schritt - 1])
+                appendMerging(reference, to: &referencesByStep[step.number - 1])
             }
         }
         for (line, sum) in taken.sorted(by: { $0.key < $1.key }) {
