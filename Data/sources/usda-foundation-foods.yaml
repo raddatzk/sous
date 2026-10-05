@@ -13,4 +13,6 @@ changeNote: 'Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die 
 cite: 'FDC ID {ref} „{name}“'
 rowURL: https://fdc.nal.usda.gov/food-details/{ref}/nutrients
 download: https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_foundation_food_csv_2025-12-18.zip
+archive:
+  - https://github.com/raddatzk/sous/releases/download/sources-2026-10-05/usda-foundation-foods_FoodData_Central_foundation_food_csv_2025-12-18.zip
 extract: 'python3 Scripts/sources/extract.py usda-foundation-foods FoodData_Central_foundation_food_csv_2025-12-18.zip'

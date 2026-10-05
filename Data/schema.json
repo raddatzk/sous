@@ -367,6 +367,11 @@
     "cite": {"description": "How a row is cited after the version, with {ref} and {name}: \"Nr. {ref} „{name}“\".", "$ref": "#/$defs/text"},
     "rowURL": {"description": "Where one row can be looked up, with {ref}.", "type": "string", "pattern": "^https://"},
     "download": {"description": "Where the tables come from; they stay out of the repo.", "type": "string", "pattern": "^https://"},
+    "archive": {
+     "description": "The same downloads as retrieved, attached to a GitHub release of this repository, for when the original URL goes away.",
+     "type": "array",
+     "items": {"type": "string", "pattern": "^https://github.com/raddatzk/sous/releases/download/"}
+    },
     "extract": {"description": "The command that turns the download into <id>.json.", "$ref": "#/$defs/text"}
    }
   }

@@ -360,6 +360,7 @@ changeNote: Auf die 16 Nährstofffelder je 100 g gekürzt, …   # every source 
 cite: 'Nr. {ref} „{name}“'          # how one row is cited after the version
 rowURL: https://…/{ref}             # optional: where one row can be looked up
 download: https://…                 # where the tables come from (not in the repo)
+archive: [https://github.com/raddatzk/sous/releases/download/sources-…/…]   # the same files, kept
 extract: python3 Scripts/sources/extract.py ciqual-2020 '…xls'
 ```
 
@@ -376,7 +377,9 @@ Nothing else: `sources/<id>.json` holds every row of the source already.
 
 **A new release of a source.** Download it (the `download` line), run the
 `extract` line, which rewrites `sources/<id>.json` from the download, and
-update `release` and `retrieved`. The diff is the release's changes, one row per
+update `release` and `retrieved`. Attach the downloaded files to a GitHub
+release `sources-<date>` and point `archive` at them, so the extract can be
+re-run when the original URL is gone (the first one is `sources-2026-10-05`). The diff is the release's changes, one row per
 line. A code the new release no longer has fails the compile; remap it in the
 same change.
 
