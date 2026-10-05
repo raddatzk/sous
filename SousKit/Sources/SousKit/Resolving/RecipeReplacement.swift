@@ -16,6 +16,18 @@ public struct RecipeReplacement: Sendable, Equatable {
     public var ingredientsText: String
     public var instructionsText: String
     public var notes: String?
+    /// Which ingredient lines each step uses, as the answer says — read
+    /// against the recipe only once it is taken, since the references are
+    /// stamped with the text and serving count they were read for.
+    var stepReferenceItems: [StepItems] = []
+
+    struct StepItems: Equatable, Sendable, Decodable {
+        var schritt: Int
+        var bezuege: [StepReferencesPrompt.AnswerItem]
+    }
+
+    /// Whether the answer said which lines the steps use.
+    public var hasStepReferences: Bool { !stepReferenceItems.isEmpty }
 
     /// What a replacement carries over besides ingredients, steps and notes,
     /// which it always does.
@@ -65,7 +77,17 @@ public struct RecipeReplacement: Sendable, Equatable {
         result.ingredientsText = ingredientsText
         result.instructionsText = instructionsText
         result.notes = notes
-        result.stepReferences = nil
+        // Read against the recipe as it will be, title, servings and all:
+        // that is what the references are stamped for. An answer whose
+        // references name a line or a step it does not have brings none.
+        if !stepReferenceItems.isEmpty,
+           case .success(let reading) = StepReferencesPrompt.reading(
+               steps: stepReferenceItems.map { ($0.schritt, $0.bezuege) }, for: result
+           ) {
+            result.stepReferences = reading.references
+        } else {
+            result.stepReferences = nil
+        }
         return result
     }
 }
@@ -74,7 +96,7 @@ public enum RecipeReplacementPrompt {
     /// The answer's shape, one example the model copies.
     static let format = """
     ```json
-    {"titel": "Vegane Linsensuppe", "beschreibung": "Cremig und würzig.", "portionen": 4, "kategorien": ["Suppe", "Vegan"], "zutaten": ["# Für die Suppe", "250 g rote Linsen", "1 Zwiebel"], "zubereitung": ["# Suppe", "Zwiebel würfeln und anschwitzen.", "Linsen zugeben und 15 Minuten kochen."], "notizen": "Hält sich 3 Tage im Kühlschrank."}
+    {"titel": "Vegane Linsensuppe", "beschreibung": "Cremig und würzig.", "portionen": 4, "kategorien": ["Suppe", "Vegan"], "zutaten": ["# Für die Suppe", "250 g rote Linsen", "1 Zwiebel"], "zubereitung": ["# Suppe", "Zwiebel würfeln und anschwitzen.", "200 g Linsen zugeben und 15 Minuten kochen, dann den Rest."], "notizen": "Hält sich 3 Tage im Kühlschrank.", "bezuege": [{"schritt": 1, "bezuege": [{"art": "bezug", "zeile": 2, "menge": "1"}]}, {"schritt": 2, "bezuege": [{"art": "menge", "stelle": "200 g", "vorkommen": 1, "zeile": 1, "menge": "200 g"}, {"art": "bezug", "zeile": 1, "menge": "50 g"}]}]}
     ```
     """
 
@@ -103,6 +125,28 @@ public enum RecipeReplacementPrompt {
     Wähle "kategorien" aus den vorhandenen Kategorien unten, wo sie passen; \
     eine neue nur, wenn keine passt. Die Schreibweise der vorhandenen \
     Kategorien bleibt unverändert.
+
+    Für Sous gehört zum JSON auch "bezuege": für jeden Schritt, welche \
+    Zutatenzeilen er verwendet und wie viel davon — damit Sous beim Kochen die \
+    Mengen im Text mitrechnen kann. Zeilen und Schritte zählen ab 1 in der \
+    Reihenfolge von "zutaten" und "zubereitung"; Überschriften ("# …") zählen \
+    nicht mit. Jeder Bezug hat:
+    - "art": "menge", wenn im Schritt eine Mengenangabe dieser Zutat steht \
+    ("200 g", "2 EL", "3"). Dann gehört dazu "stelle": genau diese \
+    Mengenangabe, so wie sie im Schritt steht (ohne Zutatennamen), und \
+    "vorkommen": das wievielte Vorkommen dieses Wortlauts im Schritt gemeint \
+    ist, sonst 1.
+    - "art": "bezug", wenn der Schritt eine Zutat ohne eigene Zahl verwendet: \
+    beim Namen, als Anteil ("die Hälfte der Butter"), als Sammelbegriff ("die \
+    trockenen Zutaten" — ein Eintrag je gemeinter Zeile) oder nur gemeint \
+    ("abschmecken" für Salz). Ohne "stelle".
+    - "zeile": die Nummer der Zutatenzeile.
+    - "menge": was der Schritt von der Zeile nimmt, in der Einheit der Zeile \
+    und ohne Zutatennamen ("150 g", "½ TL", "1"); "die Hälfte" oder "den Rest" \
+    rechnest du um. Hat die Zeile keine Menge (Salz), bleibt "menge" leer.
+    Pro Schritt höchstens ein Eintrag je Zeile, außer mehrere geschriebene \
+    Mengen derselben Zutat im Satz. Temperaturen, Zeiten und Größen bekommen \
+    keinen Eintrag. Schritte ohne Zutaten lässt du weg.
 
     Orientiere dich bei den Zutatennamen am Katalog unten: Nimm den dort \
     stehenden Namen, wo er passt (also "Hafermilch" statt "pflanzliche \
@@ -155,6 +199,7 @@ public enum RecipeReplacementPrompt {
         var zutaten: [String]?
         var zubereitung: [String]?
         var notizen: String?
+        var bezuege: [RecipeReplacement.StepItems]?
     }
 
     /// Reads the JSON block out of a chat answer.
@@ -183,7 +228,8 @@ public enum RecipeReplacementPrompt {
             categories: answer.kategorien.map { $0.compactMap(clean) },
             ingredientsText: ingredients.joined(separator: "\n"),
             instructionsText: steps.joined(separator: "\n"),
-            notes: clean(answer.notizen)
+            notes: clean(answer.notizen),
+            stepReferenceItems: answer.bezuege ?? []
         ))
     }
 

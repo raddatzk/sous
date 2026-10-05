@@ -141,6 +141,15 @@ struct RecipeAIEditSheet: View {
     @ViewBuilder
     private func previewSection(_ replacement: RecipeReplacement) -> some View {
         Section {
+            if replacement.hasStepReferences {
+                Label("Mit den Zutaten jedes Schritts — der Kochmodus rechnet die Mengen im Text mit.", systemImage: "wand.and.stars")
+                    .foregroundStyle(.secondary)
+            } else {
+                Label("Die Antwort sagt nicht, welche Zutaten jeder Schritt braucht. Bitte den Chat darum, dann rechnet der Kochmodus die Mengen mit.", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+            }
+        }
+        Section {
             Picker("Was damit geschieht", selection: $outcome) {
                 Text("Rezept ersetzen").tag(Outcome.replace)
                 Text("Als neues Rezept").tag(Outcome.new)

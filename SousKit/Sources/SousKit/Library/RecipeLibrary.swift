@@ -794,11 +794,12 @@ public final class RecipeLibrary {
             await save(variant)
             return variant
         }
-        var fresh = replacement.applied(
-            to: Recipe(title: replacement.title),
+        // The serving count before the replacement is applied: the step
+        // references are read for it.
+        let fresh = replacement.applied(
+            to: Recipe(title: replacement.title, servings: replacement.servings ?? current.servings),
             fields: .all
         )
-        fresh.servings = replacement.servings ?? current.servings
         await save(fresh)
         return fresh
     }

@@ -426,7 +426,7 @@ public enum StepReferencesPrompt {
     }
 
     /// One reference as the answer writes it, before it is checked.
-    struct AnswerItem: Decodable {
+    struct AnswerItem: Decodable, Equatable, Sendable {
         var art: String?
         var stelle: String?
         var vorkommen: Int?

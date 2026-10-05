@@ -115,7 +115,8 @@ struct OnboardingView: View {
                 sich ändern soll. Sous kopiert ihn mit dem Rezept, deinen \
                 Kategorien und dem Zutatenkatalog; ihr redet im Chat \
                 darüber, und den JSON-Block der letzten Antwort fügst du \
-                zurück. Das Rezept wird ersetzt — jede frühere Fassung \
+                zurück — gleich für Sous optimiert, mit den Zutaten jedes \
+                Schritts. Das Rezept wird ersetzt — jede frühere Fassung \
                 bleibt unter „Versionen“ im Menü des Rezepts, zum \
                 Vergleichen und Zurückholen —, oder du legst die Version \
                 als neues Rezept oder Variante an. Die Prompts, auch \

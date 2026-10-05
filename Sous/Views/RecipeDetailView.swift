@@ -1397,12 +1397,17 @@ struct RecipeDetailView: View {
                     }
                 }
                 if !recipe.ingredients.isEmpty, optimizationChat != .off, !recipe.isDeleted {
-                    Button("Für Sous optimieren", systemImage: "wand.and.stars") {
-                        isOptimizing = true
-                    }
-                }
-                if !recipe.ingredients.isEmpty, optimizationChat != .off, !recipe.isDeleted {
                     Menu("Mit KI bearbeiten", systemImage: "sparkles") {
+                        // Every request below brings the recipe into Sous's
+                        // shape as it changes it; this one only does that,
+                        // checked line by line, and is offered only while the
+                        // version on screen is not in that shape yet.
+                        if !recipe.isOptimizedForSous {
+                            Button("Für Sous optimieren", systemImage: "wand.and.stars") {
+                                isOptimizing = true
+                            }
+                            Divider()
+                        }
                         ForEach(promptTemplates.all) { template in
                             Button(template.title) {
                                 aiRequest = RecipeAIEditSheet.Request(title: template.title, text: template.text)

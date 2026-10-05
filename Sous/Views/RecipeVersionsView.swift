@@ -52,7 +52,7 @@ struct RecipeVersionsView: View {
             Section {
                 row(versions[0], in: versions)
             } footer: {
-                Text("Eine Version entsteht bei jeder Änderung des Inhalts: beim Speichern im Editor, bei einer KI-Änderung, beim Optimieren und beim Wiederherstellen. Sous behält die letzten \(RecipeOriginal.historyLimit).")
+                Text("Eine Version entsteht bei jeder Änderung des Inhalts: beim Speichern im Editor, bei einer KI-Änderung, beim Optimieren und beim Wiederherstellen. Sous behält die letzten \(RecipeOriginal.historyLimit). \(Image(systemName: "wand.and.stars")) heißt: für Sous optimiert — Mengen werden im Kochmodus mitgerechnet.")
             }
             if !earlier.isEmpty {
                 Section("Frühere Versionen") {
@@ -73,7 +73,15 @@ struct RecipeVersionsView: View {
     private func row(_ version: RecipeVersion, in versions: [RecipeVersion]) -> some View {
         NavigationLink(value: version.id) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(version.label(in: versions))
+                HStack(spacing: 6) {
+                    Text(version.label(in: versions))
+                    if let recipe, version.applied(to: recipe).isOptimizedForSous {
+                        Label("Für Sous optimiert", systemImage: "wand.and.stars")
+                            .labelStyle(.iconOnly)
+                            .foregroundStyle(.tint)
+                            .help("Für Sous optimiert")
+                    }
+                }
                 if let detail = version.detail(in: versions) {
                     Text(detail)
                         .font(.caption)

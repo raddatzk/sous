@@ -133,6 +133,49 @@ struct RecipeReplacementTests {
     }
 
     @MainActor
+    @Test("The answer's references come along: the new recipe scales in cook mode and reads as optimized")
+    func referencesComeAlong() async throws {
+        let stores = try StoreBackend.coreData.makeStores()
+        let enrichment = SwiftDataRecipeEnrichmentStore(modelContainer: try ModelContainer.sousContainer(inMemory: true))
+        let library = RecipeLibrary(store: stores.recipes, imageStore: stores.images, enrichmentStore: enrichment)
+        try await stores.recipes.save(soup)
+        #expect(!soup.isOptimizedForSous)
+
+        let withReferences = #"""
+        ```json
+        {"titel": "Linsensuppe", "portionen": 2,
+         "zutaten": ["250 g rote Linsen", "1 l Gemüsebrühe"],
+         "zubereitung": ["200 g Linsen in der Brühe kochen.", "Die übrigen Linsen zugeben."],
+         "bezuege": [
+          {"schritt": 1, "bezuege": [{"art": "menge", "stelle": "200 g", "vorkommen": 1, "zeile": 1, "menge": "200 g"},
+                                    {"art": "bezug", "zeile": 2, "menge": "1 l"}]},
+          {"schritt": 2, "bezuege": [{"art": "bezug", "zeile": 1, "menge": "50 g"}]}]}
+        ```
+        """#
+        let replacement = try RecipeReplacementPrompt.read(withReferences).get()
+        #expect(replacement.hasStepReferences)
+        #expect(await library.applyReplacement(replacement, fields: .all, to: soup))
+        let stored = try #require(await library.recipe(id: soup.id))
+        let references = try #require(stored.stepReferences)
+        #expect(references.isCurrent(for: stored))
+        #expect(references.steps.count == 2)
+        #expect(stored.isOptimizedForSous)
+
+        // A reference to a line the answer does not have: no references at all.
+        let broken = withReferences.replacingOccurrences(of: #""zeile": 2"#, with: #""zeile": 9"#)
+        let applied = try RecipeReplacementPrompt.read(broken).get().applied(to: soup, fields: .all)
+        #expect(applied.stepReferences == nil)
+        #expect(!applied.isOptimizedForSous)
+    }
+
+    @Test("The prompt asks for the references, numbered past the headings")
+    func promptAsksForReferences() {
+        let prompt = RecipeReplacementPrompt.prompt(task: "x", for: soup)
+        #expect(prompt.contains(#""bezuege""#))
+        #expect(prompt.contains("Überschriften"))
+    }
+
+    @MainActor
     @Test("An edit saved in the editor is a version; a new favourite is not; the history keeps ten")
     func editsAreVersions() async throws {
         let stores = try StoreBackend.coreData.makeStores()
