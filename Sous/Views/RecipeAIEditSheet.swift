@@ -36,6 +36,8 @@ struct RecipeAIEditSheet: View {
     @State private var outcome = Outcome.replace
     @State private var fields = RecipeReplacement.Fields.standard
     @State private var failure: String?
+    @State private var showsNewIngredients = true
+    @State private var showsNewSteps = true
 
     private var task: String { request.text ?? typed }
     private var canCopy: Bool { !task.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
@@ -170,20 +172,26 @@ struct RecipeAIEditSheet: View {
             Section("Titel") { Text(replacement.title) }
         }
 
+        let proposed = Recipe(
+            title: replacement.title,
+            servings: replacement.servings ?? recipe.servings,
+            ingredientsText: replacement.ingredientsText,
+            instructionsText: replacement.instructionsText
+        )
         Section("Zutaten") {
-            DisclosureGroup("Neu (\(lineCount(replacement.ingredientsText)))") {
-                Text(replacement.ingredientsText).font(.callout)
+            DisclosureGroup("Neu", isExpanded: $showsNewIngredients) {
+                IngredientsPreview(recipe: proposed)
             }
-            DisclosureGroup("Bisher (\(lineCount(recipe.ingredientsText)))") {
-                Text(recipe.ingredientsText).font(.callout).foregroundStyle(.secondary)
+            DisclosureGroup("Bisher") {
+                IngredientsPreview(recipe: recipe)
             }
         }
         Section("Zubereitung") {
-            DisclosureGroup("Neu (\(lineCount(replacement.instructionsText)))") {
-                Text(replacement.instructionsText).font(.callout)
+            DisclosureGroup("Neu", isExpanded: $showsNewSteps) {
+                StepsPreview(recipe: proposed)
             }
-            DisclosureGroup("Bisher (\(lineCount(recipe.instructionsText)))") {
-                Text(recipe.instructionsText).font(.callout).foregroundStyle(.secondary)
+            DisclosureGroup("Bisher") {
+                StepsPreview(recipe: recipe)
             }
         }
     }
@@ -203,10 +211,6 @@ struct RecipeAIEditSheet: View {
             get: { fields.contains(field) },
             set: { if $0 { fields.insert(field) } else { fields.remove(field) } }
         )
-    }
-
-    private func lineCount(_ text: String) -> Int {
-        text.split(whereSeparator: \.isNewline).filter { !$0.allSatisfy(\.isWhitespace) }.count
     }
 
     // MARK: - Taking it
@@ -230,5 +234,56 @@ struct RecipeAIEditSheet: View {
                 }
             }
         }
+    }
+}
+
+/// A recipe's ingredients as the recipe page shows them — groups under their
+/// headings, the amount in the accent — without the taps of the real lines:
+/// this is what a proposal would look like, not something to work with.
+private struct IngredientsPreview: View {
+    let recipe: Recipe
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(recipe.ingredientGroups(), id: \.group) { group in
+                VStack(alignment: .leading, spacing: 8) {
+                    if let name = group.group {
+                        Text(name).font(SousStyle.groupHeading)
+                    }
+                    ForEach(group.ingredients) { ingredient in
+                        IngredientLineView(ingredient: ingredient)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+    }
+}
+
+/// A recipe's steps as the recipe page shows them: numbered, the numbering
+/// starting again under each heading.
+private struct StepsPreview: View {
+    let recipe: Recipe
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ForEach(recipe.stepGroups, id: \.group) { group in
+                if let name = group.group {
+                    Text(name).font(SousStyle.groupHeading)
+                }
+                ForEach(Array(group.steps.enumerated()), id: \.element.id) { index, step in
+                    HStack(alignment: .firstTextBaseline, spacing: 14) {
+                        Text("\(index + 1)")
+                            .font(SousStyle.groupHeading)
+                            .foregroundStyle(.tint)
+                            .frame(minWidth: 20, alignment: .trailing)
+                        Text(AttributedString(inlineMarkdown: step.text))
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
     }
 }
