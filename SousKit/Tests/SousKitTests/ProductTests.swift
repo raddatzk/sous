@@ -40,13 +40,14 @@ struct ProductTests {
         curated["Probe Vegane Butter"] = ["targets": ["unspecified": ["Z-probe-vegane-butter"]]]
         curated["Probe Haferdrink"] = ["targets": ["unspecified": ["Z-probe-haferdrink"]]]
         curation["words"] = curated
-        var community = json("community.json") as! [String: Any]
+        var nutrition = json("nutrition.json") as! [String: Any]
         func row(_ code: String, _ name: String, per: String, _ values: [String: Double]) -> [String: Any] {
             ["code": code, "name": name, "group": "Z", "category": "dairy",
-             "source": "Nährwertdeklaration der Packung", "checked": "2026-10-02", "per": per,
+             "source": "Nährwertdeklaration der Packung", "sourceID": "labels",
+             "checked": "2026-10-02", "per": per,
              "perHundredGrams": values]
         }
-        community["entries"] = (community["entries"] as! [[String: Any]]) + [
+        nutrition["entries"] = (nutrition["entries"] as! [[String: Any]]) + [
             row("Z-testmarke-vegane-butter", "Testmarke Vegane Butter", per: "as-sold", [
                 "kcal": 714, "fatG": 80, "saturatedFatG": 37, "carbsG": 0.5, "sugarG": 0.5,
                 "proteinG": 0.2, "sodiumMg": 480,
@@ -60,7 +61,7 @@ struct ProductTests {
         let files: [DataSet.File: Data] = [
             .kitchenWords: try! JSONSerialization.data(withJSONObject: words),
             .curation: try! JSONSerialization.data(withJSONObject: curation),
-            .community: try! JSONSerialization.data(withJSONObject: community),
+            .nutrition: try! JSONSerialization.data(withJSONObject: nutrition),
         ]
         return try! DataSet(manifest: .bundled, origin: .bundled) { file throws(DataSetRejection) in
             if let data = files[file] { return data }
@@ -87,9 +88,9 @@ struct ProductTests {
         #expect(!feige.perHundredGrams.states(.vitaminEMg))
         #expect(feige.perHundredGrams[.vitaminEMg] == nil)
         #expect(feige.perHundredGrams.states(.kcal))
-        // Of the 656 BLS rows the review counted, the ones a blank still
+        // Of the 1,244 BLS rows the catalog uses, the ones a blank still
         // leaves open once Data/assumed-zeros.yaml has spoken.
-        #expect(rows.filter { !$0.code.hasPrefix("Z") && !$0.perHundredGrams.absent.isEmpty }.count == 269)
+        #expect(rows.filter { $0.sourceID == "bls" && !$0.perHundredGrams.absent.isEmpty }.count == 108)
     }
 
     @Test("A BLS blank in an assumed-zero group is a stated zero")
@@ -97,7 +98,7 @@ struct ProductTests {
         let bls = DataSet.bundled.bls
         // Vitamin C in bread, grain and eggs; fibre and vitamin C in fish.
         for (code, nutrient) in [
-            ("B271000", Nutrient.vitaminCMg), ("C111000", .vitaminCMg),
+            ("B271000", Nutrient.vitaminCMg), ("C118000", .vitaminCMg),
             ("E111100", .vitaminCMg), ("T410100", .fiberG),
         ] {
             let row = try #require(bls.entry(for: code))
@@ -105,25 +106,22 @@ struct ProductTests {
         }
     }
 
-    @Test("Assumed zeros fill the BLS's blanks only, never a supplement's or a stated value")
+    @Test("Assumed zeros fill the BLS's blanks only, never another source's or a stated value")
     func assumedZerosLeaveSupplementsAlone() throws {
-        func file(_ entries: String, rules: String = "") -> Data {
-            Data("""
-            {"datasetVersion": "1", "release": "r", "license": "l", "attribution": "a",
-             "changeNote": "c", \(rules) "entries": [\(entries)]}
+        // The label row sits in a BLS group on purpose: the rules go by the
+        // row's source, not by the letter it is filed under.
+        let nutrition = Data("""
+            {"assumedZero": [{"nutrient": "vitaminCMg", "groups": ["C"]}, {"nutrient": "nonsenseMg", "groups": ["C"]}],
+             "entries": [
+              {"code": "C000001", "name": "Mehl", "group": "C", "category": "baking",
+               "sourceID": "bls", "perHundredGrams": {"kcal": 350}},
+              {"code": "C000002", "name": "Keim", "group": "C", "category": "baking",
+               "sourceID": "bls", "perHundredGrams": {"kcal": 350, "vitaminCMg": 4}},
+              {"code": "Z000009", "name": "Etikett", "group": "C", "category": "baking",
+               "source": "Packung", "sourceID": "labels", "perHundredGrams": {"kcal": 350}}
+             ]}
             """.utf8)
-        }
-        let bls = file("""
-            {"code": "C000001", "name": "Mehl", "group": "C", "category": "baking",
-             "perHundredGrams": {"kcal": 350}},
-            {"code": "C000002", "name": "Keim", "group": "C", "category": "baking",
-             "perHundredGrams": {"kcal": 350, "vitaminCMg": 4}}
-            """)
-        let supplements = file("""
-            {"code": "Z000009", "name": "Etikett", "group": "C", "category": "baking",
-             "source": "Packung", "perHundredGrams": {"kcal": 350}}
-            """, rules: #""assumedZero": [{"nutrient": "vitaminCMg", "groups": ["C"]}, {"nutrient": "nonsenseMg", "groups": ["C"]}],"#)
-        let catalog = try BLSCatalog(bls: bls, supplements: supplements)
+        let catalog = try BLSCatalog(nutrition: nutrition)
 
         #expect(catalog.entry(for: "C000001")?.perHundredGrams[.vitaminCMg] == 0)
         #expect(catalog.entry(for: "C000001")?.perHundredGrams[.fiberG] == nil)

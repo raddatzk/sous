@@ -196,14 +196,11 @@ struct NutritionCatalogAssemblyTests {
         // Raw from a supplement, cooked from the BLS, equal weights: which
         // one the word is attributed to used to follow dictionary order,
         // which differs from one process to the next.
-        let source = BLSCatalog.Source(
-            datasetVersion: "BLS 4.0", release: "", license: "", attribution: "", changeNote: ""
-        )
-        let bls = BLSCatalog(source: source, entries: [
+        let bls = BLSCatalog(entries: [
             BLSEntry(code: "X1", name: "Linse roh", group: "H", category: .legumes,
-                     source: "Etikett", perHundredGrams: .zero),
+                     source: "Etikett", sourceID: "labels", perHundredGrams: .zero),
             BLSEntry(code: "X2", name: "Linse gegart", group: "H", category: .legumes,
-                     perHundredGrams: .zero),
+                     source: "BLS 4.0", sourceID: "bls", perHundredGrams: .zero),
         ])
         let synonyms = SynonymTable(entries: [SynonymEntry(word: "Linse", targets: [
             SynonymTarget(code: "X2", state: .cooked, weight: 1),

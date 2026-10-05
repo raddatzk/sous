@@ -42,6 +42,6 @@ struct BundledDataMarkerTests {
         // The whole point of the marker: this used to be a `static let` with
         // the lifetime of the process and no way to read it back.
         #expect(!stamp.fingerprint.isEmpty)
-        #expect(stamp.datasetVersion == BLSCatalog.bundled.source.datasetVersion)
+        #expect(stamp.datasetVersion == DataSources.bundled.first { $0.id == "bls" }?.version)
     }
 }

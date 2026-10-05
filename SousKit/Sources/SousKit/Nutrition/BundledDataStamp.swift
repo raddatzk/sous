@@ -64,7 +64,7 @@ public struct BundledDataMarker: Sendable {
     public static func current(at date: Date = .nowInSyncPrecision) -> BundledDataStamp {
         BundledDataStamp(
             fingerprint: RecipeContentHash.dataFingerprint,
-            datasetVersion: BLSCatalog.current.source.datasetVersion,
+            datasetVersion: DataSources.current.first { $0.id == "bls" }?.version ?? "",
             seenAt: date
         )
     }

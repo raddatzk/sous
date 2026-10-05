@@ -1,8 +1,10 @@
 import Foundation
 
-/// One row of the Bundeslebensmittelschlüssel, as it stands in the source.
+/// One row of nutrition values, as it stands in its source: a row of the
+/// Bundeslebensmittelschlüssel, keyed by its SBLS code, or a row of another
+/// source (Ciqual, USDA, a label), keyed by the Z code an entry gave it.
 ///
-/// The key is the SBLS code, not the name: a name is what a release happens to
+/// The key is the code, not the name: a name is what a release happens to
 /// call a food this time, a code is what the food *is*. Everything the app
 /// remembers about a mapping remembers the code, so a new release can be
 /// swapped in wholesale without user data pointing at nothing.
@@ -20,13 +22,14 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
     /// Which aisle this row lands in — the pipeline's per-row refinement of
     /// the group default, so peanuts in the legume group still read as nuts.
     public var category: IngredientCategory
-    /// Where this row's numbers come from, for the rows that are not BLS.
-    ///
-    /// `nil` for everything out of `bls.json`, where the file's own
-    /// attribution already answers the question for all 3,983 rows at once.
-    /// Set on every supplement, because a file of supplements has no single
-    /// answer: its rows come from wherever the food happened to be documented.
+    /// Where this row's numbers come from, as „Quelle: …“ prints it: "BLS
+    /// 4.0", "Ciqual 2020 (Anses), Nr. 11088 „Cayenne pepper“".
     public var source: String?
+    /// The source's id in the register (`sources.json`): `bls`,
+    /// `ciqual-2020`. The assumed zeros apply to `bls` rows only.
+    public var sourceID: String?
+    /// Where this one row can be looked up, where its source has such a page.
+    public var sourceURL: URL?
     public var perHundredGrams: NutritionInfo
     /// For a label row: the day the label was read, "2026-10-02", so a
     /// stale row is findable.
@@ -36,14 +39,17 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
 
     public init(
         code: String, name: String, group: String,
-        category: IngredientCategory, source: String? = nil,
-        perHundredGrams: NutritionInfo, checked: String? = nil, per: String? = nil
+        category: IngredientCategory, source: String? = nil, sourceID: String? = nil,
+        sourceURL: URL? = nil, perHundredGrams: NutritionInfo, checked: String? = nil,
+        per: String? = nil
     ) {
         self.code = code
         self.name = name
         self.group = group
         self.category = category
         self.source = source
+        self.sourceID = sourceID
+        self.sourceURL = sourceURL
         self.perHundredGrams = perHundredGrams
         self.checked = checked
         self.per = per
@@ -66,53 +72,23 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
 /// are nine rows here, and picking between them is a question for the cook,
 /// not one the build step gets to answer by taking a mean.
 ///
-/// Two files feed it. `bls.json` is the catalog; `community.json` holds the
-/// handful of foods the BLS does not list at all — nutritional yeast, and
-/// whatever else turns out to be missing. They are one table at run time on
-/// purpose: a basis is a code, and nothing that resolves, confirms or
-/// reconciles a basis should have to ask which file the code came from.
+/// One file feeds it, `nutrition.json`: every row the catalog uses, from
+/// whichever source, and nothing else — the compiler resolves each entry's
+/// codes against the sources in `Data/sources/` and ships what it found. A
+/// basis is a code, and nothing that resolves, confirms or reconciles one
+/// should have to ask which source the code came from; where it matters,
+/// the row says (`sourceID`).
 public struct BLSCatalog: Sendable {
-    /// What CC BY 4.0 asks the app to be able to say, carried in the data
-    /// rather than in a Swift constant — the file that changes on an update is
-    /// the file that states its own version.
-    public struct Source: Codable, Hashable, Sendable {
-        public var datasetVersion: String
-        public var release: String
-        public var license: String
-        public var attribution: String
-        public var changeNote: String
-    }
-
     private struct File: Codable {
-        var datasetVersion: String
-        var release: String
-        var license: String
-        var attribution: String
-        var changeNote: String
-        /// Only in the supplements file: `Data/assumed-zeros.yaml`.
+        /// `Data/assumed-zeros.yaml`.
         var assumedZero: [AssumedZero]?
         var entries: [BLSEntry]
-
-        var sourceValue: Source {
-            Source(
-                datasetVersion: datasetVersion, release: release, license: license,
-                attribution: attribution, changeNote: changeNote
-            )
-        }
     }
 
-    public private(set) var source: Source
-    /// The supplements file speaking for itself, or `nil` where the app ships
-    /// none. Kept apart from `source` rather than merged into it: the two
-    /// files are under different licences from different bodies, and each
-    /// has to be nameable on its own.
-    public private(set) var supplementSource: Source?
     public private(set) var entries: [BLSEntry]
     private var byCode: [String: BLSEntry]
 
-    public init(source: Source, entries: [BLSEntry], supplementSource: Source? = nil) {
-        self.source = source
-        self.supplementSource = supplementSource
+    public init(entries: [BLSEntry]) {
         self.entries = entries
         byCode = Dictionary(entries.map { ($0.code, $0) }, uniquingKeysWith: { first, _ in first })
     }
@@ -131,24 +107,15 @@ public struct BLSCatalog: Sendable {
         var groups: [String]
     }
 
-    /// `bls.json` and `community.json`, the supplements. Both are part of
-    /// every data set, so a set missing either one is not a set.
-    init(bls: Data, supplements: Data) throws {
-        let decoder = JSONDecoder()
-        let file = try decoder.decode(File.self, from: bls)
-        let supplements = try decoder.decode(File.self, from: supplements)
-        self.init(
-            // BLS rows first, so a supplement can never take a code the
-            // catalog already uses — `byCode` keeps the first of a pair.
-            source: file.sourceValue,
-            entries: Self.applying(supplements.assumedZero ?? [], to: file.entries) + supplements.entries,
-            supplementSource: supplements.sourceValue
-        )
+    /// `nutrition.json`, part of every data set.
+    init(nutrition: Data) throws {
+        let file = try JSONDecoder().decode(File.self, from: nutrition)
+        self.init(entries: Self.applying(file.assumedZero ?? [], to: file.entries))
     }
 
-    /// The BLS rows with the assumed zeros filled in. Only blanks change, and
-    /// only the BLS's: a supplement or a product label keeps every blank it
-    /// has, since nobody vouched for its zeros.
+    /// The rows with the assumed zeros filled in. Only blanks change, and
+    /// only the BLS's: another source's row or a product label keeps every
+    /// blank it has, since nobody vouched for its zeros.
     static func applying(_ rules: [AssumedZero], to entries: [BLSEntry]) -> [BLSEntry] {
         let byGroup = rules.reduce(into: [String: Set<Nutrient>]()) { result, rule in
             guard let nutrient = Nutrient(rawValue: rule.nutrient) else { return }
@@ -156,7 +123,7 @@ public struct BLSCatalog: Sendable {
         }
         guard !byGroup.isEmpty else { return entries }
         return entries.map { entry in
-            guard let zeros = byGroup[entry.group] else { return entry }
+            guard entry.sourceID == "bls", let zeros = byGroup[entry.group] else { return entry }
             var entry = entry
             // An absent value reads 0 already; stating it is all that is left.
             entry.perHundredGrams.absent.subtract(zeros)

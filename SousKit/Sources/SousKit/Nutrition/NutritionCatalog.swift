@@ -32,8 +32,9 @@ public struct NutritionCatalog: Sendable {
     public static func make(
         synonyms: SynonymTable, bls: BLSCatalog, measures: MeasureTable
     ) -> NutritionCatalog {
-        let source = bls.source.datasetVersion.isEmpty
-            ? CatalogNutrition.blsSource : bls.source.datasetVersion
+        // The BLS as its rows cite it — the dataset's own name, for what the
+        // curation settles without values.
+        let source = bls.entries.first { $0.sourceID == "bls" }?.source ?? CatalogNutrition.blsSource
         var entries: [CatalogNutrition] = []
         entries.reserveCapacity(synonyms.entries.count)
         let nameByID = Dictionary(
@@ -53,11 +54,12 @@ public struct NutritionCatalog: Sendable {
                     code: row.code,
                     catalogName: row.name,
                     weight: target.weight,
-                    // The row's own source where it has one — a supplement
-                    // names the body that measured it, and "BLS 4.0" under a
-                    // figure the BLS never published would be a false claim,
-                    // not a rounding of the truth.
-                    source: row.labelledSource ?? source
+                    // The row's own source — every row names the body that
+                    // measured it, and "BLS 4.0" under a figure the BLS never
+                    // published would be a false claim, not a rounding of
+                    // the truth.
+                    source: row.labelledSource ?? CatalogNutrition.blsSource,
+                    sourceURL: row.sourceURL
                 )
             }
             // A word the source does not list at all arrives *answered*,

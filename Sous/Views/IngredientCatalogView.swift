@@ -560,7 +560,11 @@ struct IngredientDetailView: View {
                     if let catalogName = basis.catalogName {
                         Text("beruht auf: \(catalogName)")
                     }
-                    Text("Quelle: \(basis.source)")
+                    if let url = basis.sourceURL {
+                        Link("Quelle: \(basis.source)", destination: url)
+                    } else {
+                        Text("Quelle: \(basis.source)")
+                    }
                 }
             }
         }

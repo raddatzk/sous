@@ -13,7 +13,10 @@ public struct DataSetManifest: Codable, Hashable, Sendable {
     /// The format this build reads. A set in another format is skipped, never
     /// marked bad: after a rollback to an older build, the newer build that
     /// fetched it can still read it.
-    public static let supportedSchema = 1
+    ///
+    /// 2: one `nutrition.json` with the rows the catalog uses, from every
+    /// source, where 1 had `bls.json` and `community.json`.
+    public static let supportedSchema = 2
 
     public static let fileName = "manifest.json"
 

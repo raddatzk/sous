@@ -8,15 +8,6 @@ import AppKit
 struct SettingsForm: View {
     @AppStorage(SousSetting.appearance, store: .sous)
     private var appearance: SousAppearance = .system
-    /// The data set the app runs on speaking for itself: the BLS first, then
-    /// the rows it does not have. The active set's, not the bundle's — a set
-    /// fetched since names its own sources. Reachable without any
-    /// environment — which this form does not get on the Mac, where it is
-    /// the `Settings` scene's root and nothing injects anything into it.
-    private let sources = DataSources.current
-    /// When this device first ran against that data — the trace concept §7
-    /// asks the sources screen to leave.
-    private let lastSeen = BundledDataMarker().lastSeen
     /// The catalog release this process runs on, and the last daily check.
     private let dataSet = DataSet.current.manifest
     private let dataSetIsFetched = DataSet.current.origin != .bundled
@@ -81,34 +72,9 @@ struct SettingsForm: View {
 
             catalogRelease
             CatalogSharingSettingsSection()
-            dataSources
+            DataSourcesSettingsRow()
         }
         .formStyle(.grouped)
-    }
-
-    /// Where the nutrition figures come from, what was done to them, and
-    /// which release the app is currently reading.
-    ///
-    /// The central half of the attribution CC BY 4.0 asks for: naming the
-    /// source, saying that the data was changed, and linking the licence.
-    /// The local half is the „Quelle: …“ line under each ingredient's
-    /// nutrition, which is what makes this section legible once a second
-    /// source joins BLS.
-    ///
-    /// Every word of it comes out of `sources.json`, which is compiled with
-    /// the data it describes (`Data/sources.yaml`), not hardcoded here: a
-    /// hardcoded notice once went false, claiming the values were
-    /// "zusammengefasst und gemittelt" after the data had stopped averaging.
-    /// A licence notice that describes changes the data no longer carries is
-    /// not a detail; CC BY 4.0 asks for it to be accurate.
-    @ViewBuilder
-    private var dataSources: some View {
-        if let source = sources.first {
-            primarySource(source)
-        }
-        ForEach(sources.dropFirst()) { source in
-            furtherSource(source)
-        }
     }
 
     /// Which release of the catalog — words, weights, aisles, the BLS rows —
@@ -142,53 +108,6 @@ struct SettingsForm: View {
     }
 
     private static let dataHistory = URL(string: "https://github.com/raddatzk/sous/commits/main/Data")!
-
-    @ViewBuilder
-    private func primarySource(_ source: DataSource) -> some View {
-        Section {
-            Text(source.attribution)
-            LabeledContent("Datenstand") {
-                Text("\(source.datasetVersion), Stand \(source.release)")
-            }
-            if let lastSeen {
-                LabeledContent("Zuletzt aktualisiert") {
-                    Text(lastSeen.seenAt.formatted(date: .abbreviated, time: .omitted))
-                }
-            }
-            Text(source.changeNote)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Text("Eigene Angaben, die du zu einer Zutat einträgst, sind bei der Zutat als solche gekennzeichnet.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Link("Lizenz \(source.license)", destination: source.licenseURL)
-        } header: {
-            Text("Datenquellen")
-        }
-    }
-
-    /// Every source after the BLS — today the foods it does not list, and
-    /// who measured them instead.
-    ///
-    /// Its own section rather than a line in the one above, because the
-    /// attribution it carries is somebody else's: CC BY asks for the source
-    /// to be named, and naming it inside a block headed by the BLS's own
-    /// attribution would credit the wrong institute. The per-row half of the
-    /// same duty is the „Quelle: …“ line under each ingredient.
-    private func furtherSource(_ source: DataSource) -> some View {
-        Section {
-            Text(source.attribution)
-            LabeledContent("Datenstand") {
-                Text("\(source.datasetVersion), Stand \(source.release)")
-            }
-            Text(source.changeNote)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            Link("Lizenz \(source.license)", destination: source.licenseURL)
-        } header: {
-            Text(source.title)
-        }
-    }
 }
 
 /// The same settings as a sheet, for the phone and the app's own menu.

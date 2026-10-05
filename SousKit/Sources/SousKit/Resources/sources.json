@@ -3,22 +3,79 @@
   {
    "id": "bls",
    "title": "Bundeslebensmittelschlüssel",
-   "datasetVersion": "BLS 4.0",
+   "publisher": "Max Rubner-Institut (MRI), Bundesforschungsinstitut für Ernährung und Lebensmittel",
+   "url": "https://blsdb.de",
+   "version": "BLS 4.0",
    "release": "2025",
+   "retrieved": "2026-10-05",
    "license": "CC BY 4.0",
    "licenseURL": "https://creativecommons.org/licenses/by/4.0/deed.de",
    "attribution": "Bundeslebensmittelschlüssel (BLS) 4.0, Max Rubner-Institut",
-   "changeNote": "Für sous aufbereitet: auf küchenrelevante Lebensmittelgruppen gefiltert, auf 16 Nährstofffelder je 100 g gekürzt und um eine kuratierte Synonym- und Maßtabelle ergänzt. Die Nährwerte selbst sind unverändert."
+   "changeNote": "Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Wo der BLS die Vitamin-A-Aktivität (VITAA) leer lässt, steht sein Retinolwert (VITA). Die Nährwerte selbst sind unverändert."
   },
   {
-   "id": "supplements",
-   "title": "Ergänzungen",
-   "datasetVersion": "sous Ergänzungen 1",
-   "release": "2026-08-26",
-   "license": "CC BY 4.0",
-   "licenseURL": "https://creativecommons.org/licenses/by/4.0/deed.de",
-   "attribution": "Ergänzungen zum Bundeslebensmittelschlüssel. Enthaltene Quellen: Table de composition nutritionnelle Ciqual 2020 und 2025, Anses (Frankreich); USDA FoodData Central, SR Legacy (April 2018) und Foundation Foods, U.S. Department of Agriculture, Agricultural Research Service (gemeinfrei, CC0 1.0); Nährwertdeklarationen einzelner Handelsprodukte. Welche Zeile woher stammt, steht bei jeder Zutat unter „Quelle“. Die Lizenz gilt für die übernommenen Datenbankzeilen; eine Nährwertdeklaration ist eine Tatsachenangabe und trägt keine eigene Lizenz — genannt wird sie, damit man sie an der Dose nachprüfen kann.",
-   "changeNote": "Lebensmittel, die der BLS 4.0 nicht führt. Jede Zeile nennt ihre eigene Quelle und ist von Hand übernommen, nicht importiert. Die Namen stehen so da, wie die Quelle sie schreibt — auch wenn das eine andere Sprache ist: ein übersetzter Name wäre in keiner Datenbank wiederzufinden. Eine Zeile darf auch von einer Nährwertdeklaration stammen, wenn keine Datenbank das Lebensmittel führt: dann nennt sie das Produkt mit EAN, und was das Etikett nicht deklariert, wird aus der nächstliegenden BLS-Zeile abgeleitet statt auf null gesetzt — der Decoder liest eine fehlende Angabe als 0, und das wäre eine Behauptung. Codes beginnen mit Z, einem Buchstaben, den der BLS in keiner Version vergibt (er kennt nur B–Y), und werden fortlaufend und nie erneut vergeben — eine gelöschte Zeile lässt ihre Nummer verfallen, damit gespeicherte Zuordnungen nicht auf ein anderes Lebensmittel umspringen."
+   "id": "ciqual-2020",
+   "title": "Ciqual 2020",
+   "publisher": "Anses (Agence nationale de sécurité sanitaire de l'alimentation, de l'environnement et du travail), Frankreich",
+   "url": "https://ciqual.anses.fr",
+   "version": "Ciqual 2020 (Anses)",
+   "release": "2020-07-07",
+   "retrieved": "2026-10-05",
+   "license": "Licence Ouverte 2.0",
+   "licenseURL": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+   "attribution": "Table de composition nutritionnelle des aliments Ciqual 2020, Anses (Frankreich)",
+   "changeNote": "Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Vitamin A fehlt, weil die Tabelle nur Retinol und Beta-Carotin getrennt angibt. Werte unter der Bestimmungsgrenze („traces“, „< x“) bleiben leer. Die Nährwerte selbst sind unverändert."
+  },
+  {
+   "id": "usda-sr-legacy",
+   "title": "USDA FoodData Central, SR Legacy",
+   "publisher": "U.S. Department of Agriculture, Agricultural Research Service",
+   "url": "https://fdc.nal.usda.gov",
+   "version": "USDA FoodData Central, SR Legacy (April 2018)",
+   "release": "April 2018",
+   "retrieved": "2026-10-05",
+   "license": "CC0 1.0",
+   "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/deed.de",
+   "attribution": "USDA FoodData Central, SR Legacy (April 2018), U.S. Department of Agriculture, Agricultural Research Service (gemeinfrei, CC0 1.0)",
+   "changeNote": "Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Ohne Kohlenhydrate: USDA gibt sie „by difference“ einschließlich der Ballaststoffe an, Sous zählt sie wie BLS und Ciqual ohne. Die Nährwerte selbst sind unverändert."
+  },
+  {
+   "id": "ciqual-2025",
+   "title": "Ciqual 2025",
+   "publisher": "Anses (Agence nationale de sécurité sanitaire de l'alimentation, de l'environnement et du travail), Frankreich",
+   "url": "https://ciqual.anses.fr",
+   "version": "Ciqual 2025 (Anses)",
+   "release": "2025-11-03",
+   "retrieved": "2026-10-05",
+   "license": "Licence Ouverte 2.0",
+   "licenseURL": "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+   "attribution": "Table de composition nutritionnelle des aliments Ciqual 2025, Anses (Frankreich)",
+   "changeNote": "Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Vitamin A als Retinoläquivalente, Vitamin E gesamt. Werte unter der Bestimmungsgrenze („traces“, „< x“) bleiben leer. Die englischen Namen stammen aus der XML-Fassung der Tabelle. Die Nährwerte selbst sind unverändert."
+  },
+  {
+   "id": "usda-foundation-foods",
+   "title": "USDA FoodData Central, Foundation Foods",
+   "publisher": "U.S. Department of Agriculture, Agricultural Research Service",
+   "url": "https://fdc.nal.usda.gov",
+   "version": "USDA FoodData Central, Foundation Foods (Dezember 2025)",
+   "release": "Dezember 2025",
+   "retrieved": "2026-10-05",
+   "license": "CC0 1.0",
+   "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/deed.de",
+   "attribution": "USDA FoodData Central, Foundation Foods (Dezember 2025), U.S. Department of Agriculture, Agricultural Research Service (gemeinfrei, CC0 1.0)",
+   "changeNote": "Auf die 16 Nährstofffelder je 100 g gekürzt, die Sous kennt; die App enthält nur die Lebensmittel, die eine Zutat des Katalogs verwendet. Ohne Kohlenhydrate: USDA gibt sie „by difference“ einschließlich der Ballaststoffe an, Sous zählt sie wie BLS und Ciqual ohne. Nur die Lebensmittel selbst, nicht ihre einzelnen Proben. Die Nährwerte selbst sind unverändert."
+  },
+  {
+   "id": "labels",
+   "title": "Nährwertdeklarationen",
+   "publisher": "Hersteller der jeweiligen Produkte",
+   "url": "https://github.com/raddatzk/sous/blob/main/Data/sources/labels.json",
+   "version": "Nährwertdeklaration",
+   "release": "laufend",
+   "license": "Tatsachenangabe",
+   "licenseURL": "https://github.com/raddatzk/sous/blob/main/Data/NOTICE",
+   "attribution": "Nährwertdeklarationen einzelner Handelsprodukte. Eine Nährwertdeklaration ist eine Tatsachenangabe und trägt keine eigene Lizenz; genannt wird sie, damit man sie an der Packung nachprüfen kann.",
+   "changeNote": "Von der Packung abgeschrieben, je Zeile mit Produkt, EAN und dem Tag, an dem sie gelesen wurde. Je 100 ml deklarierte Werte sind über die Dichte der Zutat auf 100 g umgerechnet; was das Etikett nicht deklariert, ist bei der Zeile vermerkt."
   }
  ]
 }

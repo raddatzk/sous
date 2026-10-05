@@ -41,6 +41,9 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
     /// entry, because an ingredient can perfectly well have the cook's own
     /// numbers for one state and the shipped ones for another.
     public var source: String
+    /// Where the row behind these numbers can be looked up, where its source
+    /// has a page per row (USDA). `nil` for most.
+    public var sourceURL: URL?
     /// The ingredient this basis was taken over from, where it was: a
     /// variety without numbers of its own computes with its parent's, and
     /// this names the parent so that every place that explains a figure can
@@ -59,6 +62,7 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         status: Status = .computed,
         weight: Double = 0,
         source: String = CatalogNutrition.blsSource,
+        sourceURL: URL? = nil,
         inheritedFrom: String? = nil,
         estimatedLike: String? = nil
     ) {
@@ -68,6 +72,7 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
         self.status = status
         self.weight = weight
         self.source = source
+        self.sourceURL = sourceURL
         self.inheritedFrom = inheritedFrom
         self.estimatedLike = estimatedLike
     }
@@ -101,6 +106,7 @@ public struct NutritionBasis: Codable, Hashable, Sendable {
             weight: try container.decodeIfPresent(Double.self, forKey: .weight) ?? 0,
             source: try container.decodeIfPresent(String.self, forKey: .source)
                 ?? CatalogNutrition.blsSource,
+            sourceURL: try container.decodeIfPresent(URL.self, forKey: .sourceURL),
             inheritedFrom: try container.decodeIfPresent(String.self, forKey: .inheritedFrom),
             estimatedLike: try container.decodeIfPresent(String.self, forKey: .estimatedLike)
         )

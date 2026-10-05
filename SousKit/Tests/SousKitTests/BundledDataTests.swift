@@ -17,7 +17,9 @@ struct BundledDataTests {
 
     @Test("The bundled files load, and the vocabulary is the kitchen's size")
     func filesLoad() {
-        #expect(bls.entries.count > 3000)
+        // The rows the catalog uses, from every source — not the whole BLS,
+        // which stays in Data/sources/ for an entry to name.
+        #expect(bls.entries.count > 1000)
         // The two lists are kept apart: the table has thousands of rows, the
         // kitchen a few hundred words. When these two numbers approached each
         // other the app was offering a food table's vocabulary to a cook.
@@ -29,14 +31,18 @@ struct BundledDataTests {
         #expect(!AisleDefaults.bundled.groups.isEmpty)
     }
 
-    @Test("The BLS table says which release it is and who owns it")
-    func sourceIsStated() {
+    @Test("The BLS says which release it is and who owns it, and every BLS row cites it")
+    func sourceIsStated() throws {
         // CC BY 4.0 asks the data to carry its attribution; carrying it in the
-        // file rather than in Swift is what lets an update change it.
-        #expect(bls.source.datasetVersion == "BLS 4.0")
-        #expect(bls.source.license == "CC BY 4.0")
-        #expect(bls.source.attribution.contains("Max Rubner-Institut"))
-        #expect(!bls.source.changeNote.isEmpty)
+        // data set rather than in Swift is what lets an update change it.
+        let source = try #require(DataSources.bundled.first { $0.id == "bls" })
+        #expect(source.version == "BLS 4.0")
+        #expect(source.license == "CC BY 4.0")
+        #expect(source.attribution.contains("Max Rubner-Institut"))
+        #expect(!source.changeNote.isEmpty)
+        for row in bls.entries where row.sourceID == "bls" {
+            #expect(row.source == source.version, "\(row.code)")
+        }
     }
 
     @Test("A different fruit is not a spelling of its neighbour")
@@ -368,8 +374,8 @@ struct BundledDataFingerprintTests {
         // Spelled out rather than read off `DataSet.File`: comparing the list
         // against itself would pass however short it got.
         #expect(Set(manifest.files.keys) == [
-            "aisles.json", "bls.json", "community.json", "curation.json",
-            "ids.json", "kitchen_words.json", "measures.json", "sources.json",
+            "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
+            "measures.json", "nutrition.json", "sources.json",
         ])
         #expect(Set(DataSet.File.allCases.map(\.fileName)) == Set(manifest.files.keys))
         for (name, hash) in manifest.files {
@@ -390,10 +396,9 @@ struct BundledDataFingerprintTests {
         #expect(!SynonymTable.bundled.entries.isEmpty)
         #expect(!MeasureTable.bundled.units.isEmpty)
         #expect(!AisleDefaults.bundled.groups.isEmpty)
-        // `community.json` hides inside `BLSCatalog.entries`, so the check
-        // above would pass on an app that never opened it. Its own source
-        // block is the thing only that file can produce.
-        #expect(BLSCatalog.bundled.supplementSource != nil)
+        // Rows of the other sources come from the same file; that they are
+        // there is what tells the file was read whole.
+        #expect(BLSCatalog.bundled.entries.contains { $0.sourceID != "bls" })
         // `ids.json` may well be empty; that it decodes is what loading the
         // set checks, and this is what makes it load.
         _ = CatalogRenames.bundled
@@ -430,32 +435,28 @@ struct BundledDataFingerprintTests {
     }
 }
 
-/// The rows that are not BLS.
+/// The rows that are not BLS: Ciqual, USDA, nutrition labels.
 ///
-/// `community.json` is the one file of shipped food rows a person edits
-/// directly — no pipeline writes it, no spreadsheet backs it. That makes it
-/// both the easiest file to contribute to and the easiest to get wrong, and
-/// these are the four ways it can be wrong that nothing else would catch.
+/// An entry names them by source and code, and the compiler resolves them
+/// into `nutrition.json` beside the BLS rows. These are the ways they can go
+/// wrong that nothing else would catch.
 @Suite("Bundled supplements")
 struct BundledSupplementTests {
     private let bls = BLSCatalog.bundled
     private let synonyms = SynonymTable.bundled
 
-    private var supplements: [BLSEntry] { bls.entries.filter { $0.group == "Z" } }
+    private var supplements: [BLSEntry] { bls.entries.filter { $0.sourceID != "bls" } }
 
     @Test("Every supplement names the body that measured it")
     func everySupplementCitesItsSource() throws {
         #expect(!supplements.isEmpty)
         for entry in supplements {
-            // The per-row half of CC BY. A supplements file has no single
-            // attribution to fall back on — that is the whole difference
-            // between it and `bls.json`.
+            // The per-row half of CC BY, and the register's entry behind it.
             let source = try #require(entry.source, "\(entry.code) \(entry.name) has no source")
             #expect(!source.isEmpty)
+            let id = try #require(entry.sourceID)
+            #expect(DataSources.bundled.contains { $0.id == id }, "\(entry.code) names \(id)")
         }
-        let stated = try #require(bls.supplementSource)
-        #expect(stated.license == "CC BY 4.0")
-        #expect(stated.attribution.contains("Ciqual"))
     }
 
     @Test("A supplement can never take a code the catalog already uses")
@@ -467,7 +468,7 @@ struct BundledSupplementTests {
         for entry in supplements {
             #expect(entry.code.hasPrefix("Z"))
         }
-        let blsCodes = Set(bls.entries.filter { $0.group != "Z" }.map(\.code))
+        let blsCodes = Set(bls.entries.filter { $0.sourceID == "bls" }.map(\.code))
         for entry in supplements {
             #expect(!blsCodes.contains(entry.code))
         }
@@ -524,7 +525,7 @@ struct BundledSupplementTests {
         for entry in supplements {
             #expect(
                 reachable.contains(entry.code),
-                "\(entry.code) \(entry.name) is in community.json but no kitchen word names it"
+                "\(entry.code) \(entry.name) is in nutrition.json but no kitchen word names it"
             )
         }
     }
@@ -543,7 +544,7 @@ struct BundledSupplementTests {
         #expect(try #require(flakes.basis(for: IngredientState.unspecified)).source.contains("Ciqual"))
         // The other 2,737 words are unaffected and still say what they said.
         let onion = try #require(catalog.nutrition(forCanonicalName: "Zwiebel"))
-        #expect(onion.source == bls.source.datasetVersion)
+        #expect(onion.source == DataSources.bundled.first { $0.id == "bls" }?.version)
     }
 }
 
@@ -735,26 +736,40 @@ struct ListSeparationTests {
     }
 }
 
-/// The sources screen reads `sources.json`; the data files carry their own
-/// headers, which older apps read. Both are compiled from one block in
-/// `Data/sources.yaml`, and this holds them to saying the same thing.
+/// The sources page reads `sources.json`, the register the compiler writes
+/// from `Data/sources/`: every source the same record, the BLS first.
 @Suite("Bundled sources")
 struct BundledSourcesTests {
-    @Test("sources.json names the BLS first, then the supplements, as their files do")
-    func sourcesMatchTheFiles() throws {
+    @Test("The BLS comes first, the rest by how many shipped rows they give")
+    func theOrder() throws {
         let sources = DataSources.bundled
-        #expect(sources.map(\.id) == ["bls", "supplements"])
-        let bls = try #require(sources.first)
-        let table = BLSCatalog.bundled.source
-        #expect(bls.datasetVersion == table.datasetVersion)
-        #expect(bls.release == table.release)
-        #expect(bls.license == table.license)
-        #expect(bls.attribution == table.attribution)
-        #expect(bls.changeNote == table.changeNote)
-        let supplements = try #require(sources.last)
-        let file = try #require(BLSCatalog.bundled.supplementSource)
-        #expect(supplements.datasetVersion == file.datasetVersion)
-        #expect(supplements.attribution == file.attribution)
-        #expect(sources.allSatisfy { $0.licenseURL.scheme == "https" })
+        #expect(sources.first?.id == "bls")
+        let counts = Dictionary(grouping: BLSCatalog.bundled.entries.compactMap(\.sourceID), by: { $0 })
+            .mapValues(\.count)
+        let rest = sources.dropFirst().map { counts[$0.id] ?? 0 }
+        #expect(rest == rest.sorted(by: >))
+    }
+
+    @Test("Every source is the same record: a name, a publisher, a version, what was done and a licence to link")
+    func everySourceIsComplete() {
+        let sources = DataSources.bundled
+        #expect(sources.count > 1)
+        #expect(Set(sources.map(\.id)).count == sources.count)
+        for source in sources {
+            #expect(!source.publisher.isEmpty, "\(source.id)")
+            #expect(!source.version.isEmpty, "\(source.id)")
+            #expect(!source.attribution.isEmpty, "\(source.id)")
+            #expect(!source.changeNote.isEmpty, "\(source.id)")
+            #expect(source.licenseURL.scheme == "https", "\(source.id)")
+            #expect(source.url?.scheme ?? "https" == "https", "\(source.id)")
+        }
+    }
+
+    @Test("Every row names a source of the register, and every source is named by a row")
+    func rowsAndRegisterAgree() {
+        let ids = Set(DataSources.bundled.map(\.id))
+        let used = Set(BLSCatalog.bundled.entries.compactMap(\.sourceID))
+        #expect(BLSCatalog.bundled.entries.allSatisfy { $0.sourceID != nil })
+        #expect(used == ids)
     }
 }

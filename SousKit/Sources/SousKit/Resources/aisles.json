@@ -1,5 +1,5 @@
 {
- "note": "Default-Ladenbereich je BLS-Lebensmittelgruppe. Greift, wo eine Zeile oder ein Synonym keine eigene Kategorie mitbringt; die feinere Zuordnung je Zeile steht in bls.json.",
+ "note": "Default-Ladenbereich je BLS-Lebensmittelgruppe. Greift, wo eine Zeile oder ein Synonym keine eigene Kategorie mitbringt; die feinere Zuordnung je Zeile steht in nutrition.json.",
  "groups": [
   {
    "group": "B",

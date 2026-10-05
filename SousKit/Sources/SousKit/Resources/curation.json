@@ -426,7 +426,7 @@
      "Z-bockshornklee"
     ]
    },
-   "via": "Das BLS führt Bockshornkleesamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fenugreek, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Bockshornkleesamen nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fenugreek, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
   },
   "Bockshornkleeblätter": {
    "withoutValues": true,
@@ -863,7 +863,7 @@
   },
   "Curryblätter": {
    "withoutValues": true,
-   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Curryblätter; in allen 3.983 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Curryblätter; in allen 7.140 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
   },
   "Currypaste": {
    "withoutValues": true,
@@ -875,7 +875,7 @@
      "Z-currypulver"
     ]
    },
-   "via": "Das BLS führt Currypulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Curry, powder“ (die Gewürzmischung als Pulver); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Currypulver nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Curry, powder“ (die Gewürzmischung als Pulver); diese Zeile ist inline übernommen."
   },
   "Dattel": {
    "targets": {
@@ -917,7 +917,7 @@
      "Z-dill"
     ]
    },
-   "via": "Das BLS führt Dill nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Dill, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Dill nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Dill, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Dinkel": {
    "targets": {
@@ -1223,7 +1223,7 @@
      "Z-estragon"
     ]
    },
-   "via": "Das BLS führt Estragon nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Tarragon, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Estragon nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Tarragon, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Feige": {
    "targets": {
@@ -1265,7 +1265,7 @@
      "Z-fenchelsamen"
     ]
    },
-   "via": "Das BLS führt Fenchelsamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fennel, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Fenchelsamen nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Fennel, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
   },
   "Feta": {
    "targets": {
@@ -2043,7 +2043,7 @@
      "Z000001"
     ]
    },
-   "via": "Der BLS führt keine Nährhefe — nur Backhefe, ein anderes Erzeugnis. Z000001 ist die Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Resources/community.json."
+   "via": "Der BLS führt keine Nährhefe — nur Backhefe, ein anderes Erzeugnis. Z000001 ist die Ergänzungszeile aus Ciqual 2020 (Anses) Nr. 11009 „Nutritional yeast“; siehe Data/sources/ciqual-2020.json."
   },
   "Himbeere": {
    "targets": {
@@ -2410,7 +2410,7 @@
      "Z-kardamom"
     ]
    },
-   "via": "Das BLS führt Kardamom nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cardamom, powder“ (das gemahlene Gewürz); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Kardamom nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cardamom, powder“ (das gemahlene Gewürz); diese Zeile ist inline übernommen."
   },
   "Karotte": {
    "targets": {
@@ -2677,7 +2677,7 @@
      "Z000002"
     ]
    },
-   "via": "Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit 12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm — siehe community.json Z000002."
+   "via": "Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit 12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm — siehe Data/sources/labels.json."
   },
   "Kokosnuss": {
    "targets": {
@@ -2727,7 +2727,7 @@
      "Z-koriander"
     ]
    },
-   "via": "Das BLS führt Koriandergrün nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Coriander, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Koriandergrün nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Coriander, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Koriandersamen": {
    "targets": {
@@ -2735,7 +2735,7 @@
      "Z-koriandersamen"
     ]
    },
-   "via": "Das BLS führt Koriandersamen nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Coriander, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Koriandersamen nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Coriander, seed“ (die getrockneten Samen, wie ein Rezept sie meint); diese Zeile ist inline übernommen."
   },
   "Korinthe": {
    "targets": {
@@ -2759,7 +2759,7 @@
      "Z-kreuzkuemmel"
     ]
    },
-   "via": "Das BLS führt Kreuzkümmel nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cumin, seed“ (die getrockneten Samen, wie ein Rezept sie meint (gemahlen hat er dieselben Werte je Gramm)); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Kreuzkümmel nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cumin, seed“ (die getrockneten Samen, wie ein Rezept sie meint (gemahlen hat er dieselben Werte je Gramm)); diese Zeile ist inline übernommen."
   },
   "Kräuter": {
    "targets": {
@@ -3056,7 +3056,7 @@
      "Z-lorbeerblatt"
     ]
    },
-   "via": "Das BLS führt Lorbeer nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt die getrockneten Blätter als „Bay, leaves“; diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Lorbeer nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt die getrockneten Blätter als „Bay, leaves“; diese Zeile ist inline übernommen."
   },
   "Macadamianuss": {
    "targets": {
@@ -3413,7 +3413,7 @@
      "Z-minze"
     ]
    },
-   "via": "Das BLS führt Minze nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Mint, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Minze nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Mint, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Mirabelle": {
    "targets": {
@@ -3521,7 +3521,7 @@
      "Z-muskatnuss"
     ]
    },
-   "via": "Das BLS führt Muskatnuss nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Nutmeg“ (die Nuss als Gewürz); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Muskatnuss nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Nutmeg“ (die Nuss als Gewürz); diese Zeile ist inline übernommen."
   },
   "Naan": {
    "targets": {
@@ -3576,7 +3576,7 @@
      "Z-nelke"
     ]
    },
-   "via": "Das BLS führt Gewürznelken nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cloves“ (die getrockneten Knospen); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Gewürznelken nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Cloves“ (die getrockneten Knospen); diese Zeile ist inline übernommen."
   },
   "Netzmelone": {
    "targets": {
@@ -3692,7 +3692,7 @@
      "Z-oregano"
     ]
    },
-   "via": "Das BLS führt Oregano nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept den getrockneten (frischen gibt es selten); Ciqual 2020 (Anses) führt ihn als „Oregano, dried“, inline übernommen."
+   "via": "Das BLS führt Oregano nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept den getrockneten (frischen gibt es selten); Ciqual 2020 (Anses) führt ihn als „Oregano, dried“, inline übernommen."
   },
   "Pak Choi": {
    "targets": {
@@ -3709,7 +3709,7 @@
   },
   "Pandanblatt": {
    "withoutValues": true,
-   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Pandanblätter; in allen 3.983 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
+   "via": "Weder BLS noch Ciqual 2020 noch USDA FoodData Central (SR Legacy) führen Pandanblätter; in allen 7.140 BLS-Zeilen keine Entsprechung. Ein Gewürz, das in einzelnen Blättern ins Essen geht, also lieber keine Werte als geratene."
   },
   "Paneer": {
    "withoutValues": true,
@@ -3759,7 +3759,7 @@
      "Z-paprikapulver"
     ]
    },
-   "via": "Das BLS führt Paprikapulver nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. „Rosenpaprika“ war bis zu dieser Runde eine Schreibweise des edelsüßen Pulvers; die ungarische Sorte ist die schärfere und steht deshalb beim scharfen."
+   "via": "Das BLS führt Paprikapulver nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 führt es unter dem Namen „Paprika“, der hier schon das Gemüse ist (ein Ergänzungsname wird nie ein Küchenwort); USDA FoodData Central (SR Legacy, gemeinfrei) führt es als „Spices, paprika“, inline übernommen. USDA gibt Kohlenhydrate nur „by difference“ einschließlich Ballaststoffen an, das BLS ohne — deshalb fehlen sie in dieser Zeile. „Rosenpaprika“ war bis zu dieser Runde eine Schreibweise des edelsüßen Pulvers; die ungarische Sorte ist die schärfere und steht deshalb beim scharfen."
   },
   "Paranuss": {
    "targets": {
@@ -4468,7 +4468,7 @@
      "Z-rosmarin"
     ]
    },
-   "via": "Das BLS führt Rosmarin nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Rosemary, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Rosmarin nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Rosemary, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Rostbratwurst": {
    "targets": {
@@ -4599,7 +4599,7 @@
      "Z-safran"
     ]
    },
-   "via": "Das BLS führt Safran nicht — in allen 3.983 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Saffron“ (die getrockneten Fäden); diese Zeile ist inline übernommen."
+   "via": "Das BLS führt Safran nicht — in allen 7.140 Zeilen keine Entsprechung. Ciqual 2020 (Anses) führt es als „Saffron“ (die getrockneten Fäden); diese Zeile ist inline übernommen."
   },
   "Sahne": {
    "targets": {
@@ -4652,7 +4652,7 @@
      "Z-salbei"
     ]
    },
-   "via": "Das BLS führt Salbei nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Sage, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Salbei nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Sage, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Salz": {
    "targets": {
@@ -5559,7 +5559,7 @@
      "Z-thymian"
     ]
    },
-   "via": "Das BLS führt Thymian nicht — in allen 3.983 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Thyme, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
+   "via": "Das BLS führt Thymian nicht — in allen 7.140 Zeilen keine Entsprechung. Ohne Zusatz meint ein Rezept das frische Kraut (Bund, Zweig, Blätter); Ciqual 2020 (Anses) führt es als „Thyme, fresh“, inline übernommen. Getrocknet ist eine eigene Sorte."
   },
   "Tiefkühlerbsen": {
    "targets": {

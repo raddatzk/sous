@@ -2,7 +2,7 @@ import Foundation
 
 /// The link between the two lists: which BLS rows a kitchen word means.
 ///
-/// ``KitchenWords`` is how a cook writes, `bls.json` is how a food table
+/// ``KitchenWords`` is how a cook writes, the BLS is how a food table
 /// writes, and this says which is which. It is the handwork — the part no
 /// name comparison can do for you, because "Zwiebel" and "Speisezwiebel
 /// tiefgefroren, geschmort ohne Fett" have no spelling in common worth

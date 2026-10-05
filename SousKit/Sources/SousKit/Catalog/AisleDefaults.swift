@@ -9,8 +9,8 @@ import Foundation
 /// an edit to `aisles.json` rather than a change to an enum the shopping list,
 /// the catalog browser and the category manager all read.
 ///
-/// The pipeline applies the mapping: every row of `bls.json` arrives with its
-/// aisle already set, so the app reads none of this at run time. The file is
+/// The compiler applies the mapping: every row of `nutrition.json` arrives with
+/// its aisle already set, so the app reads none of this at run time. The file is
 /// still part of every data set, and loaded with it, so a set without it is
 /// refused like any other incomplete one.
 public struct AisleDefaults: Sendable {

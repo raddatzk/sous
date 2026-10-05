@@ -14,7 +14,7 @@ import Synchronization
 public final class DataSet: Sendable {
     /// The files every set consists of.
     public enum File: String, CaseIterable, Sendable {
-        case bls, community, kitchenWords = "kitchen_words", curation, measures, aisles, sources, ids
+        case nutrition, kitchenWords = "kitchen_words", curation, measures, aisles, sources, ids
 
         public var fileName: String { rawValue + ".json" }
     }
@@ -67,8 +67,7 @@ public final class DataSet: Sendable {
         curation = try decode(.curation, IngredientCuration.init(json:))
         aisles = try decode(.aisles, AisleDefaults.init(json:))
         measures = try decode(.measures, MeasureTable.init(json:))
-        let supplements = try contents(.community)
-        bls = try decode(.bls) { try BLSCatalog(bls: $0, supplements: supplements) }
+        bls = try decode(.nutrition, BLSCatalog.init(nutrition:))
         sources = try decode(.sources, DataSources.decode)
         renames = try decode(.ids, CatalogRenames.init(json:))
 

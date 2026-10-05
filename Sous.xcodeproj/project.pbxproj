@@ -39,6 +39,7 @@
 		485F6C9DBE064A254310FC5F /* CatalogShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B455A6FB858C506E19F8D231 /* CatalogShareSheet.swift */; };
 		4C4121828E62AB0A9E528E97 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 560216B54AB18B951EBB4FF8 /* PrivacyInfo.xcprivacy */; };
 		4DA0DDF042A72BCC710C6807 /* ImageCropEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3615C734EB9C9C1DB12346E8 /* ImageCropEditor.swift */; };
+		54742C5457F5E62A279497D0 /* DataSourcesPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA3ADAF9CD29E8164A382F84 /* DataSourcesPage.swift */; };
 		54E27685ECB3D7C4073717E2 /* CookTimerMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76274FBE27FD07BF0D35BBEE /* CookTimerMetadata.swift */; };
 		54EE5B57A0B478E701864B1C /* CategoryField.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */; };
 		551E4D9C6D906F4F58986BDD /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFB54F91BE5212D5AD265C2 /* RecipeDetailView.swift */; };
@@ -241,6 +242,7 @@
 		F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryField.swift; sourceTree = "<group>"; };
 		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
 		F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMirror.swift; sourceTree = "<group>"; };
+		FA3ADAF9CD29E8164A382F84 /* DataSourcesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourcesPage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -275,6 +277,7 @@
 				20F0A6C37CA7630B939B38AB /* CookAddSheet.swift */,
 				CBAB32A5E9329993EB86EEB1 /* CookModeView.swift */,
 				35F9F951503C509BC1D5B55F /* CookSwitcherBar.swift */,
+				FA3ADAF9CD29E8164A382F84 /* DataSourcesPage.swift */,
 				B0A2F22E37BEADC21AB3C46C /* DecimalText.swift */,
 				6D629FB2F5517CF39B9396A2 /* FlowLayout.swift */,
 				8DD33E69332194FC5F92AFFD /* HighlightedTextEditor.swift */,
@@ -639,6 +642,7 @@
 				3A59E789915A6696873AE9FD /* CookTimer.swift in Sources */,
 				E7BDB939A6B8E83F497FB16F /* CookTimerCenter.swift in Sources */,
 				58D8BB1535653B31CCEE0F34 /* CookTimerMetadata.swift in Sources */,
+				54742C5457F5E62A279497D0 /* DataSourcesPage.swift in Sources */,
 				CF6E65C43C65A03C214144E4 /* DecimalText.swift in Sources */,
 				59034AA0F531D1FA42A6D33C /* FlowLayout.swift in Sources */,
 				02C800EF679D00C624095FE2 /* HighlightedTextEditor.swift in Sources */,

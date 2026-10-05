@@ -252,9 +252,9 @@ struct DataSetTests {
         defer { scratch.remove() }
         let version = Self.bundled + 1
         let source = try scratch.set(version)
-        try FileManager.default.removeItem(at: source.appending(path: "bls.json"))
+        try FileManager.default.removeItem(at: source.appending(path: "nutrition.json"))
 
-        #expect(throws: DataSetRejection.missing(file: "bls.json")) {
+        #expect(throws: DataSetRejection.missing(file: "nutrition.json")) {
             try scratch.store.stage(source)
         }
         #expect(!scratch.exists(scratch.store.folder(for: version)))
