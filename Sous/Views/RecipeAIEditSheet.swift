@@ -36,6 +36,8 @@ struct RecipeAIEditSheet: View {
     @State private var outcome = Outcome.replace
     @State private var fields = RecipeReplacement.Fields.standard
     @State private var failure: String?
+    /// The household's categories, most used first, for the prompt.
+    @State private var categories: [String] = []
     @State private var showsNewIngredients = true
     @State private var showsNewSteps = true
 
@@ -69,6 +71,12 @@ struct RecipeAIEditSheet: View {
         // A read answer is work the cook would lose by a swipe.
         .interactiveDismissDisabled(replacement != nil)
         .sousSheetSizing(.page)
+        .task {
+            categories = await library.categoryCounts()
+                .sorted { ($0.count, $1.name) > ($1.count, $0.name) }
+                .prefix(80)
+                .map(\.name)
+        }
     }
 
     // MARK: - Asking
@@ -80,7 +88,9 @@ struct RecipeAIEditSheet: View {
                     .lineLimit(2...6)
             }
             Button(didCopy ? "Prompt kopiert" : "Prompt kopieren", systemImage: didCopy ? "checkmark" : "doc.on.doc") {
-                SousPasteboard.copy(RecipeReplacementPrompt.prompt(task: task, for: recipe, catalog: catalogLibrary.catalog))
+                SousPasteboard.copy(RecipeReplacementPrompt.prompt(
+                    task: task, for: recipe, catalog: catalogLibrary.catalog, categories: categories
+                ))
                 didCopy = true
             }
             .disabled(!canCopy)

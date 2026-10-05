@@ -100,6 +100,10 @@ public enum RecipeReplacementPrompt {
     "beschreibung", "kategorien" und "notizen" dürfen fehlen. Schreibe \
     "portionen" als ganze Zahl.
 
+    Wähle "kategorien" aus den vorhandenen Kategorien unten, wo sie passen; \
+    eine neue nur, wenn keine passt. Die Schreibweise der vorhandenen \
+    Kategorien bleibt unverändert.
+
     Orientiere dich bei den Zutatennamen am Katalog unten: Nimm den dort \
     stehenden Namen, wo er passt (also "Hafermilch" statt "pflanzliche \
     Milch"). Fehlt eine Zutat im Katalog, schreibe sie trotzdem.
@@ -113,14 +117,18 @@ public enum RecipeReplacementPrompt {
     public static func prompt(
         task: String,
         for recipe: Recipe,
-        catalog: IngredientCatalog = .current
+        catalog: IngredientCatalog = .current,
+        categories: [String] = []
     ) -> String {
         let recipeText = text(of: recipe)
         let trimmed = task.trimmingCharacters(in: .whitespacesAndNewlines)
         let request = trimmed.contains(placeholder)
             ? trimmed.replacingOccurrences(of: placeholder, with: recipeText)
             : "\(trimmed)\n\n\(recipeText)"
-        return "\(rules)\n\n\(RecipeOptimizationPrompt.catalogList(catalog))\n\nAufgabe:\n\(request)"
+        let categoryList = categories.isEmpty
+            ? ""
+            : "Vorhandene Kategorien:\n\(categories.joined(separator: ", "))\n\n"
+        return "\(rules)\n\n\(categoryList)\(RecipeOptimizationPrompt.catalogList(catalog))\n\nAufgabe:\n\(request)"
     }
 
     /// Where a template says the recipe goes.

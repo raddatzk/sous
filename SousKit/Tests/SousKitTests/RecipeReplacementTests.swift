@@ -40,6 +40,14 @@ struct RecipeReplacementTests {
         #expect(placed.contains("Danke."))
     }
 
+    @Test("The household's categories go into the prompt, most used first as given, when there are any")
+    func promptCarriesCategories() {
+        let with = RecipeReplacementPrompt.prompt(task: "x", for: soup, categories: ["Suppe", "Vegan", "Dessert"])
+        #expect(with.contains("Vorhandene Kategorien:\nSuppe, Vegan, Dessert\n"))
+        let without = RecipeReplacementPrompt.prompt(task: "x", for: soup)
+        #expect(!without.contains("Vorhandene Kategorien:"))
+    }
+
     @Test("The JSON block is read out of the chat around it")
     func reads() throws {
         let replacement = try RecipeReplacementPrompt.read(answer).get()
