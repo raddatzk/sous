@@ -146,6 +146,8 @@ public final class CloudKitInitialImport {
         // Not remembered: signing in later makes a real import possible,
         // and the next launch should wait for it again.
         arrive()
+        // Nor is anything still coming: the screens stop saying so.
+        settle()
     }
 
     private func arrive() {
