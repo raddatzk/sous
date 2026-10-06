@@ -1,32 +1,18 @@
 import SousKit
 import SwiftUI
 
-/// The household switch, hung on a section's navigation title, with the
-/// active household's name beneath it once there is more than one.
+/// The active household's name beneath a section's title, once there is more
+/// than one to tell apart.
 ///
 /// On all three sections, because all three belong to a household: the plan
-/// and the shopping list change with it just as the recipes do, and a switch
-/// only on the recipes would send somebody back there to change the list.
-///
-/// A modifier rather than an `if` around the menu's content, because the
-/// chevron is drawn for the modifier's presence rather than for what the
-/// builder produces — so it is attached only once there is a household at
-/// all. Before that, on a reinstall waiting for its first import, there is
-/// nothing to switch between and nowhere a new household should go yet.
-///
-/// The Mac draws no window title, so this does nothing there; the same menu
-/// sits in the menu bar instead (see `SousApp`).
-struct HouseholdTitleMenu: ViewModifier {
+/// and the shopping list change with it just as the recipes do. The switch
+/// itself is only in the recipes' "Mehr" menu (and the Mac's menu bar, see
+/// `SousApp`) — the name here says which household a screen is showing.
+struct HouseholdSubtitle: ViewModifier {
     let switcher: HouseholdSwitcher?
 
     func body(content: Content) -> some View {
-        if let switcher, !switcher.choices.isEmpty {
-            content
-                .toolbarTitleMenu { HouseholdMenuContent(switcher: switcher) }
-                .modifier(Subtitle(text: switcher.subtitle))
-        } else {
-            content
-        }
+        content.modifier(Subtitle(text: switcher?.subtitle))
     }
 
     /// Only when there is one: an empty subtitle would still take its line.
@@ -44,14 +30,18 @@ struct HouseholdTitleMenu: ViewModifier {
 }
 
 /// The households to choose from, and the way to make another — the same
-/// entries under the title on iOS and in the Mac's menu bar.
+/// entries in the recipes' "Mehr" menu on iOS and in the Mac's menu bar.
 struct HouseholdMenuContent: View {
     let switcher: HouseholdSwitcher
 
     var body: some View {
         Picker("Haushalt", selection: selection) {
             ForEach(switcher.choices) { choice in
-                Text(choice.name).tag(Optional(choice.id))
+                if choice.isShared {
+                    Label(choice.name, systemImage: "person.2").tag(Optional(choice.id))
+                } else {
+                    Text(choice.name).tag(Optional(choice.id))
+                }
             }
         }
         .pickerStyle(.inline)
@@ -117,7 +107,7 @@ struct NewHouseholdSheet: View {
         #if os(macOS)
         let switching = "im Menü „Haushalt“"
         #else
-        let switching = "über den Titel"
+        let switching = "im Menü „Mehr“ der Rezepte"
         #endif
         return """
         Ein neuer Haushalt beginnt leer: eigene Rezepte, ein eigener Plan, \

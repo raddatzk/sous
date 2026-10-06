@@ -190,11 +190,11 @@ public final class CoreDataHouseholds: @unchecked Sendable {
     /// first, then every household they joined.
     public func choices() async throws -> [HouseholdChoice] {
         let context = SousPersistentContainer.backgroundContext(for: container)
-        return try await context.perform {
-            var result: [HouseholdChoice] = []
+        let found: [(choice: HouseholdChoice, objectID: NSManagedObjectID)] = try await context.perform {
+            var result: [(choice: HouseholdChoice, objectID: NSManagedObjectID)] = []
             for own in try CoreDataHouseholds.households(in: context) {
                 guard let id = own.id else { continue }
-                result.append(HouseholdChoice(id: id, name: own.name, isOwn: true))
+                result.append((HouseholdChoice(id: id, name: own.name, isOwn: true, isShared: false), own.objectID))
             }
             if let coordinator = context.persistentStoreCoordinator,
                let shared = SousPersistentContainer.sharedStore(in: coordinator) {
@@ -205,10 +205,17 @@ public final class CoreDataHouseholds: @unchecked Sendable {
                 request.sortDescriptors = CoreDataHouseholds.oldestFirst
                 for household in try context.fetch(request) {
                     guard let id = household.id else { continue }
-                    result.append(HouseholdChoice(id: id, name: household.name, isOwn: false))
+                    // Joined, so somebody else's share by definition.
+                    result.append((HouseholdChoice(id: id, name: household.name, isOwn: false, isShared: true), household.objectID))
                 }
             }
             return result
+        }
+        // An own household is shared once it has a share to invite into.
+        return found.map { entry in
+            var choice = entry.choice
+            if choice.isOwn { choice.isShared = share(of: entry.objectID) != nil }
+            return choice
         }
     }
 
@@ -982,4 +989,7 @@ public struct HouseholdChoice: Identifiable, Hashable, Sendable {
     public let id: UUID
     public let name: String
     public let isOwn: Bool
+    /// Has a share — an own household somebody can be invited into, or any
+    /// joined one.
+    public var isShared: Bool
 }

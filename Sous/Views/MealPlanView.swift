@@ -154,7 +154,7 @@ struct MealPlanView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
+        .modifier(HouseholdSubtitle(switcher: householdSwitcher))
         .task { await plan.reload() }
         // `initial`, because the link is often what brought this tab up.
         .onChange(of: navigation.planEntryID, initial: true) { openLinkedEntry() }

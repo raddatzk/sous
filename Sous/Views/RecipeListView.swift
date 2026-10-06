@@ -490,16 +490,9 @@ struct RecipeListView: View {
     private var list: some View {
         entries
         .navigationTitle(isPicking ? pickingTitle : "Rezepte")
-        #if os(iOS)
-        // Large, but in the bar: the title menu below opens only from a
-        // title standing in the bar, and a large title that sits above the
-        // list reaches it only after scrolling — which a short library
-        // cannot do.
-        .toolbarTitleDisplayMode(.inlineLarge)
-        #endif
-        // The switch, as a menu on the title, and the household's name
-        // beneath it once there is more than one to tell apart.
-        .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
+        // The household's name beneath the title once there is more than one
+        // to tell apart; the switch itself is in the "Mehr" menu.
+        .modifier(HouseholdSubtitle(switcher: householdSwitcher))
         .modifier(RecipeSearchField(shows: showsSearch, tokens: tokens))
         .toolbar { listToolbar }
         .task { await library.reload() }
@@ -826,6 +819,14 @@ struct RecipeListView: View {
         if !isPicking {
             ToolbarItem(placement: .automatic) {
                 Menu("Mehr", systemImage: "ellipsis.circle") {
+                    // Only once there is a household: before that, on a
+                    // reinstall waiting for its first import, there is
+                    // nothing to switch between and nowhere a new one
+                    // should go yet.
+                    if let householdSwitcher, !householdSwitcher.choices.isEmpty {
+                        HouseholdMenuContent(switcher: householdSwitcher)
+                        Divider()
+                    }
                     if !library.recipes.isEmpty {
                         Button("Auswählen", systemImage: "checkmark.circle") {
                             commands.picked = []

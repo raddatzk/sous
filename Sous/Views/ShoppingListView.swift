@@ -132,7 +132,7 @@ struct ShoppingListView: View {
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
-        .modifier(HouseholdTitleMenu(switcher: householdSwitcher))
+        .modifier(HouseholdSubtitle(switcher: householdSwitcher))
         .toolbar {
             if grouping == .aisle, !storeNames.isEmpty {
                 ToolbarItem(placement: .primaryAction) {
