@@ -62,7 +62,22 @@ final class HouseholdSwitcher {
     /// every screen says nothing.
     var subtitle: String? {
         guard choices.count > 1 else { return nil }
-        return choices.first { $0.id == activeID }?.name
+        return activeName
+    }
+
+    /// The active household's name, whether or not there is another one.
+    var activeName: String? {
+        activeChoice?.name
+    }
+
+    /// The symbol that goes with the active household, the same one its row
+    /// in the switch carries.
+    var activeSymbol: String {
+        activeChoice?.isShared == true ? "person.2" : "person"
+    }
+
+    private var activeChoice: HouseholdChoice? {
+        choices.first { $0.id == activeID }
     }
 
     /// The households the waiting rows can go to: only own ones, since the

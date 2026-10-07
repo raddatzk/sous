@@ -37,11 +37,11 @@ struct HouseholdMenuContent: View {
     var body: some View {
         Picker("Haushalt", selection: selection) {
             ForEach(switcher.choices) { choice in
-                if choice.isShared {
-                    Label(choice.name, systemImage: "person.2").tag(Optional(choice.id))
-                } else {
-                    Text(choice.name).tag(Optional(choice.id))
-                }
+                // A symbol on every row, not only the shared ones: a menu
+                // lines its text up behind the symbol column only when
+                // every row has one.
+                Label(choice.name, systemImage: choice.isShared ? "person.2" : "person")
+                    .tag(Optional(choice.id))
             }
         }
         .pickerStyle(.inline)

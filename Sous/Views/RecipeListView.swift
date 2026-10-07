@@ -819,14 +819,6 @@ struct RecipeListView: View {
         if !isPicking {
             ToolbarItem(placement: .automatic) {
                 Menu("Mehr", systemImage: "ellipsis.circle") {
-                    // Only once there is a household: before that, on a
-                    // reinstall waiting for its first import, there is
-                    // nothing to switch between and nowhere a new one
-                    // should go yet.
-                    if let householdSwitcher, !householdSwitcher.choices.isEmpty {
-                        HouseholdMenuContent(switcher: householdSwitcher)
-                        Divider()
-                    }
                     if !library.recipes.isEmpty {
                         Button("Auswählen", systemImage: "checkmark.circle") {
                             commands.picked = []
@@ -861,6 +853,17 @@ struct RecipeListView: View {
                                     contentType: RecipeExport.library
                                 )
                             }
+                        }
+                    }
+                    // Last, and folded away: switching is rarer than anything
+                    // above it. Only once there is a household — before that,
+                    // on a reinstall waiting for its first import, there is
+                    // nothing to switch between and nowhere a new one should
+                    // go yet.
+                    if let householdSwitcher, !householdSwitcher.choices.isEmpty {
+                        Divider()
+                        Menu(householdSwitcher.activeName ?? "Haushalt", systemImage: householdSwitcher.activeSymbol) {
+                            HouseholdMenuContent(switcher: householdSwitcher)
                         }
                     }
                 }
