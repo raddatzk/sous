@@ -9,13 +9,6 @@ xcuserdata/
 # Python bytecode from running the scripts under Scripts/
 __pycache__/
 
-# Concept documents: removed from the history, kept locally
-INGREDIENTS-*.md
-SHARING-CONCEPT.md
-
-# A personal recipe collection, 46 MB
-Rezepte.melarecipes
-
 # The JetBrains workspace, per machine like xcuserdata/ above
 .idea/
 

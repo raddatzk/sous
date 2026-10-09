@@ -186,7 +186,7 @@ struct RecipeOptimizationSheet: View {
             defer { isAskingProvider = false }
             do {
                 // The cook's own provider gets the catalog cut down to the recipe's
-                // lines: a third of the tokens, as good an answer (see AI-API-CONCEPT.md).
+                // lines: a third of the tokens, as good an answer (AIModelBench measured it).
                 let result = try await RecipeOptimizer.optimize(
                     recipe, catalog: catalog, nutritionCatalog: nutritionCatalog, excerpt: true,
                     backend: connection.client()

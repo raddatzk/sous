@@ -58,7 +58,7 @@ body:
     id: modelle
     attributes:
       label: Empfohlene Modelle
-      description: Welche Modelle sind für Sous klein, günstig und gut genug? Bitte mit der Modell-ID, wie die API sie nennt, und, wenn vorhanden, mit dem Ergebnis eines Tests (Sous hat dafür einen Messlauf, siehe AI-API-CONCEPT.md).
+      description: Welche Modelle sind für Sous klein, günstig und gut genug? Bitte mit der Modell-ID, wie die API sie nennt, und, wenn vorhanden, mit dem Ergebnis eines Tests (Sous hat dafür einen Messlauf, siehe SousKit/Tests/SousKitTests/AIModelBench.swift).
   - type: textarea
     id: abo
     attributes:
