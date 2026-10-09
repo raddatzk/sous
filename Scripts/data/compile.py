@@ -389,6 +389,25 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
                     continue
                 items[index] = {**row, **{k: v for k, v in item.items() if k != "source"},
                                 "source": source_id, "ref": ref}
+    # A product writes its label in its own file; it becomes the product's
+    # row, cited by its first EAN like any other label.
+    for word in words:
+        label = word.raw.get("label")
+        if word.kind != "product" or label is None:
+            continue
+        if not word.raw.get("ean"):
+            errors.append(f"{word.file}: {word.name} has a label but no EAN to cite it by")
+            continue
+        if "labels" not in sources:
+            errors.append(f"{word.file}: {word.name} has a label, but Community/{SOURCES_DIR}/"
+                          f"labels.yaml is not there to credit it")
+            continue
+        word.nutrition = {"unspecified": [{
+            "code": f"Z-{word.id}", "name": word.name, "source": "labels",
+            "ref": word.raw["ean"][0],
+            **{key: ({k: number(v) for k, v in value.items()} if key.startswith("per100") else value)
+               for key, value in label.items()},
+        }]}
     if errors:
         raise DataError("\n".join(errors))
 
@@ -829,9 +848,6 @@ def check(dataset: Dataset) -> None:
                 warnings.append(f"{word.file}: {word.name} has label values; they replace "
                                 f"`like: {like}`, which can go")
         for row in rows:
-            for key in ("source", "checked", "per"):
-                if key not in row:
-                    errors.append(f"{word.file}: the product row {row['code']} has no {key!r}")
             written = row.get("per100g") or row.get("per100ml") or {}
             if "kcal" not in written and "kj" not in written:
                 errors.append(f"{word.file}: the product row {row['code']} has no energy; "

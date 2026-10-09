@@ -203,15 +203,29 @@
     "discontinued": {"$ref": "#/$defs/boolean"},
     "like": {
      "$ref": "#/$defs/id",
-     "description": "Without label values: the generic word whose values and weights the product counts with, shown as an estimate. Label values replace it. Without either the product is simply not computed."
+     "description": "Without a label: the generic word whose values and weights the product counts with, shown as an estimate. Label values replace it. Without either the product is simply not computed."
     },
     "density": {"$ref": "#/$defs/density"},
     "measures": {"$ref": "#/$defs/measures"},
-    "nutrition": {
+    "label": {
+     "description": "What the pack declares, written as it reads. The compiler makes it the product's row (code Z-<id>, cited by the first EAN).",
      "type": "object",
-     "minProperties": 1,
-     "propertyNames": {"$ref": "#/$defs/state"},
-     "additionalProperties": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/inlineRow"}}
+     "required": ["checked", "per"],
+     "oneOf": [{"required": ["per100g"]}, {"required": ["per100ml"]}],
+     "additionalProperties": false,
+     "properties": {
+      "checked": {"$ref": "#/$defs/date"},
+      "per": {
+       "description": "What the values refer to: the food as sold, or drained (\"pro 100 g abgetropft\").",
+       "enum": ["as-sold", "drained"]
+      },
+      "note": {"$ref": "#/$defs/text"},
+      "per100g": {"$ref": "#/$defs/labelValues"},
+      "per100ml": {
+       "allOf": [{"$ref": "#/$defs/labelValues"}],
+       "description": "Values per 100 ml, as EU labels state liquids; compiled to per 100 g through the product's density, which it then requires."
+      }
+     }
     },
     "via": {"$ref": "#/$defs/text"},
     "formerly": {"$ref": "#/$defs/formerly"}

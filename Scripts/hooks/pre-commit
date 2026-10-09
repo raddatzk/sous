@@ -1,6 +1,6 @@
 #!/bin/sh
 # Compiles Community/ when a commit changes it, and stages what it compiles to —
-# the local half of .github/workflows/compile-data.yml (Community/README.md).
+# the local half of .github/workflows/compile-data.yml (Scripts/data/README.md).
 #
 # Installed once per clone: git config core.hooksPath Scripts/hooks
 #

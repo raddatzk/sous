@@ -1,7 +1,7 @@
 # Compiles Community/ on a pull request and commits what it compiles to.
 #
 # The catalog is curated as YAML under Community/; the app reads the JSON that
-# Scripts/data/compile.py makes of it (Community/README.md). Both are checked in,
+# Scripts/data/compile.py makes of it (Scripts/data/README.md). Both are checked in,
 # and CI fails where they disagree. This lets a pull request change only the
 # YAML — in the browser, say — and still arrive at the merge button whole:
 # where the resources differ from what Community/ compiles to, they are compiled

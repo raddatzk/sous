@@ -376,18 +376,29 @@ class BrokenData(unittest.TestCase):
             "  brand: Acme",
             "  aliases: [Proteinmüsli]",
             "  category: grains",
-            "  nutrition:",
-            "    unspecified:",
-            "      - code: Z-acme-muesli",
-            "        source: {id: labels, ref: '4012345678901'}",
+            "  ean: ['4012345678901']",
+            "  label:",
+            "    checked: '2026-10-02'",
+            "    per: as-sold",
+            "    per100g: {kcal: 400}",
             "",
         ]))
-        self.add_label("4012345678901", {"name": "Acme Müsli", "per100g": {"kcal": 400}})
-        self.assertFails(
-            "the product spelling 'Proteinmüsli' does not name the brand 'Acme'",
-            "the product row Z-acme-muesli has no 'checked'",
-            "the product row Z-acme-muesli has no 'per'",
-        )
+        self.assertFails("the product spelling 'Proteinmüsli' does not name the brand 'Acme'")
+
+    def test_a_label_says_when_it_was_read(self):
+        self.write_products()
+        self.edit("products/testmarke.yaml", "    checked: '2026-10-02'\n    per: as-sold\n    per100g",
+                  "    per100g")
+        self.assertFails("0/label: 'checked' is a required property",
+                         "0/label: 'per' is a required property")
+
+    def test_a_label_without_an_ean(self):
+        self.write("products/acme.yaml", "\n".join([
+            "- id: acme-muesli", "  kind: product", "  name: Acme Müsli", "  brand: Acme",
+            "  category: grains", "  label:", "    checked: '2026-10-02'", "    per: as-sold",
+            "    per100g: {kcal: 400}", "",
+        ]))
+        self.assertFails("Acme Müsli has a label but no EAN to cite it by")
 
     # Two products as a label gives them, as fixtures only: Community/ holds no
     # product until the cook brings the packs.
@@ -399,14 +410,12 @@ class BrokenData(unittest.TestCase):
         "  aliases: [Testmarke vegane Butter Block]",
         "  category: dairy",
         "  ean: ['0012345678905', '4006381333931']",
-        "  nutrition:",
-        "    unspecified:",
-        "      - code: Z-testmarke-vegane-butter",
-        "        source: {id: labels, ref: '0012345678905'}",
+        "  label:",
+        "    checked: '2026-10-02'",
+        "    per: as-sold",
+        "    per100g: {kj: 2988, fatG: 80, saturatedFatG: 37, carbsG: 0.5, sugarG: 0.5,",
+        "              proteinG: 0.2, saltG: 1.2}",
     ]
-    BUTTER_LABEL = {"name": "Testmarke Vegane Butter", "checked": "2026-10-02", "per": "as-sold",
-                    "per100g": {"kj": 2988, "fatG": 80, "saturatedFatG": 37, "carbsG": 0.5,
-                                "sugarG": 0.5, "proteinG": 0.2, "saltG": 1.2}}
     DRINK = [
         "- id: testmarke-haferdrink",
         "  kind: product",
@@ -416,19 +425,15 @@ class BrokenData(unittest.TestCase):
         "  ean: ['96385074']",
         "  discontinued: 'true'",
         "  density: '1.03'",
-        "  nutrition:",
-        "    unspecified:",
-        "      - code: Z-testmarke-haferdrink",
-        "        source: {id: labels, ref: '96385074'}",
+        "  label:",
+        "    checked: '2026-10-02'",
+        "    per: as-sold",
+        "    per100ml: {kcal: 46, kj: 193, fatG: 1.5, carbsG: 7.0, fiberG: 0.8, proteinG: 1.0,",
+        "               saltG: 0.1}",
     ]
-    DRINK_LABEL = {"name": "Testmarke Haferdrink", "checked": "2026-10-02", "per": "as-sold",
-                   "per100ml": {"kcal": 46, "kj": 193, "fatG": 1.5, "carbsG": 7.0, "fiberG": 0.8,
-                                "proteinG": 1.0, "saltG": 0.1}}
 
     def write_products(self, *lines: str) -> None:
         self.write("products/testmarke.yaml", "\n".join(self.BUTTER + self.DRINK + list(lines)) + "\n")
-        self.add_label("0012345678905", json.loads(json.dumps(self.BUTTER_LABEL)))
-        self.add_label("96385074", json.loads(json.dumps(self.DRINK_LABEL)))
 
     def test_products_compile_with_their_label(self):
         self.write_products()
@@ -466,11 +471,9 @@ class BrokenData(unittest.TestCase):
 
     def test_a_product_spelled_like_an_ingredient(self):
         self.write_products("- id: testmarke-zwiebel", "  kind: product", "  name: Zwiebel",
-                            "  brand: Testmarke", "  category: vegetables", "  nutrition:",
-                            "    unspecified:", "      - code: Z-testmarke-zwiebel",
-                            "        source: {id: labels, ref: '4000000000006'}")
-        self.add_label("4000000000006", {"name": "Zwiebel", "checked": "2026-10-02",
-                                         "per": "as-sold", "per100g": {"kcal": 40}})
+                            "  brand: Testmarke", "  category: vegetables",
+                            "  ean: ['4000000000006']", "  label:", "    checked: '2026-10-02'",
+                            "    per: as-sold", "    per100g: {kcal: 40}")
         self.assertFails("the product spelling 'Zwiebel' does not name the brand 'Testmarke'",
                          "'Zwiebel' (Zwiebel) is already spelled")
 
@@ -553,18 +556,19 @@ class BrokenData(unittest.TestCase):
 
     def test_a_label_without_energy(self):
         self.write_products()
-        self.edit_label("0012345678905", lambda row: row["per100g"].pop("kj"))
+        self.edit("products/testmarke.yaml", "{kj: 2988, ", "{")
         self.assertFails("the product row Z-testmarke-vegane-butter has no energy")
 
     def test_salt_and_sodium(self):
         self.write_products()
-        self.edit_label("0012345678905", lambda row: row["per100g"].update(sodiumMg=480))
+        self.edit("products/testmarke.yaml", "saltG: 1.2}", "saltG: 1.2, sodiumMg: 480}")
         self.assertFails("the row Z-testmarke-vegane-butter gives salt and sodium")
 
     def test_a_row_with_both_bases(self):
         self.write_products()
-        self.edit_label("96385074", lambda row: row.update(per100g={"kcal": 45}))
-        self.assertFails("rows/96385074: needs exactly one of per100g and per100ml")
+        self.edit("products/testmarke.yaml", "    per100ml: {kcal: 46,",
+                  "    per100g: {kcal: 45}\n    per100ml: {kcal: 46,")
+        self.assertFails("testmarke.yaml: 1/label")
 
 
 class Manifest(unittest.TestCase):

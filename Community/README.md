@@ -2,39 +2,102 @@
 
 What the people who use Sous maintain together lives here, as YAML: the
 ingredient catalog (the words people cook with, their spellings and varieties,
-which source rows they mean), the nutrition sources, what a piece or a can
-weighs, which category a food group belongs to, and the AI providers. `Scripts/data/compile.py` turns it into the JSON the app bundles
-(`SousKit/Sources/SousKit/Resources/`).
+which nutrition rows they mean), the products, the nutrition sources, what a
+piece or a can weighs, which category a food group belongs to, and the AI
+providers.
 
-**Edit the YAML here, never the resources.** They are compiled output, and CI
-fails when they differ from `compile(Community/)`.
-
-You need not compile by hand:
-- **A pull request** that changes `Community/` is compiled by
-  `.github/workflows/compile-data.yml`: where the resources differ, it commits
-  them to the branch as "Compile Community/" and runs CI on that commit. A YAML edit
-  in the browser is a whole change. (Branches of this repository only; a fork
-  compiles itself.)
-- **Locally**, `Scripts/hooks/pre-commit` compiles when a commit stages a change
-  under `Community/`, and stages the resources with it. It steps aside while `Community/`
-  holds unstaged changes, and never blocks a commit. Once per clone:
-
-```
-python3 -m venv Scripts/data/.venv                         # the hook prefers this one
-Scripts/data/.venv/bin/pip install -r Scripts/data/requirements.txt
-git config core.hooksPath Scripts/hooks
-```
-
-By hand, where you want to see the result first:
-
-```
-python3 -m pip install -r Scripts/data/requirements.txt   # once: PyYAML, jsonschema
-python3 Scripts/data/compile.py                            # writes the resources
-python3 Scripts/data/compile.py --check                    # what CI runs
-cd SousKit && swift test                                   # BundledDataTests, the scorecard
-```
+**Edit the YAML here, never the resources the app bundles.** They are compiled
+output, and you need not compile them: a pull request that changes `Community/`
+is compiled for you, so a YAML edit in the browser is a whole change. How the
+YAML becomes the app's data, how it is versioned and published:
+[Scripts/data/README.md](../Scripts/data/README.md).
 
 The data is licensed CC BY 4.0; see `LICENSE` and `NOTICE`.
+
+## How to …
+
+### … add a product
+
+A product is a finished thing with a brand and a pack: "ja! Vegane Butter", not
+"Butter". Add it to `products/<brand>.yaml` (a new file for a new brand) and
+write the label into it as the pack reads, per 100 g:
+
+```yaml
+# Community/products/ja.yaml
+- id: ja-vegane-butter
+  kind: product
+  name: ja! Vegane Butter
+  brand: ja!
+  category: dairy
+  ean: ['4337256113007']              # quoted: an EAN keeps its leading zeros
+  label:
+    checked: '2026-10-02'             # the day you read the pack
+    per: as-sold                      # or `drained`, for "pro 100 g abgetropft"
+    per100g: {kcal: 727, fatG: 80, saturatedFatG: 37, carbsG: 0.5, sugarG: 0.5,
+              proteinG: 0.2, saltG: 1.2}
+```
+
+Name and brand are enough to start with; the label can follow. The rules:
+[Products](#products).
+
+### … add an ingredient
+
+One file per word, `ingredients/<id>.yaml`, named after the id. A word needs a
+`category` and the nutrition rows it is calculated with (or `nutrition: without`):
+
+```yaml
+# Community/ingredients/zwiebel.yaml
+- id: zwiebel
+  name: Zwiebel
+  aliases: [Zwiebeln, Speisezwiebel]
+  category: vegetables
+  measures: {Stk.: 110}
+  nutrition:
+    raw: [G480100]
+```
+
+The id is picked once, from the name, and never changes
+([Ids](#ids-renames-merges-and-splits)). Which rows `nutrition` can name, and
+how to name a row of Ciqual or USDA: [Nutrition](#nutrition).
+
+### … add a spelling
+
+Put it under `aliases` of the ingredient it means. If it names a different thing
+on the shelf ("Räucherlachs" is not "Lachs"), it is a variety instead
+([A variety and a spelling](#a-variety-and-a-spelling-are-not-the-same-thing)).
+A spelling is unique across the whole catalog, products included.
+
+### … add a variety
+
+Nest it under `varieties` of the ingredient. It writes only what differs, a
+`category` or a `nutrition` of its own:
+
+```yaml
+  varieties:
+    - id: rote-zwiebel
+      name: Rote Zwiebel
+      aliases: [Rote Zwiebeln]
+```
+
+### … change what an ingredient is calculated with
+
+Change its `nutrition:` to the rows that fit better: a BLS row by its code, a
+row of Ciqual or USDA by `source: {id, ref}` ([Nutrition](#nutrition)). Nothing
+else to do, the sources already hold every row.
+
+### … say what a piece weighs
+
+`measures` under the ingredient (`Stk.: 110`), or `weights.yaml` for a unit or a
+whole food group ([Measures](#measures)).
+
+### … add an AI provider
+
+One file, `ki/<id>.yaml` ([AI providers](#ai-providers)). Its `baseURL` is where
+a cook's key goes, so that is the line that gets reviewed.
+
+### … add a source of nutrition values, or a new release of one
+
+[Sources](#sources).
 
 ## Layout
 
@@ -42,7 +105,7 @@ The data is licensed CC BY 4.0; see `LICENSE` and `NOTICE`.
 Community/
   ingredients/<id>.yaml   one family per file: a root and its nested varieties,
                           named after the root's id
-  products/<brand>.yaml   finished products, one file per brand (none yet)
+  products/<brand>.yaml   finished products, one file per brand, each with its label
   sources/<id>.yaml       one source of nutrition values: who publishes it, which
                           release, when it was downloaded, its licence, what was done
   sources/<id>.json       that source's rows, every one it has, keyed by its code
@@ -73,7 +136,9 @@ the language it describes.
 An ingredient never holds a number of its own. It names a row of a source —
 the BLS by its code, any other source by `source: {id, ref}` — and the compiler
 resolves every name into `nutrition.json`, the one file of values the app
-ships, with exactly the rows the catalog uses. See "Sources" below.
+ships, with exactly the rows the catalog uses. See [Nutrition](#nutrition) and
+[Sources](#sources). A product is the exception: it carries the label of its
+pack itself ([Products](#products)).
 
 ## AI providers
 
@@ -99,91 +164,6 @@ the new address. So a change of `baseURL` needs its old address in `moved`
 address that is not https, that carries credentials, that is local or numeric,
 or that two providers share.
 
-## The data set and its version
-
-The compiled files are one **data set**, and
-`compile.py` writes its `manifest.json` last: the format (`schema`), the
-release (`dataVersion`), and the SHA-256 of every file. The app reads a set
-only through its manifest, the one it ships and the ones it fetches.
-
-`dataVersion` is `YYYYMMDDnn`: the UTC day the compiler first saw this content,
-and a counter within the day. Nobody sets it. `compile.py` raises it whenever
-any file's bytes change and leaves it alone otherwise, so compile again after
-extracting a new release of a source too. Bundled and published data are one series, so an app
-update with newer data always wins over an older fetched set.
-
-Two data pull requests open at once both raise the version; their manifests
-conflict, and the second one compiles again on top of the first.
-`--check --since <base>` fails when the data changed and the version did not
-grow.
-
-## Shared adjustments
-
-Households share their local answers from the app ("Anpassungen teilen"). A
-nightly workflow in a private inbox repository files them as issues, one per
-name, with the reports as a `json sous-catalog` block (`Scripts/data/inbox.py`).
-Labelling an issue there approves it — `als-alias`, `als-sorte`, or
-`neues-wort` with a `kat:<Kategorie>` — and `Scripts/data/approve.py` turns it
-into a pull request here that edits `Community/`, compiled. Only these mechanical
-cases are written; values, weights and products stay with the curator. The
-issue closes once the pull request is merged. The workflows for the inbox
-repository are kept here as `Scripts/data/inbox-workflow.yml` and
-`Scripts/data/inbox-approve-workflow.yml`.
-
-## Publishing
-
-After a merge to `main` that touches the data, the Action *Publish data*
-(`.github/workflows/publish-data.yml`) runs `compile.py --check` and
-`Scripts/data/publish.py`, which puts exactly the bundled files into the app's
-CloudKit container, public database:
-
-- a `DataRelease` record `release-<dataVersion>`, one asset per file in a
-  field named after it (`kitchen_words.json` → `kitchen_words`), plus the
-  manifest. Every asset is read back and checked against the manifest.
-- only then the pointer `current-v<schema>` (type `CurrentRelease`), which
-  carries the version and the manifest. Apps read it at most every 20 hours,
-  by id, fetch only the files whose hash changed, and use the new set from
-  their next cold start.
-
-A push publishes to **development**, which debug builds read, and once that
-succeeded to **production**: the merge is the review, and what is merged for
-the catalog goes out. `publish.py` holds the resources against `Community/` itself
-first, since a direct push publishes too. *Run workflow* publishes to one
-environment by hand — a retry, or `--point-to`. Each environment keeps its
-own server-to-server key as the secrets `CLOUDKIT_KEY_ID` and
-`CLOUDKIT_PRIVATE_KEY`.
-
-**Who may write.** Both record types grant read to everyone (no iCloud
-account needed) and create and write only to the role `Publisher`, which
-only the publisher's user record holds — the record the key acts as. The app
-also takes a pointer or release only from that user (`CloudKitReleaseSource`)
-and only of the right type: record names are unique across all types of the
-zone, so a name taken first with any type that signed-in users may create
-would otherwise pass. That is why no other type in the public database may
-let signed-in users create records either — except `CatalogSubmission`, the
-shared adjustments, which signed-in users create and only `Publisher` reads.
-Core Data's types get a create grant by default whenever their schema is
-initialized in development, so **check the roles before every production
-deploy of the schema**:
-
-```sh
-xcrun cktool export-schema --team-id MDQY93XVHF --container-id iCloud.me.raddatz.sous \
-  --environment development | grep -c 'GRANT CREATE TO "_icloud"'   # wants 1: CatalogSubmission
-```
-
-**Releases are never deleted.** `publish.py --point-to <dataVersion>` turns
-the pointer to an older release, which stops devices that have not fetched
-the newer one yet; a device that has keeps it, since a client never goes
-back. The real undo is a revert in `Community/`, which compiles to a new, higher
-version.
-
-To publish by hand, with the key of the environment in
-`CLOUDKIT_KEY_ID` and `CLOUDKIT_PRIVATE_KEY_FILE`:
-
-```sh
-python3 Scripts/data/publish.py --environment development --commit "$(git rev-parse HEAD)"
-```
-
 ## An ingredient
 
 ```yaml
@@ -195,7 +175,7 @@ python3 Scripts/data/publish.py --environment development --commit "$(git rev-pa
     - Speisezwiebel
   category: vegetables
   measures: {Stk.: 110}
-  nutrition:
+  nutrition:                     # rows of the sources, see Nutrition
     raw: [G480100]
     cooked: [G480132, G480152, G480182, G480162, G480072]
   via: BLS-Gruppe "Speisezwiebel"
@@ -214,7 +194,7 @@ python3 Scripts/data/publish.py --environment development --commit "$(git rev-pa
 | `category` | on a root | inherits the nearest ancestor's | one of `IngredientCategory`'s cases; the aisle follows from it |
 | `measures` | no | inherits nothing yet | unit → grams, or `{grams, state, note}`; always an assumption, shown with ≈ |
 | `density` | no | inherits nothing yet | g/ml, or `{gramsPerMl, note}`; otherwise the group's, otherwise water's |
-| `nutrition` | on a root | inherits the parent's whole block | per state `raw` / `cooked` / `unspecified`, an ordered list of codes; or `without` |
+| `nutrition` | on a root | inherits the parent's whole block | per state `raw` / `cooked` / `unspecified`, an ordered list of rows of the sources; or `without`. See [Nutrition](#nutrition) |
 | `candidates` | no | — | further rows that may mean this word, for the curator; never computed with |
 | `via` | no | — | why this mapping; for the curator, not the app |
 | `formerly` | no | — | ids of entries this one absorbed in a merge |
@@ -305,21 +285,53 @@ Watch the parent when moving a variety out: a word that got its row *through*
 the alias that became a variety is left without one, and a root without
 `nutrition` does not compile.
 
-### Nutrition: a reference, not a copy
+### Nutrition
+
+An ingredient never holds a number of its own. It names rows of the sources
+(see [Sources](#sources)), and the compiler resolves each name into the one
+file of values the app ships, with exactly the rows the catalog uses. Per
+state, `raw`, `cooked` and `unspecified`, it lists rows, and within a state the
+**first one is the basis**, the numbers the app shows; the rest are real
+alternatives. Nothing is averaged.
+
+A row of the BLS is named by its code. A row of any other source (Ciqual,
+USDA FoodData Central, a nutrition label) is named by the code the app gives
+it and by where it is, the source's id and its code there:
 
 ```yaml
   nutrition:
-    raw: [G490100]
-    cooked: [G490132, G490152, G490162, G490182]
+    raw: [G480100]                        # a row of the BLS: its code
+    cooked:
+      - code: Z-adzukibohnen-cooked       # a row of another source:
+        source: {id: usda-sr-legacy, ref: '173728'}   # which one, and its code there
 ```
 
-Within a state the **first code is the basis**, the numbers the app shows; the
-rest are real alternatives. Nothing is averaged. A code must be a row of
-`sources/bls.json` or the code of a row from another source (below). Any of
-the BLS's 7,140 rows will do: the compiler ships what the catalog names.
+The BLS is the first source and the basis of most words, one among several:
+another source gives a food a row where the BLS has none (nutritional yeast,
+agave syrup, agar-agar, adzuki beans) or where another row fits the word
+better. Any row of any source will do; the compiler ships what the catalog
+names. The rules for a row of another source:
+
+1. **The code is `Z-` plus the entry's id** (`Z-hefeflocken`), and
+   `Z-<id>-<state>` where the entry has a row per state. The BLS only ever
+   uses B–Y, so `Z` cannot collide, and a code derived from the id needs no
+   next free number, so two pull requests cannot both take the same one.
+   Z000001 and Z000002 were numbered before that and keep their codes. A
+   code is never reissued: a deleted row's code lapses, since a reused one
+   would silently move a cook's basis onto a different food.
+2. **`ref` is the row's code in the source**: a Ciqual number, an FDC ID, an
+   EAN. The app prints the source and the row as „Quelle: Ciqual 2020 (Anses),
+   Nr. 11009 „Nutritional yeast““ — the per-row half of what CC BY asks for,
+   built from the source's `cite`.
+3. **The name stays the source's name**: "Nutritional yeast", not
+   "Hefeflocken". A translated name exists in no database, so nobody could
+   check it. The German word is the ingredient's name; the values and the
+   source's name come from `sources/<id>.json`, and nothing is copied by hand.
+4. `category` and `group` may follow the code, where the row's aisle or food
+   group differs from the ingredient's.
 
 `nutrition: without` is an answer too: the catalog knows the word and settles
-it without values, as for spices the BLS does not list. The app then says
+it without values, as for spices none of the sources lists. The app then says
 "bewusst ohne Nährwerte" rather than "nicht im Katalog". A root must either map
 or say `without`, because a curated gap is an answer and a forgotten one is
 not.
@@ -345,39 +357,6 @@ portion moves the score by nothing; a mixed group (fruit and vitamin E,
 vegetables and vitamin C, spices) stays out. The rules ship in
 `nutrition.json` (`assumedZero`), and the app applies them as it loads. A
 group is reported as idle only when no row of the whole BLS has the blank.
-
-### Foods the BLS does not have
-
-The BLS is a catalog of analysed foods, and some things people cook with are
-not in it: nutritional yeast, for one. Such a food takes a row from another
-source, named on the ingredient by the source's id and its code there:
-
-```yaml
-      nutrition:
-        unspecified:
-          - code: Z-hefeflocken          # the app's code for the row
-            source: {id: ciqual-2020, ref: '11009'}
-```
-
-The name ("Nutritional yeast") and the values come from
-`sources/ciqual-2020.json`; nothing is copied by hand. The rules:
-
-1. **The code is `Z-` plus the entry's id** (`Z-hefeflocken`), and
-   `Z-<id>-<state>` where the entry has a row per state. The BLS only ever
-   uses B–Y, so `Z` cannot collide, and a code derived from the id needs no
-   next free number, so two pull requests cannot both take the same one.
-   Z000001 and Z000002 were numbered before that and keep their codes. A
-   code is never reissued: a deleted row's code lapses, since a reused one
-   would silently move a cook's basis onto a different food.
-2. **`ref` is the row's code in the source**: a Ciqual number, an FDC ID, an
-   EAN. The app prints the source and the row as „Quelle: Ciqual 2020 (Anses),
-   Nr. 11009 „Nutritional yeast““ — the per-row half of what CC BY asks for,
-   built from the source's `cite`.
-3. **The name stays the source's name**: "Nutritional yeast", not
-   "Hefeflocken". A translated name exists in no database, so nobody could
-   check it. The German word is the ingredient's name.
-4. `category` and `group` may follow the code, where the row's aisle or food
-   group differs from the ingredient's.
 
 ## Sources
 
@@ -426,7 +405,7 @@ same change.
 tables to download, teach `Scripts/sources/extract.py` its format (the column
 for each of the app's 16 nutrients, what it writes for unknown and trace
 values — both stay blank, never 0), and run it. A source without tables — a
-label, a page — gets a `sources/<id>.json` written by hand, one row per code:
+page, the label of one pack that is no product — gets a `sources/<id>.json` written by hand, one row per code:
 
 ```json
 {"rows": {
@@ -435,11 +414,7 @@ label, a page — gets a `sources/<id>.json` written by hand, one row per code:
 }}
 ```
 
-Write a label as it reads: `per100ml` instead of `per100g` for a liquid's label,
-which the compiler turns into grams through the ingredient's `density`; `kj`
-where a label gives no kcal (÷ 4.184); `saltG` for salt, stored as sodium
-(÷ 2.5). The compiler notes every conversion. Missing values are left out, not
-written as zero.
+Write a label as it reads, with the conversions described under [Products](#products).
 
 What a household or a contributor writes under "Quelle" in the app is a
 suggestion until a curator has made it a row of a registered source.
@@ -467,16 +442,17 @@ and those grams are cooked chickpeas, not dry ones.
 - Measures of a unit or a whole food group (a Prise, a Tasse of grains) go in
   `weights.yaml`.
 
-### Products
+## Products
 
 A finished product (`kind: product`) stands **beside** the ingredients, in
-`Community/products/<brand>.yaml`, never nested under a generic word, and inherits
-nothing. Its values come only from the label: a row of `sources/labels.json`
-with `checked` (the date the label was read), `per` (`as-sold` or `drained`)
-and at least its energy, named from the product by its EAN. **Every one of its spellings names the brand**: a
-generic word ("Proteinmüsli") must never lead to a product, or every recipe's
-muesli would silently become one brand. A household that buys the brand says
-so with a local product choice for its own word.
+`Community/products/<brand>.yaml` (a brand's file holds all its products), never
+nested under a generic word, and inherits nothing. **Every one of its spellings
+names the brand**: a generic word ("Proteinmüsli") must never lead to a product,
+or every recipe's muesli would silently become one brand. A household that buys
+the brand says so with a local product choice for its own word.
+
+Its values come only from the pack, and are written in the product itself, under
+`label`:
 
 ```yaml
 - id: ja-vegane-butter
@@ -484,29 +460,37 @@ so with a local product choice for its own word.
   name: ja! Vegane Butter
   brand: ja!
   category: dairy
-  ean: ['…']                          # quoted: an EAN keeps its leading zeros
-  nutrition:
-    unspecified:
-      - code: Z-ja-vegane-butter
-        source: {id: labels, ref: '…'}   # the EAN
+  ean: ['4337256113007']
+  label:
+    checked: '2026-10-02'
+    per: as-sold
+    per100g: {kcal: 727, fatG: 80, saturatedFatG: 37, carbsG: 0.5, sugarG: 0.5,
+              proteinG: 0.2, saltG: 1.2}
 ```
 
-```json
-"…": {"name": "ja! Vegane Butter", "checked": "2026-10-02", "per": "as-sold",
-      "per100g": {"kcal": …, "fatG": …, "saturatedFatG": …, "carbsG": …,
-                  "sugarG": …, "proteinG": …, "saltG": …}}
-```
-
-- **A product needs no values.** Name and brand are enough. Without a label,
+- **A product needs no values.** Name and brand are enough. Without a `label`,
   `like: margarine` lets it count with that generic word's values and weights,
   shown as an estimate ("Schätzung wie Margarine"); without `like` it is simply
-  not computed. Label values replace the estimate when they arrive, and `like`
-  can then go. `like` names a generic word, never another product.
-- Only what the label states. Leave out what it does not: fibre is voluntary,
+  not computed. The label replaces the estimate when it arrives, and `like` can
+  then go. `like` names a generic word, never another product.
+- **`checked` and `per` are required**: the day the pack was read, and whether
+  the values are `as-sold` or `drained`. The first `ean` is how the app cites the
+  label, so a product with a label has one. Every EAN must carry a right check
+  digit, and no two products share one.
+- **Write the label as it reads.** `per100ml` instead of `per100g` for a liquid,
+  which the compiler turns into grams through the product's `density` (which it
+  then requires); `kj` where the pack gives no kcal (÷ 4.184); `saltG` for salt,
+  stored as sodium (÷ 2.5), never salt and sodium both. Every label states its
+  energy. The compiler notes every conversion.
+- **Only what the label states.** Leave out what it does not: fibre is voluntary,
   vitamins rarely there. Absent is not zero, and nothing is extrapolated.
-- Every EAN must carry a right check digit, and no two products share one.
 - `discontinued: 'true'` keeps the id and the values for old recipes; the app
   only stops suggesting the product.
+
+The compiler makes the label a row of the source `labels` (code `Z-<id>`, cited
+by the product's name and its EAN), so it ships and shows like any other row.
+`sources/labels.json` is for the other case: an ingredient that rests on the
+label of one pack, not on a product.
 
 ## What the compiler checks
 
@@ -525,7 +509,7 @@ numbers where numbers belong), then across files:
 - a new inline code is derived from its entry's id
 - a root has a category and maps or says `without`
 - no ancestor loops
-- product spellings name the brand; product rows carry `checked` and `per`
+- product spellings name the brand; a label has `checked`, `per`, an EAN and an energy
 - one assumed-zero rule per nutrient
 
 It warns, without failing, where a spelling is another entry's spelling plus a
@@ -536,13 +520,3 @@ group has no BLS row with that blank.
 The loader is strict because YAML's conveniences are traps in a data set: every
 scalar is read as a string (`no` stays "no", `1.10` stays "1.10", an EAN keeps
 its leading zeros), a key written twice is an error, and anchors are refused.
-
-## Why the kitchen words are not a leftover
-
-The BLS is a catalog of analysed foods, not of the words people cook with. It
-knows "Kartoffel geschält", "Speisezwiebel", "Karotte/Möhre" and "Reis poliert",
-not Kartoffel, Zwiebel, Karotte and Reis, and almost none of the spellings
-(Möhren, Eier, Marille). This catalog is the bridge between the two. The test
-for an entry: **if the BLS gives you the word, the spellings and the category,
-the entry is dead weight; if it gives you only the values, the entry is the
-bridge.**

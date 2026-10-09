@@ -1,11 +1,11 @@
 {
  "schema": 2,
- "dataVersion": 2026100902,
- "sha256": "d9f3e716f33437ed53fe9ef88ab4df3318c918d962fbbbb4f3cf4dafbb4cac20",
+ "dataVersion": 2026100903,
+ "sha256": "959d6e8ca90c78f04d55fa126f346471050e2e8b965385566a2ede728ee834ef",
  "files": {
   "ai_providers.json": "004b73042e9ec61dbe732214e133e0dad01a0ee451da00936aab6bdcc0bbfdf6",
   "aisles.json": "7c686703ca17f1cff084c55e625b6c9c09402799a2e6fefc4093f511ba1904b1",
-  "curation.json": "1e2055c8e26978072219a474e15e7907feb19bc77f20b3c25c9ca45f23c0dc86",
+  "curation.json": "30d6af308ebdf6e6a38c5c81e9a070a4bd46fd0df81b93f81efaaccbbc4b5e62",
   "ids.json": "a1c6ece40b81fbb2e9b31b93d822f3c8cf8b72b361293593851664335dd24ebd",
   "kitchen_words.json": "073cf32272ab326c093d5a017c26ba9ca2778056477a8040d5633fed1805cda8",
   "measures.json": "8a2256fc7f2d75a2eaee7437be7c1362e1d4dbc7f7326eb7bbf2ec73800c265f",

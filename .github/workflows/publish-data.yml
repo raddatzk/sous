@@ -1,5 +1,5 @@
 # Publishes the compiled data set to the app's CloudKit public database
-# (INGREDIENTS-DATA §5; Community/README.md, "Publishing").
+# (INGREDIENTS-DATA §5; Scripts/data/README.md, "Publishing").
 #
 # A push to main that touches the data goes to development, where debug
 # builds read it first, and then to production: the cook merges a
