@@ -99,13 +99,16 @@ zone, so a name taken first with any type that signed-in users may create
 would otherwise pass. That is why no other type in the public database may
 let signed-in users create records either — except `CatalogSubmission`, the
 shared adjustments, which signed-in users create and only `Publisher` reads.
-Core Data's types get a create grant by default whenever their schema is
-initialized in development, so **check the roles before every production
-deploy of the schema**:
+Core Data's types (`CD_…`, the households' private data) get a create grant by
+default whenever their schema is initialized in development; that is right for
+them. Every other type must not have one, so **check the roles before every
+production deploy of the schema**:
 
 ```sh
 xcrun cktool export-schema --team-id MDQY93XVHF --container-id iCloud.me.raddatz.sous \
-  --environment development | grep -c 'GRANT CREATE TO "_icloud"'   # wants 1: CatalogSubmission
+  --environment development \
+  | awk '/RECORD TYPE/ {t = $3} /GRANT CREATE TO "_icloud"/ && t !~ /^CD_/ {print t}'
+# wants exactly: CatalogSubmission
 ```
 
 **Releases are never deleted.** `publish.py --point-to <dataVersion>` turns
