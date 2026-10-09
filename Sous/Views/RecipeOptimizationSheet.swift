@@ -22,6 +22,15 @@ struct RecipeOptimizationSheet: View {
 
     @AppStorage(SousSetting.optimizationChat, store: .sous)
     private var chat: OptimizationChat?
+    @AppStorage(SousSetting.aiMode, store: .sous)
+    private var storedMode: AIMode?
+    @State private var connections = AIConnections.shared
+    @State private var isAskingProvider = false
+    /// What went wrong asking the provider, for the offer of another key.
+    @State private var providerError: LLMError?
+    /// Set once the household's key was taken in place of the cook's own.
+    @State private var usedHousehold = false
+    @State private var providerTask: Task<Void, Never>?
     @State private var backend = CopyPasteBackend()
     @State private var didCopy = false
     @State private var optimization: RecipeOptimization?
@@ -36,8 +45,16 @@ struct RecipeOptimizationSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                askSection
-                pasteSection
+                if AIMode.effective(chat: chat, stored: storedMode) == .api {
+                    if let active = connections.active {
+                        providerSection(usedHousehold ? (connections.alternative ?? active) : active)
+                    } else {
+                        notSetUpSection
+                    }
+                } else {
+                    askSection
+                    pasteSection
+                }
                 if let optimization {
                     preview(optimization)
                 }
@@ -62,7 +79,10 @@ struct RecipeOptimizationSheet: View {
         // A read answer is work the cook would lose by a swipe.
         .interactiveDismissDisabled(optimization != nil)
         .sousSheetSizing(.page)
-        .onDisappear { backend.cancel() }
+        .onDisappear {
+            backend.cancel()
+            providerTask?.cancel()
+        }
     }
 
     // MARK: - Asking
@@ -107,6 +127,77 @@ struct RecipeOptimizationSheet: View {
             Text("Antwort einfügen")
         } footer: {
             Text("Die Antwort des Chats kopieren — am einfachsten über den Kopieren-Knopf am Codeblock.")
+        }
+    }
+
+    /// Asking the cook's own provider: no copying, no pasting.
+    private func providerSection(_ resolved: AIConnections.Resolved) -> some View {
+        let connection = resolved.connection
+        return Section {
+            Button(
+                "Mit \(connection.provider.name) optimieren",
+                systemImage: "sparkles"
+            ) {
+                askProvider(connection)
+            }
+            .disabled(isAskingProvider)
+            if isAskingProvider { ProgressView() }
+            if let failure {
+                Label(failure, systemImage: "xmark.octagon")
+                    .foregroundStyle(.red)
+                // The cook's own key was refused or is used up: the household's
+                // is offered, not taken, because then someone else pays.
+                if providerError?.isTheKeysFault == true, let other = connections.alternative, !usedHousehold {
+                    Button("Schlüssel des Haushalts verwenden (\(other.connection.provider.name))", systemImage: "person.2") {
+                        usedHousehold = true
+                        askProvider(other.connection)
+                    }
+                }
+            }
+        } header: {
+            Text("Direkt fragen")
+        } footer: {
+            Text("Sous schickt das Rezept an \(connection.provider.name) (\(connection.provider.model)) und prüft die Antwort wie bei jedem Chat. \(usedHousehold ? "Der Schlüssel des Haushalts zahlt." : resolved.payer)")
+        }
+    }
+
+    private var notSetUpSection: some View {
+        Section {
+            Label("Kein KI-Anbieter eingerichtet.", systemImage: "key.slash")
+        } footer: {
+            Text("Richte ihn unter „Einstellungen“ › „KI“ ein, oder wähle dort „Chat kopieren“.")
+        }
+    }
+
+    private func askProvider(_ connection: AIConnection) {
+        let recipe = recipe
+        let catalog = catalog
+        let nutritionCatalog = nutritionLibrary.nutritionCatalog
+        isAskingProvider = true
+        failure = nil
+        providerError = nil
+        providerTask?.cancel()
+        providerTask = Task { @MainActor in
+            defer { isAskingProvider = false }
+            do {
+                // The cook's own provider gets the catalog cut down to the recipe's
+                // lines: a third of the tokens, as good an answer (see AI-API-CONCEPT.md).
+                let result = try await RecipeOptimizer.optimize(
+                    recipe, catalog: catalog, nutritionCatalog: nutritionCatalog, excerpt: true,
+                    backend: connection.client()
+                )
+                if case .failure(let reason) = result {
+                    optimization = nil
+                    failure = reason.providerDescription
+                } else {
+                    take(result)
+                }
+            } catch is CancellationError {
+                // The sheet closed.
+            } catch {
+                failure = error.localizedDescription
+                providerError = error as? LLMError
+            }
         }
     }
 
@@ -554,6 +645,9 @@ extension SousSetting {
 struct OptimizationChatPicker: View {
     @AppStorage(SousSetting.optimizationChat, store: .sous)
     private var chat: OptimizationChat?
+    /// The settings choose "no AI" in their own control; the welcome and the
+    /// sheets offer it here.
+    var includesOff = true
 
     var body: some View {
         Picker("Chat", selection: $chat) {
@@ -563,8 +657,10 @@ struct OptimizationChatPicker: View {
             ForEach(OptimizationChat.chats) { option in
                 Text(option.title).tag(Optional(option))
             }
-            Divider()
-            Text(OptimizationChat.off.title).tag(Optional(OptimizationChat.off))
+            if includesOff {
+                Divider()
+                Text(OptimizationChat.off.title).tag(Optional(OptimizationChat.off))
+            }
         }
     }
 }

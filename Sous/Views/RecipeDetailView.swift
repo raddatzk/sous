@@ -86,6 +86,10 @@ struct RecipeDetailView: View {
     @State private var isShowingVersions = false
     /// The request of the AI edit being set up, which opens its sheet.
     @State private var aiRequest: RecipeAIEditSheet.Request?
+    /// The same request again, by copy and paste, after the provider failed.
+    @State private var copyPasteRequest: RecipeAIEditSheet.Request?
+    @AppStorage(SousSetting.aiMode, store: .sous)
+    private var storedAIMode: AIMode?
     @State private var export: RecipeExport?
     @State private var nutrition: RecipeNutrition?
     /// Nutrition categories this recipe's figures would support, that it does
@@ -338,6 +342,20 @@ struct RecipeDetailView: View {
             RecipeOptimizationSheet(recipe: recipe)
         }
         .sheet(item: $aiRequest) { request in
+            if AIMode.effective(chat: optimizationChat, stored: storedAIMode) == .api {
+                RecipeAIChatSheet(recipe: recipe, request: request) {
+                    aiRequest = nil
+                    // The first sheet has to be gone before the second can come.
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(600))
+                        copyPasteRequest = request
+                    }
+                }
+            } else {
+                RecipeAIEditSheet(recipe: recipe, request: request)
+            }
+        }
+        .sheet(item: $copyPasteRequest) { request in
             RecipeAIEditSheet(recipe: recipe, request: request)
         }
         .sheet(isPresented: $isShowingVersions) {

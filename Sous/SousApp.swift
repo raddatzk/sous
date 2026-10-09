@@ -86,6 +86,7 @@ struct SousApp: App {
             let householdIngredients = CoreDataHouseholdIngredientStore(container: coreData)
             let promptLibrary = PromptTemplateLibrary(store: CoreDataPromptTemplateStore(container: coreData))
             _promptTemplates = State(initialValue: promptLibrary)
+            HouseholdAIConnectionLibrary.shared.configure(store: CoreDataAIConnectionStore(container: coreData))
             let plan = CoreDataMealPlanStore(container: coreData)
             let shoppingStore = CoreDataShoppingListStore(container: coreData)
 
@@ -143,6 +144,7 @@ struct SousApp: App {
             // and the empty state would flash in between.
             madeImport.onSettling {
                 await promptLibrary.reload()
+                await HouseholdAIConnectionLibrary.shared.reloadNow()
                 await recipeLibrary.reload()
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
@@ -174,6 +176,7 @@ struct SousApp: App {
             let madeSwitcher = HouseholdSwitcher(households: households) {
                 await nutritionLibrary.householdDidChange()
                 await promptLibrary.reload()
+                await HouseholdAIConnectionLibrary.shared.reloadNow()
                 await recipeLibrary.reload()
                 await planLibrary.reload()
                 await shoppingLibrary.reload()
@@ -299,6 +302,7 @@ struct SousApp: App {
             // of the answers, so the next lookup misses by itself.
             await catalog.reload()
             await promptTemplates.reload()
+            await HouseholdAIConnectionLibrary.shared.reloadNow()
             await library.reload()
             await mealPlan.reload()
             await shopping.reload()

@@ -39,18 +39,7 @@ struct SettingsForm: View {
             HouseholdSettingsRow()
 
 
-            Section {
-                OptimizationChatPicker()
-            } header: {
-                Text("Für Sous optimieren")
-            } footer: {
-                Text("""
-                Feste Zeilen und die Zutaten jedes Schritts fragst du in einem \
-                Chat, den du schon nutzt. Sous öffnet ihn neben dem kopierten \
-                Prompt. „Keine KI verwenden“ blendet das Fragen ganz aus — \
-                Zutaten pro Schritt lassen sich dann von Hand zuordnen.
-                """)
-            }
+            AIModeSettingsSection()
 
             if let onboarding {
                 Section {

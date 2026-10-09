@@ -112,6 +112,7 @@ struct HouseholdPage: View {
                 } footer: {
                     Text("Vorlagen für „Mit KI bearbeiten“, die alle im Haushalt nutzen.")
                 }
+                AIConnectionSettingsRow(ai: HouseholdAIConnectionLibrary.shared)
                 HouseholdDataSection(progress: $progress) { await reload() }
             }
         }
