@@ -252,3 +252,83 @@ struct RecipeReplacementTests {
         #expect(untouched.variantGroupID == variant.variantGroupID)
     }
 }
+
+@Suite("What a replacement changes")
+struct RecipeReplacementChangesTests {
+    private let soup = Recipe(
+        title: "Linsensuppe", servings: 2,
+        ingredientsText: "# Suppe\n250 g rote Linsen\n100 g Speck\n1 Zwiebel",
+        instructionsText: "Speck anbraten.\nLinsen kochen.")
+
+    private func answer(_ ingredients: String, steps: String = "[\"Speck anbraten.\", \"Linsen kochen.\"]", extra: String = "") -> RecipeReplacement {
+        let json = """
+        {"title": "Linsensuppe", "servings": 2, "ingredients": \(ingredients), "steps": \(steps)\(extra)}
+        """
+        guard case .success(let replacement) = RecipeReplacementPrompt.read(json) else { fatalError("unreadable test answer") }
+        return replacement
+    }
+
+    @Test("Lines that are new or gone are listed, the rest and the headings are not")
+    func lines() {
+        let changes = answer(##"["# Suppe", "250 g rote Linsen", "100 g Räuchertofu", "1 Zwiebel"]"##).changes(from: soup)
+        #expect(changes.added == ["100 g Räuchertofu"])
+        #expect(changes.removed == ["100 g Speck"])
+        #expect(changes.changedSteps == 0)
+        #expect(!changes.titleChanged && !changes.servingsChanged)
+    }
+
+    @Test("The prompt is its two parts, the first of which does not depend on the recipe")
+    func parts() {
+        let other = Recipe(title: "Anderes", servings: 4, ingredientsText: "1 Ei", instructionsText: "Braten.")
+        let unique = Recipe(title: "Quarkbällchenauflauf", servings: 2, ingredientsText: "1 Zwiebel", instructionsText: "Backen.")
+        for showsRecipe in [true, false] {
+            let a = RecipeReplacementPrompt.parts(task: "Vegan", for: unique, categories: ["Suppe"], showsRecipe: showsRecipe)
+            let b = RecipeReplacementPrompt.parts(task: "Vegan", for: other, categories: ["Suppe"], showsRecipe: showsRecipe)
+            #expect(a.prefix == b.prefix)
+            #expect(a.rest != b.rest)
+            #expect(a.prefix + a.rest == RecipeReplacementPrompt.prompt(task: "Vegan", for: unique, categories: ["Suppe"], showsRecipe: showsRecipe))
+            #expect(!a.prefix.contains("Quarkbällchenauflauf"))
+            #expect(a.rest.contains("Quarkbällchenauflauf"))
+        }
+    }
+
+    @Test("A line that only changed its spacing is not a change")
+    func spacing() {
+        let recipe = Recipe(title: "T", servings: 2, ingredientsText: "200ml Wasser\n200g Mehl", instructionsText: "Rühren.")
+        let json = ##"{"title": "T", "ingredients": ["200 ml Wasser", "200 g Mehl"], "steps": ["Rühren."]}"##
+        guard case .success(let replacement) = RecipeReplacementPrompt.read(json) else { fatalError() }
+        #expect(replacement.changes(from: recipe).isEmpty)
+    }
+
+    @Test("A changed amount reads as the old line gone and the new one added")
+    func amount() {
+        let changes = answer(#"["250 g rote Linsen", "100 g Speck", "2 Zwiebeln"]"#).changes(from: soup)
+        #expect(changes.added == ["2 Zwiebeln"])
+        #expect(changes.removed == ["1 Zwiebel"])
+    }
+
+    @Test("Steps that read differently are counted, and so is a different number of them")
+    func steps() {
+        let changes = answer(
+            #"["250 g rote Linsen"]"#, steps: #"["Tofu anbraten.", "Linsen kochen.", "Abschmecken."]"#
+        ).changes(from: soup)
+        #expect(changes.changedSteps == 2)
+    }
+
+    @Test("The same recipe has no changes")
+    func same() {
+        #expect(answer(##"["# Suppe", "250 g rote Linsen", "100 g Speck", "1 Zwiebel"]"##).changes(from: soup).isEmpty)
+    }
+
+    @Test("In a chat Sous runs, the model is not asked to write the recipe out, and the JSON block stays")
+    func brief() {
+        let normal = RecipeReplacementPrompt.prompt(task: "Vegan", for: soup)
+        let brief = RecipeReplacementPrompt.prompt(task: "Vegan", for: soup, showsRecipe: false)
+        #expect(normal.contains("Zeige mir das umgearbeitete Rezept gut lesbar"))
+        #expect(!brief.contains("Zeige mir das umgearbeitete Rezept gut lesbar"))
+        #expect(brief.contains("Schreibe das Rezept selbst nicht noch einmal aus"))
+        #expect(brief.contains("JSON-Codeblock"))
+        #expect(brief.contains(RecipeReplacementPrompt.promptMarker))
+        #expect(brief.contains("Aufgabe:\nVegan"))
+    }
+}

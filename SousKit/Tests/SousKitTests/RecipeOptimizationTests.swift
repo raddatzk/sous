@@ -602,3 +602,48 @@ struct RecipeOriginalTests {
         #expect(await library.resetToOriginal(reset) == false)
     }
 }
+
+
+@Suite("The optimization prompt in two parts")
+struct RecipeOptimizationPromptPartsTests {
+    @Test("The first part is the same for every recipe and the whole is what it always was")
+    func parts() {
+        let a = Recipe(title: "Quarkbällchenauflauf", servings: 2, ingredientsText: "200 g Linsen", instructionsText: "Kochen.")
+        let b = Recipe(title: "Salat", servings: 4, ingredientsText: "2 Tomaten", instructionsText: "Mischen.")
+        let first = RecipeOptimizationPrompt.parts(for: a)
+        let second = RecipeOptimizationPrompt.parts(for: b)
+        #expect(first.prefix == second.prefix)
+        #expect(first.rest != second.rest)
+        #expect(first.prefix + first.rest == RecipeOptimizationPrompt.prompt(for: a))
+        #expect(!first.prefix.contains("Quarkbällchenauflauf"))
+        #expect(first.rest.hasPrefix("Rezept: Quarkbällchenauflauf"))
+    }
+}
+
+
+@Suite("The catalog excerpt")
+struct RecipeOptimizationExcerptTests {
+    @Test("It holds the entries that fit the lines, their parents, and not the whole catalog")
+    func excerpt() {
+        let recipe = Recipe(
+            title: "Suppe", servings: 2,
+            ingredientsText: "250 g rote Linsen\n1 Zwiebel\n200 ml Kokosmilch",
+            instructionsText: "Kochen.")
+        let excerpt = RecipeOptimizationPrompt.catalogExcerpt(for: recipe, catalog: .current)
+        let whole = RecipeOptimizationPrompt.catalogList(.current)
+        #expect(excerpt.contains("Zwiebel"))
+        #expect(excerpt.contains("Kokosmilch"))
+        #expect(excerpt.count < whole.count / 5)
+        #expect(!excerpt.contains("Rinderfilet"))
+    }
+
+    @Test("The excerpt version of the prompt is much shorter and still carries the rules and the recipe")
+    func shorter() {
+        let recipe = Recipe(title: "Quarkbällchenauflauf", servings: 2, ingredientsText: "1 Zwiebel", instructionsText: "Backen.")
+        let full = RecipeOptimizationPrompt.parts(for: recipe)
+        let cut = RecipeOptimizationPrompt.parts(for: recipe, excerpt: true)
+        #expect(cut.rest == full.rest)
+        #expect(cut.prefix.count < full.prefix.count / 2)
+        #expect(cut.prefix.hasPrefix(RecipeOptimizationPrompt.rules))
+    }
+}

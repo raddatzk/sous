@@ -67,8 +67,45 @@ public struct RecipeReplacement: Sendable, Equatable {
         }
     }
 
+    /// What this replacement changes against `recipe`, for a card that shows
+    /// the difference instead of the whole recipe.
+    public struct Changes: Equatable, Sendable {
+        /// Lines the replacement has and the recipe did not.
+        public var added: [String]
+        /// Lines the recipe had and the replacement does not.
+        public var removed: [String]
+        /// Steps (by position) that read differently, and steps the count differs by.
+        public var changedSteps: Int
+        public var titleChanged: Bool
+        public var servingsChanged: Bool
+
+        public var isEmpty: Bool { added.isEmpty && removed.isEmpty && changedSteps == 0 && !titleChanged && !servingsChanged }
+    }
+
+    public func changes(from recipe: Recipe) -> Changes {
+        func lines(_ text: String) -> [String] {
+            text.split(whereSeparator: \.isNewline)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("#") }
+        }
+        // Spacing is not a change: "200ml" and "200 ml" are the same line.
+        func key(_ line: String) -> String { line.lowercased().filter { !$0.isWhitespace } }
+
+        let old = lines(recipe.ingredientsText), new = lines(ingredientsText)
+        let oldKeys = Set(old.map(key)), newKeys = Set(new.map(key))
+        let oldSteps = lines(recipe.instructionsText), newSteps = lines(instructionsText)
+        let paired = zip(oldSteps, newSteps).filter { key($0) != key($1) }.count
+        return Changes(
+            added: new.filter { !oldKeys.contains(key($0)) },
+            removed: old.filter { !newKeys.contains(key($0)) },
+            changedSteps: paired + abs(oldSteps.count - newSteps.count),
+            titleChanged: title != recipe.title,
+            servingsChanged: servings.map { $0 != recipe.servings } ?? false
+        )
+    }
+
     /// What `fields` says of this replacement, applied to `recipe`'s content.
-    func applied(to recipe: Recipe, fields: Fields) -> Recipe {
+    public func applied(to recipe: Recipe, fields: Fields) -> Recipe {
         var result = recipe
         if fields.contains(.title) { result.title = title }
         if fields.contains(.summary) { result.summary = summary }
@@ -153,6 +190,21 @@ public enum RecipeReplacementPrompt {
     Milch"). Fehlt eine Zutat im Katalog, schreibe sie trotzdem.
     """
 
+    /// The rules for a chat Sous itself runs: the model does not write the
+    /// recipe out again, because Sous shows it as a card beside the answer. The
+    /// JSON block stays, and with it everything the reader needs.
+    static let rulesForSousChat: String = {
+        let shown = """
+            1. Zeige mir das umgearbeitete Rezept gut lesbar (Titel, Portionen, Zutaten, Zubereitung) und erkläre kurz, was du geändert hast und warum. Wir können danach darüber sprechen und es weiter anpassen.
+            2. Hänge in JEDER Antwort, in der du ein Rezept zeigst, am Ende den aktuellen Stand als JSON-Codeblock an, genau in dieser Form, damit ich ihn kopieren und in Sous einfügen kann:
+            """.replacingOccurrences(of: "\n            ", with: "\n").replacingOccurrences(of: "            1.", with: "1.")
+        let brief = """
+            1. Erkläre kurz, was du geändert hast und warum. Schreibe das Rezept selbst nicht noch einmal aus: Sous zeigt es neben deiner Antwort an. Wir können danach darüber sprechen und es weiter anpassen.
+            2. Hänge in JEDER Antwort, in der du das Rezept geändert hast, am Ende den aktuellen Stand als JSON-Codeblock an, genau in dieser Form:
+            """.replacingOccurrences(of: "\n            ", with: "\n").replacingOccurrences(of: "            1.", with: "1.")
+        return rules.replacingOccurrences(of: shown, with: brief)
+    }()
+
     /// The whole text to copy: the rules, the catalog, the task, the recipe.
     ///
     /// `task` is what the cook asked for — a saved template's text or a line
@@ -162,8 +214,22 @@ public enum RecipeReplacementPrompt {
         task: String,
         for recipe: Recipe,
         catalog: IngredientCatalog = .current,
-        categories: [String] = []
+        categories: [String] = [],
+        showsRecipe: Bool = true
     ) -> String {
+        let parts = parts(task: task, for: recipe, catalog: catalog, categories: categories, showsRecipe: showsRecipe)
+        return parts.prefix + parts.rest
+    }
+
+    /// The prompt in two: the rules, the categories and the catalog, which stay
+    /// the same from one request to the next, and the task with the recipe.
+    public static func parts(
+        task: String,
+        for recipe: Recipe,
+        catalog: IngredientCatalog = .current,
+        categories: [String] = [],
+        showsRecipe: Bool = true
+    ) -> (prefix: String, rest: String) {
         let recipeText = text(of: recipe)
         let trimmed = task.trimmingCharacters(in: .whitespacesAndNewlines)
         let request = trimmed.contains(placeholder)
@@ -172,7 +238,10 @@ public enum RecipeReplacementPrompt {
         let categoryList = categories.isEmpty
             ? ""
             : "Vorhandene Kategorien:\n\(categories.joined(separator: ", "))\n\n"
-        return "\(rules)\n\n\(categoryList)\(RecipeOptimizationPrompt.catalogList(catalog))\n\nAufgabe:\n\(request)"
+        return (
+            "\(showsRecipe ? rules : rulesForSousChat)\n\n\(categoryList)\(RecipeOptimizationPrompt.catalogList(catalog))\n\n",
+            "Aufgabe:\n\(request)"
+        )
     }
 
     /// Where a template says the recipe goes.

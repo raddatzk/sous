@@ -10,6 +10,15 @@ import Foundation
 public protocol RecipeOptimizationBackend: Sendable {
     /// The model's answer to `prompt`, as the text it wrote.
     func answer(to prompt: String) async throws -> String
+    /// The same, for a prompt whose start is the same every time: a backend
+    /// that can keep it between requests does; the others get it whole.
+    func answer(cachedPrefix: String, then rest: String) async throws -> String
+}
+
+extension RecipeOptimizationBackend {
+    public func answer(cachedPrefix: String, then rest: String) async throws -> String {
+        try await answer(to: cachedPrefix + rest)
+    }
 }
 
 public enum RecipeOptimizer {
@@ -18,10 +27,11 @@ public enum RecipeOptimizer {
         _ recipe: Recipe,
         catalog: IngredientCatalog = .current,
         nutritionCatalog: NutritionCatalog = .current,
+        excerpt: Bool = false,
         backend: some RecipeOptimizationBackend
     ) async throws -> Result<RecipeOptimization, RecipeOptimizationPrompt.Failure> {
-        let prompt = RecipeOptimizationPrompt.prompt(for: recipe, catalog: catalog)
-        let answer = try await backend.answer(to: prompt)
+        let parts = RecipeOptimizationPrompt.parts(for: recipe, catalog: catalog, excerpt: excerpt)
+        let answer = try await backend.answer(cachedPrefix: parts.prefix, then: parts.rest)
         return RecipeOptimizationPrompt.read(answer, for: recipe, catalog: catalog, nutritionCatalog: nutritionCatalog)
     }
 }
@@ -643,7 +653,47 @@ public enum RecipeOptimizationPrompt {
     /// The whole text to copy: rules, answer format, the catalog, and the
     /// recipe with its lines as written and its steps numbered.
     public static func prompt(for recipe: Recipe, catalog: IngredientCatalog = .current) -> String {
-        "\(rules)\n\n\(catalogList(catalog))\n\nRezept: \(recipe.title)\n\(body(for: recipe))"
+        let parts = parts(for: recipe, catalog: catalog)
+        return parts.prefix + parts.rest
+    }
+
+    /// The prompt in two: what is the same for every recipe (the rules and
+    /// the catalog, nine tenths of it), and the recipe. A provider that keeps
+    /// the first part between requests charges a fraction for it.
+    ///
+    /// With `excerpt`, the catalog is cut down to the entries that fit the
+    /// recipe's lines, which makes the first part the recipe's own and nothing a
+    /// provider can keep, but a fifth of the size.
+    public static func parts(
+        for recipe: Recipe, catalog: IngredientCatalog = .current, excerpt: Bool = false
+    ) -> (prefix: String, rest: String) {
+        (
+            "\(rules)\n\n\(excerpt ? catalogExcerpt(for: recipe, catalog: catalog) : catalogList(catalog))\n\n",
+            "Rezept: \(recipe.title)\n\(body(for: recipe))"
+        )
+    }
+
+    /// The catalog rows that fit the recipe's lines: for each line what the
+    /// catalog's word-by-word search finds under the name as written, and what
+    /// each of those is a variety of. A name the catalog does not have simply
+    /// finds nothing, and stays as written, which is what the answer is checked
+    /// for anyway.
+    static func catalogExcerpt(for recipe: Recipe, catalog: IngredientCatalog, perLine: Int = 6) -> String {
+        var rows: [String] = []
+        var seen: Set<String> = []
+        func add(_ ingredient: CatalogIngredient) {
+            guard seen.insert(ingredient.key).inserted else { return }
+            rows.append(ingredient.aliases.isEmpty
+                ? ingredient.name
+                : "\(ingredient.name) | \(ingredient.aliases.joined(separator: ", "))")
+        }
+        for line in recipe.ingredients where !line.name.isEmpty {
+            for found in catalog.search(line.name, limit: perLine) {
+                add(found)
+                for parent in catalog.ancestors(of: found.name) { add(parent) }
+            }
+        }
+        return "Katalog (Auszug, nur Einträge zu den Zeilen dieses Rezepts; Name | Aliasse):\n" + rows.joined(separator: "\n")
     }
 
     /// The catalog as the model sees it: "Name | Alias, Alias", no values,

@@ -761,6 +761,7 @@ public final class RecipeLibrary {
     public func applyReplacement(
         _ replacement: RecipeReplacement,
         fields: RecipeReplacement.Fields = .standard,
+        tidied: Recipe? = nil,
         request: String = "KI-Änderung",
         to asked: Recipe
     ) async -> Bool {
@@ -770,7 +771,16 @@ public final class RecipeLibrary {
               current.notes == asked.notes,
               current.title == asked.title
         else { return false }
-        await save(replacement.applied(to: current, fields: fields).replacing(current, because: request))
+        var edited = replacement.applied(to: current, fields: fields)
+        // The lines, steps and notes as `RecipeTidier` brought them into Sous's
+        // form; the fields the cook ticked are the replacement's own.
+        if let tidied {
+            edited.ingredientsText = tidied.ingredientsText
+            edited.instructionsText = tidied.instructionsText
+            edited.notes = tidied.notes
+            edited.stepReferences = tidied.stepReferences
+        }
+        await save(edited.replacing(current, because: request))
         return true
     }
 
