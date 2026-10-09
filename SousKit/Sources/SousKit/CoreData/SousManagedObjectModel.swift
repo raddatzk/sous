@@ -46,13 +46,16 @@ enum SousManagedObjectModel {
     /// before phase 7d gave it the override attributes (category, parent,
     /// spellings, display name, baseline) — all optional, so CloudKit's
     /// schema only grows. `includingPromptTemplates: false` is the model
-    /// before `CDPromptTemplate` (the household's AI prompts) was added.
+    /// before `CDPromptTemplate` (the household's AI prompts) was added, and
+    /// `includingAIConnections: false` the one before `CDAIConnection` (the
+    /// household's provider and key).
     static func makeModel(
         includingRetiredEntities: Bool,
         includingLocalAnswers: Bool = true,
         includingHouseholdIngredients: Bool = true,
         includingCatalogOverrides: Bool = true,
-        includingPromptTemplates: Bool = true
+        includingPromptTemplates: Bool = true,
+        includingAIConnections: Bool = true
     ) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         let household = householdEntity()
@@ -68,6 +71,9 @@ enum SousManagedObjectModel {
         }
         if includingPromptTemplates {
             members.append(promptTemplateEntity())
+        }
+        if includingAIConnections {
+            members.append(aiConnectionEntity())
         }
         if includingRetiredEntities {
             members.append(reviewMarkEntity(named: amountReviewEntityName))
@@ -90,6 +96,7 @@ enum SousManagedObjectModel {
         mealPlanEntryEntityName, shoppingEntryEntityName,
         shoppingPlanEntryEntityName, shoppingDemandEntityName,
         localAnswerEntityName, householdIngredientEntityName, promptTemplateEntityName,
+        aiConnectionEntityName,
     ]
     static let recipeEntityName = "CDRecipe"
     static let variantGroupEntityName = "CDVariantGroup"
@@ -107,6 +114,7 @@ enum SousManagedObjectModel {
     static let localAnswerEntityName = "CDLocalAnswer"
     static let householdIngredientEntityName = "CDHouseholdIngredient"
     static let promptTemplateEntityName = "CDPromptTemplate"
+    static let aiConnectionEntityName = "CDAIConnection"
 
     private static func recipeEntity() -> NSEntityDescription {
         let entity = NSEntityDescription()
@@ -378,6 +386,30 @@ enum SousManagedObjectModel {
             attribute("updatedAt", .dateAttributeType),
             // Set on the row that hides a built-in template.
             attribute("deletedAt", .dateAttributeType, optional: true),
+        ]
+        return entity
+    }
+
+    /// The provider a household set up for everyone in it, with its key. One
+    /// row per household. The key is the one field that CloudKit stores
+    /// encrypted end to end (`allowsCloudEncryption`), so what sits in the
+    /// household's zone is not readable to anyone but the members; the
+    /// rest of the row is not secret.
+    private static func aiConnectionEntity() -> NSEntityDescription {
+        let entity = NSEntityDescription()
+        entity.name = aiConnectionEntityName
+        entity.managedObjectClassName = NSStringFromClass(CDAIConnection.self)
+        let key = attribute("apiKey", .stringAttributeType, default: "")
+        key.allowsCloudEncryption = true
+        entity.properties = [
+            attribute("providerName", .stringAttributeType, default: ""),
+            attribute("kindRaw", .stringAttributeType, default: LLMProviderKind.openAICompatible.rawValue),
+            attribute("baseURL", .stringAttributeType, default: ""),
+            attribute("model", .stringAttributeType, default: ""),
+            attribute("effort", .stringAttributeType, optional: true),
+            attribute("disablesThinking", .booleanAttributeType, default: false),
+            key,
+            attribute("updatedAt", .dateAttributeType),
         ]
         return entity
     }
