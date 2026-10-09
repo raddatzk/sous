@@ -159,6 +159,23 @@ final class AIConnections {
         return nil
     }
 
+    /// What the cook has to decide about the address of the connection that
+    /// asks, if the catalog has moved on from the one it was saved with.
+    func pendingMove(for resolved: Resolved) -> AddressMove? {
+        resolved.connection.pendingMove()
+    }
+
+    /// The cook looked and said yes: the key follows the move, in the place it
+    /// is kept. For the household's, that is the shared row, so one member's
+    /// yes is everyone's.
+    func accept(_ move: AddressMove, for resolved: Resolved) {
+        let followed = resolved.connection.following(move)
+        switch resolved.source {
+        case .personal: personal.save(followed)
+        case .household: household.save(followed)
+        }
+    }
+
     /// The household's, where the cook's own is the one asking.
     var alternative: Resolved? {
         guard active?.source == .personal, let connection = household.usable else { return nil }

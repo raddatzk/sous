@@ -134,6 +134,11 @@ struct RecipeOptimizationSheet: View {
     private func providerSection(_ resolved: AIConnections.Resolved) -> some View {
         let connection = resolved.connection
         return Section {
+            if let move = connections.pendingMove(for: resolved) {
+                AddressMoveNotice(move: move, isHousehold: resolved.source == .household) {
+                    connections.accept(move, for: resolved)
+                }
+            }
             Button(
                 "Mit \(connection.provider.name) optimieren",
                 systemImage: "sparkles"
@@ -157,7 +162,7 @@ struct RecipeOptimizationSheet: View {
         } header: {
             Text("Direkt fragen")
         } footer: {
-            Text("Sous schickt das Rezept an \(connection.provider.name) (\(connection.provider.model)) und prüft die Antwort wie bei jedem Chat. \(usedHousehold ? "Der Schlüssel des Haushalts zahlt." : resolved.payer)")
+            Text("Sous schickt das Rezept an \(connection.provider.name) (\(connection.host), \(connection.provider.model)) und prüft die Antwort wie bei jedem Chat. \(usedHousehold ? "Der Schlüssel des Haushalts zahlt." : resolved.payer)")
         }
     }
 

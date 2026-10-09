@@ -51,6 +51,11 @@ struct AIConnectionView: View {
             return LLMProvider(name: name.isEmpty ? (url.host() ?? "Eigener Anbieter") : name, kind: customKind, baseURL: url, model: model)
         }
         guard var preset = LLMProvider.presets.first(where: { $0.name == choice }) else { return nil }
+        // A move the cook has not confirmed is not followed by saving this
+        // page: the key stays with the address it was saved with.
+        if let saved = ai.connection, saved.pendingMove()?.providerName == preset.name {
+            preset.baseURL = saved.provider.baseURL
+        }
         preset.model = model
         return preset
     }
@@ -93,6 +98,16 @@ struct AIConnectionView: View {
                 }
             }
 
+            if let connection = ai.connection, let move = connection.pendingMove() {
+                Section {
+                    AddressMoveNotice(move: move, isHousehold: ai.isHousehold) {
+                        ai.save(connection.following(move))
+                        adopt(connection.following(move))
+                        models = []
+                    }
+                }
+            }
+
             Section {
                 Label {
                     Text(AIAPINote.text)
@@ -115,6 +130,16 @@ struct AIConnectionView: View {
                 if let page = provider?.keyPage {
                     Link(destination: page) {
                         Label("Schlüssel bei \(provider?.name ?? "") erstellen", systemImage: "arrow.up.forward.app")
+                    }
+                }
+                if let host = provider?.baseURL.host() {
+                    LabeledContent("Der Schlüssel geht an") { Text(host).textSelection(.enabled) }
+                    if let confirmed = ai.connection?.addressConfirmedAt,
+                        ai.connection?.provider.baseURL == provider?.baseURL
+                    {
+                        LabeledContent("Adresse bestätigt") {
+                            Text(confirmed.formatted(date: .abbreviated, time: .omitted))
+                        }
                     }
                 }
                 Button(models.isEmpty ? "Schlüssel prüfen und Modelle laden" : "Modelle neu laden", systemImage: "key") {
@@ -158,7 +183,14 @@ struct AIConnectionView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(role: .confirm) {
-                    if let draft { ai.save(draft) }
+                    if var draft {
+                        // Confirmed now where the address is new to this connection;
+                        // kept where the cook only changed the model.
+                        let known = ai.connection
+                        draft.addressConfirmedAt = known?.provider.baseURL == draft.provider.baseURL
+                            ? known?.addressConfirmedAt ?? .now : .now
+                        ai.save(draft)
+                    }
                     dismiss()
                 }
                 .disabled(draft?.isUsable != true)
@@ -283,7 +315,10 @@ struct AIConnectionSettingsRow: View {
 
     private var label: some View {
         LabeledContent {
-            Text(ai.connection.flatMap { $0.isUsable ? $0.provider.name : nil } ?? "Nicht eingerichtet")
+            Text(ai.connection?.pendingMove() != nil
+                ? "Adresse prüfen"
+                : ai.connection.flatMap { $0.isUsable ? $0.provider.name : nil } ?? "Nicht eingerichtet")
+                .foregroundStyle(ai.connection?.pendingMove() != nil ? Color.orange : Color.secondary)
         } label: {
             Label(ai.isHousehold ? "KI-Anbieter des Haushalts" : "KI-Anbieter", systemImage: "key")
         }

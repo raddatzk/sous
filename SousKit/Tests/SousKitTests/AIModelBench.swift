@@ -17,7 +17,7 @@ struct AIModelBench {
     /// provider name → key variable
     private static let keyNames = [
         "Anthropic": "ANTHROPIC_API_KEY", "OpenAI": "OPENAI_API_KEY",
-        "Grok": "GROK_API_KEY", "Gemini": "GEMINI_API_KEY",
+        "Grok": "GROK_API_KEY", "Gemini": "GEMINI_API_KEY", "Mistral": "MISTRAL_API_KEY",
     ]
 
     private static func keys() -> [String: String] {
@@ -34,7 +34,13 @@ struct AIModelBench {
     }
 
     private static func client(_ providerName: String, model: String = "", tuned: Bool = false) -> LLMClient? {
-        guard let base = LLMProvider.presets.first(where: { $0.name == providerName }),
+        // A provider the catalog does not list yet can still be measured, to
+        // find out whether it should be.
+        let unlisted: [String: LLMProvider] = [
+            "Mistral": LLMProvider(
+                name: "Mistral", kind: .openAICompatible, baseURL: URL(string: "https://api.mistral.ai/v1")!, model: ""),
+        ]
+        guard let base = LLMProvider.presets.first(where: { $0.name == providerName }) ?? unlisted[providerName],
             let variable = keyNames[providerName], let key = keys()[variable]
         else { return nil }
         var provider = base
@@ -57,7 +63,7 @@ struct AIModelBench {
     @Test("Lists what each provider offers", .enabled(if: mode == "list"))
     func list() async throws {
         var report = ""
-        for name in ["Anthropic", "OpenAI", "Grok", "Gemini"] {
+        for name in ["Anthropic", "OpenAI", "Grok", "Gemini", "Mistral"] {
             report += "## \(name)\n"
             guard let client = Self.client(name) else { report += "no key\n\n"; continue }
             do {

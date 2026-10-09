@@ -9,7 +9,7 @@ struct HouseholdAIConnectionTests {
         provider: LLMProvider(
             name: "Anthropic", kind: .anthropic, baseURL: URL(string: "https://api.anthropic.com/v1")!,
             model: "claude-haiku-5-5", effort: "low", disablesThinking: true),
-        apiKey: "sk-test")
+        apiKey: "sk-test", addressConfirmedAt: Date(timeIntervalSince1970: 1_800_000_000))
 
     @Test("Core Data keeps one per household, replaces it on save and forgets it on delete")
     func store() async throws {

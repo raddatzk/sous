@@ -147,6 +147,27 @@ from `~/.sous-bench-keys`, saves every raw answer. 2026-10-08, five recipes, one
 - Checked against Haiku 5.5 with the short prompt: explanations of 280-640 characters, the JSON
   block in every answer; tidying took 4 s and left a line without an amount alone, as it must.
 
+## Mistral (2026-10-09)
+
+Measured with the same five recipes (OpenAI-compatible, `https://api.mistral.ai/v1`):
+`ministral-3b-latest` optimizing 1/5, editing 4/4; `ministral-8b-latest` 1/5 and 4/4;
+`ministral-14b-latest` 0/5 and 4/4 (unreadable answers: wrong line numbers, steps changed). The
+account's plan allowed no requests at all for `mistral-small-latest` and `mistral-medium-latest`
+(`x-ratelimit-limit-req-minute: 0`), so those are unmeasured. Not listed in `Community/ki/` for now: no
+model passes the optimization, which the app needs. Mistral stays a chat only (`ki/mistral.yaml`).
+
+## Address of a provider moves
+
+A saved connection keeps the address it was made with. If the catalog names another one for the same
+provider (found by its catalog id, or for a connection saved before ids by the address it holds being the
+catalog's current or a recorded earlier one, never by name), the app shows a notice where the connection
+is used and in the settings. The sheet shows both hosts, the provider's announcement and reason from
+`moved` where the data has them, the provider's documentation, and asks the cook to check the address
+themselves (a switch) before "Neue Adresse übernehmen". Until then the key goes to the old address, and
+saving the settings page does not follow the move either. For a household's key, one member's yes changes
+the shared row for everyone. The connection notes when the address was confirmed
+(`addressConfirmedAt`, also in the household row).
+
 ## Steps
 
 1. Adapters + tests (faked `URLSession`), no UI. Done: `AIProvider/`, model list,

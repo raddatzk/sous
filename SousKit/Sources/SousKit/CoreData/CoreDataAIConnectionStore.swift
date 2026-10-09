@@ -12,6 +12,7 @@ final class CDAIConnection: CDHouseholdMember {
     @NSManaged var effort: String?
     @NSManaged var disablesThinking: Bool
     @NSManaged var apiKey: String
+    @NSManaged var addressConfirmedAt: Date?
     @NSManaged var updatedAt: Date?
 
     func apply(_ connection: AIConnection) {
@@ -22,6 +23,7 @@ final class CDAIConnection: CDHouseholdMember {
         effort = connection.provider.effort
         disablesThinking = connection.provider.disablesThinking ?? false
         apiKey = connection.apiKey
+        addressConfirmedAt = connection.addressConfirmedAt
         updatedAt = .nowInSyncPrecision
     }
 
@@ -34,7 +36,7 @@ final class CDAIConnection: CDHouseholdMember {
                 kind: LLMProviderKind(rawValue: kindRaw) ?? .openAICompatible,
                 baseURL: url, model: model, effort: effort,
                 disablesThinking: disablesThinking ? true : nil),
-            apiKey: apiKey)
+            apiKey: apiKey, addressConfirmedAt: addressConfirmedAt)
     }
 }
 

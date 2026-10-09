@@ -409,6 +409,8 @@ enum SousManagedObjectModel {
             attribute("effort", .stringAttributeType, optional: true),
             attribute("disablesThinking", .booleanAttributeType, default: false),
             key,
+            // When a member last confirmed that the key goes to this address.
+            attribute("addressConfirmedAt", .dateAttributeType, optional: true),
             attribute("updatedAt", .dateAttributeType),
         ]
         return entity

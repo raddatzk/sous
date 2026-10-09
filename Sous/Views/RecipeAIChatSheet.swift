@@ -121,9 +121,15 @@ struct RecipeAIChatSheet: View {
         let connection = resolved.connection
         return VStack(alignment: .leading, spacing: 6) {
             Text("Was soll sich am Rezept ändern?").font(.headline)
-            Text("Schreibe es unten. Sous schickt das Rezept und deine Bitte an \(connection.provider.name) (\(connection.provider.model)). \(resolved.payer)")
+            Text("Schreibe es unten. Sous schickt das Rezept und deine Bitte an \(connection.provider.name) (\(connection.host), \(connection.provider.model)). \(resolved.payer)")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+            if let move = connections.pendingMove(for: resolved) {
+                AddressMoveNotice(move: move, isHousehold: resolved.source == .household) {
+                    connections.accept(move, for: resolved)
+                }
+                .padding(.top, 6)
+            }
         }
     }
 

@@ -110,6 +110,7 @@
 		D001C854B40B28607A227366 /* RecipeExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90E750DD65005E77F070E4A9 /* RecipeExportView.swift */; };
 		D039F26CAA91B8EAF7A4A66A /* TimerSetupSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8492D060A525EA1068DC4775 /* TimerSetupSheet.swift */; };
 		D46D78B4250B2773DF76BEBA /* SousWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FCBA7BF4D50B5B5F705BE76 /* SousWidgetBundle.swift */; };
+		D63559910D4C14D1776C2852 /* AddressMoveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4B04F69030C306B1368F3A9 /* AddressMoveView.swift */; };
 		D8D5C2AE6956D817F16134CB /* HouseholdMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95BD43E2E3AE0BF6277528AD /* HouseholdMenu.swift */; };
 		DBA71FE99BF65FBF589A2A81 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2FC3AF1AD4A54210E4388A32 /* PrivacyInfo.xcprivacy */; };
 		DFECC099BCEBCD72A603D0C5 /* RecipeLinkChips.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8738C552BA78FE682E3F08BD /* RecipeLinkChips.swift */; };
@@ -255,6 +256,7 @@
 		F14CBBE627BA2115921F4378 /* VariantGroupRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VariantGroupRow.swift; sourceTree = "<group>"; };
 		F2FA327D48DAD613A8C0AF31 /* CategoryField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategoryField.swift; sourceTree = "<group>"; };
 		F4AA4247E59D40AD08FC2E95 /* ShareViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareViewController.swift; sourceTree = "<group>"; };
+		F4B04F69030C306B1368F3A9 /* AddressMoveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressMoveView.swift; sourceTree = "<group>"; };
 		F92FC6A417C9F5EDEA6FD6D2 /* CalendarMirror.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarMirror.swift; sourceTree = "<group>"; };
 		FA3ADAF9CD29E8164A382F84 /* DataSourcesPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataSourcesPage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -282,6 +284,7 @@
 		0B1D145DA0D7595B25BA6B4D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				F4B04F69030C306B1368F3A9 /* AddressMoveView.swift */,
 				E59C696E9B502CE1433926B5 /* AddVariantSheet.swift */,
 				CA015A1B99BB1F7F90DE35EF /* AIConnectionLibrary.swift */,
 				ADC6BDAB94902FCB7CBB41F8 /* AIConnectionView.swift */,
@@ -660,6 +663,7 @@
 				6FCDF083E019F340CBA11D68 /* AIConnectionView.swift in Sources */,
 				3FA85145950D9B56A860D32B /* AIMode.swift in Sources */,
 				6AB353F80688690CFEC6D30A /* AddVariantSheet.swift in Sources */,
+				D63559910D4C14D1776C2852 /* AddressMoveView.swift in Sources */,
 				7CA1E2AC86A8BA268EA6EA8F /* CalendarMirror.swift in Sources */,
 				98A2A003555BA45B1B2E1F6F /* CatalogOverrideForm.swift in Sources */,
 				485F6C9DBE064A254310FC5F /* CatalogShareSheet.swift in Sources */,
