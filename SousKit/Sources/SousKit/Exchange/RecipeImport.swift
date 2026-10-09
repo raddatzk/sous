@@ -112,7 +112,7 @@ public protocol RecipeImportFormat: Sendable {
 /// The formats the app can read, tried in order.
 public enum RecipeImport {
     public static let formats: [any RecipeImportFormat.Type] = [
-        MelaImport.self, PaprikaImport.self, JSONLDImport.self,
+        SousImport.self, MelaImport.self, PaprikaImport.self, JSONLDImport.self,
     ]
 
     /// Every extension some format claims, for a file picker to offer.

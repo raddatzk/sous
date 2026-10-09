@@ -24,7 +24,7 @@ struct RecipeOptimizationSparringTests {
         let env = ProcessInfo.processInfo.environment
         guard let libraryPath = env["SOUS_OPTIMIZE_LIBRARY"], let outPath = env["SOUS_OPTIMIZE_OUT"] else { return }
         let url = URL(fileURLWithPath: (libraryPath as NSString).expandingTildeInPath)
-        let recipes = try MelaImport.read(Data(contentsOf: url), named: url.lastPathComponent).recipes.map(\.recipe)
+        let recipes = try RecipeImport.read(Data(contentsOf: url), named: url.lastPathComponent).recipes.map(\.recipe)
             .filter { !$0.ingredients.isEmpty && !$0.steps.isEmpty }
             .sorted { $0.title < $1.title }
 

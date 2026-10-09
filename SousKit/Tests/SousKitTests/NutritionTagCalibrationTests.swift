@@ -55,7 +55,7 @@ struct NutritionTagCalibrationTests {
     func thresholds() throws {
         let path = try #require(ProcessInfo.processInfo.environment["SOUS_TAG_LIBRARY"])
         let url = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
-        let batch = try MelaImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
+        let batch = try RecipeImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
 
         let recipes = batch.recipes.map(\.recipe)
         let byID = Dictionary(recipes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -211,7 +211,7 @@ struct NutritionTagCalibrationTests {
     func outliers() throws {
         let path = try #require(ProcessInfo.processInfo.environment["SOUS_TAG_LIBRARY"])
         let url = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
-        let batch = try MelaImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
+        let batch = try RecipeImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
         let recipes = batch.recipes.map(\.recipe)
         let byID = Dictionary(recipes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 
@@ -281,7 +281,7 @@ struct NutritionTagCalibrationTests {
     func gaps() throws {
         let path = try #require(ProcessInfo.processInfo.environment["SOUS_TAG_LIBRARY"])
         let url = URL(fileURLWithPath: NSString(string: path).expandingTildeInPath)
-        let batch = try MelaImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
+        let batch = try RecipeImport.read(try Data(contentsOf: url), named: url.lastPathComponent)
         let recipes = batch.recipes.map(\.recipe)
         let byID = Dictionary(recipes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
 

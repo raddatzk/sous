@@ -14,32 +14,40 @@ import Foundation
 /// concern us. Anything unreadable is reported per entry, so one damaged
 /// recipe never costs the user the other four hundred.
 public enum MelaImport: RecipeImportFormat {
-    /// Mela's own extensions and Sous's. The bytes are the same format —
-    /// Sous writes under its own name, and reads either.
-    public static let fileExtensions = [
-        "sousrecipe", "sousrecipes", "melarecipe", "melarecipes",
-    ]
+    /// Mela's own extensions. Sous writes the same format under its own
+    /// name, and ``SousImport`` reads those files.
+    public static let fileExtensions = ["melarecipe", "melarecipes"]
 
     public static func read(_ data: Data, named name: String) throws -> RecipeImportBatch {
+        try read(data, named: name, extending: nil)
+    }
+
+    /// What a format built on Mela's adds to a recipe from the keys it keeps
+    /// beside Mela's own.
+    typealias Extension = @Sendable (inout ImportedRecipe, [String: Any]) -> Void
+
+    /// Reads Mela's fields, and hands every recipe's object to `extend` for
+    /// whatever else it says.
+    static func read(_ data: Data, named name: String, extending extend: Extension?) throws -> RecipeImportBatch {
         if ZIPArchive.looksLikeArchive(data) {
-            return readArchive(data, named: name)
+            return readArchive(data, named: name, extending: extend)
         }
         guard let json = try? JSONSerialization.jsonObject(with: data) else {
             throw RecipeImportError.unrecognizedFormat
         }
         switch json {
         case let object as [String: Any]:
-            return batch(from: [object], names: [name])
+            return batch(from: [object], names: [name], extending: extend)
         case let array as [Any]:
             let objects = array.compactMap { $0 as? [String: Any] }
-            return batch(from: objects, names: objects.indices.map { "\(name) (\($0 + 1))" })
+            return batch(from: objects, names: objects.indices.map { "\(name) (\($0 + 1))" }, extending: extend)
         default:
             throw RecipeImportError.unrecognizedFormat
         }
     }
 
     /// A `.melarecipes` bundle: a zip of individual recipe files.
-    private static func readArchive(_ data: Data, named name: String) -> RecipeImportBatch {
+    private static func readArchive(_ data: Data, named name: String, extending extend: Extension?) -> RecipeImportBatch {
         guard let entries = try? ZIPArchive.entries(in: data) else {
             return RecipeImportBatch(problems: [
                 RecipeImportProblem(name: name, reason: "Das Archiv konnte nicht geöffnet werden.")
@@ -60,19 +68,20 @@ public enum MelaImport: RecipeImportFormat {
                 )
                 continue
             }
-            let single = batch(from: [object], names: [file])
+            let single = batch(from: [object], names: [file], extending: extend)
             recipes.append(contentsOf: single.recipes)
             problems.append(contentsOf: single.problems)
         }
         return RecipeImportBatch(recipes: recipes, problems: problems)
     }
 
-    private static func batch(from objects: [[String: Any]], names: [String]) -> RecipeImportBatch {
+    private static func batch(from objects: [[String: Any]], names: [String], extending extend: Extension?) -> RecipeImportBatch {
         var recipes: [ImportedRecipe] = []
         var problems: [RecipeImportProblem] = []
         for (index, object) in objects.enumerated() {
             let name = index < names.count ? names[index] : "Rezept \(index + 1)"
-            if let imported = recipe(from: object) {
+            if var imported = recipe(from: object) {
+                extend?(&imported, object)
                 recipes.append(imported)
             } else {
                 problems.append(RecipeImportProblem(name: name, reason: "Rezept ohne Titel."))
@@ -91,7 +100,6 @@ public enum MelaImport: RecipeImportFormat {
         let cook = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["cookTime"]))
         let total = RecipeFieldParsing.seconds(in: RecipeFieldParsing.string(object["totalTime"]))
 
-        let group = variantGroup(from: object)
         let recipe = Recipe(
             // Derived from Mela's own id, so importing the same library twice
             // updates the recipes instead of doubling them.
@@ -111,52 +119,10 @@ public enum MelaImport: RecipeImportFormat {
             // Mela usually records nothing but a total, and that is a
             // reading of its own — not cooking time by another name.
             totalTimeSeconds: total,
-            suitableSlots: suitableSlots(from: object),
-            variantGroupID: group?.id,
-            original: original(from: object),
             createdAt: date(object["date"]) ?? .nowInSyncPrecision,
             updatedAt: .nowInSyncPrecision
         )
-        return ImportedRecipe(
-            recipe: recipe,
-            images: images(object["images"]),
-            variantGroup: group
-        )
-    }
-
-    /// The group this file says its recipe belongs to — Sous's own key, and
-    /// absent from anything Mela wrote.
-    ///
-    /// A group without a readable id is no group: inventing one here would
-    /// put every recipe of a broken import into a group of its own.
-    private static func variantGroup(from object: [String: Any]) -> VariantGroup? {
-        guard let raw = object["sousVariantGroup"] as? [String: Any],
-              let id = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["id"])).flatMap(UUID.init(uuidString:))
-        else { return nil }
-        let title = RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["title"]))?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let title, !title.isEmpty else { return nil }
-        return VariantGroup(id: id, title: title)
-    }
-
-    /// The meals the file says its recipe suits — Sous's own key, absent
-    /// from anything Mela wrote, so a Mela import stays undecided.
-    private static func suitableSlots(from object: [String: Any]) -> Set<MealSlot>? {
-        guard let raw = object["sousSuitableSlots"] as? [Any] else { return nil }
-        let slots = raw.compactMap { RecipeFieldParsing.string($0).flatMap(MealSlot.init(rawValue:)) }
-        return slots.isEmpty ? nil : Set(slots)
-    }
-
-    /// The text the recipe was imported as before Sous optimized it — Sous's
-    /// own key, absent from anything Mela wrote. Without it the library
-    /// keeps what this file says as the original.
-    private static func original(from object: [String: Any]) -> RecipeOriginal? {
-        guard let raw = object["sousOriginal"] as? [String: Any] else { return nil }
-        return RecipeOriginal(
-            ingredientsText: lines(raw["ingredients"]),
-            instructionsText: lines(raw["instructions"]),
-            notes: RecipeFieldParsing.nonEmpty(RecipeFieldParsing.string(raw["notes"]))
-        )
+        return ImportedRecipe(recipe: recipe, images: images(object["images"]))
     }
 
     private static func identifier(for object: [String: Any]) -> UUID {
@@ -188,7 +154,7 @@ public enum MelaImport: RecipeImportFormat {
     // MARK: - Fields
 
     /// Text that may have been written as one string or as a list of lines.
-    private static func lines(_ value: Any?) -> String {
+    static func lines(_ value: Any?) -> String {
         if let text = RecipeFieldParsing.string(value) { return text }
         if let array = value as? [Any] {
             return array.compactMap { RecipeFieldParsing.string($0) }.joined(separator: "\n")

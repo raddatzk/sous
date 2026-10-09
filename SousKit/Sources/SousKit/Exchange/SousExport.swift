@@ -1,14 +1,15 @@
 import Foundation
 
-/// Writes recipes in the format ``MelaImport`` reads, under Sous's own
-/// extension: `.sousrecipe` for one, `.sousrecipes` for a library.
+/// Writes recipes in Mela's format, under Sous's own extension:
+/// `.sousrecipe` for one, `.sousrecipes` for a library. ``SousImport`` reads
+/// them back, the keys Sous adds beside Mela's included.
 ///
 /// Mela's format rather than one of Sous's own: it is the format this app's
 /// model was shaped after, so nothing has to be left behind, and a file
 /// written here opens in Mela, in Sous, and in anything else that learned to
 /// read it. A second, private format would be one more thing to keep in step
 /// for no reader that does not already exist.
-public enum MelaExport {
+public enum SousExport {
     /// One recipe with its pictures, as the contents of a `.sousrecipe` file.
     ///
     /// `variantGroup` is written into the file when the recipe is one version
@@ -107,6 +108,14 @@ public enum MelaExport {
             ]
             if let notes = original.notes { kept["notes"] = notes }
             object["sousOriginal"] = kept
+        }
+        // What each step takes from the list, as the library keeps it: an
+        // optimized recipe would otherwise come back with its text and
+        // without the references that make the cook mode scale it. Stale
+        // references go out too; they read as stale on the way back in.
+        if let json = StepReferences.encode(recipe.stepReferences),
+           let references = try? JSONSerialization.jsonObject(with: Data(json.utf8)) {
+            object["sousStepReferences"] = references
         }
         return object
     }

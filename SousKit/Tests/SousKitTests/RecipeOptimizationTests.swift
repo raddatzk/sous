@@ -552,8 +552,8 @@ struct RecipeOriginalTests {
         try await store.save(recipe)
         #expect(try await store.recipe(id: recipe.id)?.original == recipe.original)
 
-        let data = try MelaExport.recipe(recipe, images: [])
-        let back = try #require(MelaImport.read(data, named: "Suppe.sousrecipe").recipes.first?.recipe)
+        let data = try SousExport.recipe(recipe, images: [])
+        let back = try #require(SousImport.read(data, named: "Suppe.sousrecipe").recipes.first?.recipe)
         #expect(back.original?.ingredientsText == "250 g rote Linsen - (getrocknet)")
         #expect(back.original?.notes == "Aus dem Netz.")
     }

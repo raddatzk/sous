@@ -3,8 +3,8 @@ import SwiftData
 import Testing
 @testable import SousKit
 
-@Suite("Mela export")
-struct MelaExportTests {
+@Suite("Sous export")
+struct SousExportTests {
     private let picture = Data("not really a picture, but bytes are bytes".utf8)
 
     private var complete: Recipe {
@@ -29,9 +29,9 @@ struct MelaExportTests {
     @Test("A recipe comes back from its own file unchanged")
     func roundTrip() throws {
         let original = complete
-        let file = try MelaExport.recipe(original, images: [picture])
+        let file = try SousExport.recipe(original, images: [picture])
 
-        let batch = try MelaImport.read(file, named: "Zwiebelkuchen.melarecipe")
+        let batch = try SousImport.read(file, named: "Zwiebelkuchen.sousrecipe")
         let imported = try #require(batch.recipes.first)
         let back = imported.recipe
 
@@ -54,12 +54,30 @@ struct MelaExportTests {
         #expect(imported.images == [picture])
     }
 
+    @Test("What each step takes comes back with the recipe, still current")
+    func stepReferencesRoundTrip() throws {
+        var recipe = complete
+        recipe.stepReferences = StepReferences(
+            fingerprint: StepReferencesPrompt.fingerprint(for: recipe),
+            steps: [
+                [.init(kind: .mention, text: "", line: 1, amount: "1 kg")],
+                [.init(kind: .mention, text: "", line: 3, amount: "500 g")],
+            ]
+        )
+        let file = try SousExport.recipe(recipe, images: [])
+
+        let back = try #require(try SousImport.read(file, named: "x.sousrecipe").recipes.first?.recipe)
+
+        #expect(back.stepReferences == recipe.stepReferences)
+        #expect(back.stepReferences?.isCurrent(for: back) == true)
+    }
+
     @Test("A recipe with almost nothing in it survives too")
     func sparseRoundTrip() throws {
         let bare = Recipe(title: "Rührei")
-        let file = try MelaExport.recipe(bare, images: [])
+        let file = try SousExport.recipe(bare, images: [])
 
-        let back = try #require(try MelaImport.read(file, named: "x.melarecipe").recipes.first?.recipe)
+        let back = try #require(try SousImport.read(file, named: "x.sousrecipe").recipes.first?.recipe)
 
         #expect(back.title == "Rührei")
         // Empty strings go out and come back as nothing, not as "".
@@ -70,6 +88,7 @@ struct MelaExportTests {
         #expect(back.source.kind == .manual)
         // Undecided stays undecided — a Mela file never carries the key.
         #expect(back.suitableSlots == nil)
+        #expect(back.stepReferences == nil)
     }
 
     @Test("A library archive reads back as the library it was")
@@ -79,8 +98,8 @@ struct MelaExportTests {
             (recipe: Recipe(title: "Rührei", servings: 2), images: [], variantGroup: nil),
         ]
 
-        let archive = try MelaExport.library(recipes)
-        let batch = try MelaImport.read(archive, named: "Rezepte.melarecipes")
+        let archive = try SousExport.library(recipes)
+        let batch = try SousImport.read(archive, named: "Rezepte.sousrecipes")
 
         #expect(batch.problems.isEmpty)
         #expect(batch.recipes.count == 2)
@@ -91,10 +110,10 @@ struct MelaExportTests {
     @Test("Files are named after their recipe, and two of a name stay apart")
     func fileNames() {
         var used = Set<String>()
-        let first = MelaExport.fileName(for: Recipe(title: "Pasta"), avoiding: &used)
-        let second = MelaExport.fileName(for: Recipe(title: "Pasta"), avoiding: &used)
-        let slashes = MelaExport.fileName(for: Recipe(title: "Süß/Sauer"), avoiding: &used)
-        let untitled = MelaExport.fileName(for: Recipe(title: " "), avoiding: &used)
+        let first = SousExport.fileName(for: Recipe(title: "Pasta"), avoiding: &used)
+        let second = SousExport.fileName(for: Recipe(title: "Pasta"), avoiding: &used)
+        let slashes = SousExport.fileName(for: Recipe(title: "Süß/Sauer"), avoiding: &used)
+        let untitled = SousExport.fileName(for: Recipe(title: " "), avoiding: &used)
 
         #expect(first == "Pasta.sousrecipe")
         #expect(second == "Pasta 2.sousrecipe")
@@ -105,10 +124,10 @@ struct MelaExportTests {
 
     @Test("Durations are written the way Mela writes them")
     func durations() {
-        #expect(MelaExport.duration(1200) == "20min")
-        #expect(MelaExport.duration(3600) == "1h")
-        #expect(MelaExport.duration(5400) == "1h 30min")
-        #expect(MelaExport.duration(0) == "0min")
+        #expect(SousExport.duration(1200) == "20min")
+        #expect(SousExport.duration(3600) == "1h")
+        #expect(SousExport.duration(5400) == "1h 30min")
+        #expect(SousExport.duration(0) == "0min")
     }
 }
 
@@ -131,7 +150,7 @@ struct RecipeLibraryExportTests {
         #expect(library.recipes.count == 1)
 
         let archive = try #require(await library.exportedLibrary())
-        let batch = try MelaImport.read(archive, named: "Rezepte.melarecipes")
+        let batch = try SousImport.read(archive, named: "Rezepte.sousrecipes")
 
         #expect(Set(batch.recipes.map(\.recipe.title)) == ["Linsensuppe", "Zwiebelkuchen"])
         #expect(library.exportProgress == nil)

@@ -1113,7 +1113,7 @@ public final class RecipeLibrary {
     /// One recipe as a `.sousrecipe` file, pictures included.
     public func exportedRecipe(_ recipe: Recipe) async -> Data? {
         do {
-            return try MelaExport.recipe(
+            return try SousExport.recipe(
                 recipe,
                 images: await images(of: recipe),
                 variantGroup: await exportedGroup(of: recipe)
@@ -1150,7 +1150,7 @@ public final class RecipeLibrary {
             }
             // Writing the archive is pure computation over data already in
             // hand, and has no business on the main actor.
-            return try await Task.detached { try MelaExport.library(items) }.value
+            return try await Task.detached { try SousExport.library(items) }.value
         } catch {
             report(error)
             return nil

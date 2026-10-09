@@ -149,6 +149,23 @@ struct MelaImportTests {
         }
     }
 
+    @Test("Sous's own keys are read from a Sous file, never from a Mela one")
+    func sousKeysOnlyInSousFiles() throws {
+        let data = Data(#"""
+        {"title": "Eins", "sousSuitableSlots": ["dinner"],
+         "sousVariantGroup": {"id": "5B0F2A10-0000-4000-8000-0000000000AA", "title": "Eins"}}
+        """#.utf8)
+
+        let sous = try #require(try RecipeImport.read(data, named: "a.sousrecipe").recipes.first)
+        #expect(sous.recipe.suitableSlots == [.dinner])
+        #expect(sous.variantGroup?.title == "Eins")
+
+        let mela = try #require(try RecipeImport.read(data, named: "a.melarecipe").recipes.first)
+        #expect(mela.recipe.suitableSlots == nil)
+        #expect(mela.variantGroup == nil)
+        #expect(mela.recipe.variantGroupID == nil)
+    }
+
     @Test("Files are routed by their extension")
     func routing() throws {
         let data = Data(#"{"title": "Eins"}"#.utf8)
