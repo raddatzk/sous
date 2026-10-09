@@ -74,9 +74,10 @@ struct TrashView: View {
             .navigationDestination(item: $openedRecipe) { recipe in
                 RecipeDetailView(recipe: recipe)
             }
-            // A recipe opened from here asks the library to edit it. Take the
-            // request over rather than letting it fall through to the list,
-            // which cannot present anything while this sheet is up.
+            // A new or imported recipe asked for while the trash is up (the
+            // Mac's menu reaches the library from anywhere). Take the request
+            // over rather than letting it fall through to the list, which
+            // cannot present anything while this sheet is up.
             .onChange(of: library.editing) { _, wanted in
                 guard let wanted else { return }
                 library.editing = nil

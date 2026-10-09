@@ -59,8 +59,8 @@ struct RecipeDetailView: View {
     @State private var linkedRecipe: Recipe?
     /// Set where this page sits in a sheet of its own — a linked recipe, or
     /// one looked up from cook mode. The list is underneath that sheet then,
-    /// and can neither present the editor nor push what the selection names,
-    /// so both happen in the sheet instead. See ``RecipeSheet``.
+    /// and cannot push what the selection names, so that happens in the
+    /// sheet instead. See ``RecipeSheet``.
     @Environment(\.recipeSheet) private var recipeSheet
     @State private var editingInPlace: Recipe?
     @State private var isAddingVariant = false
@@ -198,14 +198,12 @@ struct RecipeDetailView: View {
         }
     }
 
-    /// Into the editor — in this sheet where the page is itself a sheet,
-    /// since the list's editor is underneath it.
+    /// Into the editor, presented by this page rather than handed to the
+    /// list's: the list is only there in the recipes tab, and a page opened
+    /// from the search, the plan or the shopping list — or sitting in a
+    /// sheet of its own — would ask it for nothing.
     private func openEditor() {
-        if recipeSheet != nil {
-            editingInPlace = recipe
-        } else {
-            library.editing = recipe
-        }
+        editingInPlace = recipe
     }
 
     /// The same soft delete the list offers — into the trash, not gone —
@@ -1548,9 +1546,8 @@ extension RecipeDetailView {
 /// page, or one looked up from cook mode.
 ///
 /// A page in here cannot reach what the rest of the app uses to move on —
-/// the list's editor sheet and the selection it pushes from are both
-/// underneath — so the sheet carries its own stack, and says so through the
-/// environment. A new variant, or the comparison after joining two, is then
+/// the selection the list pushes from is underneath — so the sheet carries
+/// its own stack, and says so through the environment. A new variant, or the comparison after joining two, is then
 /// pushed in here, where the cook is looking.
 struct RecipeSheet: View {
     let recipe: Recipe
