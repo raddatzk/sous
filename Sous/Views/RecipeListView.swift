@@ -627,7 +627,7 @@ struct RecipeListView: View {
         RecipeRow(recipe: recipe, isHighlighted: isHighlighted(recipe))
             .tag(RecipeListSelection.recipe(recipe.id))
             // The long-press previews the recipe itself, with its actions
-            // underneath rather than a bare menu — VISION.md asks for
+            // underneath rather than a bare menu — docs/VISION.md asks for
             // exactly this, and it is what a long-press means on iOS. The
             // Mac keeps the plain menu: a right-click there is a menu, not
             // a peek.

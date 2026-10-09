@@ -505,7 +505,7 @@ enum SousManagedObjectModel {
     /// library — and everything written afterwards joins the zone by being
     /// attached to it, rather than by every insert remembering to say so.
     ///
-    /// It also answers a question `VISION.md` already asked: which household
+    /// It also answers a question `docs/VISION.md` already asked: which household
     /// a row belongs to has to be on the row, and this is that, as a relation
     /// rather than a loose id. The switch between several households reads it
     /// as a filter.

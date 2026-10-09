@@ -160,7 +160,7 @@ enum RecipeTextEditorStyle {
     /// Two states: an amount tied to an ingredient line is accented, exactly
     /// as cook mode prints it back; an amount of something the list does not
     /// have is dotted in grey. Nothing here rewrites a character — see
-    /// VISION.md, "the text is the only truth".
+    /// docs/VISION.md, "the text is the only truth".
     private static func markUp(_ attributed: NSMutableAttributedString, with marks: [RecipeStepMarkup.Mark]) {
         let whole = NSRange(location: 0, length: attributed.length)
         for mark in marks {
