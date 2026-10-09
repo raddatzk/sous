@@ -83,10 +83,81 @@ class BrokenData(unittest.TestCase):
     def test_the_real_data_compiles(self):
         outputs, _, released = data_compiler.compile_data(self.data)
         self.assertEqual(set(outputs), {
-            "kitchen_words.json", "curation.json", "measures.json",
+            "ai_providers.json", "kitchen_words.json", "curation.json", "measures.json",
             "aisles.json", "nutrition.json", "sources.json", "ids.json", "manifest.json",
         })
         self.assertEqual(released, (self.data / "released-ids.txt").read_text(encoding="utf-8"))
+
+    # --- Community/ki/ -------------------------------------------------
+
+    def test_the_providers_compile_with_their_models_and_addresses(self):
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        providers = {p["id"]: p for p in json.loads(outputs["ai_providers.json"])["providers"]}
+        anthropic = providers["anthropic"]
+        self.assertEqual(anthropic["api"]["baseURL"], "https://api.anthropic.com/v1")
+        self.assertEqual(anthropic["api"]["models"][0]["id"], "claude-haiku-5-5")
+        # `thinking: false` is the boolean false, not the string the loader reads.
+        self.assertIs(anthropic["api"]["models"][0]["thinking"], False)
+        self.assertNotIn("thinking", anthropic["api"]["models"][1])
+        self.assertEqual(anthropic["chat"]["id"], "claude")
+        # A provider with only a chat has no api.
+        self.assertNotIn("api", providers["mistral"])
+
+    def test_a_provider_file_is_named_after_its_id(self):
+        self.edit("ki/grok.yaml", "id: grok", "id: xai")
+        self.assertFails("ki/grok.yaml: the file is named 'grok', the provider has the id 'xai'")
+
+    def test_an_address_is_https_and_has_no_trailing_slash(self):
+        self.edit("ki/grok.yaml", "https://api.x.ai/v1", "http://api.x.ai/v1")
+        self.assertFails("ki/grok.yaml: api/baseURL")
+
+    def test_an_address_may_not_end_in_a_slash(self):
+        self.edit("ki/openai.yaml", "baseURL: https://api.openai.com/v1", "baseURL: https://api.openai.com/v1/")
+        # The pattern lets a slash through (a cook may paste one); the compiler does not.
+        self.assertFails("ends in a slash")
+
+    def test_an_address_may_not_carry_credentials_or_a_query(self):
+        self.edit("ki/grok.yaml", "https://api.x.ai/v1", "https://key@api.x.ai/v1")
+        self.assertFails("ki/grok.yaml: api/baseURL")
+
+    def test_a_local_address_is_not_a_provider_of_the_catalog(self):
+        self.edit("ki/grok.yaml", "baseURL: https://api.x.ai/v1", "baseURL: https://localhost:8000/v1")
+        self.assertFails("local or numeric address")
+
+    def test_two_providers_may_not_share_a_host(self):
+        self.edit("ki/grok.yaml", "https://api.x.ai/v1", "https://api.openai.com/v1")
+        self.assertFails("baseURL has the host api.openai.com, which grok has too")
+
+    def test_a_chat_id_is_taken_once(self):
+        self.edit("ki/copilot.yaml", "id: copilot\n  title", "id: claude\n  title")
+        self.assertFails("the chat id 'claude' is also anthropic's")
+
+    def test_a_model_is_listed_once(self):
+        self.edit("ki/openai.yaml", "id: gpt-5.6-luna", "id: gpt-5.4-mini")
+        self.assertFails("the model 'gpt-5.4-mini' is listed twice")
+
+    def test_a_move_names_an_address_the_provider_left(self):
+        self.edit("ki/grok.yaml", "  models:", """  moved:
+    - from: https://api.x.ai/v1
+      source: https://docs.x.ai/docs
+      reason: Test.
+  models:""")
+        self.assertFails("moved.from https://api.x.ai/v1 has the host the provider still has")
+
+    def test_a_move_is_carried_to_the_app(self):
+        self.edit("ki/grok.yaml", "  models:", """  moved:
+    - from: https://api.old.example/v1
+      source: https://docs.x.ai/docs
+      reason: Neue Adresse.
+  models:""")
+        outputs, _, _ = data_compiler.compile_data(self.data)
+        grok = next(p for p in json.loads(outputs["ai_providers.json"])["providers"] if p["id"] == "grok")
+        self.assertEqual(grok["api"]["moved"], [
+            {"from": "https://api.old.example/v1", "source": "https://docs.x.ai/docs", "reason": "Neue Adresse."}])
+
+    def test_a_provider_has_an_api_or_a_chat(self):
+        self.write("ki/leer.yaml", "id: leer\nname: Leer\n")
+        self.assertFails("ki/leer.yaml")
 
     def test_every_word_carries_its_id(self):
         outputs, _, _ = data_compiler.compile_data(self.data)

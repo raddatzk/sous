@@ -1,7 +1,7 @@
 {
  "$schema": "https://json-schema.org/draft/2020-12/schema",
  "title": "Sous catalog data",
- "description": "The shape of the YAML under Data/. The compiler reads every scalar as a string, so numbers, dates and booleans are strings here with a pattern; compile.py converts them. Checks across files (unique spellings, codes that exist, a root that maps) live in compile.py.",
+ "description": "The shape of the YAML under Community/. The compiler reads every scalar as a string, so numbers, dates and booleans are strings here with a pattern; compile.py converts them. Checks across files (unique spellings, codes that exist, a root that maps) live in compile.py.",
  "$defs": {
   "text": {"type": "string", "minLength": 1},
   "number": {"type": "string", "pattern": "^[0-9]+(\\.[0-9]+)?$"},
@@ -96,7 +96,7 @@
    }
   },
   "inlineRow": {
-   "description": "A row from a source other than the BLS, named by its source and its code there. Its own code is a Z code; its name and values come from Data/sources/<id>.json.",
+   "description": "A row from a source other than the BLS, named by its source and its code there. Its own code is a Z code; its name and values come from Community/sources/<id>.json.",
    "type": "object",
    "required": ["code", "source"],
    "additionalProperties": false,
@@ -116,7 +116,7 @@
    }
   },
   "sourceRow": {
-   "description": "One row of Data/sources/<id>.json: the name as the source writes it, and the values it states.",
+   "description": "One row of Community/sources/<id>.json: the name as the source writes it, and the values it states.",
    "type": "object",
    "required": ["name"],
    "oneOf": [{"required": ["per100g"]}, {"required": ["per100ml"]}],
@@ -218,7 +218,7 @@
    }
   },
   "retiredFile": {
-   "description": "Data/retired.yaml: ids whose thing left the catalog. Never used again.",
+   "description": "Community/retired.yaml: ids whose thing left the catalog. Never used again.",
    "type": "array",
    "items": {
     "type": "object",
@@ -231,7 +231,7 @@
    }
   },
   "assumedZerosFile": {
-   "description": "Data/assumed-zeros.yaml: per nutrient, the BLS groups in which a blank counts as 0.",
+   "description": "Community/assumed-zeros.yaml: per nutrient, the BLS groups in which a blank counts as 0.",
    "type": "array",
    "items": {
     "type": "object",
@@ -245,13 +245,13 @@
    }
   },
   "ingredientFile": {
-   "description": "Data/ingredients/<root id>.yaml: one family.",
+   "description": "Community/ingredients/<root id>.yaml: one family.",
    "type": "array",
    "minItems": 1,
    "items": {"$ref": "#/$defs/ingredient"}
   },
   "productFile": {
-   "description": "Data/products/<brand>.yaml: products stand beside the ingredients, never nested.",
+   "description": "Community/products/<brand>.yaml: products stand beside the ingredients, never nested.",
    "type": "array",
    "minItems": 1,
    "items": {"$ref": "#/$defs/product"}
@@ -323,7 +323,7 @@
    "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
   },
   "sourceFile": {
-   "description": "Data/sources/<id>.yaml: one body the values are drawn from, as it asks to be named. Every source the same record.",
+   "description": "Community/sources/<id>.yaml: one body the values are drawn from, as it asks to be named. Every source the same record.",
    "type": "object",
    "required": ["title", "publisher", "url", "version", "release", "license", "licenseURL", "attribution", "changeNote"],
    "additionalProperties": false,
@@ -350,6 +350,72 @@
      "items": {"type": "string", "pattern": "^https://github.com/raddatzk/sous/releases/download/"}
     },
     "extract": {"description": "The command that turns the download into <id>.json.", "$ref": "#/$defs/text"}
+   }
+  },
+  "httpsURL": {
+   "description": "An https address without a query or credentials: where a key may be sent, or a page a cook is sent to.",
+   "type": "string",
+   "pattern": "^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]+)?(/[A-Za-z0-9._~/-]*[A-Za-z0-9._~-])?/?$"
+  },
+  "aiProviderFile": {
+   "description": "Community/ki/<id>.yaml: one AI provider. `api` is what Sous asks directly with the cook's own key, `chat` where a cook who copies the prompt opens a chat; a file holds either or both.",
+   "type": "object",
+   "required": ["id", "name"],
+   "additionalProperties": false,
+   "anyOf": [{"required": ["api"]}, {"required": ["chat"]}],
+   "properties": {
+    "id": {"$ref": "#/$defs/id"},
+    "name": {"$ref": "#/$defs/text"},
+    "api": {
+     "type": "object",
+     "required": ["format", "baseURL", "keyPage", "docs", "models"],
+     "additionalProperties": false,
+     "properties": {
+      "format": {"description": "anthropic: /messages. openai: /chat/completions, which OpenAI, Grok, Gemini's compatibility endpoint and local servers speak.", "enum": ["anthropic", "openai"]},
+      "baseURL": {"description": "With the version path, without a trailing slash. The cook's key goes to this address.", "$ref": "#/$defs/httpsURL"},
+      "keyPage": {"description": "Where a cook makes a key.", "$ref": "#/$defs/httpsURL"},
+      "docs": {"description": "The provider's own page that names baseURL.", "$ref": "#/$defs/httpsURL"},
+      "models": {
+       "description": "Best first.",
+       "type": "array",
+       "minItems": 1,
+       "items": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+         "id": {"$ref": "#/$defs/text"},
+         "effort": {"description": "How much the model spends on thinking, where it has the setting.", "enum": ["low", "medium", "high", "xhigh", "max"]},
+         "thinking": {"description": "false turns thinking off, where the model allows it.", "$ref": "#/$defs/boolean"}
+        }
+       }
+      },
+      "moved": {
+       "description": "Earlier addresses, for as long as a device may still hold one: a cook who saved the old one is asked before the key follows the move.",
+       "type": "array",
+       "items": {
+        "type": "object",
+        "required": ["from", "source", "reason"],
+        "additionalProperties": false,
+        "properties": {
+         "from": {"$ref": "#/$defs/httpsURL"},
+         "source": {"description": "Where the provider announces the move.", "$ref": "#/$defs/httpsURL"},
+         "reason": {"$ref": "#/$defs/text"}
+        }
+       }
+      }
+     }
+    },
+    "chat": {
+     "type": "object",
+     "required": ["id", "title", "url"],
+     "additionalProperties": false,
+     "properties": {
+      "id": {"description": "What the app stores for the cook's choice.", "$ref": "#/$defs/id"},
+      "title": {"$ref": "#/$defs/text"},
+      "url": {"description": "Where a new chat starts; a universal link, so an installed app opens instead of the browser.", "$ref": "#/$defs/httpsURL"}
+     }
+    }
    }
   }
  }

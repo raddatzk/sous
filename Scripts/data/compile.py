@@ -12,6 +12,7 @@ Reads:
   - `Community/weights.yaml`   units, group weights, group densities
   - `Community/categories.yaml` BLS group -> category
   - `Community/sources/<id>.yaml`   each source as it asks to be named
+  - `Community/ki/<id>.yaml`        one AI provider: how to ask it, and its chat
   - `Community/sources/<id>.json`   each source's rows, written by
                                `Scripts/sources/extract.py` from its download
                                (or by hand, for nutrition labels)
@@ -61,6 +62,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+from urllib.parse import urlsplit
 import re
 import subprocess
 import sys
@@ -86,7 +88,7 @@ SCHEMA = 2
 MANIFEST = "manifest.json"
 # The files a data set consists of, SousKit's `DataSet.File`.
 SET_FILES = (
-    "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
+    "ai_providers.json", "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
     "measures.json", "nutrition.json", "sources.json",
 )
 # Where each source keeps its register entry (<id>.yaml) and its rows (<id>.json).
@@ -283,6 +285,8 @@ class Dataset:
     bls_codes: set[str]
     retired: dict[str, str] = field(default_factory=dict)
     assumed_zeros: list = field(default_factory=list)
+    # Community/ki/<id>.yaml, by id.
+    ai_providers: dict = field(default_factory=dict)
     # Per BLS group, per nutrient, how many rows leave it blank: what an
     # assumed-zero rule can reach.
     bls_blanks: dict = field(default_factory=dict)
@@ -346,6 +350,11 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
         errors.append(f"Community/{SOURCES_DIR}/bls.yaml is missing; the BLS is the catalog's first source")
     retired = validated(data / "retired.yaml", "retiredFile") or []
     assumed_zeros = validated(data / "assumed-zeros.yaml", "assumedZerosFile") or []
+    ai_providers: dict = {}
+    for path in sorted((data / "ki").glob("*.yaml")):
+        document = validated(path, "aiProviderFile")
+        if isinstance(document, dict):
+            ai_providers[path.stem] = document
     if errors:
         raise DataError("\n".join(errors))
 
@@ -401,6 +410,7 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
         bls_codes=set(bls_rows),
         retired=retired_ids,
         assumed_zeros=assumed_zeros,
+        ai_providers=ai_providers,
         bls_blanks=blanks,
         released=read_released(data / "released-ids.txt"),
     )
@@ -578,6 +588,76 @@ def lost_ids(before: str, after: str) -> list[str]:
     return sorted(set(parse_released(before)) - set(parse_released(after)))
 
 
+def ai_provider_errors(providers: dict) -> list[str]:
+    """Community/ki/. A file is named after its provider's id, the chat ids are
+    unique (the app stores one), and an address is written once and the same
+    way: the compiler cannot know a provider's real address, so what it can do is
+    keep two providers from sharing one and the key from going anywhere it was
+    not named."""
+    errors: list[str] = []
+    chats: dict[str, str] = {}
+    hosts: dict[str, str] = {}
+    for file_id, provider in providers.items():
+        where = f"Community/ki/{file_id}.yaml"
+        if provider["id"] != file_id:
+            errors.append(f"{where}: the file is named {file_id!r}, the provider has the id "
+                          f"{provider['id']!r}; name the file after the id")
+        chat = provider.get("chat")
+        if chat:
+            if chat["id"] in chats:
+                errors.append(f"{where}: the chat id {chat['id']!r} is also {chats[chat['id']]}'s; "
+                              f"the app stores one id per chat")
+            chats[chat["id"]] = provider["id"]
+        api = provider.get("api")
+        if not api:
+            continue
+        host = urlsplit(api["baseURL"]).hostname or ""
+        if re.fullmatch(r"[0-9.]+|localhost|.*\.local|.*\.internal", host):
+            errors.append(f"{where}: baseURL {api['baseURL']} is a local or numeric address; the "
+                          f"catalog names providers on the internet (a cook adds a local server in "
+                          f"the app)")
+        if host in hosts:
+            errors.append(f"{where}: baseURL has the host {host}, which {hosts[host]} has too")
+        hosts[host] = provider["id"]
+        if api["baseURL"].endswith("/"):
+            errors.append(f"{where}: baseURL {api['baseURL']} ends in a slash; the app adds the path")
+        ids = [model["id"] for model in api["models"]]
+        for model_id in sorted({i for i in ids if ids.count(i) > 1}):
+            errors.append(f"{where}: the model {model_id!r} is listed twice")
+        for move in api.get("moved", []):
+            if urlsplit(move["from"]).hostname == host:
+                errors.append(f"{where}: moved.from {move['from']} has the host the provider still "
+                              f"has; list an address the provider left")
+    return errors
+
+
+def ai_providers(dataset: Dataset) -> dict:
+    """The providers for the app, by id. A cook's key goes to `api.baseURL`
+    only; `moved` lets the app say why an address a cook saved is not the
+    current one."""
+    def provider(entry: dict) -> dict:
+        out = {"id": entry["id"], "name": entry["name"]}
+        api = entry.get("api")
+        if api:
+            out["api"] = {
+                "format": api["format"], "baseURL": api["baseURL"],
+                "keyPage": api["keyPage"], "docs": api["docs"],
+                "models": [
+                    {"id": m["id"],
+                     **({"effort": m["effort"]} if "effort" in m else {}),
+                     **({"thinking": m["thinking"] == "true"} if "thinking" in m else {})}
+                    for m in api["models"]
+                ],
+                "moved": [{"from": m["from"], "source": m["source"], "reason": m["reason"]}
+                          for m in api.get("moved", [])],
+            }
+        if "chat" in entry:
+            out["chat"] = dict(entry["chat"])
+        return out
+
+    return {"providers": [provider(dataset.ai_providers[key]) for key in sorted(dataset.ai_providers)]}
+
+
 def check(dataset: Dataset) -> None:
     errors: list[str] = []
     warnings = dataset.warnings
@@ -598,6 +678,8 @@ def check(dataset: Dataset) -> None:
         if idle:
             warnings.append(f"Community/assumed-zeros.yaml: no BLS row in {', '.join(idle)} leaves "
                             f"{nutrient} blank; the group can go")
+
+    errors.extend(ai_provider_errors(dataset.ai_providers))
 
     # Names and aliases: once across the whole catalog, products included,
     # compared the way the app compares them.
@@ -1064,6 +1146,7 @@ def compile_data(
     dataset = load_dataset(data, resources)
     check(dataset)
     outputs = {
+        "ai_providers.json": dump_json(ai_providers(dataset)),
         "kitchen_words.json": dump_json(kitchen_words(dataset)),
         "curation.json": dump_json(curation(dataset)),
         "measures.json": dump_json(measures(dataset)),

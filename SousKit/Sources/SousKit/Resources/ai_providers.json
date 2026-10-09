@@ -1,0 +1,117 @@
+{
+ "providers": [
+  {
+   "id": "anthropic",
+   "name": "Anthropic",
+   "api": {
+    "format": "anthropic",
+    "baseURL": "https://api.anthropic.com/v1",
+    "keyPage": "https://platform.claude.com/settings/keys",
+    "docs": "https://platform.claude.com/docs/en/api/overview",
+    "models": [
+     {
+      "id": "claude-haiku-5-5",
+      "effort": "low",
+      "thinking": false
+     },
+     {
+      "id": "claude-haiku-4-5-20251001"
+     },
+     {
+      "id": "claude-sonnet-5-5"
+     }
+    ],
+    "moved": []
+   },
+   "chat": {
+    "id": "claude",
+    "title": "Claude",
+    "url": "https://claude.ai/new"
+   }
+  },
+  {
+   "id": "copilot",
+   "name": "Microsoft",
+   "chat": {
+    "id": "copilot",
+    "title": "Copilot",
+    "url": "https://copilot.microsoft.com/"
+   }
+  },
+  {
+   "id": "gemini",
+   "name": "Gemini",
+   "api": {
+    "format": "openai",
+    "baseURL": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "keyPage": "https://aistudio.google.com/apikey",
+    "docs": "https://ai.google.dev/gemini-api/docs/openai",
+    "models": [
+     {
+      "id": "gemini-3.5-flash-lite"
+     }
+    ],
+    "moved": []
+   },
+   "chat": {
+    "id": "gemini",
+    "title": "Gemini",
+    "url": "https://gemini.google.com/app"
+   }
+  },
+  {
+   "id": "grok",
+   "name": "Grok",
+   "api": {
+    "format": "openai",
+    "baseURL": "https://api.x.ai/v1",
+    "keyPage": "https://console.x.ai",
+    "docs": "https://docs.x.ai/docs",
+    "models": [
+     {
+      "id": "grok-4.20-0309-non-reasoning"
+     }
+    ],
+    "moved": []
+   },
+   "chat": {
+    "id": "grok",
+    "title": "Grok",
+    "url": "https://grok.com"
+   }
+  },
+  {
+   "id": "mistral",
+   "name": "Mistral",
+   "chat": {
+    "id": "lechat",
+    "title": "Le Chat",
+    "url": "https://chat.mistral.ai/chat"
+   }
+  },
+  {
+   "id": "openai",
+   "name": "OpenAI",
+   "api": {
+    "format": "openai",
+    "baseURL": "https://api.openai.com/v1",
+    "keyPage": "https://platform.openai.com/api-keys",
+    "docs": "https://platform.openai.com/docs/api-reference",
+    "models": [
+     {
+      "id": "gpt-5.4-mini"
+     },
+     {
+      "id": "gpt-5.6-luna"
+     }
+    ],
+    "moved": []
+   },
+   "chat": {
+    "id": "chatgpt",
+    "title": "ChatGPT",
+    "url": "https://chatgpt.com/"
+   }
+  }
+ ]
+}

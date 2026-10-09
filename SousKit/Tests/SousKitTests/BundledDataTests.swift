@@ -374,7 +374,7 @@ struct BundledDataFingerprintTests {
         // Spelled out rather than read off `DataSet.File`: comparing the list
         // against itself would pass however short it got.
         #expect(Set(manifest.files.keys) == [
-            "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
+            "ai_providers.json", "aisles.json", "curation.json", "ids.json", "kitchen_words.json",
             "measures.json", "nutrition.json", "sources.json",
         ])
         #expect(Set(DataSet.File.allCases.map(\.fileName)) == Set(manifest.files.keys))

@@ -1,0 +1,15 @@
+id: gemini
+name: Gemini
+api:
+  # Gemini's OpenAI-compatible endpoint.
+  format: openai
+  baseURL: https://generativelanguage.googleapis.com/v1beta/openai
+  keyPage: https://aistudio.google.com/apikey
+  docs: https://ai.google.dev/gemini-api/docs/openai
+  # The larger Flash models answered 503 under load when measured and are not listed.
+  models:
+    - id: gemini-3.5-flash-lite
+chat:
+  id: gemini
+  title: Gemini
+  url: https://gemini.google.com/app

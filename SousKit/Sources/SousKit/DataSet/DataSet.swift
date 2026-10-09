@@ -15,6 +15,7 @@ public final class DataSet: Sendable {
     /// The files every set consists of.
     public enum File: String, CaseIterable, Sendable {
         case nutrition, kitchenWords = "kitchen_words", curation, measures, aisles, sources, ids
+        case aiProviders = "ai_providers"
 
         public var fileName: String { rawValue + ".json" }
     }
@@ -35,6 +36,9 @@ public final class DataSet: Sendable {
     public let bls: BLSCatalog
     public let sources: [DataSource]
     public let renames: CatalogRenames
+    /// The AI providers of `Community/ki/`. A set from before the file
+    /// existed has none, and the bundled one stands in.
+    public let aiProviders: AIProviderCatalog
 
     public let synonyms: SynonymTable
     public let catalog: IngredientCatalog
@@ -70,6 +74,8 @@ public final class DataSet: Sendable {
         bls = try decode(.nutrition, BLSCatalog.init(nutrition:))
         sources = try decode(.sources, DataSources.decode)
         renames = try decode(.ids, CatalogRenames.init(json:))
+        // Optional: a set staged before the file existed is still a good set.
+        aiProviders = (try? contents(.aiProviders)).flatMap { try? AIProviderCatalog(json: $0) } ?? .bundled
 
         synonyms = SynonymTable(kitchen: kitchenWords, curation: curation)
         catalog = IngredientCatalog(ingredients: synonyms.catalogIngredients, renames: renames)

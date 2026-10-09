@@ -1,0 +1,23 @@
+# Anthropic. `api` is what Sous asks directly with the cook's own key, `chat`
+# where a cook who copies the prompt opens a chat. Structure English, content
+# German (Community/README.md).
+id: anthropic
+name: Anthropic
+api:
+  format: anthropic
+  baseURL: https://api.anthropic.com/v1
+  keyPage: https://platform.claude.com/settings/keys
+  docs: https://platform.claude.com/docs/en/api/overview
+  # Best first: the first one the provider offers is the recommendation. `effort`
+  # and `thinking` are what Sous asks the model with; a model without them is
+  # asked as it comes.
+  models:
+    - id: claude-haiku-5-5
+      effort: low
+      thinking: false
+    - id: claude-haiku-4-5-20251001
+    - id: claude-sonnet-5-5
+chat:
+  id: claude
+  title: Claude
+  url: https://claude.ai/new

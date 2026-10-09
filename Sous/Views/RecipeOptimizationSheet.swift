@@ -598,6 +598,7 @@ enum OptimizationChat: String, CaseIterable, Identifiable {
     case chatGPT = "chatgpt"
     case claude
     case gemini
+    case grok
     case leChat = "lechat"
     case copilot
     case other
@@ -608,11 +609,21 @@ enum OptimizationChat: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    /// The community's entry for this chat, where it lists one: its title and
+    /// link may change without an app update. The built-in ones below are what
+    /// a data set without the entry falls back to.
+    private var listed: AIProviderCatalog.Entry.Chat? {
+        AIProviderCatalog.current.entry(chatID: rawValue)?.chat
+    }
+
+    var title: String { listed?.title ?? builtInTitle }
+
+    private var builtInTitle: String {
         switch self {
         case .chatGPT: "ChatGPT"
         case .claude: "Claude"
         case .gemini: "Gemini"
+        case .grok: "Grok"
         case .leChat: "Le Chat"
         case .copilot: "Copilot"
         case .other: "Anderer Chat"
@@ -621,11 +632,14 @@ enum OptimizationChat: String, CaseIterable, Identifiable {
     }
 
     /// Where a new chat starts, or `nil` for one Sous does not know.
-    var url: URL? {
+    var url: URL? { listed?.url ?? builtInURL }
+
+    private var builtInURL: URL? {
         switch self {
         case .chatGPT: URL(string: "https://chatgpt.com/")
         case .claude: URL(string: "https://claude.ai/new")
         case .gemini: URL(string: "https://gemini.google.com/app")
+        case .grok: URL(string: "https://grok.com")
         case .leChat: URL(string: "https://chat.mistral.ai/chat")
         case .copilot: URL(string: "https://copilot.microsoft.com/")
         case .other, .off: nil

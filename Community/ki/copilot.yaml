@@ -1,0 +1,7 @@
+# Only the chat: Copilot has no API of the kind Sous asks.
+id: copilot
+name: Microsoft
+chat:
+  id: copilot
+  title: Copilot
+  url: https://copilot.microsoft.com/

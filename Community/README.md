@@ -46,6 +46,8 @@ Community/
   sources/<id>.yaml       one source of nutrition values: who publishes it, which
                           release, when it was downloaded, its licence, what was done
   sources/<id>.json       that source's rows, every one it has, keyed by its code
+  ki/<id>.yaml            one AI provider: how Sous asks it directly (`api`) and where
+                          a cook who copies the prompt opens a chat (`chat`)
   weights.yaml            units (Prise, Msp., Zehe, …), group weights, group densities
   categories.yaml         BLS food group → default category (the aisle)
   assumed-zeros.yaml      per nutrient, the BLS groups where a blank counts as 0
@@ -72,6 +74,30 @@ An ingredient never holds a number of its own. It names a row of a source —
 the BLS by its code, any other source by `source: {id, ref}` — and the compiler
 resolves every name into `nutrition.json`, the one file of values the app
 ships, with exactly the rows the catalog uses. See "Sources" below.
+
+## AI providers
+
+`ki/<id>.yaml` names, for one provider, what Sous needs to ask it with a cook's
+own key: the API's `format` (`anthropic` or `openai`, which OpenAI, Grok and
+Gemini's compatibility endpoint speak), the `baseURL` (https, with the version
+path, no trailing slash, the one the provider's own `docs` page names), the
+`keyPage` where a cook makes a key, and the `models` worth offering, best
+first: the app recommends the first model the provider offers. A model may say
+how to ask it (`effort`, `thinking: false`). To check a model before
+listing it, `SousKit/Tests/SousKitTests/AIModelBench.swift` runs the tasks
+against real models and scores them with the readers the app uses. A file may
+hold only a `chat` (an id the app stores, a title, a link).
+
+**The key goes to `baseURL`, so that line is the one to review.** The app keeps
+the address a cook saved the key with. When the catalog names another one, it
+does not follow: the cook is shown both, with the source and reason from
+`moved` if there is one, asked to check them, and only then does the key go to
+the new address. So a change of `baseURL` needs its old address in `moved`
+(with where the provider announces it) for as long as devices may hold it.
+
+`CODEOWNERS` asks the maintainer to review `ki/`. The compiler refuses an
+address that is not https, that carries credentials, that is local or numeric,
+or that two providers share.
 
 ## The data set and its version
 

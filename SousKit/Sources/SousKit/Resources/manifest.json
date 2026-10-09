@@ -1,8 +1,9 @@
 {
  "schema": 2,
- "dataVersion": 2026100900,
- "sha256": "38a7d1d67bf072c68162a81d777a9934bcb8481b3a5e3fdb2fd183792823c0f0",
+ "dataVersion": 2026100902,
+ "sha256": "d9f3e716f33437ed53fe9ef88ab4df3318c918d962fbbbb4f3cf4dafbb4cac20",
  "files": {
+  "ai_providers.json": "004b73042e9ec61dbe732214e133e0dad01a0ee451da00936aab6bdcc0bbfdf6",
   "aisles.json": "7c686703ca17f1cff084c55e625b6c9c09402799a2e6fefc4093f511ba1904b1",
   "curation.json": "1e2055c8e26978072219a474e15e7907feb19bc77f20b3c25c9ca45f23c0dc86",
   "ids.json": "a1c6ece40b81fbb2e9b31b93d822f3c8cf8b72b361293593851664335dd24ebd",

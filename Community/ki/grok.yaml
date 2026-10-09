@@ -1,0 +1,13 @@
+id: grok
+name: Grok
+api:
+  format: openai
+  baseURL: https://api.x.ai/v1
+  keyPage: https://console.x.ai
+  docs: https://docs.x.ai/docs
+  models:
+    - id: grok-4.20-0309-non-reasoning
+chat:
+  id: grok
+  title: Grok
+  url: https://grok.com

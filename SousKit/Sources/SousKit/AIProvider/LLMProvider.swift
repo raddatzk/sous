@@ -27,10 +27,14 @@ public struct LLMProvider: Codable, Hashable, Sendable {
     public var effort: String?
     /// Turns thinking off on an Anthropic model; accepted up to `high` effort.
     public var disablesThinking: Bool?
+    /// The entry of the community's catalog this was made from, or `nil` for
+    /// a provider the cook entered. What the catalog knows (key page, advised
+    /// models, a moved address) is looked up by it, never stored here.
+    public var catalogID: String?
 
     public init(
         name: String, kind: LLMProviderKind, baseURL: URL, model: String,
-        effort: String? = nil, disablesThinking: Bool? = nil
+        effort: String? = nil, disablesThinking: Bool? = nil, catalogID: String? = nil
     ) {
         self.name = name
         self.kind = kind
@@ -38,31 +42,27 @@ public struct LLMProvider: Codable, Hashable, Sendable {
         self.model = model
         self.effort = effort
         self.disablesThinking = disablesThinking
+        self.catalogID = catalogID
     }
 
-    /// Where the cook makes an API key for this provider, for the named ones.
-    /// Not stored with the provider: it is Sous's knowledge, and it moves.
-    public var keyPage: URL? {
-        switch name {
-        case "Anthropic": URL(string: "https://platform.claude.com/settings/keys")
-        case "OpenAI": URL(string: "https://platform.openai.com/api-keys")
-        case "Grok": URL(string: "https://console.x.ai")
-        case "Gemini": URL(string: "https://aistudio.google.com/apikey")
-        default: nil
+    /// The catalog's entry for this provider.
+    public var catalogEntry: AIProviderCatalog.Entry? {
+        catalogID.flatMap { AIProviderCatalog.current.entry(id: $0) }
+    }
+
+    /// Where the cook makes an API key for this provider, where the catalog
+    /// knows it.
+    public var keyPage: URL? { catalogEntry?.api?.keyPage }
+
+    /// The providers the community has listed, to pick from. The model is left
+    /// empty: the cook picks it from what the provider offers.
+    public static var presets: [LLMProvider] {
+        AIProviderCatalog.current.asking.compactMap { entry in
+            guard let api = entry.api else { return nil }
+            return LLMProvider(
+                name: entry.name, kind: api.kind, baseURL: api.baseURL, model: "", catalogID: entry.id)
         }
     }
-
-    /// The providers offered by name. The model is left empty where Sous
-    /// does not want to pin a name that will age; the cook picks it.
-    public static let presets: [LLMProvider] = [
-        LLMProvider(name: "Anthropic", kind: .anthropic, baseURL: URL(string: "https://api.anthropic.com/v1")!, model: "claude-sonnet-5-5"),
-        LLMProvider(name: "OpenAI", kind: .openAICompatible, baseURL: URL(string: "https://api.openai.com/v1")!, model: ""),
-        LLMProvider(name: "Grok", kind: .openAICompatible, baseURL: URL(string: "https://api.x.ai/v1")!, model: ""),
-        LLMProvider(
-            name: "Gemini", kind: .openAICompatible,
-            baseURL: URL(string: "https://generativelanguage.googleapis.com/v1beta/openai")!, model: ""
-        ),
-    ]
 }
 
 /// One turn of a conversation. The system prompt is not a turn; it is passed

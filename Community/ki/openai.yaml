@@ -1,0 +1,14 @@
+id: openai
+name: OpenAI
+api:
+  format: openai
+  baseURL: https://api.openai.com/v1
+  keyPage: https://platform.openai.com/api-keys
+  docs: https://platform.openai.com/docs/api-reference
+  models:
+    - id: gpt-5.4-mini
+    - id: gpt-5.6-luna
+chat:
+  id: chatgpt
+  title: ChatGPT
+  url: https://chatgpt.com/

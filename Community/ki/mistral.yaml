@@ -1,0 +1,7 @@
+# Only the chat: Sous has not measured Mistral's API.
+id: mistral
+name: Mistral
+chat:
+  id: lechat
+  title: Le Chat
+  url: https://chat.mistral.ai/chat

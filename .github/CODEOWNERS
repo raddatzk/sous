@@ -1,0 +1,4 @@
+# The AI providers decide where a cook's API key is sent: whoever changes them
+# needs the maintainer's review. (It takes effect where the branch protection
+# asks for a code owner's review.)
+/Community/ki/ @raddatzk
