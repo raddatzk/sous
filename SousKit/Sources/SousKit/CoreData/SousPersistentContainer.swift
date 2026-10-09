@@ -269,14 +269,30 @@ public enum SousPersistentContainer {
     /// app and its share extension both read from there, and a recipe saved
     /// from Safari has to land where the app looks.
     private static func storeURL() -> URL {
-        containerDirectory().appending(path: "Sous.sqlite")
+        containerDirectory().appending(path: "Sous\(environmentSuffix).sqlite")
     }
 
     /// Households this person was invited into. A file of its own because the
     /// scopes cannot share one: each store mirrors exactly one database.
     private static func sharedStoreURL() -> URL {
-        containerDirectory().appending(path: "Sous-shared.sqlite")
+        containerDirectory().appending(path: "Sous-shared\(environmentSuffix).sqlite")
     }
+
+    /// A debug build talks to CloudKit's Development environment and a
+    /// release build — TestFlight, the App Store — to Production, but on a
+    /// device both are the same app in the same container. One file for both
+    /// mixes the two environments' records into one library, and the rows
+    /// from Development can never be deleted by the devices that sync with
+    /// Production: they do not have them. So a debug build on a device keeps
+    /// files of its own. The simulator never runs a release build and keeps
+    /// the plain names, and with them its test libraries.
+    private static let environmentSuffix: String = {
+        #if DEBUG && !targetEnvironment(simulator)
+        return "-Development"
+        #else
+        return ""
+        #endif
+    }()
 
     /// The app group where there is one, and the app's own Application
     /// Support where there is not — the Mac, and any test host.
