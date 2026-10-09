@@ -1,0 +1,53 @@
+name: Zutat für den Katalog
+description: Eine Zutat fehlt, heißt anders oder hat eine Sorte, die der Katalog nicht kennt.
+title: "Zutat: "
+labels: ["zutat"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Der Zutatenkatalog gehört allen, die Sous benutzen. Gut sind kurze, belegte Vorschläge.
+        Wer in der App „Anpassungen teilen“ wählt, braucht dieses Formular nicht: Sous schickt die Angaben selbst.
+  - type: input
+    id: name
+    attributes:
+      label: Name
+      description: So, wie man die Zutat im Laden kauft und im Rezept schreibt, in der Einzahl („Zwiebel“, nicht „Zwiebeln, fein gewürfelt“).
+    validations:
+      required: true
+  - type: dropdown
+    id: art
+    attributes:
+      label: Was ist der Vorschlag?
+      options:
+        - Neue Zutat
+        - Andere Schreibweise einer bekannten Zutat
+        - Neue Sorte einer bekannten Zutat
+        - Korrektur (Abteilung, Gewicht, Nährwerte)
+    validations:
+      required: true
+  - type: textarea
+    id: schreibweisen
+    attributes:
+      label: Andere Schreibweisen
+      description: Wie es sonst in Rezepten steht, eine pro Zeile.
+  - type: input
+    id: gehoertzu
+    attributes:
+      label: Gehört zu
+      description: Wenn es eine Sorte oder eine Schreibweise ist, die bekannte Zutat dazu.
+  - type: input
+    id: abteilung
+    attributes:
+      label: Abteilung im Laden
+      description: Etwa Gemüse, Milchprodukte, Backzutaten.
+  - type: textarea
+    id: gewicht
+    attributes:
+      label: Gewicht und Nährwerte
+      description: Wiegt ein Stück oder eine Dose etwas Bekanntes? Gibt es eine Zeile im Bundeslebensmittelschlüssel (BLS-Code) oder einer anderen Quelle? Bitte mit Beleg.
+  - type: textarea
+    id: beleg
+    attributes:
+      label: Beleg oder Anmerkung
+      description: Ein Link, ein Foto der Packung, ein Satz dazu.

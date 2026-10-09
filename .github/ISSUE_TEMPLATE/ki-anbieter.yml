@@ -1,0 +1,80 @@
+name: KI-Anbieter
+description: Einen Anbieter hinzufügen oder die Angaben zu einem bekannten ändern (Adresse, Modelle, Chat-Link).
+title: "KI-Anbieter: "
+labels: ["ki-anbieter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Sous kann einen Anbieter auf zwei Wegen fragen: direkt über seine API (mit einem eigenen Schlüssel) oder
+        indem es die Frage kopiert und einen Chat öffnet, in dem man sie einfügt. Hier geht es um die Angaben dafür.
+        **Bitte nie einen Schlüssel in dieses Formular schreiben.**
+  - type: input
+    id: name
+    attributes:
+      label: Name des Anbieters
+    validations:
+      required: true
+  - type: dropdown
+    id: art
+    attributes:
+      label: Was ist der Vorschlag?
+      options:
+        - Neuer Anbieter
+        - Neue Modell-Empfehlung für einen bekannten Anbieter
+        - Geänderte Adresse oder Chat-Link
+        - Anbieter entfernen (gibt es nicht mehr)
+    validations:
+      required: true
+  - type: dropdown
+    id: format
+    attributes:
+      label: Format der API
+      description: OpenAI-kompatibel sprechen auch viele andere Anbieter und lokale Server.
+      options:
+        - OpenAI-kompatibel (/chat/completions)
+        - Anthropic (/messages)
+        - Keine API, nur Chat
+  - type: input
+    id: basis
+    attributes:
+      label: Basisadresse der API
+      description: Mit Versionspfad, ohne abschließenden Schrägstrich, nur https. Etwa https://api.example.com/v1. Der Schlüssel wird an diese Adresse geschickt, bitte die offizielle aus der Dokumentation des Anbieters.
+  - type: input
+    id: dokumentation
+    attributes:
+      label: Dokumentation der API
+      description: Link zur offiziellen Seite, auf der die Adresse steht.
+  - type: input
+    id: schluessel
+    attributes:
+      label: Seite, auf der man den API-Schlüssel erstellt
+  - type: input
+    id: chat
+    attributes:
+      label: Adresse des Chats (zum Kopieren und Einfügen)
+      description: Wo ein neuer Chat startet; am besten ein Link, der die App öffnet, wenn sie installiert ist.
+  - type: textarea
+    id: modelle
+    attributes:
+      label: Empfohlene Modelle
+      description: Welche Modelle sind für Sous klein, günstig und gut genug? Bitte mit der Modell-ID, wie die API sie nennt, und, wenn vorhanden, mit dem Ergebnis eines Tests (Sous hat dafür einen Messlauf, siehe AI-API-CONCEPT.md).
+  - type: textarea
+    id: abo
+    attributes:
+      label: Abo und Abrechnung
+      description: Gilt ein Abo auch für die API? Gibt es ein kostenloses Kontingent? Was kostet ein Rezept ungefähr?
+  - type: textarea
+    id: datenschutz
+    attributes:
+      label: Datenschutz
+      description: Was sagt der Anbieter dazu, ob Eingaben über die API zum Training genutzt werden? Link zur Erklärung.
+  - type: checkboxes
+    id: pruefung
+    attributes:
+      label: Geprüft
+      options:
+        - label: Die Adressen stammen von der offiziellen Seite des Anbieters.
+          required: true
+        - label: In diesem Formular steht kein API-Schlüssel.
+          required: true
