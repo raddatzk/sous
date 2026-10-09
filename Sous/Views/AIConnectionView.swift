@@ -94,6 +94,16 @@ struct AIConnectionView: View {
             }
 
             Section {
+                Label {
+                    Text(AIAPINote.text)
+                } icon: {
+                    Image(systemName: "info.circle")
+                }
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
                 SecureField("API-Schlüssel", text: $apiKey)
                     .autocorrectionDisabled()
                     #if os(iOS)
@@ -102,6 +112,11 @@ struct AIConnectionView: View {
                     // lives in the keychain by Sous's own hand.
                     .textContentType(.oneTimeCode)
                     #endif
+                if let page = provider?.keyPage {
+                    Link(destination: page) {
+                        Label("Schlüssel bei \(provider?.name ?? "") erstellen", systemImage: "arrow.up.forward.app")
+                    }
+                }
                 Button(models.isEmpty ? "Schlüssel prüfen und Modelle laden" : "Modelle neu laden", systemImage: "key") {
                     loadModels()
                 }
@@ -273,4 +288,15 @@ struct AIConnectionSettingsRow: View {
             Label(ai.isHousehold ? "KI-Anbieter des Haushalts" : "KI-Anbieter", systemImage: "key")
         }
     }
+}
+
+
+/// What a cook should know before making a key.
+enum AIAPINote {
+    static let text = """
+    Ein Abo (etwa ChatGPT Plus, Claude Pro, SuperGrok oder Gemini Advanced) gilt nicht für die API. \
+    Die API hat einen eigenen Schlüssel und wird getrennt nach Verbrauch abgerechnet, meist mit \
+    Guthaben, das du dort auflädst. Ein Rezept kostet je nach Modell Bruchteile eines Cents bis \
+    wenige Cent.
+    """
 }

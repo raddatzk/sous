@@ -36,16 +36,17 @@ extension SousSetting {
     static let aiMode = "aiMode"
 }
 
-/// The one control for it, in the settings: off, copy and paste, or the
-/// provider; and below it only what the chosen way needs.
-struct AIModeSettingsSection: View {
+/// The choice itself, with where it is stored, for the settings and the
+/// welcome alike.
+struct AIModeChoice<Style: PickerStyle>: View {
+    let style: Style
+
     @AppStorage(SousSetting.optimizationChat, store: .sous)
     private var chat: OptimizationChat?
     @AppStorage(SousSetting.aiMode, store: .sous)
     private var stored: AIMode?
-    @State private var connections = AIConnections.shared
 
-    private var mode: AIMode { AIMode.effective(chat: chat, stored: stored) }
+    var mode: AIMode { AIMode.effective(chat: chat, stored: stored) }
 
     private var selection: Binding<AIMode> {
         Binding(
@@ -63,12 +64,28 @@ struct AIModeSettingsSection: View {
     }
 
     var body: some View {
+        Picker("KI", selection: selection) {
+            ForEach(AIMode.allCases) { Text($0.title).tag($0) }
+        }
+        .pickerStyle(style)
+        .labelsHidden()
+    }
+}
+
+/// The one control for it, in the settings: off, copy and paste, or the
+/// provider; and below it only what the chosen way needs.
+struct AIModeSettingsSection: View {
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var chat: OptimizationChat?
+    @AppStorage(SousSetting.aiMode, store: .sous)
+    private var stored: AIMode?
+    @State private var connections = AIConnections.shared
+
+    private var mode: AIMode { AIMode.effective(chat: chat, stored: stored) }
+
+    var body: some View {
         Section {
-            Picker("KI", selection: selection) {
-                ForEach(AIMode.allCases) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
+            AIModeChoice(style: .inline)
         } header: {
             Text("KI")
         } footer: {
@@ -78,7 +95,7 @@ struct AIModeSettingsSection: View {
             case .copyPaste:
                 Text("Sous kopiert den Prompt, du fragst einen Chat, den du schon nutzt, und fügst die Antwort ein.")
             case .api:
-                Text("Sous fragt deinen Anbieter selbst, in einem Chat in der App. Dafür braucht es einen eigenen Schlüssel.")
+                Text("Sous fragt deinen Anbieter selbst, in einem Chat in der App. Dafür braucht es einen eigenen API-Schlüssel, den ein Abo nicht ersetzt.")
             }
         }
         // What the chosen way needs, in a field of its own below the choice.

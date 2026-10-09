@@ -3,14 +3,15 @@ import SwiftUI
 
 /// What the app says the first time it is opened.
 ///
-/// Eight pages, and every one of them either does something or names the
-/// place where it is done: a welcome that only describes the app is a page a
-/// cook taps through without reading. So the last page carries the import and
-/// the editor, the optimization page the choice of chat, and the household
-/// page the invitation itself — the same controls the settings offer, not
-/// pointers to them. The ingredients page has nothing to press, so it shows
-/// instead: one line run through the app's own catalog and nutrition tables,
-/// stage by stage. The cooking page names the button that starts it.
+/// Eight pages, and every one of them either does something or shows what it
+/// is about: a welcome that only describes the app is a page a cook taps
+/// through without reading. So the last page carries the import and the
+/// editor, the AI page the choice of how Sous asks, and the household page
+/// the invitation itself — the same controls the settings offer, not pointers
+/// to them. The catalog, shopping and nutrition pages have nothing to press,
+/// so each shows a tile instead: one line run through the app's own catalog
+/// and nutrition tables. The cooking page lets the cook change the portions
+/// of an example step and watch its amounts follow.
 ///
 /// A paging scroll view rather than a `TabView(.page)`, because that style is
 /// iOS only and the Mac would be left with a welcome it cannot leave. The
@@ -24,28 +25,21 @@ struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var step: Step = .welcome
-    @State private var journeyStage: IngredientJourneyStage = .reading
 
-    /// The eight pages: what the app is, what it does with a recipe once it
-    /// has one, what becomes of each ingredient line, cooking along, how a
-    /// chat brings a recipe into shape, how it makes another version of it,
-    /// who else is cooking — and last,
-    /// bringing recipes in.
-    ///
-    /// The ingredients page follows planning because it is the why of
-    /// planning's last sentence: the list can add things up only because
-    /// every line was found in the catalog. Cooking comes before the
-    /// optimization, which says what the cook mode gains from it.
+    /// The eight pages: what the app is, the catalog every ingredient line is
+    /// found in, what that does for the shopping list and for the nutrition
+    /// figures, cooking along, how AI optimizes and edits a recipe, who else
+    /// is cooking — and last, bringing recipes in.
     ///
     /// Importing is last because its two buttons close the welcome: put it
     /// anywhere earlier and the pages behind it are never seen.
     private enum Step: Int, CaseIterable, Hashable {
         case welcome
-        case planning
-        case ingredients
+        case catalog
+        case shopping
+        case nutrition
         case cooking
         case steps
-        case editing
         case household
         case recipes
 
@@ -55,9 +49,9 @@ struct OnboardingView: View {
             case .recipes: "book.closed"
             case .cooking: "frying.pan"
             case .steps: "wand.and.stars"
-            case .editing: "sparkles"
-            case .planning: "calendar"
-            case .ingredients: "carrot"
+            case .catalog: "text.book.closed"
+            case .shopping: "cart"
+            case .nutrition: "chart.bar"
             case .household: "person.2"
             }
         }
@@ -67,10 +61,10 @@ struct OnboardingView: View {
             case .welcome: "Willkommen bei Sous"
             case .recipes: "Rezepte hineinbringen"
             case .cooking: "Kochen"
-            case .steps: "Für Sous optimieren"
-            case .editing: "Mit KI bearbeiten"
-            case .planning: "Planen und einkaufen"
-            case .ingredients: "Aus einer Zeile wird mehr"
+            case .steps: "Sous & KI"
+            case .catalog: "Der Zutatenkatalog"
+            case .shopping: "Einkauf"
+            case .nutrition: "Nährwerte"
             case .household: "Zu zweit kochen"
             }
         }
@@ -93,50 +87,38 @@ struct OnboardingView: View {
                 """
                 „Kochen“ führt Schritt für Schritt durchs Rezept. Hak ab, was \
                 bereitliegt, starte Timer direkt aus dem Text und koch auf \
-                einem anderen Gerät weiter, wo du aufgehört hast.
+                einem anderen Gerät weiter, wo du aufgehört hast. Die Mengen \
+                im Schritt und in seinen Chips rechnen mit, wenn du die \
+                Portionen änderst.
                 """
             case .steps:
                 """
-                Ein Chat, den du schon nutzt, bringt ein Rezept in Form: \
-                Zutaten so geschrieben, dass Sous jede erkennt, und zu jedem \
-                Schritt die Zutaten, die er braucht — dann rechnet der \
-                Kochmodus Mengen im Text mit. Wörter, die Sous noch nicht \
-                kennt, schlägt er für deinen Haushalt vor. Sous kopiert die \
-                Frage, du fügst sie dort ein und die Antwort zurück; du \
-                wählst, was davon gilt, und das Original bleibt erhalten. \
-                Ohne KI ordnest du Schritte von Hand zu. Zu finden im Menü \
-                eines Rezepts.
+                Eine KI kann deine Rezepte für Sous optimieren und sie auf \
+                Wunsch bearbeiten. Du wählst, wie Sous sie fragt, und das \
+                Original bleibt immer erhalten.
                 """
-            case .editing:
-                """
-                Aus einem Rezept wird eine andere Version: vegan, \
-                glutenfrei, schneller, für mehr Personen. Im Menü eines \
-                Rezepts wählst du einen Prompt oder schreibst selbst, was \
-                sich ändern soll. Sous kopiert ihn mit dem Rezept, deinen \
-                Kategorien und dem Zutatenkatalog; ihr redet im Chat \
-                darüber, und den JSON-Block der letzten Antwort fügst du \
-                zurück — gleich für Sous optimiert, mit den Zutaten jedes \
-                Schritts. Das Rezept wird ersetzt — jede frühere Fassung \
-                bleibt unter „Versionen“ im Menü des Rezepts, zum \
-                Vergleichen und Zurückholen —, oder du legst die Version \
-                als neues Rezept oder Variante an. Die Prompts, auch \
-                die mitgelieferten, pflegst du unter Einstellungen › \
-                Haushalt › KI-Prompts.
-                """
-            case .planning:
-                """
-                Leg Rezepte auf die Tage der Woche — oder lass dir mit \
-                „Vorschlagen“ Abende zusammenstellen, die zusammen ausgewogen \
-                sind. Was geplant ist, steht zusammengezählt auf der \
-                Einkaufsliste.
-                """
-            case .ingredients:
+            case .catalog:
                 """
                 Jede Zutat im Rezept findet Sous in seinem Zutatenkatalog \
-                wieder. Das sortiert die Einkaufsliste und rechnet die \
-                Nährwerte. Nennt ihr etwas anders oder kauft ein bestimmtes \
-                Produkt, bringst du es dem Katalog für euren Haushalt bei — \
-                unter \(Self.catalogPlace).
+                wieder, egal wie ein Rezept sie schreibt. Den Katalog gibt es \
+                zentral für alle. Fehlt dir etwas oder nennt ihr es anders, \
+                ergänzt du es für deinen Haushalt — unter \(Self.catalogPlace) — \
+                und teilst es mit der Community, damit der Katalog es für \
+                alle lernt.
+                """
+            case .shopping:
+                """
+                Aus allen Rezepten wird eine Liste: Was mehrere Rezepte \
+                brauchen, steht einmal da, zusammengezählt und nach Abteilung \
+                sortiert, wie du durch den Laden gehst. Leg Rezepte auf die \
+                Tage der Woche — oder lass dir mit „Vorschlagen“ Abende \
+                zusammenstellen —, und was geplant ist, landet auf der Liste.
+                """
+            case .nutrition:
+                """
+                Zu jeder Zutat gehören Nährwerte aus verifizierten Quellen. \
+                Aus Gramm und Nährwerten rechnet Sous jedes Rezept pro Portion \
+                aus, ohne dass du etwas einträgst.
                 """
             case .household:
                 """
@@ -249,8 +231,9 @@ struct OnboardingView: View {
         .multilineTextAlignment(.center)
     }
 
-    /// What each page can do, which for three of them is nothing: the welcome
-    /// has nothing to offer yet, and planning and cooking have nothing to
+    /// What each page shows or can do. The welcome has nothing to offer yet;
+    /// the catalog, shopping and nutrition pages show a tile, and the cooking
+    /// page an example to play with, because none of them has anything to
     /// work on before a recipe exists.
     @ViewBuilder
     private func actions(for step: Step) -> some View {
@@ -280,9 +263,7 @@ struct OnboardingView: View {
                 .buttonStyle(.bordered)
             }
         case .steps:
-            OptimizationChatPicker()
-                .pickerStyle(.menu)
-                .buttonStyle(.bordered)
+            OnboardingAIChoice()
         case .household:
             if let households {
                 VStack(spacing: 10) {
@@ -293,13 +274,19 @@ struct OnboardingView: View {
                         .buttonStyle(.borderedProminent)
                 }
             }
-        case .ingredients:
-            IngredientJourneyView(
-                stage: $journeyStage,
-                isPlaying: self.step == .ingredients
-            )
-            .multilineTextAlignment(.leading)
-        case .welcome, .planning, .cooking, .editing:
+        case .catalog:
+            IngredientJourneyTile(stage: .catalog)
+                .multilineTextAlignment(.leading)
+        case .shopping:
+            IngredientJourneyTile(stage: .shopping)
+                .multilineTextAlignment(.leading)
+        case .nutrition:
+            IngredientJourneyTile(stage: .nutrition)
+                .multilineTextAlignment(.leading)
+        case .cooking:
+            CookingDemo(isShown: self.step == .cooking)
+                .multilineTextAlignment(.leading)
+        case .welcome:
             EmptyView()
         }
     }
@@ -327,7 +314,7 @@ struct OnboardingView: View {
         .background(.bar)
     }
 
-    /// Where in the eight the cook is. Decorative, so it is hidden from
+    /// Where in the seven the cook is. Decorative, so it is hidden from
     /// VoiceOver — which reads the page's own heading instead.
     private var dots: some View {
         HStack(spacing: 8) {
@@ -352,5 +339,221 @@ struct OnboardingView: View {
     private func move(by offset: Int) {
         guard let next = Step(rawValue: step.rawValue + offset) else { return }
         withAnimation(.smooth(duration: 0.35)) { step = next }
+    }
+}
+
+
+/// The welcome's page about AI: how Sous should ask, and, for a provider of
+/// the cook's own, what to know and where to make the key.
+private struct OnboardingAIChoice: View {
+    @AppStorage(SousSetting.optimizationChat, store: .sous)
+    private var chat: OptimizationChat?
+    @AppStorage(SousSetting.aiMode, store: .sous)
+    private var stored: AIMode?
+    @State private var connections = AIConnections.shared
+    @State private var isSettingUp = false
+
+    private var mode: AIMode { AIMode.effective(chat: chat, stored: stored) }
+
+    var body: some View {
+        VStack(spacing: 12) {
+            AIModeChoice(style: .segmented)
+            switch mode {
+            case .off:
+                Text("Du kannst es jederzeit in den Einstellungen ändern.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            case .copyPaste:
+                VStack(alignment: .leading, spacing: 8) {
+                    copyStep("1", "Sous kopiert die Frage samt Rezept und Zutatenkatalog.")
+                    copyStep("2", "Du fügst sie in einen Chat ein, den du schon nutzt, etwa ChatGPT, Claude oder Gemini.")
+                    copyStep("3", "Die Antwort kopierst du einfach wieder zurück.")
+                    Text("Das geht mit jedem Chat und jedem Abo, ohne API-Schlüssel und ohne zusätzliche Kosten.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 2)
+                }
+                .multilineTextAlignment(.leading)
+                OptimizationChatPicker(includesOff: false)
+                    .pickerStyle(.menu)
+                    .buttonStyle(.bordered)
+            case .api:
+                provider
+            }
+        }
+        .sheet(isPresented: $isSettingUp) {
+            NavigationStack {
+                AIConnectionView(ai: connections.personal)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(role: .close) { isSettingUp = false }
+                        }
+                    }
+            }
+            .sousSheetSizing(.page)
+        }
+    }
+
+    private func copyStep(_ number: String, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(number)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.sousAccent)
+                .frame(width: 18, height: 18)
+                .background(Color.sousAccent.opacity(SousStyle.chipTint), in: .circle)
+            Text(text)
+                .font(.subheadline)
+        }
+    }
+
+    @ViewBuilder
+    private var provider: some View {
+        VStack(spacing: 10) {
+            Text(AIAPINote.text)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            if let household = connections.household.usable, connections.personal.usable == nil {
+                Label("Dein Haushalt hat \(household.provider.name) eingerichtet.", systemImage: "person.2")
+                    .font(.footnote)
+            }
+            Button(connections.personal.usable == nil ? "Anbieter einrichten …" : "Anbieter ändern …") {
+                isSettingUp = true
+            }
+            .buttonStyle(.borderedProminent)
+            // Where a key is made, for each provider Sous knows.
+            HStack(spacing: 14) {
+                ForEach(LLMProvider.presets, id: \.name) { preset in
+                    if let page = preset.keyPage {
+                        Link(preset.name, destination: page)
+                    }
+                }
+            }
+            .font(.footnote)
+        }
+    }
+}
+
+
+/// An example step whose amounts follow the portions, the way the cook mode's
+/// do: in the sentence and in the chips under it. A chip can be ticked, as in
+/// the cook mode, where a tick means "in the pot".
+///
+/// It is only an example: the timer here is a countdown on the page, not one
+/// the app keeps. Leaving the page puts everything back, so a cook who returns
+/// finds the example as it was first shown.
+private struct CookingDemo: View {
+    /// Whether the cooking page is the one showing.
+    let isShown: Bool
+
+    @State private var servings = 2
+    @State private var ticked: Set<Int> = []
+    /// When the example timer, once started, runs out.
+    @State private var timerEnd: Date?
+
+    /// What the example step says about time; the cook mode offers a timer for it.
+    private static let timerSeconds: TimeInterval = 600
+
+    private let formatter = QuantityFormatter(locale: .sous)
+
+    /// The example's two amounts, for two portions.
+    private var flour: Quantity { Quantity(200 * Double(servings) / 2, .gram) }
+    private var water: Quantity { Quantity(200 * Double(servings) / 2, .milliliter) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Stepper(value: $servings, in: 1...8) {
+                Label(servings == 1 ? "1 Portion" : "\(servings) Portionen", systemImage: "person.2")
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 14) {
+                Text("1")
+                    .font(SousStyle.stepNumber)
+                    .foregroundStyle(Color.sousAccent)
+                Text("\(amount(flour)) Mehl und \(amount(water)) Wasser verrühren und \(Text("10 Minuten").foregroundStyle(Color.sousAccent)) ruhen lassen.")
+                    .font(.title3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            FlowLayout(spacing: 8, lineSpacing: 8) {
+                chip(0, "\(formatter.string(for: flour)) Mehl")
+                chip(1, "\(formatter.string(for: water)) Wasser")
+                timerChip
+            }
+            .padding(.leading, 28)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay {
+            RoundedRectangle(cornerRadius: SousStyle.fieldRadius)
+                .strokeBorder(.separator)
+        }
+        .animation(.smooth(duration: 0.2), value: servings)
+        .onChange(of: isShown) { _, shown in
+            // Back to the start once the page is left.
+            if !shown {
+                servings = 2
+                ticked = []
+                timerEnd = nil
+            }
+        }
+    }
+
+    /// The timer the step offers: a tap starts it and it counts down, a tap
+    /// on "Stopp" puts it away, as in the cook mode.
+    @ViewBuilder
+    private var timerChip: some View {
+        if let end = timerEnd {
+            TimelineView(.periodic(from: .now, by: 1)) { tick in
+                let remaining = max(0, end.timeIntervalSince(tick.date))
+                HStack(spacing: 8) {
+                    Image(systemName: "timer").foregroundStyle(Color.sousAccent)
+                    Text(remaining.cookTimerBadge).monospacedDigit()
+                    Button("Stopp") { timerEnd = nil }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.sousAccent)
+                }
+                .font(.callout)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(Color.sousAccent.opacity(SousStyle.chipTint), in: .capsule)
+            }
+        } else {
+            Button {
+                timerEnd = Date().addingTimeInterval(Self.timerSeconds)
+            } label: {
+                Label("Timer \(Self.timerSeconds.cookTimerLabel)", systemImage: "timer")
+                    .font(.callout)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(Color.sousAccent, in: .capsule)
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    /// The amount in the sentence, tinted as the cook mode tints them.
+    private func amount(_ quantity: Quantity) -> Text {
+        Text(formatter.string(for: quantity)).foregroundStyle(Color.sousAccent)
+    }
+
+    private func chip(_ index: Int, _ text: String) -> some View {
+        let isChecked = ticked.contains(index)
+        return Button {
+            if isChecked { ticked.remove(index) } else { ticked.insert(index) }
+        } label: {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(Color.sousAccent)
+                Text(text)
+                    .strikethrough(isChecked)
+                    .opacity(isChecked ? 0.45 : 1)
+                    .monospacedDigit()
+            }
+            .font(.callout)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Color.sousAccent.opacity(SousStyle.chipTint), in: .capsule)
+            .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
     }
 }

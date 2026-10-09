@@ -40,6 +40,18 @@ public struct LLMProvider: Codable, Hashable, Sendable {
         self.disablesThinking = disablesThinking
     }
 
+    /// Where the cook makes an API key for this provider, for the named ones.
+    /// Not stored with the provider: it is Sous's knowledge, and it moves.
+    public var keyPage: URL? {
+        switch name {
+        case "Anthropic": URL(string: "https://platform.claude.com/settings/keys")
+        case "OpenAI": URL(string: "https://platform.openai.com/api-keys")
+        case "Grok": URL(string: "https://console.x.ai")
+        case "Gemini": URL(string: "https://aistudio.google.com/apikey")
+        default: nil
+        }
+    }
+
     /// The providers offered by name. The model is left empty where Sous
     /// does not want to pin a name that will age; the cook picks it.
     public static let presets: [LLMProvider] = [

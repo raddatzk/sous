@@ -50,6 +50,18 @@ struct LLMModelAdviceTests {
     }
 }
 
+@Suite("Where to get a key")
+struct LLMKeyPageTests {
+    @Test("Every provider Sous names has a page to make a key, a custom one has none")
+    func keyPages() {
+        for preset in LLMProvider.presets {
+            #expect(preset.keyPage?.scheme == "https", "\(preset.name)")
+        }
+        let custom = LLMProvider(name: "Ollama", kind: .openAICompatible, baseURL: URL(string: "http://localhost:11434/v1")!, model: "")
+        #expect(custom.keyPage == nil)
+    }
+}
+
 @Suite("A connection to a provider")
 struct AIConnectionTests {
     private let anthropic = LLMProvider.presets[0]
