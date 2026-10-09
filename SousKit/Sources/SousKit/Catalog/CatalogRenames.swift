@@ -4,7 +4,7 @@ import Foundation
 /// absorbed, each pointing at the entry that absorbed it, and the ids that
 /// left the catalog for good.
 ///
-/// `ids.json`, compiled from the `formerly:` lists and `Data/retired.yaml`.
+/// `ids.json`, compiled from the `formerly:` lists and `Community/retired.yaml`.
 /// It is what lets a row written with an old id keep finding its word
 /// (INGREDIENTS-DATA §3 F): the row is read through this map, and rewritten
 /// only when it is saved anyway. Nothing rewrites rows in bulk when data

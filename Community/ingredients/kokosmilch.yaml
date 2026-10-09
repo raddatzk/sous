@@ -32,7 +32,7 @@
               ref: '4388844280076'
       via: Das BLS führt nur die Vollfettvariante (21,9 % Fett). Die leichte Dose ist mit
         12 % Fett etwa halb so gehaltvoll, also eine eigene Zeile statt eines Erbes vom Stamm
-        — siehe Data/sources/labels.json.
+        — siehe Community/sources/labels.json.
     - id: kokoscreme
       name: Kokoscreme
       aliases:

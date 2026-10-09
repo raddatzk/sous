@@ -11,13 +11,13 @@ redistributing it, whole or in part, credits them as below.
    Lebensmittel, release 2025. https://blsdb.de
    Licence: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/
 
-   Changes: reduced to 16 nutrient fields per 100 g (Data/sources/bls.json
+   Changes: reduced to 16 nutrient fields per 100 g (Community/sources/bls.json
    keeps every row with those fields), and linked to kitchen words, spellings,
    varieties, measures and aisles; the app ships the rows the catalog names.
    Where VITAA is blank, VITA stands in. The nutrient values themselves are
    unchanged. The catalog refers to them by SBLS code.
    Where a row leaves a nutrient blank and the food by nature carries next to
-   none of it, the app counts the blank as 0 (Data/assumed-zeros.yaml); no
+   none of it, the app counts the blank as 0 (Community/assumed-zeros.yaml); no
    value the BLS states is changed.
 
 
@@ -28,7 +28,7 @@ redistributing it, whole or in part, credits them as below.
    with CC BY 4.0.
 
    Used for single rows the BLS does not have, copied by hand with their
-   Ciqual number and name as published; Data/sources/ciqual-2020.json and
+   Ciqual number and name as published; Community/sources/ciqual-2020.json and
    ciqual-2025.json keep every row of the tables with the 16 fields.
 
 
@@ -39,17 +39,17 @@ redistributing it, whole or in part, credits them as below.
    Licence: CC0 1.0 (public domain), https://creativecommons.org/publicdomain/zero/1.0/
 
    Used for single rows the BLS does not have, with their FDC ID and name as
-   published; Data/sources/usda-*.json keep every row with the 16 fields.
+   published; Community/sources/usda-*.json keep every row with the 16 fields.
 
 
 4. Nutrition declarations of retail products
    Where no database lists a food, a row may be read from a product's
    nutrition declaration. A declaration is a statement of fact and carries no
-   licence. Each such row is a row of Data/sources/labels.json, keyed by the
+   licence. Each such row is a row of Community/sources/labels.json, keyed by the
    product's EAN, so it can be checked at the shelf.
 
 
-Every source is registered in Data/sources/<id>.yaml, with its rows in
-Data/sources/<id>.json. An ingredient names a row by the source's id and its
+Every source is registered in Community/sources/<id>.yaml, with its rows in
+Community/sources/<id>.json. An ingredient names a row by the source's id and its
 code there, and the app shows both under the ingredient as „Quelle: …“. The
 settings' "Datenquellen" page shows every source of the register.

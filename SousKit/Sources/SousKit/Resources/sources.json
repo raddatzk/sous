@@ -69,11 +69,11 @@
    "id": "labels",
    "title": "Nährwertdeklarationen",
    "publisher": "Hersteller der jeweiligen Produkte",
-   "url": "https://github.com/raddatzk/sous/blob/main/Data/sources/labels.json",
+   "url": "https://github.com/raddatzk/sous/blob/main/Community/sources/labels.json",
    "version": "Nährwertdeklaration",
    "release": "laufend",
    "license": "Tatsachenangabe",
-   "licenseURL": "https://github.com/raddatzk/sous/blob/main/Data/NOTICE",
+   "licenseURL": "https://github.com/raddatzk/sous/blob/main/Community/NOTICE",
    "attribution": "Nährwertdeklarationen einzelner Handelsprodukte. Eine Nährwertdeklaration ist eine Tatsachenangabe und trägt keine eigene Lizenz; genannt wird sie, damit man sie an der Packung nachprüfen kann.",
    "changeNote": "Von der Packung abgeschrieben, je Zeile mit Produkt, EAN und dem Tag, an dem sie gelesen wurde. Je 100 ml deklarierte Werte sind über die Dichte der Zutat auf 100 g umgerechnet; was das Etikett nicht deklariert, ist bei der Zeile vermerkt."
   }

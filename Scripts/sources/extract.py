@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Turn a source's downloaded tables into `Data/sources/<id>.json`.
+"""Turn a source's downloaded tables into `Community/sources/<id>.json`.
 
 Every source the catalog draws values from is kept the same way: its tables
 are downloaded (they stay out of the repo; see the source's
-`Data/sources/<id>.yaml` for where from), and this script writes one JSON with
+`Community/sources/<id>.yaml` for where from), and this script writes one JSON with
 every row of the source — its code, its names as published, and the 16
 nutrient fields per 100 g the app knows — one row per line, so a new release
 reads as a diff. The JSON is checked in; the compiler reads it, so an
@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SOURCES = REPO_ROOT / "Data" / "sources"
+SOURCES = REPO_ROOT / "Community" / "sources"
 
 # The app's 16 fields, in the order every CSV writes them.
 FIELDS = [
@@ -48,7 +48,7 @@ def number(value) -> str:
 
 
 def row_json(row: dict) -> dict:
-    """A row as `Data/sources/<id>.json` keeps it: the names, and only the
+    """A row as `Community/sources/<id>.json` keeps it: the names, and only the
     values the source states."""
     out = {"name": row["name"]}
     if row.get("nameEnglish") and row["nameEnglish"] != row["name"]:
@@ -139,7 +139,7 @@ def bls(xlsx: Path) -> list[dict]:
 # Ciqual (Anses): one sheet, a header per constituent with its unit. A value
 # is a number with a decimal comma, "-" for unknown, "traces" or "< x" below
 # the limit of quantification — neither of the last two is a zero, so both
-# stay blank (Data/README.md, rule 5).
+# stay blank (Community/README.md, rule 5).
 
 def ciqual_value(cell) -> str:
     if isinstance(cell, (int, float)):

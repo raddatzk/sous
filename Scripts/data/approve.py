@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turns an approved inbox issue into a change of Data/.
+"""Turns an approved inbox issue into a change of Community/.
 
 The private inbox repository files shared catalog adjustments as issues, each
 with its reports as a ```json sous-catalog``` block (inbox.py). The cook
@@ -208,8 +208,8 @@ def decide(issue: Dict[str, Any]) -> Tuple[str, Dict[str, Any], Dict[str, Any]]:
 # Writing
 
 def apply(action: str, args: Dict[str, Any], name: str, data: Path, resources: Path) -> Dict[str, str]:
-    """Edits Data/, compiles, and writes the resources. Returns the change's
-    title, summary and commit message. On a refusal Data/ is left as it was."""
+    """Edits Community/, compiles, and writes the resources. Returns the change's
+    title, summary and commit message. On a refusal Community/ is left as it was."""
     if "," in name or "(" in name or ")" in name:
         raise Refusal(f"„{name}“ enthält Komma oder Klammer; als Katalogname bitte von Hand anlegen.")
     try:
@@ -315,7 +315,7 @@ def run(issue: Dict[str, Any], inbox: str, data: Path, resources: Path) -> Dict[
     manual = ("\n\nNicht mechanisch, bitte von Hand:\n" + "\n".join(f"- {r}" for r in rest)) if rest else ""
     body = (f"{change['summary']}.\n\n"
             f"Aus der Katalog-Inbox: {inbox}#{number} (privat). Freigegeben mit dem Label "
-            f"`{action}`; Data/, die Ressourcen und das Manifest sind neu kompiliert.\n\n"
+            f"`{action}`; Community/, die Ressourcen und das Manifest sind neu kompiliert.\n\n"
             f"Der Merge veröffentlicht den Katalog nach Development und Production.")
     if change["warnings"]:
         body += f"\n\nHinweise von compile.py:\n```\n{change['warnings']}\n```"

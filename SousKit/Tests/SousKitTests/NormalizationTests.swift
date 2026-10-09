@@ -3,7 +3,7 @@ import Testing
 @testable import SousKit
 
 /// `IngredientCatalog.normalize` against the vectors the data compiler is
-/// tested against too (`Data/normalize-cases.json`). The compiler refuses two
+/// tested against too (`Fixtures/normalize-cases.json`). The compiler refuses two
 /// catalog spellings that normalize alike; if the app folded differently, a
 /// spelling the compiler let through could be unreachable here, or two the
 /// compiler kept apart could collide.
@@ -18,19 +18,16 @@ struct NormalizationTests {
         var distinct: [[String]]
     }
 
-    /// Read from the repository, not bundled: the file belongs to `Data/`,
-    /// and a copy in the test bundle would be one more thing to keep equal.
+    /// Read from the repository rather than bundled, so the compiler's tests
+    /// (`Scripts/data/test_compile.py`) read the very same file.
     private static let vectors: Vectors = {
         let url = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()  // SousKitTests
-            .deletingLastPathComponent()  // Tests
-            .deletingLastPathComponent()  // SousKit
-            .deletingLastPathComponent()  // the repository
-            .appendingPathComponent("Data/normalize-cases.json")
+            .appendingPathComponent("Fixtures/normalize-cases.json")
         do {
             return try JSONDecoder().decode(Vectors.self, from: Data(contentsOf: url))
         } catch {
-            fatalError("Data/normalize-cases.json is unreadable: \(error)")
+            fatalError("Fixtures/normalize-cases.json is unreadable: \(error)")
         }
     }()
 

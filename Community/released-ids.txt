@@ -1,7 +1,7 @@
 # Every id the catalog has ever released, one per line, sorted.
 # compile.py adds new ids; nobody removes one. An id listed here stays an
 # entry's id, moves under `formerly:` on the entry that absorbed it, or is
-# retired in Data/retired.yaml. It is never used for anything else again.
+# retired in Community/retired.yaml. It is never used for anything else again.
 adzukibohnen
 agar-agar
 agavendicksaft

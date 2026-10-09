@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 jobs:
-  # The catalog, in seconds and on Linux beside the Mac job: Data/ compiles,
+  # The catalog, in seconds and on Linux beside the Mac job: Community/ compiles,
   # passes its checks, and the bundled resources are exactly what it compiles
   # to. A data mistake fails here with a message that names the file.
   data:
@@ -40,12 +40,12 @@ jobs:
         run: pip install -r Scripts/data/requirements.txt
 
       # `--check` compares every resource and manifest.json, whose hashes
-      # name the data set's files. `--since` compares Data/released-ids.txt
+      # name the data set's files. `--since` compares Community/released-ids.txt
       # with the base: the list only grows, and a line deleted together with
       # its entry would otherwise let an id vanish, or come back one day
       # meaning something else. It also wants a higher dataVersion whenever
       # the data changed since the base.
-      - name: Resources and manifest equal compile(Data/), and no released id went missing
+      - name: Resources and manifest equal compile(Community/), and no released id went missing
         env:
           BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
         run: |
@@ -98,7 +98,7 @@ jobs:
           brew install xcodegen xcbeautify
           xcodegen generate
 
-      # A change of the catalog alone — Data/, the compiled resources, the
+      # A change of the catalog alone — Community/, the compiled resources, the
       # scripts that compile and publish them — cannot break the apps' build,
       # but it can break the tests that read the bundled data (a word that was
       # an "unknown" example, the scorecard). So the tests always run, and
@@ -116,7 +116,7 @@ jobs:
           git fetch -q --depth=1 origin "$BASE"
           changed=$(git diff --name-only "$BASE" HEAD)
           echo "$changed"
-          other=$(echo "$changed" | grep -vE '^(Data/|SousKit/Sources/SousKit/Resources/[^/]+\.json$|Scripts/data/)' || true)
+          other=$(echo "$changed" | grep -vE '^(Community/|SousKit/Sources/SousKit/Resources/[^/]+\.json$|Scripts/data/)' || true)
           if [ -n "$changed" ] && [ -z "$other" ]; then
             echo "catalog_only=true" >> "$GITHUB_OUTPUT"
             echo "::notice::Only the catalog changed: SousKit is tested, the apps are not built."

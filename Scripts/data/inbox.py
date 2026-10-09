@@ -64,7 +64,7 @@ KIND_LABELS = {
     # A catalog word a household files under another aisle or parent.
     "override": "einordnung",
 }
-#: kat:<label> → the category in Data/ — the app's own words for the aisles.
+#: kat:<label> → the category in Community/ — the app's own words for the aisles.
 #: approve.py reads a new word's category from these labels.
 CATEGORIES = {
     "gemüse": "vegetables",

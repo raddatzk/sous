@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Compile `Data/` into the resources SousKit bundles.
+"""Compile `Community/` into the resources SousKit bundles.
 
-`Data/` is the one source of truth for the catalog. Everything this script
+`Community/` is the one source of truth for the catalog. Everything this script
 writes into `SousKit/Sources/SousKit/Resources/` is output and never edited by
 hand; CI runs `compile.py --check` and fails when the two disagree.
 
 Reads:
 
-  - `Data/ingredients/*.yaml`  one family per file, varieties nested
-  - `Data/products/*.yaml`     finished products, one brand per file
-  - `Data/measures.yaml`       units, group weights, group densities
-  - `Data/aisles.yaml`         BLS group -> category
-  - `Data/sources/<id>.yaml`   each source as it asks to be named
-  - `Data/sources/<id>.json`   each source's rows, written by
+  - `Community/ingredients/*.yaml`  one family per file, varieties nested
+  - `Community/products/*.yaml`     finished products, one brand per file
+  - `Community/weights.yaml`   units, group weights, group densities
+  - `Community/categories.yaml` BLS group -> category
+  - `Community/sources/<id>.yaml`   each source as it asks to be named
+  - `Community/sources/<id>.json`   each source's rows, written by
                                `Scripts/sources/extract.py` from its download
                                (or by hand, for nutrition labels)
-  - `Data/retired.yaml`        ids that left the catalog, each with a reason
-  - `Data/assumed-zeros.yaml`  per nutrient, the BLS groups where a blank is 0
-  - `Data/released-ids.txt`    every id ever released; it only grows
-  - `Data/schema.json`         the shape all of the above is validated against
+  - `Community/retired.yaml`        ids that left the catalog, each with a reason
+  - `Community/assumed-zeros.yaml`  per nutrient, the BLS groups where a blank is 0
+  - `Community/released-ids.txt`    every id ever released; it only grows
+  - `Community/schema.json`         the shape all of the above is validated against
 
 Writes `kitchen_words.json`, `curation.json`, `measures.json`, `aisles.json`,
 `nutrition.json` — every row the catalog uses, from whichever source: the BLS
@@ -26,7 +26,7 @@ rows an entry names by code, the other sources' rows an entry names by source
 and code, nothing else — `sources.json`, the register the sources page shows,
 and `ids.json`, the rename map: every id an
 entry absorbed under `formerly`, pointing at the entry, and the retired ids.
-It also adds the catalog's ids to `Data/released-ids.txt`, and fails when an
+It also adds the catalog's ids to `Community/released-ids.txt`, and fails when an
 id listed there is gone without being renamed or retired.
 
 Last it writes `manifest.json`, which names the data set these files make:
@@ -73,7 +73,7 @@ import jsonschema
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA = REPO_ROOT / "Data"
+DATA = REPO_ROOT / "Community"
 RESOURCES = REPO_ROOT / "SousKit/Sources/SousKit/Resources"
 
 STATES = ("raw", "cooked", "unspecified")
@@ -101,7 +101,7 @@ RELEASED_IDS_HEADER = """\
 # Every id the catalog has ever released, one per line, sorted.
 # compile.py adds new ids; nobody removes one. An id listed here stays an
 # entry's id, moves under `formerly:` on the entry that absorbed it, or is
-# retired in Data/retired.yaml. It is never used for anything else again.
+# retired in Community/retired.yaml. It is never used for anything else again.
 """
 
 # The texts curation.json has always opened with. The app does not read them;
@@ -127,7 +127,8 @@ CURATION_TARGET_ORDER = (
 
 # --------------------------------------------------------------------------
 # Normalization (R7). `IngredientCatalog.normalize` in SousKit does the same;
-# `Data/normalize-cases.json` holds the vectors both are tested against.
+# `SousKit/Tests/SousKitTests/Fixtures/normalize-cases.json` holds the vectors
+# both are tested against.
 
 HYPHENS = "-‐‑"
 
@@ -275,9 +276,9 @@ class Dataset:
     words: list[Word]
     measures: dict
     aisles: dict
-    # The register, Data/sources/<id>.yaml, by id.
+    # The register, Community/sources/<id>.yaml, by id.
     sources: dict
-    # Every source's rows, Data/sources/<id>.json, by id and then by code.
+    # Every source's rows, Community/sources/<id>.json, by id and then by code.
     source_rows: dict
     bls_codes: set[str]
     retired: dict[str, str] = field(default_factory=dict)
@@ -319,8 +320,8 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
                     f"{relative(path)}: the file is named {path.stem!r}, its root has the "
                     f"id {document[0]['id']!r}; name the file after the root"
                 )
-    measures = validated(data / "measures.yaml", "measuresFile")
-    aisles = validated(data / "aisles.yaml", "aislesFile")
+    measures = validated(data / "weights.yaml", "measuresFile")
+    aisles = validated(data / "categories.yaml", "aislesFile")
     sources: dict = {}
     source_rows: dict = {}
     for path in sorted((data / SOURCES_DIR).glob("*.yaml")):
@@ -342,7 +343,7 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
         errors.extend(f"{relative(rows_path)}: {error}" for error in row_errors[:5])
         source_rows[path.stem] = document.get("rows", {}) if isinstance(document, dict) else {}
     if "bls" not in sources:
-        errors.append(f"Data/{SOURCES_DIR}/bls.yaml is missing; the BLS is the catalog's first source")
+        errors.append(f"Community/{SOURCES_DIR}/bls.yaml is missing; the BLS is the catalog's first source")
     retired = validated(data / "retired.yaml", "retiredFile") or []
     assumed_zeros = validated(data / "assumed-zeros.yaml", "assumedZerosFile") or []
     if errors:
@@ -351,7 +352,7 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
     retired_ids: dict[str, str] = {}
     for row in retired:
         if row["id"] in retired_ids:
-            errors.append(f"Data/retired.yaml: {row['id']!r} is retired twice")
+            errors.append(f"Community/retired.yaml: {row['id']!r} is retired twice")
         retired_ids[row["id"]] = row["reason"]
     if errors:
         raise DataError("\n".join(errors))
@@ -368,14 +369,14 @@ def load_dataset(data: Path, resources: Path) -> Dataset:
                 source_id, ref = item["source"]["id"], str(item["source"]["ref"])
                 if source_id not in sources:
                     errors.append(f"{word.file}: the row {item['code']} names the source "
-                                  f"{source_id!r}, which is not in Data/{SOURCES_DIR}/ "
+                                  f"{source_id!r}, which is not in Community/{SOURCES_DIR}/ "
                                   f"(known: {', '.join(sorted(sources))})")
                     continue
                 row = source_rows.get(source_id, {}).get(ref)
                 if row is None:
                     errors.append(f"{word.file}: the row {item['code']} names {ref!r} in "
                                   f"{source_id}, which has no such row in "
-                                  f"Data/{SOURCES_DIR}/{source_id}.json")
+                                  f"Community/{SOURCES_DIR}/{source_id}.json")
                     continue
                 items[index] = {**row, **{k: v for k, v in item.items() if k != "source"},
                                 "source": source_id, "ref": ref}
@@ -542,32 +543,32 @@ def id_errors(dataset: Dataset) -> list[str]:
             absorbed[old] = word
     for old, reason in dataset.retired.items():
         if old in by_id:
-            errors.append(f"Data/retired.yaml: {old!r} is retired, but {by_id[old].name} in "
+            errors.append(f"Community/retired.yaml: {old!r} is retired, but {by_id[old].name} in "
                           f"{by_id[old].file} still has that id; an id is never reused")
         elif old in absorbed:
-            errors.append(f"Data/retired.yaml: {old!r} is retired and listed under formerly "
+            errors.append(f"Community/retired.yaml: {old!r} is retired and listed under formerly "
                           f"by {absorbed[old].name}; it is one or the other")
 
     released = set(dataset.released)
     for old in sorted(released - set(by_id) - set(absorbed) - set(dataset.retired)):
         errors.append(
-            f"Data/released-ids.txt: the id {old!r} was released and no entry has it any "
+            f"Community/released-ids.txt: the id {old!r} was released and no entry has it any "
             f"more. A released id never disappears: keep it on its entry (a new name keeps "
             f"the id), list it under `formerly:` on the entry that absorbed it, or retire "
-            f"it in Data/retired.yaml with a reason"
+            f"it in Community/retired.yaml with a reason"
         )
     for old, word in sorted(absorbed.items()):
         if old not in released:
             errors.append(f"{word.file}: {word.name} lists {old!r} under formerly, which was "
                           f"never released; nothing can point at it, so drop it")
     for old in sorted(set(dataset.retired) - released):
-        errors.append(f"Data/retired.yaml: {old!r} was never released; nothing can point "
+        errors.append(f"Community/retired.yaml: {old!r} was never released; nothing can point "
                       f"at it, so drop it")
     return errors
 
 
 def released_ids(dataset: Dataset) -> str:
-    """`Data/released-ids.txt` with this catalog's ids added."""
+    """`Community/released-ids.txt` with this catalog's ids added."""
     ids = set(dataset.released) | {word.id for word in dataset.words}
     return RELEASED_IDS_HEADER + "".join(f"{i}\n" for i in sorted(ids))
 
@@ -590,12 +591,12 @@ def check(dataset: Dataset) -> None:
     for rule in dataset.assumed_zeros:
         nutrient = rule["nutrient"]
         if nutrient in ruled:
-            errors.append(f"Data/assumed-zeros.yaml: {nutrient} has two rules; "
+            errors.append(f"Community/assumed-zeros.yaml: {nutrient} has two rules; "
                           f"put its groups under one")
         ruled.add(nutrient)
         idle = [g for g in rule["groups"] if not dataset.bls_blanks.get(g, {}).get(nutrient)]
         if idle:
-            warnings.append(f"Data/assumed-zeros.yaml: no BLS row in {', '.join(idle)} leaves "
+            warnings.append(f"Community/assumed-zeros.yaml: no BLS row in {', '.join(idle)} leaves "
                             f"{nutrient} blank; the group can go")
 
     # Names and aliases: once across the whole catalog, products included,
@@ -663,7 +664,7 @@ def check(dataset: Dataset) -> None:
     used = {row["source"] for word in words for row in inline_rows(word)}
     for source_id in dataset.sources:
         if source_id != "bls" and source_id not in used:
-            errors.append(f"Data/{SOURCES_DIR}/{source_id}.yaml: the source {source_id!r} is "
+            errors.append(f"Community/{SOURCES_DIR}/{source_id}.yaml: the source {source_id!r} is "
                           f"used by no row")
 
     # Codes: every one exists, in the BLS or as a row of another source; those are Z codes,
@@ -704,11 +705,11 @@ def check(dataset: Dataset) -> None:
         for state, code in codes_of(word):
             if code not in known:
                 errors.append(f"{word.file}: {word.name} [{state}] names {code}, "
-                              f"which is neither in Data/{SOURCES_DIR}/bls.json nor an inline row")
+                              f"which is neither in Community/{SOURCES_DIR}/bls.json nor an inline row")
         for code in word.candidates:
             if code not in known:
                 errors.append(f"{word.file}: {word.name} names the candidate {code}, "
-                              f"which is not in Data/{SOURCES_DIR}/bls.json")
+                              f"which is not in Community/{SOURCES_DIR}/bls.json")
         if isinstance(word.nutrition, dict) and word.parent is not None:
             parent_states = by_name[word.parent].nutrition
             if isinstance(parent_states, dict) and set(parent_states) - set(word.nutrition):
@@ -911,7 +912,7 @@ def nutrition(dataset: Dataset) -> dict:
     """Every row the catalog uses, from whichever source, resolved: the BLS
     rows an entry names by code, and the rows of the other sources an entry
     names by source and code. Nothing else ships — a source's other rows stay
-    in Data/sources/, where an entry can name them by editing its YAML."""
+    in Community/sources/, where an entry can name them by editing its YAML."""
     by_name = {word.name: word for word in dataset.words}
     entries: dict[str, dict] = {}
     bls_rows = dataset.source_rows["bls"]
@@ -1084,7 +1085,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true",
                         help="compile in memory and fail if the resources differ")
     parser.add_argument("--since", metavar="REF",
-                        help="with --check: also fail if Data/released-ids.txt lost an "
+                        help="with --check: also fail if Community/released-ids.txt lost an "
                              "id it had at this git revision")
     parser.add_argument("--data", type=Path, default=DATA)
     parser.add_argument("--resources", type=Path, default=RESOURCES)
@@ -1093,7 +1094,7 @@ def main() -> int:
     try:
         outputs, warnings, released = compile_data(args.data, args.resources)
     except DataError as error:
-        print(f"Data/ does not compile:\n{error}", file=sys.stderr)
+        print(f"Community/ does not compile:\n{error}", file=sys.stderr)
         return 1
     for warning in warnings:
         print(f"warning: {warning}", file=sys.stderr)
@@ -1108,16 +1109,16 @@ def main() -> int:
         if not released_path.exists() or released_path.read_text(encoding="utf-8") != released:
             stale.append(relative(released_path))
         if stale:
-            print("The resources differ from compile(Data/): " + ", ".join(stale) + ".\n"
-                  "Edit Data/, not the resources, and run: python3 Scripts/data/compile.py",
+            print("The resources differ from compile(Community/): " + ", ".join(stale) + ".\n"
+                  "Edit Community/, not the resources, and run: python3 Scripts/data/compile.py",
                   file=sys.stderr)
             return 1
         if args.since:
             lost = lost_ids(released_at(args.since, released_path), released)
             if lost:
-                print(f"Data/released-ids.txt lost {', '.join(lost)} since {args.since}. "
+                print(f"Community/released-ids.txt lost {', '.join(lost)} since {args.since}. "
                       f"The list only grows: put the ids back, and rename or retire them "
-                      f"in Data/ instead.", file=sys.stderr)
+                      f"in Community/ instead.", file=sys.stderr)
                 return 1
             before = read_manifest(released_at(args.since, args.resources / MANIFEST))
             errors = version_errors(before, json.loads(outputs[MANIFEST]))
@@ -1126,7 +1127,7 @@ def main() -> int:
                       f"Compile again on top of {args.since}: python3 Scripts/data/compile.py",
                       file=sys.stderr)
                 return 1
-        print(f"Resources match compile(Data/): {', '.join(outputs)}")
+        print(f"Resources match compile(Community/): {', '.join(outputs)}")
         return 0
 
     for name, text in outputs.items():

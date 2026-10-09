@@ -1,11 +1,11 @@
-# Compiles Data/ on a pull request and commits what it compiles to.
+# Compiles Community/ on a pull request and commits what it compiles to.
 #
-# The catalog is curated as YAML under Data/; the app reads the JSON that
-# Scripts/data/compile.py makes of it (Data/README.md). Both are checked in,
+# The catalog is curated as YAML under Community/; the app reads the JSON that
+# Scripts/data/compile.py makes of it (Community/README.md). Both are checked in,
 # and CI fails where they disagree. This lets a pull request change only the
 # YAML — in the browser, say — and still arrive at the merge button whole:
-# where the resources differ from what Data/ compiles to, they are compiled
-# and committed to the pull request's branch as "Compile Data/".
+# where the resources differ from what Community/ compiles to, they are compiled
+# and committed to the pull request's branch as "Compile Community/".
 #
 # A push made with the workflow's own token starts no workflow, CI included,
 # so this one asks CI to run on the commit it made (a `workflow_dispatch`).
@@ -19,7 +19,7 @@ name: Compile data
 on:
   pull_request:
     paths:
-      - Data/**
+      - Community/**
       - Scripts/data/compile.py
 
 concurrency:
@@ -52,22 +52,22 @@ jobs:
       - name: Install the compiler's dependencies
         run: pip install -r Scripts/data/requirements.txt
 
-      - name: Compile Data/
+      - name: Compile Community/
         run: python3 Scripts/data/compile.py
 
       - name: Commit what changed
         id: commit
         run: |
-          git add -A SousKit/Sources/SousKit/Resources Data/released-ids.txt
+          git add -A SousKit/Sources/SousKit/Resources Community/released-ids.txt
           if git diff --cached --quiet; then
-            echo "::notice::The resources already equal compile(Data/)."
+            echo "::notice::The resources already equal compile(Community/)."
             echo "pushed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git diff --cached --stat
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Compile Data/"
+          git commit -m "Compile Community/"
           git push origin "HEAD:${{ github.event.pull_request.head.ref }}"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
 

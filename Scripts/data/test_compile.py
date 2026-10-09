@@ -1,4 +1,4 @@
-"""Tests for compile.py: the real Data/ compiles to the resources, and a
+"""Tests for compile.py: the real Community/ compiles to the resources, and a
 broken copy of it fails with a message that says what is wrong and where.
 
     python3 -m unittest discover -s Scripts/data -p 'test_*.py'
@@ -21,7 +21,7 @@ SWIFT_FIXTURE = data_compiler.REPO_ROOT / "SousKit/Tests/SousKitTests/Fixtures/R
 class Normalization(unittest.TestCase):
     """The vectors SousKit's NormalizationTests read too."""
 
-    vectors = json.loads((data_compiler.DATA / "normalize-cases.json").read_text(encoding="utf-8"))
+    vectors = json.loads((data_compiler.REPO_ROOT / "SousKit/Tests/SousKitTests/Fixtures/normalize-cases.json").read_text(encoding="utf-8"))
 
     def test_cases(self):
         for case in self.vectors["cases"]:
@@ -35,11 +35,11 @@ class Normalization(unittest.TestCase):
 
 
 class BrokenData(unittest.TestCase):
-    """Each test copies Data/, breaks one thing, and expects one message."""
+    """Each test copies Community/, breaks one thing, and expects one message."""
 
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
-        self.data = self.tmp / "Data"
+        self.data = self.tmp / "Community"
         shutil.copytree(data_compiler.DATA, self.data)
 
     def tearDown(self):
@@ -61,7 +61,7 @@ class BrokenData(unittest.TestCase):
             self.assertIn(fragment, str(caught.exception))
 
     def add_label(self, ref: str, row: dict) -> None:
-        """A row of Data/sources/labels.json, as a curator writes one."""
+        """A row of Community/sources/labels.json, as a curator writes one."""
         path = self.data / "sources/labels.json"
         document = json.loads(path.read_text(encoding="utf-8"))
         document["rows"][ref] = row
@@ -118,7 +118,7 @@ class BrokenData(unittest.TestCase):
         (self.data / "ingredients/zwetschge.yaml").unlink()
         self.assertFails("the id 'zwetschge' was released and no entry has it any more",
                          "under `formerly:` on the entry that absorbed it",
-                         "Data/retired.yaml")
+                         "Community/retired.yaml")
 
     def test_a_variety_whose_id_changes_without_formerly(self):
         self.edit("ingredients/zwiebel.yaml", "- id: rote-zwiebel", "- id: zwiebel-rot")
@@ -141,7 +141,7 @@ class BrokenData(unittest.TestCase):
 
     def test_a_retired_id_used_again(self):
         self.write("retired.yaml", "- id: zwetschge\n  reason: Nur ein Test.\n")
-        self.assertFails("Data/retired.yaml: 'zwetschge' is retired, but Zwetschge in ",
+        self.assertFails("Community/retired.yaml: 'zwetschge' is retired, but Zwetschge in ",
                          "ingredients/zwetschge.yaml still has that id; an id is never reused")
 
     def test_an_id_absorbed_twice(self):
@@ -188,12 +188,12 @@ class BrokenData(unittest.TestCase):
     def test_a_row_naming_a_source_the_register_lacks(self):
         self.name_row("some-website", "1")
         self.assertFails("the row Z-zwetschge names the source 'some-website', "
-                         "which is not in Data/sources/")
+                         "which is not in Community/sources/")
 
     def test_a_row_naming_a_code_its_source_lacks(self):
         self.name_row("ciqual-2020", "99999999")
         self.assertFails("the row Z-zwetschge names '99999999' in ciqual-2020, which has no "
-                         "such row in Data/sources/ciqual-2020.json")
+                         "such row in Community/sources/ciqual-2020.json")
 
     def test_any_row_of_a_source_can_be_named_without_copying_it(self):
         # Not one of the rows the catalog used before: the source holds them all.
@@ -283,7 +283,7 @@ class BrokenData(unittest.TestCase):
 
     def test_a_code_nobody_has(self):
         self.edit("ingredients/zwiebel.yaml", "raw: [G480100]", "raw: [G999999]")
-        self.assertFails("Zwiebel [raw] names G999999, which is neither in Data/sources/bls.json "
+        self.assertFails("Zwiebel [raw] names G999999, which is neither in Community/sources/bls.json "
                          "nor an inline row")
 
     def test_a_root_without_an_answer(self):
@@ -318,7 +318,7 @@ class BrokenData(unittest.TestCase):
             "the product row Z-acme-muesli has no 'per'",
         )
 
-    # Two products as a label gives them, as fixtures only: Data/ holds no
+    # Two products as a label gives them, as fixtures only: Community/ holds no
     # product until the cook brings the packs.
     BUTTER = [
         "- id: testmarke-vegane-butter",
@@ -504,7 +504,7 @@ class Manifest(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.resources = self.tmp / "Resources"
         shutil.copytree(data_compiler.RESOURCES, self.resources)
-        self.data = self.tmp / "Data"
+        self.data = self.tmp / "Community"
         shutil.copytree(data_compiler.DATA, self.data)
 
     def tearDown(self):

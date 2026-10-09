@@ -7,7 +7,7 @@ import SwiftUI
 ///
 /// One row rather than a section per source, because the register is the
 /// catalog's to grow — a body that publishes values the BLS lacks is one more
-/// entry in `Data/sources.yaml`, and the settings must not grow with it. On iOS
+/// entry in `Community/sources/`, and the settings must not grow with it. On iOS
 /// it pushes the page inside the settings; the Mac's settings window has no
 /// navigation of its own, so there it is a sheet — the way
 /// `HouseholdSettingsRow` does it.
@@ -66,7 +66,7 @@ struct DataSourcesSettingsRow: View {
 /// headed by another's would credit the wrong body.
 ///
 /// Every word of it comes out of `sources.json`, which is compiled with the
-/// data it describes (`Data/sources.yaml`), not hardcoded here: a hardcoded
+/// data it describes (`Community/sources/`), not hardcoded here: a hardcoded
 /// notice once went false, claiming the values were "zusammengefasst und
 /// gemittelt" after the data had stopped averaging. A licence notice that
 /// describes changes the data no longer carries is not a detail; CC BY 4.0

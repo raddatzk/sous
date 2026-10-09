@@ -1,4 +1,4 @@
-The ingredient catalog in this directory (Data/), and the files compiled from it
+The ingredient catalog in this directory (Community/), and the files compiled from it
 into SousKit/Sources/SousKit/Resources/ (kitchen_words.json, curation.json,
 measures.json, aisles.json, community.json, sources.json, and bls.json, which is
 generated from the BLS), are licensed under the Creative Commons Attribution 4.0

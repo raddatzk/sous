@@ -7,7 +7,7 @@
 #   als-alias             the name becomes a spelling of the word it counted as
 #   als-sorte             the name becomes a variety of that word
 #   neues-wort + kat:<k>  the name becomes a word without values in category k
-# Scripts/data/approve.py edits Data/ in a checkout of sous's main and
+# Scripts/data/approve.py edits Community/ in a checkout of sous's main and
 # compiles; this workflow then pushes the branch inbox/<issue>-<id> and opens
 # (or updates) the pull request on sous, and says on the issue what it did.
 # Labelling again rebuilds the branch on the current main. The cook merges;
@@ -70,7 +70,7 @@ jobs:
 
       - run: pip install -r sous/Scripts/data/requirements.txt
 
-      - name: Edit and compile Data/
+      - name: Edit and compile Community/
         env:
           ISSUE: ${{ toJson(github.event.issue) }}
         run: |

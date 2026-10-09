@@ -449,7 +449,7 @@ public struct IngredientCatalog: Sendable {
     /// Accents stay: "Créme" is a typo of "Crème", not a spelling of it.
     ///
     /// `Scripts/data/compile.py` normalizes the same way when it checks that
-    /// no two catalog spellings collide; `Data/normalize-cases.json` holds
+    /// no two catalog spellings collide; `SousKit/Tests/SousKitTests/Fixtures/normalize-cases.json` holds
     /// the cases both are tested against, so the two cannot drift apart.
     ///
     /// Not what the stores persist: see ``storageKey(_:)``.

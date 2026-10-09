@@ -44,7 +44,7 @@ public final class IngredientCatalogLibrary {
     public var wordsDidChange: (@MainActor () async -> Void)?
 
     /// The data set the answers are laid over: the process's, unless a test
-    /// brings its own (two products that `Data/` does not hold).
+    /// brings its own (two products that `Community/` does not hold).
     public let dataSet: DataSet
 
     public init(

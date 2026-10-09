@@ -5,7 +5,7 @@
     python3 Scripts/data/publish.py --environment development --point-to 2026100100
 
 Publishes exactly what the app bundles: the files and the manifest under
-SousKit/Sources/SousKit/Resources. It holds them against Data/ itself first —
+SousKit/Sources/SousKit/Resources. It holds them against Community/ itself first —
 `compile.py --check` — and publishes nothing when they differ: a push to main
 publishes as far as production, so a push that skipped the
 compiler must not get through. In two steps (INGREDIENTS-DATA §5):
@@ -18,7 +18,7 @@ Releases are never deleted. A release already published is not published
 again, and a run whose release exists but whose pointer moved on only checks
 it. `--point-to` turns the pointer to an older release, as an emergency stop
 for devices that have not fetched the newer one yet; devices that have keep
-it, since a client never goes back. The real undo is a revert in Data/, which
+it, since a client never goes back. The real undo is a revert in Community/, which
 compiles to a new, higher version.
 
 The key is a server-to-server key of the environment, which acts as the
@@ -163,16 +163,16 @@ def pointed_version(client: cloudkit.Client, schema: int) -> Optional[int]:
 
 def compile_check() -> list:
     """What `compile.py --check` would call stale: resources, or the
-    released ids, that differ from compiling Data/ now."""
+    released ids, that differ from compiling Community/ now."""
     try:
         outputs, _, released = data_compiler.compile_data(data_compiler.DATA, RESOURCES)
     except data_compiler.DataError as error:
-        raise SystemExit(f"Data/ does not compile, nothing published:\n{error}")
+        raise SystemExit(f"Community/ does not compile, nothing published:\n{error}")
     stale = [name for name, text in outputs.items()
              if not (RESOURCES / name).exists() or (RESOURCES / name).read_text(encoding="utf-8") != text]
     released_path = data_compiler.DATA / "released-ids.txt"
     if not released_path.exists() or released_path.read_text(encoding="utf-8") != released:
-        stale.append("Data/released-ids.txt")
+        stale.append("Community/released-ids.txt")
     return stale
 
 
@@ -203,7 +203,7 @@ def main() -> None:
     if args.resources == RESOURCES:
         stale = compile_check()
         if stale:
-            raise SystemExit("The resources differ from compile(Data/): " + ", ".join(stale)
+            raise SystemExit("The resources differ from compile(Community/): " + ", ".join(stale)
                              + ". Nothing published; run Scripts/data/compile.py and commit.")
     manifest, manifest_bytes, files = load_set(args.resources)
     print(f"Data set {manifest['dataVersion']} (schema {manifest['schema']}, {len(files)} files)")

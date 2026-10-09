@@ -1,19 +1,19 @@
 #!/bin/sh
-# Compiles Data/ when a commit changes it, and stages what it compiles to —
-# the local half of .github/workflows/compile-data.yml (Data/README.md).
+# Compiles Community/ when a commit changes it, and stages what it compiles to —
+# the local half of .github/workflows/compile-data.yml (Community/README.md).
 #
 # Installed once per clone: git config core.hooksPath Scripts/hooks
 #
-# It compiles the working tree, so it steps aside where Data/ holds changes
+# It compiles the working tree, so it steps aside where Community/ holds changes
 # that are not staged: what it wrote would then not be what is committed.
 # It never blocks a commit; without the compiler's dependencies it says so,
 # and the pull request's workflow compiles instead.
 
-staged=$(git diff --cached --name-only --diff-filter=ACMRD -- Data/ | grep -v '^Data/released-ids.txt$')
+staged=$(git diff --cached --name-only --diff-filter=ACMRD -- Community/ | grep -v '^Community/released-ids.txt$')
 [ -z "$staged" ] && exit 0
 
-if [ -n "$(git diff --name-only -- Data/)" ]; then
-    echo "pre-commit: Data/ has unstaged changes; not compiling. Stage them, or run Scripts/data/compile.py." >&2
+if [ -n "$(git diff --name-only -- Community/)" ]; then
+    echo "pre-commit: Community/ has unstaged changes; not compiling. Stage them, or run Scripts/data/compile.py." >&2
     exit 0
 fi
 
@@ -33,8 +33,8 @@ if ! $python -c "import yaml, jsonschema" 2>/dev/null; then
 fi
 
 if ! $python "$root/Scripts/data/compile.py" >/dev/null; then
-    echo "pre-commit: Data/ does not compile — see above. Committing anyway; CI will refuse it." >&2
+    echo "pre-commit: Community/ does not compile — see above. Committing anyway; CI will refuse it." >&2
     exit 0
 fi
-git add -- "$root/SousKit/Sources/SousKit/Resources" "$root/Data/released-ids.txt"
-echo "pre-commit: compiled Data/ and staged the resources."
+git add -- "$root/SousKit/Sources/SousKit/Resources" "$root/Community/released-ids.txt"
+echo "pre-commit: compiled Community/ and staged the resources."

@@ -1,22 +1,22 @@
-# The catalog
+# Community
 
-Everything Sous knows about ingredients that is not a number from the BLS lives
-here, as YAML: the words people cook with, their spellings and varieties, which
-BLS rows they mean, what a piece or a can weighs, and which aisle a food group
-belongs to. `Scripts/data/compile.py` turns it into the JSON the app bundles
+What the people who use Sous maintain together lives here, as YAML: the
+ingredient catalog (the words people cook with, their spellings and varieties,
+which source rows they mean), the nutrition sources, what a piece or a can
+weighs, which category a food group belongs to, and the AI providers. `Scripts/data/compile.py` turns it into the JSON the app bundles
 (`SousKit/Sources/SousKit/Resources/`).
 
 **Edit the YAML here, never the resources.** They are compiled output, and CI
-fails when they differ from `compile(Data/)`.
+fails when they differ from `compile(Community/)`.
 
 You need not compile by hand:
-- **A pull request** that changes `Data/` is compiled by
+- **A pull request** that changes `Community/` is compiled by
   `.github/workflows/compile-data.yml`: where the resources differ, it commits
-  them to the branch as "Compile Data/" and runs CI on that commit. A YAML edit
+  them to the branch as "Compile Community/" and runs CI on that commit. A YAML edit
   in the browser is a whole change. (Branches of this repository only; a fork
   compiles itself.)
 - **Locally**, `Scripts/hooks/pre-commit` compiles when a commit stages a change
-  under `Data/`, and stages the resources with it. It steps aside while `Data/`
+  under `Community/`, and stages the resources with it. It steps aside while `Community/`
   holds unstaged changes, and never blocks a commit. Once per clone:
 
 ```
@@ -39,21 +39,34 @@ The data is licensed CC BY 4.0; see `LICENSE` and `NOTICE`.
 ## Layout
 
 ```
-Data/
+Community/
   ingredients/<id>.yaml   one family per file: a root and its nested varieties,
                           named after the root's id
   products/<brand>.yaml   finished products, one file per brand (none yet)
-  measures.yaml           units (Prise, Msp., Zehe, …), group weights, group densities
-  aisles.yaml             BLS food group → default aisle
   sources/<id>.yaml       one source of nutrition values: who publishes it, which
                           release, when it was downloaded, its licence, what was done
   sources/<id>.json       that source's rows, every one it has, keyed by its code
-  retired.yaml            ids that left the catalog, each with a reason
+  weights.yaml            units (Prise, Msp., Zehe, …), group weights, group densities
+  categories.yaml         BLS food group → default category (the aisle)
   assumed-zeros.yaml      per nutrient, the BLS groups where a blank counts as 0
+  retired.yaml            ids that left the catalog, each with a reason; by hand
   released-ids.txt        every id ever released; compile.py adds to it, nobody
-                          removes from it
+                          removes from it (the CI checks that none went missing)
   schema.json             the shape all of the above is validated against
 ```
+
+The two bookkeeping files sit beside the folders rather than in them, because
+the compiler reads every `*.yaml` of `ingredients/` and `sources/` as an entry.
+The vectors that pin how two spellings are compared are not community data;
+they are a test fixture shared by the app and the compiler, in
+`SousKit/Tests/SousKitTests/Fixtures/normalize-cases.json`.
+
+**Which language where.** The structure is English — file names, keys
+(`aliases`, `category`, `formerly`), comments, the ids of the categories
+(`bakery`, `vegetables`). The content is German: the words people cook with,
+their spellings, the units (`Stk.`, `Prise`) and the notes a cook may read.
+That keeps the files readable to the tools and the schema, and the catalog in
+the language it describes.
 
 An ingredient never holds a number of its own. It names a row of a source —
 the BLS by its code, any other source by `source: {id, ref}` — and the compiler
@@ -85,7 +98,7 @@ nightly workflow in a private inbox repository files them as issues, one per
 name, with the reports as a `json sous-catalog` block (`Scripts/data/inbox.py`).
 Labelling an issue there approves it — `als-alias`, `als-sorte`, or
 `neues-wort` with a `kat:<Kategorie>` — and `Scripts/data/approve.py` turns it
-into a pull request here that edits `Data/`, compiled. Only these mechanical
+into a pull request here that edits `Community/`, compiled. Only these mechanical
 cases are written; values, weights and products stay with the curator. The
 issue closes once the pull request is merged. The workflows for the inbox
 repository are kept here as `Scripts/data/inbox-workflow.yml` and
@@ -108,7 +121,7 @@ CloudKit container, public database:
 
 A push publishes to **development**, which debug builds read, and once that
 succeeded to **production**: the merge is the review, and what is merged for
-the catalog goes out. `publish.py` holds the resources against `Data/` itself
+the catalog goes out. `publish.py` holds the resources against `Community/` itself
 first, since a direct push publishes too. *Run workflow* publishes to one
 environment by hand — a retry, or `--point-to`. Each environment keeps its
 own server-to-server key as the secrets `CLOUDKIT_KEY_ID` and
@@ -135,7 +148,7 @@ xcrun cktool export-schema --team-id MDQY93XVHF --container-id iCloud.me.raddatz
 **Releases are never deleted.** `publish.py --point-to <dataVersion>` turns
 the pointer to an older release, which stops devices that have not fetched
 the newer one yet; a device that has keeps it, since a client never goes
-back. The real undo is a revert in `Data/`, which compiles to a new, higher
+back. The real undo is a revert in `Community/`, which compiles to a new, higher
 version.
 
 To publish by hand, with the key of the environment in
@@ -148,7 +161,7 @@ python3 Scripts/data/publish.py --environment development --commit "$(git rev-pa
 ## An ingredient
 
 ```yaml
-# Data/ingredients/zwiebel.yaml
+# Community/ingredients/zwiebel.yaml
 - id: zwiebel
   name: Zwiebel
   aliases:
@@ -188,7 +201,7 @@ after normalization.** Normalization is what the app compares by: case,
 ß/ss, hyphens and repeated spaces do not count, so "Weißwein", "Weisswein",
 "Hokkaido-Kürbis" and "Hokkaidokürbis" are each one spelling, and writing the
 second one down is redundant. Accents do count: "Créme" is a typo, not a
-spelling. `Data/normalize-cases.json` holds the cases both the compiler and
+spelling. `SousKit/Tests/SousKitTests/Fixtures/normalize-cases.json` holds the cases both the compiler and
 SousKit are tested against.
 
 A name or alias holds letters, digits, space and `- ' % / . ,` only: no
@@ -346,7 +359,7 @@ Every source of values is kept the same way, the BLS no differently from a
 label: `sources/<id>.yaml` says what it is, `sources/<id>.json` holds its rows.
 
 ```yaml
-# Data/sources/ciqual-2020.yaml
+# Community/sources/ciqual-2020.yaml
 title: Ciqual 2020
 publisher: Anses (…), Frankreich
 url: https://ciqual.anses.fr
@@ -426,12 +439,12 @@ and those grams are cooked chickpeas, not dry ones.
   through the ingredient's own measure**, never through a group or a global
   default: what one holds depends entirely on what is in it.
 - Measures of a unit or a whole food group (a Prise, a Tasse of grains) go in
-  `measures.yaml`.
+  `weights.yaml`.
 
 ### Products
 
 A finished product (`kind: product`) stands **beside** the ingredients, in
-`Data/products/<brand>.yaml`, never nested under a generic word, and inherits
+`Community/products/<brand>.yaml`, never nested under a generic word, and inherits
 nothing. Its values come only from the label: a row of `sources/labels.json`
 with `checked` (the date the label was read), `per` (`as-sold` or `drained`)
 and at least its energy, named from the product by its EAN. **Every one of its spellings names the brand**: a

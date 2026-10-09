@@ -74,13 +74,13 @@ public struct BLSEntry: Codable, Hashable, Sendable, Identifiable {
 ///
 /// One file feeds it, `nutrition.json`: every row the catalog uses, from
 /// whichever source, and nothing else — the compiler resolves each entry's
-/// codes against the sources in `Data/sources/` and ships what it found. A
+/// codes against the sources in `Community/sources/` and ships what it found. A
 /// basis is a code, and nothing that resolves, confirms or reconciles one
 /// should have to ask which source the code came from; where it matters,
 /// the row says (`sourceID`).
 public struct BLSCatalog: Sendable {
     private struct File: Codable {
-        /// `Data/assumed-zeros.yaml`.
+        /// `Community/assumed-zeros.yaml`.
         var assumedZero: [AssumedZero]?
         var entries: [BLSEntry]
     }
@@ -97,7 +97,7 @@ public struct BLSCatalog: Sendable {
 
     public func entries(for codes: [String]) -> [BLSEntry] { codes.compactMap(entry(for:)) }
 
-    /// One rule of `Data/assumed-zeros.yaml`: in these BLS groups, a blank
+    /// One rule of `Community/assumed-zeros.yaml`: in these BLS groups, a blank
     /// for this nutrient is a zero nobody wrote down — vitamin C in flour,
     /// fibre in cheese.
     struct AssumedZero: Codable, Hashable, Sendable {

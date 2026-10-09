@@ -1,14 +1,14 @@
 {
  "schema": 2,
- "dataVersion": 2026100506,
- "sha256": "07920bdc5c39087e763b1b2ca43030a0986e47d7bc545322f6fefa13624e4c97",
+ "dataVersion": 2026100900,
+ "sha256": "38a7d1d67bf072c68162a81d777a9934bcb8481b3a5e3fdb2fd183792823c0f0",
  "files": {
   "aisles.json": "7c686703ca17f1cff084c55e625b6c9c09402799a2e6fefc4093f511ba1904b1",
-  "curation.json": "f99648e0e083cc5203ea5ffac786944e9a05ea6eecf22b38adfdeefcdfa516e0",
+  "curation.json": "1e2055c8e26978072219a474e15e7907feb19bc77f20b3c25c9ca45f23c0dc86",
   "ids.json": "a1c6ece40b81fbb2e9b31b93d822f3c8cf8b72b361293593851664335dd24ebd",
   "kitchen_words.json": "073cf32272ab326c093d5a017c26ba9ca2778056477a8040d5633fed1805cda8",
   "measures.json": "8a2256fc7f2d75a2eaee7437be7c1362e1d4dbc7f7326eb7bbf2ec73800c265f",
   "nutrition.json": "f431b474a07d320b0e292f7f3a4baf4bef9c85db813c6d602a797749d9d80a7f",
-  "sources.json": "524a3502fe2d46323eb672d8ca9ae994c25ce6960fa70a5e8916fa0fec312c38"
+  "sources.json": "7175104567c4bce4dcec5aded351b0e81efa6b8be70bef836ceb28f2b2565b42"
  }
 }

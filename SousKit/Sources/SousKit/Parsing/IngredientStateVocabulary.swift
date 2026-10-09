@@ -9,7 +9,7 @@ import Foundation
 /// here**, and that is a decision the data forces rather than a shortcut:
 ///
 /// - The catalog files a word's bases under exactly `roh` and the cooking
-///   words (`nutrition: {raw: …, cooked: …}` in `Data/ingredients/`); the
+///   words (`nutrition: {raw: …, cooked: …}` in `Community/ingredients/`); the
 ///   retired `state_suffix.py` drew the same line when the bases were first
 ///   derived from BLS names. That is the dimension a *basis* is chosen along,
 ///   and `IngredientState` is the key those bases are stored under.

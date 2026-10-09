@@ -4,12 +4,12 @@ import Foundation
 ///
 /// CC BY 4.0 asks for the source, its licence, and whether it was changed.
 /// These travel with the data set itself (`sources.json`, compiled from
-/// `Data/sources/<id>.yaml`), so a data set published apart from an app release
+/// `Community/sources/<id>.yaml`), so a data set published apart from an app release
 /// still says where it comes from — the sources screen reads them rather than
 /// a string compiled into the app.
 ///
 /// Every source is the same record, the BLS as much as any other: the register
-/// in `Data/sources/` holds one per body the values are drawn from, and every
+/// in `Community/sources/` holds one per body the values are drawn from, and every
 /// row of `nutrition.json` names its source by `id`.
 public struct DataSource: Codable, Hashable, Sendable, Identifiable {
     /// `bls` for the Bundeslebensmittelschlüssel, `ciqual-2020` and the like

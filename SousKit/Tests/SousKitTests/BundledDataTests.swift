@@ -18,7 +18,7 @@ struct BundledDataTests {
     @Test("The bundled files load, and the vocabulary is the kitchen's size")
     func filesLoad() {
         // The rows the catalog uses, from every source — not the whole BLS,
-        // which stays in Data/sources/ for an entry to name.
+        // which stays in Community/sources/ for an entry to name.
         #expect(bls.entries.count > 1000)
         // The two lists are kept apart: the table has thousands of rows, the
         // kitchen a few hundred words. When these two numbers approached each
@@ -737,7 +737,7 @@ struct ListSeparationTests {
 }
 
 /// The sources page reads `sources.json`, the register the compiler writes
-/// from `Data/sources/`: every source the same record, the BLS first.
+/// from `Community/sources/`: every source the same record, the BLS first.
 @Suite("Bundled sources")
 struct BundledSourcesTests {
     @Test("The BLS comes first, the rest by how many shipped rows they give")

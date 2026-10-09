@@ -67,7 +67,7 @@ struct SettingsForm: View {
     }
 
     /// Which release of the catalog — words, weights, aisles, the BLS rows —
-    /// the app is reading, and where its history is: the Git log of `Data/`,
+    /// the app is reading, and where its history is: the Git log of `Community/`,
     /// where every change is a reviewed commit. A newer release arrives on
     /// its own, at most daily, and is read from the next cold start.
     private var catalogRelease: some View {
@@ -96,7 +96,7 @@ struct SettingsForm: View {
         }
     }
 
-    private static let dataHistory = URL(string: "https://github.com/raddatzk/sous/commits/main/Data")!
+    private static let dataHistory = URL(string: "https://github.com/raddatzk/sous/commits/main/Community")!
 }
 
 /// The same settings as a sheet, for the phone and the app's own menu.

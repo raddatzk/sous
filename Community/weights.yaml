@@ -1,5 +1,5 @@
 # Measures that belong to a unit or a whole BLS food group. A measure of one
-# ingredient sits on that ingredient, under Data/ingredients/. Every value
+# ingredient sits on that ingredient, under Community/ingredients/. Every value
 # here is an assumption and is shown with ≈.
 note: 'Die Maßtabelle: (Einheit, Bezug) → Gramm, plus Dichten für Volumenangaben. Handgepflegt,
   nicht aus dem BLS abgeleitet — der BLS rechnet je 100 g und kennt weder Stückgewichte noch

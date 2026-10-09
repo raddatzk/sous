@@ -1,4 +1,4 @@
-"""Tests for approve.py: labels to a change of Data/, compiled, or refused.
+"""Tests for approve.py: labels to a change of Community/, compiled, or refused.
 
     python3 -m unittest discover -s Scripts/data -p 'test_*.py'
 """
@@ -33,7 +33,7 @@ def counts_as(target_id, target_name, reports=1, **extra):
 class ApproveTests(unittest.TestCase):
     def setUp(self):
         self.root = Path(tempfile.mkdtemp())
-        self.data = self.root / "Data"
+        self.data = self.root / "Community"
         self.resources = self.root / "Resources"
         shutil.copytree(data_compiler.DATA, self.data)
         shutil.copytree(data_compiler.RESOURCES, self.resources)

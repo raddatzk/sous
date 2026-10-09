@@ -7,7 +7,7 @@ import Testing
 /// absent rather than zero (INGREDIENTS-DATA §3 I).
 ///
 /// The two products are fixtures, laid over the bundled files the way
-/// `compile.py` would write them: `Data/` holds none until the cook brings
+/// `compile.py` would write them: `Community/` holds none until the cook brings
 /// the packs.
 @Suite("Products and absent values")
 struct ProductTests {
@@ -89,7 +89,7 @@ struct ProductTests {
         #expect(feige.perHundredGrams[.vitaminEMg] == nil)
         #expect(feige.perHundredGrams.states(.kcal))
         // Of the 1,244 BLS rows the catalog uses, the ones a blank still
-        // leaves open once Data/assumed-zeros.yaml has spoken.
+        // leaves open once Community/assumed-zeros.yaml has spoken.
         #expect(rows.filter { $0.sourceID == "bls" && !$0.perHundredGrams.absent.isEmpty }.count == 108)
     }
 

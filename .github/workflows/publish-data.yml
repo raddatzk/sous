@@ -1,12 +1,12 @@
 # Publishes the compiled data set to the app's CloudKit public database
-# (INGREDIENTS-DATA §5; Data/README.md, "Publishing").
+# (INGREDIENTS-DATA §5; Community/README.md, "Publishing").
 #
 # A push to main that touches the data goes to development, where debug
 # builds read it first, and then to production: the cook merges a
 # data pull request, and the merge is the review. Production waits until
 # development succeeded. By hand — Actions -> Publish data -> Run workflow —
 # one environment at a time, for a retry or an emergency `--point-to`.
-# publish.py holds the resources against Data/ itself before uploading, since
+# publish.py holds the resources against Community/ itself before uploading, since
 # a direct push publishes too.
 #
 # Each GitHub environment (`cloudkit-development`, `cloudkit-production`)
@@ -19,7 +19,7 @@ on:
   push:
     branches: [main]
     paths:
-      - Data/**
+      - Community/**
       - SousKit/Sources/SousKit/Resources/*.json
       - Scripts/data/**
       - .github/workflows/publish-data.yml
@@ -66,7 +66,7 @@ jobs:
       - name: Install the compiler's and the publisher's dependencies
         run: pip install -r Scripts/data/requirements.txt
 
-      - name: Resources and manifest equal compile(Data/)
+      - name: Resources and manifest equal compile(Community/)
         run: python3 Scripts/data/compile.py --check
 
       - name: Publish the release, then move the pointer
@@ -99,7 +99,7 @@ jobs:
       - name: Install the compiler's and the publisher's dependencies
         run: pip install -r Scripts/data/requirements.txt
 
-      - name: Resources and manifest equal compile(Data/)
+      - name: Resources and manifest equal compile(Community/)
         run: python3 Scripts/data/compile.py --check
 
       - name: Publish the release, then move the pointer

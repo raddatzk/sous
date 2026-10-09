@@ -76,9 +76,9 @@ The nutrition pipeline in `Scripts/` involves no model at all.
 | `Sous/` | The app — SwiftUI views, cook sessions, timers, App Intents, household switching. |
 | `SousShare/` | The share extension: it opens the same editor the app uses, because iOS does not let an extension launch its host. |
 | `SousWidgets/` | The cook-timer Live Activity. |
-| `Data/` | The ingredient catalog as YAML — words, spellings, varieties, BLS codes, weights, aisles — and the one place it is edited. Has its own [README](Data/README.md). |
-| `Scripts/data/` | The compiler that turns `Data/` into the bundled resources; CI checks the two agree. |
-| `Scripts/sources/` | `extract.py`: turns a source's download (the BLS workbook, Ciqual, USDA) into `Data/sources/<id>.json`, for a new release. |
+| `Community/` | What the community maintains, as YAML — the ingredient catalog (words, spellings, varieties, BLS codes), nutrition sources, weights and categories — and the one place it is edited. Has its own [README](Community/README.md). |
+| `Scripts/data/` | The compiler that turns `Community/` into the bundled resources; CI checks the two agree. |
+| `Scripts/sources/` | `extract.py`: turns a source's download (the BLS workbook, Ciqual, USDA) into `Community/sources/<id>.json`, for a new release. |
 | `project.yml` | The source of truth for the Xcode project. |
 
 The three targets share an app group (`group.me.raddatz.sous`) so the extension
@@ -127,10 +127,10 @@ with it the iOS 27 SDK: regenerate the project, `swift test`, then build for the
 iOS Simulator and for macOS. Nothing is signed, so it
 needs no secrets. The repository is public, so a pull request can come from
 anyone — which is exactly why this does not run on a Mac of ours. Beside it, a
-Linux job checks that the bundled resources equal what `Data/` compiles to.
+Linux job checks that the bundled resources equal what `Community/` compiles to.
 The catalog's own two workflows, [`compile-data.yml`](.github/workflows/compile-data.yml)
 and [`publish-data.yml`](.github/workflows/publish-data.yml), are described in
-[`Data/README.md`](Data/README.md).
+[`Community/README.md`](Community/README.md).
 
 [`release.yml`](.github/workflows/release.yml) archives the iOS and the macOS
 app and uploads both to TestFlight, on the same hosted image. It is started by
@@ -180,9 +180,9 @@ The bundled food data is derived mostly from the **Bundeslebensmittelschlüssel
 (BLS) 4.0**, published by the Max Rubner-Institut under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), and for foods it does
 not list from Ciqual (Anses, Licence Ouverte 2.0), USDA FoodData Central (CC0)
-and product labels. Every source is registered in `Data/sources/`, travels with
+and product labels. Every source is registered in `Community/sources/`, travels with
 the data set as `sources.json`, and is shown on the settings' "Datenquellen"
-page; every row names its source under the ingredient. See `Data/NOTICE`.
+page; every row names its source under the ingredient. See `Community/NOTICE`.
 
 `PRIVACY.md` is the privacy policy the App Store listing points at.
 
